@@ -1,0 +1,5 @@
+grpc:
+  server:
+    host: 127.0.0.1:65533
+  client:
+    host: 127.0.0.1:65534
