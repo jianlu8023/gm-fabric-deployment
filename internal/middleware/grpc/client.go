@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/proto/message"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -23,6 +24,7 @@ type ClientControl struct {
 	gClient *grpc.ClientConn
 	mClient message.MessageServiceClient
 	ctx     context.Context
+	logger  *zap.SugaredLogger
 }
 
 type customCredential struct{}
@@ -74,7 +76,8 @@ func genClientTlsConfig(clientConfig *config.GrpcClientConfig) (*tls.Config, err
 	}, nil
 }
 
-func NewClientControl(clientConfig *config.GrpcClientConfig) (*ClientControl, error) {
+func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.SugaredLogger) (*ClientControl, error) {
+	logger.Infof("start new grpc client control...")
 	var gClient *grpc.ClientConn
 	var err error
 
@@ -84,12 +87,13 @@ func NewClientControl(clientConfig *config.GrpcClientConfig) (*ClientControl, er
 	}
 
 	if clientConfig.TlsEnabled {
-		fmt.Printf("gen tls client server...\n")
+		logger.Debugf("gen tls client server...")
+
 		var transportCredentials credentials.TransportCredentials
 		transportCredentials, err = credentials.NewClientTLSFromFile(clientConfig.TlsRCACertFile,
 			"grpc")
 		if err != nil {
-			fmt.Printf("gen transportCredentials err...\n")
+			logger.Errorf("gen transportCredentials err: %v", err)
 			return nil, err
 		}
 		opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
@@ -104,12 +108,16 @@ func NewClientControl(clientConfig *config.GrpcClientConfig) (*ClientControl, er
 		// opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 
 		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
+		if err != nil {
+			logger.Errorf("gen tls client err: %v", err)
+			return nil, err
+		}
 	} else {
-		fmt.Printf("gen no tls client server...\n")
+		logger.Debugf("gen no tls client server...")
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
 		if err != nil {
-			fmt.Printf("gen no tls client server err...\n")
+			logger.Errorf("gen no tls client server err: %v", err)
 			return nil, err
 		}
 	}
@@ -120,21 +128,21 @@ func NewClientControl(clientConfig *config.GrpcClientConfig) (*ClientControl, er
 		gClient: gClient,
 		mClient: mClient,
 		ctx:     ctx,
+		logger:  logger,
 	}, nil
 
 }
 
 func (c *ClientControl) Stop() error {
+	c.logger.Infof("grpc client stop...")
 	_, _ = c.SendMessage(&message.BaseRequest{
 		MessageType: "base/shutdown",
 		ClientId:    c.Config.Host,
 	})
 
 	defer func() {
-
-		fmt.Printf("grpc client stop...\n")
 		if err := c.gClient.Close(); err != nil {
-			fmt.Printf("close client err: %v\n", err)
+			c.logger.Errorf("grpc client close err: %v", err)
 		}
 	}()
 
@@ -142,6 +150,7 @@ func (c *ClientControl) Stop() error {
 }
 
 func (c *ClientControl) SendMessage(req *message.BaseRequest) (*message.BaseResponse, error) {
+	c.logger.Debugf("grpc client send message messageType %v", req.MessageType)
 	return c.SendMessageBidi(req, 0)
 }
 

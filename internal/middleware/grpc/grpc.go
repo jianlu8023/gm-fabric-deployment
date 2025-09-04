@@ -3,8 +3,10 @@ package grpc
 import (
 	"context"
 	"fmt"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/proto/message"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	"go.uber.org/zap"
 	"os"
 )
 
@@ -12,44 +14,48 @@ type Control struct {
 	server *ServerControl
 	client *ClientControl
 	config *config.GrpcConfig
+	logger *zap.SugaredLogger
 }
 
-func NewGrpcControl(grpcConfig *config.GrpcConfig) (*Control, error) {
-	serverControl, err := NewServerControl(grpcConfig.Server)
+func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *mylogger.Control) (*Control, error) {
+	grpcLogger := loggerControl.GenLogger(mylogger.ModuleGrpc)
+	grpcLogger.Infof("starting new grpc control...")
+	serverControl, err := NewServerControl(grpcConfig.Server, grpcLogger)
 	if err != nil {
-		fmt.Printf("new server control err: %v\n", err)
+		grpcLogger.Errorf("new grpc server control err: %v", err)
 		return nil, err
 	}
 	if err = serverControl.SetUp(func(err error) {
-		fmt.Printf("failedHandle grpc server start err: %v\n", err)
+		grpcLogger.Errorf("failedFunc grpc server start err: %v", err)
 		os.Exit(1)
 	}); err != nil {
-		fmt.Printf("grpc server start err: %v\n", err)
+		grpcLogger.Errorf("grpc server start err: %v", err)
 		return nil, err
 	}
 
-	clientControl, err := NewClientControl(grpcConfig.Client)
+	clientControl, err := NewClientControl(grpcConfig.Client, grpcLogger)
 	if err != nil {
-		fmt.Printf("new client control err: %v\n", err)
+		grpcLogger.Errorf("new grpc client control err: %v", err)
 		return nil, err
 	}
 
+	grpcLogger.Infof("grpc control started...")
 	control := &Control{
 		config: grpcConfig,
 		server: serverControl,
 		client: clientControl,
+		logger: grpcLogger,
 	}
 
 	control.RegisterHandler("base/shutdown", func(ctx context.Context, in *message.BaseRequest) (*message.BaseResponse, error) {
-		fmt.Printf("base/shutdown bye \n")
+		control.logger.Debugf("base/shutdown finish...")
 		return &message.BaseResponse{
 			Message:      []byte("success"),
 			ResponseCode: 200,
 		}, nil
 	})
 	control.RegisterHandler("base/ping", func(ctx context.Context, in *message.BaseRequest) (*message.BaseResponse, error) {
-		fmt.Printf("base/ping success\n")
-
+		control.logger.Debugf("base/ping finish...")
 		return &message.BaseResponse{
 			Message:      []byte("pong"),
 			ResponseCode: 200,
@@ -57,12 +63,15 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig) (*Control, error) {
 
 	})
 
-	for handlerName, _ := range control.server.mServer.handler.handlerMap {
-		fmt.Printf("register handler %v\n", handlerName)
-	}
+	control.printHandlers()
 
 	return control, nil
+}
 
+func (c *Control) printHandlers() {
+	for handlerName, _ := range c.server.mServer.handler.handlerMap {
+		c.logger.Debugf("register handler %v", handlerName)
+	}
 }
 
 func (c *Control) ClientState() (bool, string) {
@@ -79,7 +88,7 @@ func (c *Control) ClientState() (bool, string) {
 }
 
 func (c *Control) Call(req *message.BaseRequest) (*message.BaseResponse, error) {
-	fmt.Printf("call messageType %v\n", req.MessageType)
+	c.logger.Debugf("call messageType %v", req.MessageType)
 	return c.client.SendMessage(req)
 }
 

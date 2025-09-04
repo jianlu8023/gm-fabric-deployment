@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/middleware/grpc"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/proto/message"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
@@ -14,7 +15,22 @@ import (
 func main() {
 
 	fmt.Println("client")
+	loggerConfig := &config.LoggerConfig{
+		DefaultLogLevel: "debug",
+		PrintFormat:     "console",
+		FilePath:        "./logs/app.log",
+		MaxAge:          7,
+		RotationTime:    3,
+		LoggerLevel: map[string]string{
+			"main": "info",
+			"grpc": "debug",
+		},
+	}
 
+	loggerControl := mylogger.NewLoggerControl(loggerConfig)
+	mainLogger := loggerControl.GenLogger("main")
+
+	mainLogger.Infof("starting grpc server...")
 	grpcConfig := &config.GrpcConfig{
 		Server: &config.GrpcServerConfig{
 			Host:           "127.0.0.1:65533",
@@ -38,7 +54,7 @@ func main() {
 			TlsRCACertFile:     "./certs/root-ca.crt",
 		},
 	}
-	control, err := grpc.NewGrpcControl(grpcConfig)
+	control, err := grpc.NewGrpcControl(grpcConfig, loggerControl)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -55,15 +71,14 @@ func main() {
 				MessageType: "base/ping",
 			})
 			if err != nil {
-				fmt.Printf("ping error %v\n", err)
+				mainLogger.Errorf("send ping message err: %v", err)
 			} else {
-
-				fmt.Printf("ping result %v\n", response)
+				mainLogger.Debugf("send ping message success %v", response)
 			}
 		}
 	}()
 
 	<-quit
-	fmt.Println("server stop")
+	mainLogger.Infof("received shutdown signal...")
 
 }

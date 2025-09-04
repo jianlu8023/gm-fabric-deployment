@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/proto/message"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"io"
@@ -35,6 +36,7 @@ type server struct {
 	message.UnimplementedMessageServiceServer
 	handler      *MessageHandler
 	serverConfig *config.GrpcServerConfig
+	logger       *zap.SugaredLogger
 }
 
 func (s *server) SendMessageBidi(stream message.MessageService_SendMessageBidiServer) error {
@@ -192,6 +194,7 @@ type ServerControl struct {
 	Config  *config.GrpcServerConfig
 	gServer *grpc.Server
 	mServer *server
+	logger  *zap.SugaredLogger
 }
 
 func genServerTlsConfig(serverConfig *config.GrpcServerConfig) (*tls.Config, error) {
@@ -216,18 +219,19 @@ func genServerTlsConfig(serverConfig *config.GrpcServerConfig) (*tls.Config, err
 	}, nil
 }
 
-func NewServerControl(serverConfig *config.GrpcServerConfig) (*ServerControl, error) {
+func NewServerControl(serverConfig *config.GrpcServerConfig, logger *zap.SugaredLogger) (*ServerControl, error) {
+	logger.Infof("start new server control...")
 	var gServer *grpc.Server
 	opts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(serverConfig.MaxRecvMsgSize),
 		grpc.MaxSendMsgSize(serverConfig.MaxSendMsgSize),
 	}
 	if serverConfig.TlsEnabled {
-		fmt.Printf("gen tls grpc server...\n")
+		logger.Debugf("gen tls grpc server...")
 
 		transportCredentials, err := credentials.NewServerTLSFromFile(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
 		if err != nil {
-			fmt.Printf("gen transportCredentials err...\n")
+			logger.Errorf("gen transportCredentials err: %v", err)
 			return nil, err
 		}
 		opts = append(opts, grpc.Creds(transportCredentials))
@@ -242,7 +246,7 @@ func NewServerControl(serverConfig *config.GrpcServerConfig) (*ServerControl, er
 
 		gServer = grpc.NewServer(opts...)
 	} else {
-		fmt.Printf("gen no tls grpc server...\n")
+		logger.Debugf("gen no tls grpc server...")
 		gServer = grpc.NewServer(opts...)
 	}
 
@@ -251,6 +255,7 @@ func NewServerControl(serverConfig *config.GrpcServerConfig) (*ServerControl, er
 			handlerMap: make(map[string]func(ctx context.Context, in *message.BaseRequest) (*message.BaseResponse, error)),
 		},
 		serverConfig: serverConfig,
+		logger:       logger,
 	}
 
 	message.RegisterMessageServiceServer(gServer, messageServer)
@@ -258,11 +263,12 @@ func NewServerControl(serverConfig *config.GrpcServerConfig) (*ServerControl, er
 		Config:  serverConfig,
 		gServer: gServer,
 		mServer: messageServer,
+		logger:  logger,
 	}, nil
 }
 
 func (s *ServerControl) SetUp(failedFunc func(err error)) error {
-	fmt.Printf("start grpc server on %v\n", s.Config.Host)
+	s.logger.Infof("start grpc server on %v", s.Config.Host)
 	listen, err := net.Listen("tcp", s.Config.Host)
 	if err != nil {
 		return err
@@ -277,11 +283,11 @@ func (s *ServerControl) SetUp(failedFunc func(err error)) error {
 }
 
 func (s *ServerControl) Stop() {
-	fmt.Printf("grpc server stop...\n")
+	s.logger.Infof("grpc server stop...")
 	s.gServer.Stop()
 }
 
 func (s *ServerControl) GracefulStop() {
-	fmt.Printf("grpc server graceful stop...\n")
+	s.logger.Infof("grpc server graceful stop...")
 	s.gServer.GracefulStop()
 }
