@@ -46,6 +46,7 @@ message Chunk {
   int32 seq = 3;  // 序号（可用于校验）
   bool last = 4;  // 本方向最后一块
   
+  //  oneof 控制data meta 只能有一个存在
   oneof payload {
     bytes data = 5; // 普通数据分片
     Meta meta = 6;  // meta 控制块（通常用于服务端先发送响应状态）

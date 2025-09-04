@@ -1,5 +1,19 @@
 grpc:
   server:
     host: 127.0.0.1:65533
+    max_recv_msg_size: 5242880
+    max_send_msg_size: 5242880  # 5MB
+    chunk_size: 4194304  # 4MB - 和python一致
+    tls_enabled: true
+    tls_cert_file: ./certs/gserver.pem
+    tls_key_file: ./certs/gserver.key
   client:
     host: 127.0.0.1:65534
+    max_call_recv_msg_size: 5242880  # 5MB
+    max_call_send_msg_size: 5242880  # 5MB
+    chunk_size: 4194304  # 4MB - 和python一致
+    call_timeout: 99999  # 99999min - 和python一致
+    tls_enabled: true
+    tls_cert_file: ./certs/gclient.pem
+    tls_key_file: ./certs/gclient.key
+    tls_rca_cert_file: ./certs/rca.crt
