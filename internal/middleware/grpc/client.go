@@ -85,23 +85,23 @@ func NewClientControl(clientConfig *config.GrpcClientConfig) (*ClientControl, er
 
 	if clientConfig.TlsEnabled {
 		fmt.Printf("gen tls client server...\n")
-		// var transportCredentials credentials.TransportCredentials
-		// transportCredentials, err = credentials.NewClientTLSFromFile(clientConfig.TlsRCACertFile,
-		// 	"grpc.example.com")
-		// if err != nil {
-		// 	fmt.Printf("gen transportCredentials err...\n")
-		// 	return nil, err
-		// }
-		// opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
-		// opts = append(opts, grpc.WithPerRPCCredentials(new(customCredential)))
-
-		clientTlsConfig, err := genClientTlsConfig(clientConfig)
+		var transportCredentials credentials.TransportCredentials
+		transportCredentials, err = credentials.NewClientTLSFromFile(clientConfig.TlsRCACertFile,
+			"grpc")
 		if err != nil {
-			fmt.Printf("gen client tls config err: %v\n", err)
+			fmt.Printf("gen transportCredentials err...\n")
 			return nil, err
 		}
-		transportCredentials := credentials.NewTLS(clientTlsConfig)
 		opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
+		// opts = append(opts, grpc.WithPerRPCCredentials(new(customCredential)))
+
+		// clientTlsConfig, err := genClientTlsConfig(clientConfig)
+		// if err != nil {
+		// 	fmt.Printf("gen client tls config err: %v\n", err)
+		// 	return nil, err
+		// }
+		// transportCredentials := credentials.NewTLS(clientTlsConfig)
+		// opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 
 		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
 	} else {

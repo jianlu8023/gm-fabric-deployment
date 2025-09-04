@@ -224,19 +224,21 @@ func NewServerControl(serverConfig *config.GrpcServerConfig) (*ServerControl, er
 	}
 	if serverConfig.TlsEnabled {
 		fmt.Printf("gen tls grpc server...\n")
-		// transportCredentials, err := credentials.NewServerTLSFromFile(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
-		// if err != nil {
-		// 	fmt.Printf("gen transportCredentials err...\n")
-		// 	return nil, err
-		// }
-		// opts = append(opts, grpc.Creds(transportCredentials))
-		serverTlsConfig, err := genServerTlsConfig(serverConfig)
+
+		transportCredentials, err := credentials.NewServerTLSFromFile(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
 		if err != nil {
-			fmt.Printf("gen serverTlsConfig err: %v\n", err)
+			fmt.Printf("gen transportCredentials err...\n")
 			return nil, err
 		}
-		transportCredentials := credentials.NewTLS(serverTlsConfig)
 		opts = append(opts, grpc.Creds(transportCredentials))
+
+		// serverTlsConfig, err := genServerTlsConfig(serverConfig)
+		// if err != nil {
+		// 	fmt.Printf("gen serverTlsConfig err: %v\n", err)
+		// 	return nil, err
+		// }
+		// transportCredentials := credentials.NewTLS(serverTlsConfig)
+		// opts = append(opts, grpc.Creds(transportCredentials))
 
 		gServer = grpc.NewServer(opts...)
 	} else {
