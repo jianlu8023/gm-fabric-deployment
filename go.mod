@@ -6,7 +6,7 @@ toolchain go1.22.10
 
 require (
 	github.com/gin-gonic/gin v1.10.1
-	github.com/jianlu8023/go-logger/v2 v2.0.0-20241227042024-dbe3034b87ab
+	github.com/jianlu8023/go-logger/v2 v2.0.0-20250904133743-79df10a8ff0d
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.2
