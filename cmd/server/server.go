@@ -7,21 +7,32 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/internal/middleware/grpc"
 	myhttp "github.com/jianlu8023/gm-fabric-deployment/internal/middleware/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/pidfile"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-func main() {
-	fmt.Println("server")
+var (
+	version string
+)
 
+func main() {
+	fmt.Printf("start server version %s\n", version)
+	if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
+		fmt.Printf("generate pid file failed: %v\n", err)
+		return
+	}
+	defer func() {
+		pidfile.ReleasePID()
+	}()
 	loggerConfig := &config.LoggerConfig{
 		DefaultLogLevel: "debug",
 		PrintFormat:     "console",
 		FilePath:        "./logs/app.log",
 		MaxAge:          7,
-		RotationTime:    3,
+		RotationTime:    1,
 		LoggerLevel: map[string]string{
 			"main": "info",
 			"grpc": "debug",
