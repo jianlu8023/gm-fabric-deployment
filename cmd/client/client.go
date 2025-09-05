@@ -28,19 +28,13 @@ func main() {
 	defer func() {
 		pidfile.ReleasePID()
 	}()
-	loggerConfig := &config.LoggerConfig{
-		DefaultLogLevel: "debug",
-		PrintFormat:     "console",
-		FilePath:        "./logs/app.log",
-		MaxAge:          7,
-		RotationTime:    1,
-		LoggerLevel: map[string]string{
-			"main": "info",
-			"grpc": "debug",
-		},
+	configControl, err := config.NewConfigControl()
+	if err != nil {
+		fmt.Printf("load config failed: %v\n", err)
+		return
 	}
 
-	loggerControl := mylogger.NewLoggerControl(loggerConfig)
+	loggerControl := mylogger.NewLoggerControl(configControl.Config.LoggerConfig)
 	mainLogger := loggerControl.GenLogger("main")
 
 	mainLogger.Infof("starting grpc server...")
