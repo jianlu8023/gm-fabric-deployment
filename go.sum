@@ -205,8 +205,8 @@ github.com/hashicorp/memberlist v0.2.2/go.mod h1:MS2lj3INKhZjWNqd3N0m3J+Jxf3DAOn
 github.com/hashicorp/serf v0.9.5/go.mod h1:UWDWwZeL5cuWDJdl0C6wrvrUwEqtQ4ZKBKKENpqIUyk=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
-github.com/jianlu8023/go-logger/v2 v2.0.0-20250904133743-79df10a8ff0d h1:tucZOsqmemur5MZppKVb4+d9zqn8EvJMmr4GCyxFwkk=
-github.com/jianlu8023/go-logger/v2 v2.0.0-20250904133743-79df10a8ff0d/go.mod h1:H61dRpB06Z+rB39mCjAf/PcciYYqU2pEuFvFpqfTyi0=
+github.com/jianlu8023/go-logger/v2 v2.0.0-20250905080011-cc2c7be6a78e h1:CrPzivXm2Sz0c5EwPK3AC1ePWTlYVE0YnD7fOT76v6Y=
+github.com/jianlu8023/go-logger/v2 v2.0.0-20250905080011-cc2c7be6a78e/go.mod h1:H61dRpB06Z+rB39mCjAf/PcciYYqU2pEuFvFpqfTyi0=
 github.com/jianlu8023/go-tools v1.0.3 h1:/jTz37S1d7SK0D7Jg2ZLXjANMltbCBRI4d81oV95O/Q=
 github.com/jianlu8023/go-tools v1.0.3/go.mod h1:D7UFAylMji1OLzGoIZR+9D/wMT+2mOiKB6xa1YbsJ2Q=
 github.com/jonboulle/clockwork v0.4.0 h1:p4Cf1aMWXnXAUh8lVfewRBx1zaTSYKrKMF2g3ST4RZ4=

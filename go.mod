@@ -6,7 +6,7 @@ toolchain go1.22.10
 
 require (
 	github.com/gin-gonic/gin v1.10.1
-	github.com/jianlu8023/go-logger/v2 v2.0.0-20250904133743-79df10a8ff0d
+	github.com/jianlu8023/go-logger/v2 v2.0.0-20250905080011-cc2c7be6a78e
 	github.com/spf13/viper v1.9.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/grpc v1.64.0

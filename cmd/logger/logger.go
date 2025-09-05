@@ -13,7 +13,7 @@ func main() {
 		MaxAge:          7,
 		RotationTime:    3,
 		LoggerLevel: map[string]string{
-			"main": "info",
+			"main": "debug",
 			"grpc": "debug",
 		},
 	}
@@ -23,5 +23,9 @@ func main() {
 	logger := loggerControl.GenLogger("main")
 
 	logger.Infof("info logger")
+	logger.Debugf("debug logger")
+	logger.Warnf("warn logger")
+	logger.Errorf("error logger")
+	logger.Fatalf("fatal logger")
 
 }
