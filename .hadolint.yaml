@@ -1,0 +1,39 @@
+# Hadolint configuration for Kubo Docker image
+# https://github.com/hadolint/hadolint
+
+#failure-threshold: string               # name of threshold level (error | warning | info | style | ignore | none)
+#format: string                          # Output format (tty | json | checkstyle | codeclimate | gitlab_codeclimate | gnu | codacy)
+#ignored: [string]                       # list of rules
+#label-schema:                           # See Linting Labels below for specific label-schema details
+#  author: string                        # Your name
+#  contact: string                       # email address
+#  created: timestamp                    # rfc3339 datetime
+#  version: string                       # semver
+#  documentation: string                 # url
+#  git-revision: string                  # hash
+#  license: string                       # spdx
+#no-color: boolean                       # true | false
+#no-fail: boolean                        # true | false
+#override:
+#  error: [string]                       # list of rules
+#  warning: [string]                     # list of rules
+#  info: [string]                        # list of rules
+#  style: [string]                       # list of rules
+#strict-labels: boolean                  # true | false
+#disable-ignore-pragma: boolean          # true | false
+#trustedRegistries: string | [string]    # registry or list of registries
+
+no-color: false
+
+format: json
+
+# Ignore specific rules
+ignored:
+  # DL3008: Pin versions in apt-get install
+  # We use stable base images and prefer smaller layers over version pinning
+  - DL3008
+
+# Trust base images from these registries
+trustedRegistries:
+  - docker.io
+  - gcr.io

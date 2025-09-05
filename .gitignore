@@ -10,3 +10,7 @@ logs
 ### binary files ###
 server.bin
 client.bin
+
+### build files ###
+server.latest
+client.latest
