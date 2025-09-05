@@ -69,3 +69,9 @@ func (g GrpcConfig) String() string {
 	bytes, _ := json.MarshalIndent(g, " ", "  ")
 	return string(bytes)
 }
+
+type Config struct {
+	GrpcConfig   *GrpcConfig       `json:"grpc_config" yaml:"grpc_config" mapstructure:"grpc"`
+	LoggerConfig *LoggerConfig     `json:"logger_config" yaml:"logger_config" mapstructure:"logger"`
+	HttpConfig   *HttpServerConfig `json:"http_config" yaml:"http_config" mapstructure:"http"`
+}
