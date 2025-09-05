@@ -2,25 +2,26 @@ package main
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
-	"github.com/spf13/viper"
 	"path/filepath"
 	"strings"
+
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	"github.com/spf13/viper"
 )
 
 func main() {
 
-	// if err := genDefaultConfig(); err != nil {
-	// 	fmt.Printf("gen default config failed: %v\n", err)
-	// 	return
-	// }
+	if err := genDefaultConfig(); err != nil {
+		fmt.Printf("gen default config failed: %v\n", err)
+		return
+	}
 
 	loadConfig, err := config.NewConfigControl()
 	if err != nil {
 		fmt.Printf("load config failed: %v\n", err)
 		return
 	}
-	fmt.Println(loadConfig.Config)
+	fmt.Println(loadConfig.GetConfig())
 }
 
 func genDefaultConfig() error {
@@ -68,6 +69,11 @@ func genDefaultConfig() error {
 			TlsCertFile: "./certs/hserver.crt",
 			TlsKeyFile:  "./certs/hserver.key",
 		},
+		Libp2pConfig: &config.Libp2pConfig{
+			ListenAddr: "/ip4/127.0.0.1/tcp/2000", // 监听所有接口的2000端口
+			ProtocolID: "/gm-fabric/chat/1.0.0",   // 自定义协议ID
+			ServiceTag: "gm-fabric-deployment",
+		},
 	}
 
 	if err := saveConfig(cfg, "configs/default.yaml"); err != nil {
@@ -77,7 +83,7 @@ func genDefaultConfig() error {
 	return nil
 }
 
-// saveConfig 将 Config 结构体写回到配置文件
+// saveConfig 将 config 结构体写回到配置文件
 func saveConfig(cfg config.Config, configPath string) error {
 	// 获取配置文件名（不包含扩展名）
 	fileName := filepath.Base(configPath)
@@ -93,6 +99,7 @@ func saveConfig(cfg config.Config, configPath string) error {
 	viper.Set("grpc", cfg.GrpcConfig)
 	viper.Set("logger", cfg.LoggerConfig)
 	viper.Set("http", cfg.HttpConfig)
+	viper.Set("libp2p", cfg.Libp2pConfig)
 
 	// 写入配置文件
 	err := viper.WriteConfigAs(configPath)

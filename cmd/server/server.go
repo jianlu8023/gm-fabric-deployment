@@ -3,15 +3,16 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
 	mylogger "github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/middleware/grpc"
 	myhttp "github.com/jianlu8023/gm-fabric-deployment/internal/middleware/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/pidfile"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 var (
@@ -33,7 +34,7 @@ func main() {
 		return
 	}
 
-	loggerControl := mylogger.NewLoggerControl(configControl.Config.LoggerConfig)
+	loggerControl := mylogger.NewLoggerControl(configControl.GetConfig().LoggerConfig)
 	mainLogger := loggerControl.GenLogger("main")
 
 	mainLogger.Infof("starting grpc server...")
@@ -41,7 +42,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	control, err := grpc.NewGrpcControl(configControl.Config.GrpcConfig, loggerControl)
+	control, err := grpc.NewGrpcControl(configControl.GetConfig().GrpcConfig, loggerControl)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -50,7 +51,7 @@ func main() {
 
 	mainLogger.Infof("starting http server...")
 
-	httpControl := myhttp.NewServerControl(configControl.Config.HttpConfig, loggerControl)
+	httpControl := myhttp.NewServerControl(configControl.GetConfig().HttpConfig, loggerControl)
 
 	httpControl.StartUp(func(err error) {
 		if !errors.Is(err, http.ErrServerClosed) {

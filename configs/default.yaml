@@ -25,6 +25,10 @@ http:
   tls_enabled: true
   tls_cert_file: ./certs/hserver.crt
   tls_key_file: ./certs/hserver.key
+libp2p:
+  listen_addr: /ip4/127.0.0.1/tcp/2000
+  protocol_id: /gm-fabric/chat/1.0.0
+  service_tag: gm-fabric-deployment
 logger:
   default_log_level: debug
   print_format: console

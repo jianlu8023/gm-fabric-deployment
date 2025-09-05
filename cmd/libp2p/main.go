@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 
-	loggerControl := logger.NewLoggerControl(configControl.Config.LoggerConfig)
+	loggerControl := logger.NewLoggerControl(configControl.GetConfig().LoggerConfig)
 
 	mainLogger := loggerControl.GenLogger("main")
 

@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	mylogger "github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/middleware/grpc"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/proto/message"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/pidfile"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 var (
@@ -34,7 +35,7 @@ func main() {
 		return
 	}
 
-	loggerControl := mylogger.NewLoggerControl(configControl.Config.LoggerConfig)
+	loggerControl := mylogger.NewLoggerControl(configControl.GetConfig().LoggerConfig)
 	mainLogger := loggerControl.GenLogger("main")
 
 	mainLogger.Infof("starting grpc server...")

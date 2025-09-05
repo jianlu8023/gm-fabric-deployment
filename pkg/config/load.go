@@ -3,15 +3,28 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/spf13/viper"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/spf13/viper"
 )
 
 type Control struct {
-	Config *Config
+	config *Config
 	sync.RWMutex
+}
+
+func (c *Control) printConfig() {
+	c.RLock()
+	defer c.RUnlock()
+	fmt.Printf("Config:%v\n", c.config)
+}
+
+func (c *Control) GetConfig() *Config {
+	c.RLock()
+	defer c.RUnlock()
+	return c.config
 }
 
 func (c *Control) Flush() error {
@@ -21,7 +34,7 @@ func (c *Control) Flush() error {
 	if err != nil {
 		return err
 	}
-	c.Config = &newConfig
+	c.config = &newConfig
 	return nil
 }
 
@@ -91,7 +104,11 @@ func NewConfigControl() (*Control, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Control{
-		Config: &config,
-	}, nil
+	ctr := &Control{
+		config: &config,
+	}
+
+	ctr.printConfig()
+
+	return ctr, nil
 }
