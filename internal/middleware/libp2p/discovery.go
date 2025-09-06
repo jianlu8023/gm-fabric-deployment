@@ -2,22 +2,28 @@ package libp2p
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
+	"github.com/ipfs/go-cid"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	"github.com/multiformats/go-multiaddr"
 	"go.uber.org/zap"
 )
 
-// DiscoveryService 局域网节点发现服务
+// DiscoveryService 节点发现服务
 type DiscoveryService struct {
-	ctx        context.Context
-	host       host.Host
-	logger     *zap.SugaredLogger
+	ctx    context.Context
+	host   host.Host
+	logger *zap.SugaredLogger
+
 	serviceTag string
-	// mdns       *mdns.mdnsService
 
 	// 发现到的节点
 	peers      map[peer.ID]struct{}
@@ -25,17 +31,29 @@ type DiscoveryService struct {
 
 	// 发现结果回调
 	onPeerFound func(peer.ID, peer.AddrInfo)
+
+	// bootstrap节点列表
+	bootstrapPeers map[peer.ID]struct{}
+	bootstrapMutex sync.RWMutex
+
+	// DHT服务
+	dht *dht.IpfsDHT
+
+	// 配置
+	libp2pConfig *config.Libp2pConfig
 }
 
 // newDiscoveryService 创建一个新的节点发现服务
-func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string, logger *zap.SugaredLogger) (*DiscoveryService, error) {
+func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string, logger *zap.SugaredLogger, libp2pConfig *config.Libp2pConfig) (*DiscoveryService, error) {
 	logger.Infof("creating discovery service...")
 	ds := &DiscoveryService{
-		ctx:        ctx,
-		host:       host,
-		logger:     logger,
-		serviceTag: serviceTag,
-		peers:      make(map[peer.ID]struct{}),
+		ctx:            ctx,
+		host:           host,
+		logger:         logger,
+		serviceTag:     serviceTag,
+		peers:          make(map[peer.ID]struct{}),
+		bootstrapPeers: make(map[peer.ID]struct{}),
+		libp2pConfig:   libp2pConfig,
 		onPeerFound: func(id peer.ID, info peer.AddrInfo) {
 			// 默认回调，只是记录日志
 			logger.Debugf("discovered peer: %s", id)
@@ -66,6 +84,189 @@ func (ds *DiscoveryService) Start() error {
 	return nil
 }
 
+// InitDHT 初始化DHT服务
+func (ds *DiscoveryService) InitDHT() error {
+	ds.logger.Infof("initializing DHT service...")
+	dhtOpts := []dht.Option{
+		dht.Mode(dht.ModeServer),
+		// dht.BootstrapPeers(),
+	}
+
+	// 如果有bootstrap节点，添加到DHT选项中
+	var bootstrapAddrInfos []peer.AddrInfo
+	if len(ds.libp2pConfig.BootstrapList) > 0 {
+		for _, addrStr := range ds.libp2pConfig.BootstrapList {
+			maddr, err := multiaddr.NewMultiaddr(addrStr)
+			if err != nil {
+				ds.logger.Warnf("failed to parse bootstrap address %s: %v", addrStr, err)
+				continue
+			}
+
+			info, err := peer.AddrInfoFromP2pAddr(maddr)
+			if err != nil {
+				ds.logger.Warnf("failed to parse peer info from %s: %v", addrStr, err)
+				continue
+			}
+			bootstrapAddrInfos = append(bootstrapAddrInfos, *info)
+		}
+
+		if len(bootstrapAddrInfos) > 0 {
+			dhtOpts = append(dhtOpts, dht.BootstrapPeers(bootstrapAddrInfos...))
+		}
+	} else {
+		dhtOpts = append(dhtOpts, dht.BootstrapPeers())
+	}
+
+	// 创建DHT服务
+	ds.logger.Infof("host %v", ds.host)
+	ds.logger.Infof("ctx %v", ds.ctx)
+
+	dhtService, err := dht.New(ds.ctx, ds.host, dhtOpts...)
+	if err != nil {
+		ds.logger.Errorf("failed to create DHT service: %v", err)
+		return err
+	}
+
+	ds.dht = dhtService
+	ds.logger.Infof("DHT service initialized successfully")
+	return nil
+}
+
+// BootstrapDHT 引导DHT服务
+func (ds *DiscoveryService) BootstrapDHT() error {
+	if ds.dht == nil {
+		return fmt.Errorf("DHT service is not initialized")
+	}
+
+	ds.logger.Infof("bootstrapping DHT...")
+	if err := ds.dht.Bootstrap(ds.ctx); err != nil {
+		ds.logger.Errorf("failed to bootstrap DHT: %v", err)
+		return err
+	}
+	return nil
+}
+
+// ConnectBootstrapPeers 连接bootstrap节点列表中的所有节点
+func (ds *DiscoveryService) ConnectBootstrapPeers() {
+	if len(ds.libp2pConfig.BootstrapList) == 0 {
+		ds.logger.Infof("no bootstrap peers configured")
+		return
+	}
+
+	ds.logger.Infof("connecting to bootstrap peers, count: %d", len(ds.libp2pConfig.BootstrapList))
+
+	for _, addr := range ds.libp2pConfig.BootstrapList {
+		ds.logger.Debugf("connecting to bootstrap peer: %s", addr)
+		go func(addr string) {
+			// 解析multiaddr
+			maddr, err := multiaddr.NewMultiaddr(addr)
+			if err != nil {
+				ds.logger.Errorf("failed to parse multiaddr: %v", err)
+				return
+			}
+
+			// 解析peer信息
+			peerInfo, err := peer.AddrInfoFromP2pAddr(maddr)
+			if err != nil {
+				ds.logger.Errorf("failed to parse peer info: %v", err)
+				return
+			}
+
+			// 连接到节点
+			if err := ds.host.Connect(ds.ctx, *peerInfo); err != nil {
+				ds.logger.Errorf("failed to connect to bootstrap peer %s: %v", addr, err)
+				return
+			}
+
+			// 注册peer
+			ds.peersMutex.Lock()
+			ds.peers[peerInfo.ID] = struct{}{}
+			ds.peersMutex.Unlock()
+
+			// 添加到bootstrap节点列表
+			ds.bootstrapMutex.Lock()
+			ds.bootstrapPeers[peerInfo.ID] = struct{}{}
+			ds.bootstrapMutex.Unlock()
+
+			ds.logger.Infof("successfully connected to bootstrap peer: %s", peerInfo.ID)
+		}(addr)
+	}
+}
+
+// StartHealthCheck 启动节点健康检查
+func (ds *DiscoveryService) StartHealthCheck() {
+	ds.logger.Infof("starting peer health check...")
+	checkInterval := 60 * time.Second // 每分钟检查一次
+
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ds.ctx.Done():
+			ds.logger.Infof("stopping peer health check...")
+			return
+		case <-ticker.C:
+			ds.CheckPeersHealth()
+		}
+	}
+}
+
+// CheckPeersHealth 检查所有节点的健康状态
+func (ds *DiscoveryService) CheckPeersHealth() {
+	ds.logger.Debugf("checking peers health...")
+
+	// 检查当前连接的所有节点
+	ds.peersMutex.RLock()
+	peersCopy := make([]peer.ID, 0, len(ds.peers))
+	for peerID := range ds.peers {
+		peersCopy = append(peersCopy, peerID)
+	}
+	ds.peersMutex.RUnlock()
+
+	for _, peerID := range peersCopy {
+		go ds.CheckPeerHealth(peerID)
+	}
+}
+
+// CheckPeerHealth 检查单个节点的健康状态
+func (ds *DiscoveryService) CheckPeerHealth(peerID peer.ID) {
+	ds.logger.Debugf("checking health for peer %s", peerID)
+
+	// 检查连接状态
+	conn := ds.host.Network().Connectedness(peerID)
+	if conn != network.Connected {
+		ds.logger.Warnf("peer %s is not connected, removing...", peerID)
+
+		// 从节点列表中移除
+		ds.peersMutex.Lock()
+		delete(ds.peers, peerID)
+		ds.peersMutex.Unlock()
+
+		// 检查是否是bootstrap节点，如果是，则尝试重新连接
+		ds.bootstrapMutex.RLock()
+		_, isBootstrap := ds.bootstrapPeers[peerID]
+		ds.bootstrapMutex.RUnlock()
+
+		if isBootstrap {
+			ds.logger.Infof("peer %s is bootstrap node, will try to reconnect in next health check", peerID)
+		}
+	}
+}
+
+// GetBootstrapPeers 获取所有bootstrap节点
+func (ds *DiscoveryService) GetBootstrapPeers() []peer.ID {
+	ds.bootstrapMutex.RLock()
+	defer ds.bootstrapMutex.RUnlock()
+
+	peers := make([]peer.ID, 0, len(ds.bootstrapPeers))
+	for peerID := range ds.bootstrapPeers {
+		peers = append(peers, peerID)
+	}
+
+	return peers
+}
+
 // Stop 停止节点发现服务
 func (ds *DiscoveryService) Stop() error {
 	// if ds.mdns != nil {
@@ -74,8 +275,88 @@ func (ds *DiscoveryService) Stop() error {
 	// 		return err
 	// 	}
 	// }
+	// 关闭DHT服务
+	if ds.dht != nil {
+		ds.logger.Debugf("closing DHT service...")
+		if err := ds.dht.Close(); err != nil {
+			ds.logger.Errorf("failed to close DHT service: %v", err)
+		}
+	}
 	ds.logger.Infof("discovery service stopped...")
 	return nil
+}
+
+// FindPeer 使用DHT查找指定ID的节点
+func (ds *DiscoveryService) FindPeer(peerID peer.ID) (*peer.AddrInfo, error) {
+	if ds.dht == nil {
+		return nil, fmt.Errorf("DHT service is not initialized")
+	}
+
+	ds.logger.Infof("finding peer %s via DHT", peerID)
+	peerInfo, err := ds.dht.FindPeer(ds.ctx, peerID)
+	if err != nil {
+		ds.logger.Errorf("failed to find peer %s: %v", peerID, err)
+		return nil, err
+	}
+
+	ds.logger.Infof("found peer %s with %d addresses", peerID, len(peerInfo.Addrs))
+	return &peerInfo, nil
+}
+
+// GetDHTRoutingTableInfo 获取DHT路由表信息
+func (ds *DiscoveryService) GetDHTRoutingTableInfo() (int, error) {
+	if ds.dht == nil {
+		return 0, fmt.Errorf("DHT service is not initialized")
+	}
+
+	routingTable := ds.dht.RoutingTable()
+	peerCount := routingTable.Size()
+
+	ds.logger.Infof("DHT routing table contains %d peers", peerCount)
+	return peerCount, nil
+}
+
+// Provide 使用DHT提供数据索引
+func (ds *DiscoveryService) Provide(key string) error {
+	if ds.dht == nil {
+		return fmt.Errorf("DHT service is not initialized")
+	}
+
+	ds.logger.Infof("providing key %s to DHT", key)
+	cidKey, err := cid.Cast([]byte(key))
+	if err != nil {
+		return err
+	}
+	if err := ds.dht.Provide(ds.ctx, cidKey, true); err != nil {
+		ds.logger.Errorf("failed to provide key %s: %v", key, err)
+		return err
+	}
+
+	ds.logger.Infof("successfully provided key %s to DHT", key)
+	return nil
+}
+
+// FindProviders 使用DHT查找提供指定数据的节点
+func (ds *DiscoveryService) FindProviders(key string, count int) ([]peer.AddrInfo, error) {
+	if ds.dht == nil {
+		return nil, fmt.Errorf("DHT service is not initialized")
+	}
+
+	ds.logger.Infof("finding providers for key %s", key)
+
+	cidKey, err := cid.Cast([]byte(key))
+	if err != nil {
+		return nil, err
+	}
+	providers := ds.dht.FindProvidersAsync(ds.ctx, cidKey, count)
+
+	var result []peer.AddrInfo
+	for p := range providers {
+		result = append(result, p)
+	}
+
+	ds.logger.Infof("found %d providers for key %s", len(result), key)
+	return result, nil
 }
 
 // NotifyPeerFound 设置节点发现回调

@@ -26,9 +26,12 @@ func RunLibp2pExample(listenAddr string) error {
 
 	// 创建libp2p配置
 	libp2pConfig := &config.Libp2pConfig{
-		ListenAddr: listenAddr,              // 监听所有接口的2000端口
-		ProtocolID: "/gm-fabric/chat/1.0.0", // 自定义协议ID
-		ServiceTag: "gm-fabric-deployment",  // mdns serviceTag
+		ListenAddr:    listenAddr,              // 监听所有接口的2000端口
+		ProtocolID:    "/gm-fabric/chat/1.0.0", // 自定义协议ID
+		ServiceTag:    "gm-fabric-deployment",  // mdns serviceTag
+		BootstrapList: []string{
+			// "/ip4/127.0.0.1/tcp/2000",
+		},
 	}
 
 	// 创建libp2p控制器
