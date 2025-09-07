@@ -71,7 +71,7 @@ func (g GrpcConfig) String() string {
 }
 
 type Libp2pConfig struct {
-	ListenAddr    string   `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`
+	ListenAddr    []string `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`
 	ProtocolID    string   `json:"protocol_id,omitempty" yaml:"protocol_id,omitempty" mapstructure:"protocol_id"`
 	ServiceTag    string   `json:"service_tag,omitempty" yaml:"service_tag,omitempty" mapstructure:"service_tag"`
 	BootstrapList []string `json:"bootstrap_list,omitempty" yaml:"bootstrap_list,omitempty" mapstructure:"bootstrap_list"`

@@ -57,8 +57,9 @@ func genDefaultConfig() error {
 			MaxAge:          7,
 			RotationTime:    1,
 			LoggerLevel: map[string]string{
-				"main": "info",
-				"grpc": "debug",
+				"main":   "info",
+				"grpc":   "debug",
+				"libp2p": "info",
 			},
 		},
 		HttpConfig: &config.HttpServerConfig{
@@ -70,9 +71,16 @@ func genDefaultConfig() error {
 			TlsKeyFile:  "./certs/hserver.key",
 		},
 		Libp2pConfig: &config.Libp2pConfig{
-			ListenAddr: "/ip4/127.0.0.1/tcp/2000", // 监听所有接口的2000端口
-			ProtocolID: "/gm-fabric/chat/1.0.0",   // 自定义协议ID
-			ServiceTag: "gm-fabric-deployment",
+			ListenAddr: []string{
+				"/ip4/0.0.0.0/tcp/2000",
+				"/ip6/::1/tcp/2000",
+				"/ip4/0.0.0.0/udp/2000/quic",
+			}, // 监听所有接口的2000端口
+			ProtocolID:    "/gm-fabric/chat/1.0.0", // 自定义协议ID
+			ServiceTag:    "gm-fabric-deployment",
+			BootstrapList: []string{
+				// "/ip4/127.0.0.1/tcp/2000/p2p/12D3KooWAiFrSLkqdaz4KC423i7ZgRks8xjrR1CbjnjJ39f8V1f6",
+			},
 		},
 	}
 

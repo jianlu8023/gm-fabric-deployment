@@ -26,9 +26,17 @@ http:
   tls_cert_file: ./certs/hserver.crt
   tls_key_file: ./certs/hserver.key
 libp2p:
-  listen_addr: /ip4/127.0.0.1/tcp/2000
+  listen_addr:
+    - /ip4/0.0.0.0/tcp/2000
+    - /ip6/::1/tcp/2000
+    - /ip4/0.0.0.0/udp/2000/quic-v1
+    - /ip4/127.0.0.1/udp/2000/quic-v1
+    - /ip4/0.0.0.0/udp/2000/quic-v1/webtransport
+    - /ip4/0.0.0.0/udp/2000/webrtc-direct
   protocol_id: /gm-fabric/chat/1.0.0
   service_tag: gm-fabric-deployment
+  bootstrap_list:
+
 logger:
   default_log_level: debug
   print_format: console
@@ -37,4 +45,4 @@ logger:
   rotation_time: 1
   logger_level:
     grpc: debug
-    main: info
+    libp2p: info

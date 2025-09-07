@@ -27,6 +27,30 @@ func (c *Control) GetConfig() *Config {
 	return c.config
 }
 
+func (c *Control) GetLoggerConfig() *LoggerConfig {
+	c.RLock()
+	defer c.RUnlock()
+	return c.config.LoggerConfig
+}
+
+func (c *Control) GetWebConfig() *HttpServerConfig {
+	c.RLock()
+	defer c.RUnlock()
+	return c.config.HttpConfig
+}
+
+func (c *Control) GetGrpcConfig() *GrpcConfig {
+	c.RLock()
+	defer c.RUnlock()
+	return c.config.GrpcConfig
+}
+
+func (c *Control) GetLibp2pConfig() *Libp2pConfig {
+	c.RLock()
+	defer c.RUnlock()
+	return c.config.Libp2pConfig
+}
+
 func (c *Control) Flush() error {
 	c.Lock()
 	defer c.Unlock()

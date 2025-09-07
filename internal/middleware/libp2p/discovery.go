@@ -45,7 +45,7 @@ type DiscoveryService struct {
 
 // newDiscoveryService 创建一个新的节点发现服务
 func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string, logger *zap.SugaredLogger, libp2pConfig *config.Libp2pConfig) (*DiscoveryService, error) {
-	logger.Infof("creating discovery service...")
+	logger.Infof("[discovery] creating discovery service...")
 	ds := &DiscoveryService{
 		ctx:            ctx,
 		host:           host,
@@ -56,7 +56,7 @@ func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string,
 		libp2pConfig:   libp2pConfig,
 		onPeerFound: func(id peer.ID, info peer.AddrInfo) {
 			// 默认回调，只是记录日志
-			logger.Debugf("discovered peer: %s", id)
+			logger.Debugf("[discovery] discovered peer: %s", id)
 		},
 	}
 	return ds, nil
@@ -64,7 +64,7 @@ func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string,
 
 // Start 启动节点发现服务
 func (ds *DiscoveryService) Start() error {
-	ds.logger.Infof("starting discovery service...")
+	ds.logger.Infof("[discovery] starting discovery service...")
 	// 创建mDNS服务
 	service := mdns.NewMdnsService(
 		ds.host,
@@ -73,20 +73,20 @@ func (ds *DiscoveryService) Start() error {
 	)
 
 	if err := service.Start(); err != nil {
-		ds.logger.Errorf("starting mdns service: %v", err)
+		ds.logger.Errorf("[discovery] starting mdns service: %v", err)
 		return err
 	}
 
 	// 启动定期扫描
 	go ds.scanPeers()
 
-	ds.logger.Debugf("discovery service started with tag: %s", ds.serviceTag)
+	ds.logger.Debugf("[discovery] discovery service started with tag: %s", ds.serviceTag)
 	return nil
 }
 
 // InitDHT 初始化DHT服务
 func (ds *DiscoveryService) InitDHT() error {
-	ds.logger.Infof("initializing DHT service...")
+	ds.logger.Infof("[discovery] initializing DHT service...")
 	dhtOpts := []dht.Option{
 		dht.Mode(dht.ModeServer),
 		// dht.BootstrapPeers(),
@@ -98,13 +98,13 @@ func (ds *DiscoveryService) InitDHT() error {
 		for _, addrStr := range ds.libp2pConfig.BootstrapList {
 			maddr, err := multiaddr.NewMultiaddr(addrStr)
 			if err != nil {
-				ds.logger.Warnf("failed to parse bootstrap address %s: %v", addrStr, err)
+				ds.logger.Warnf("[discovery] failed to parse bootstrap address %s: %v", addrStr, err)
 				continue
 			}
 
 			info, err := peer.AddrInfoFromP2pAddr(maddr)
 			if err != nil {
-				ds.logger.Warnf("failed to parse peer info from %s: %v", addrStr, err)
+				ds.logger.Warnf("[discovery] failed to parse peer info from %s: %v", addrStr, err)
 				continue
 			}
 			bootstrapAddrInfos = append(bootstrapAddrInfos, *info)
@@ -118,17 +118,14 @@ func (ds *DiscoveryService) InitDHT() error {
 	}
 
 	// 创建DHT服务
-	ds.logger.Infof("host %v", ds.host)
-	ds.logger.Infof("ctx %v", ds.ctx)
-
 	dhtService, err := dht.New(ds.ctx, ds.host, dhtOpts...)
 	if err != nil {
-		ds.logger.Errorf("failed to create DHT service: %v", err)
+		ds.logger.Errorf("[discovery] failed to create DHT service: %v", err)
 		return err
 	}
 
 	ds.dht = dhtService
-	ds.logger.Infof("DHT service initialized successfully")
+	ds.logger.Infof("[discovery] DHT service initialized successfully")
 	return nil
 }
 
@@ -138,7 +135,7 @@ func (ds *DiscoveryService) BootstrapDHT() error {
 		return fmt.Errorf("DHT service is not initialized")
 	}
 
-	ds.logger.Infof("bootstrapping DHT...")
+	ds.logger.Infof("[discovery] bootstrapping DHT...")
 	if err := ds.dht.Bootstrap(ds.ctx); err != nil {
 		ds.logger.Errorf("failed to bootstrap DHT: %v", err)
 		return err
@@ -149,32 +146,32 @@ func (ds *DiscoveryService) BootstrapDHT() error {
 // ConnectBootstrapPeers 连接bootstrap节点列表中的所有节点
 func (ds *DiscoveryService) ConnectBootstrapPeers() {
 	if len(ds.libp2pConfig.BootstrapList) == 0 {
-		ds.logger.Infof("no bootstrap peers configured")
+		ds.logger.Infof("[discovery] no bootstrap peers configured")
 		return
 	}
 
-	ds.logger.Infof("connecting to bootstrap peers, count: %d", len(ds.libp2pConfig.BootstrapList))
+	ds.logger.Infof("[discovery] connecting to bootstrap peers, count: %d", len(ds.libp2pConfig.BootstrapList))
 
 	for _, addr := range ds.libp2pConfig.BootstrapList {
-		ds.logger.Debugf("connecting to bootstrap peer: %s", addr)
+		ds.logger.Debugf("[discovery] connecting to bootstrap peer: %s", addr)
 		go func(addr string) {
 			// 解析multiaddr
 			maddr, err := multiaddr.NewMultiaddr(addr)
 			if err != nil {
-				ds.logger.Errorf("failed to parse multiaddr: %v", err)
+				ds.logger.Errorf("[discovery] failed to parse multiaddr: %v", err)
 				return
 			}
 
 			// 解析peer信息
 			peerInfo, err := peer.AddrInfoFromP2pAddr(maddr)
 			if err != nil {
-				ds.logger.Errorf("failed to parse peer info: %v", err)
+				ds.logger.Errorf("[discovery] failed to parse peer info: %v", err)
 				return
 			}
 
 			// 连接到节点
 			if err := ds.host.Connect(ds.ctx, *peerInfo); err != nil {
-				ds.logger.Errorf("failed to connect to bootstrap peer %s: %v", addr, err)
+				ds.logger.Errorf("[discovery] failed to connect to bootstrap peer %s: %v", addr, err)
 				return
 			}
 
@@ -188,14 +185,14 @@ func (ds *DiscoveryService) ConnectBootstrapPeers() {
 			ds.bootstrapPeers[peerInfo.ID] = struct{}{}
 			ds.bootstrapMutex.Unlock()
 
-			ds.logger.Infof("successfully connected to bootstrap peer: %s", peerInfo.ID)
+			ds.logger.Infof("[discovery] successfully connected to bootstrap peer: %s", peerInfo.ID)
 		}(addr)
 	}
 }
 
 // StartHealthCheck 启动节点健康检查
 func (ds *DiscoveryService) StartHealthCheck() {
-	ds.logger.Infof("starting peer health check...")
+	ds.logger.Infof("[discovery] starting peer health check...")
 	checkInterval := 60 * time.Second // 每分钟检查一次
 
 	ticker := time.NewTicker(checkInterval)
@@ -204,7 +201,7 @@ func (ds *DiscoveryService) StartHealthCheck() {
 	for {
 		select {
 		case <-ds.ctx.Done():
-			ds.logger.Infof("stopping peer health check...")
+			ds.logger.Infof("[discovery] stopping peer health check...")
 			return
 		case <-ticker.C:
 			ds.CheckPeersHealth()
@@ -214,7 +211,7 @@ func (ds *DiscoveryService) StartHealthCheck() {
 
 // CheckPeersHealth 检查所有节点的健康状态
 func (ds *DiscoveryService) CheckPeersHealth() {
-	ds.logger.Debugf("checking peers health...")
+	ds.logger.Debugf("[discovery] checking peers health...")
 
 	// 检查当前连接的所有节点
 	ds.peersMutex.RLock()
@@ -231,12 +228,12 @@ func (ds *DiscoveryService) CheckPeersHealth() {
 
 // CheckPeerHealth 检查单个节点的健康状态
 func (ds *DiscoveryService) CheckPeerHealth(peerID peer.ID) {
-	ds.logger.Debugf("checking health for peer %s", peerID)
+	ds.logger.Debugf("[discovery] checking health for peer %s", peerID)
 
 	// 检查连接状态
 	conn := ds.host.Network().Connectedness(peerID)
 	if conn != network.Connected {
-		ds.logger.Warnf("peer %s is not connected, removing...", peerID)
+		ds.logger.Warnf("[discovery] peer %s is not connected, removing...", peerID)
 
 		// 从节点列表中移除
 		ds.peersMutex.Lock()
@@ -249,7 +246,7 @@ func (ds *DiscoveryService) CheckPeerHealth(peerID peer.ID) {
 		ds.bootstrapMutex.RUnlock()
 
 		if isBootstrap {
-			ds.logger.Infof("peer %s is bootstrap node, will try to reconnect in next health check", peerID)
+			ds.logger.Infof("[discovery] peer %s is bootstrap node, will try to reconnect in next health check", peerID)
 		}
 	}
 }
@@ -277,12 +274,13 @@ func (ds *DiscoveryService) Stop() error {
 	// }
 	// 关闭DHT服务
 	if ds.dht != nil {
-		ds.logger.Debugf("closing DHT service...")
+		ds.logger.Debugf("[discovery] closing DHT service...")
 		if err := ds.dht.Close(); err != nil {
-			ds.logger.Errorf("failed to close DHT service: %v", err)
+			ds.logger.Errorf("[discovery] failed to close DHT service: %v", err)
+			return err
 		}
 	}
-	ds.logger.Infof("discovery service stopped...")
+	ds.logger.Infof("[discovery] discovery service stopped...")
 	return nil
 }
 
@@ -292,14 +290,14 @@ func (ds *DiscoveryService) FindPeer(peerID peer.ID) (*peer.AddrInfo, error) {
 		return nil, fmt.Errorf("DHT service is not initialized")
 	}
 
-	ds.logger.Infof("finding peer %s via DHT", peerID)
+	ds.logger.Infof("[discovery] finding peer %s via DHT", peerID)
 	peerInfo, err := ds.dht.FindPeer(ds.ctx, peerID)
 	if err != nil {
-		ds.logger.Errorf("failed to find peer %s: %v", peerID, err)
+		ds.logger.Errorf("[discovery] failed to find peer %s: %v", peerID, err)
 		return nil, err
 	}
 
-	ds.logger.Infof("found peer %s with %d addresses", peerID, len(peerInfo.Addrs))
+	ds.logger.Infof("[discovery] found peer %s with %d addresses", peerID, len(peerInfo.Addrs))
 	return &peerInfo, nil
 }
 
@@ -312,7 +310,7 @@ func (ds *DiscoveryService) GetDHTRoutingTableInfo() (int, error) {
 	routingTable := ds.dht.RoutingTable()
 	peerCount := routingTable.Size()
 
-	ds.logger.Infof("DHT routing table contains %d peers", peerCount)
+	ds.logger.Infof("[discovery] DHT routing table contains %d peers", peerCount)
 	return peerCount, nil
 }
 
@@ -322,17 +320,17 @@ func (ds *DiscoveryService) Provide(key string) error {
 		return fmt.Errorf("DHT service is not initialized")
 	}
 
-	ds.logger.Infof("providing key %s to DHT", key)
+	ds.logger.Infof("[discovery] providing key %s to DHT", key)
 	cidKey, err := cid.Cast([]byte(key))
 	if err != nil {
 		return err
 	}
 	if err := ds.dht.Provide(ds.ctx, cidKey, true); err != nil {
-		ds.logger.Errorf("failed to provide key %s: %v", key, err)
+		ds.logger.Errorf("[discovery] failed to provide key %s: %v", key, err)
 		return err
 	}
 
-	ds.logger.Infof("successfully provided key %s to DHT", key)
+	ds.logger.Infof("[discovery] successfully provided key %s to DHT", key)
 	return nil
 }
 
@@ -342,7 +340,7 @@ func (ds *DiscoveryService) FindProviders(key string, count int) ([]peer.AddrInf
 		return nil, fmt.Errorf("DHT service is not initialized")
 	}
 
-	ds.logger.Infof("finding providers for key %s", key)
+	ds.logger.Infof("[discovery] finding providers for key %s", key)
 
 	cidKey, err := cid.Cast([]byte(key))
 	if err != nil {
@@ -355,19 +353,19 @@ func (ds *DiscoveryService) FindProviders(key string, count int) ([]peer.AddrInf
 		result = append(result, p)
 	}
 
-	ds.logger.Infof("found %d providers for key %s", len(result), key)
+	ds.logger.Infof("[discovery] found %d providers for key %s", len(result), key)
 	return result, nil
 }
 
 // NotifyPeerFound 设置节点发现回调
 func (ds *DiscoveryService) NotifyPeerFound(callback func(peer.ID, peer.AddrInfo)) {
-	ds.logger.Infof("register custom callback func...")
+	ds.logger.Infof("[discovery] register custom callback func...")
 	ds.onPeerFound = callback
 }
 
 // GetDiscoveredPeers 获取所有发现的节点
 func (ds *DiscoveryService) GetDiscoveredPeers() []peer.ID {
-	ds.logger.Infof("get discovered peers...")
+	ds.logger.Infof("[discovery] get discovered peers...")
 	ds.peersMutex.RLock()
 	defer ds.peersMutex.RUnlock()
 
@@ -381,7 +379,7 @@ func (ds *DiscoveryService) GetDiscoveredPeers() []peer.ID {
 
 // scanPeers 定期扫描局域网内的节点
 func (ds *DiscoveryService) scanPeers() {
-	ds.logger.Infof("starting scan peers...")
+	ds.logger.Debugf("[discovery] starting scan peers...")
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -389,7 +387,7 @@ func (ds *DiscoveryService) scanPeers() {
 		case <-ds.ctx.Done():
 			return
 		case <-ticker.C:
-			ds.logger.Debugf("scanning for peers...")
+			ds.logger.Debugf("[discovery] scanning for peers...")
 			// mDNS服务会自动处理节点发现，这里可以添加额外的扫描逻辑
 		}
 	}
@@ -397,7 +395,7 @@ func (ds *DiscoveryService) scanPeers() {
 
 // HandlePeerFound 处理发现的节点
 func (ds *DiscoveryService) HandlePeerFound(pi peer.AddrInfo) {
-	ds.logger.Debugf("handle peer found...")
+	ds.logger.Debugf("[discovery] handle peer found...")
 	// 忽略自己
 	if pi.ID == ds.host.ID() {
 		return
@@ -414,14 +412,14 @@ func (ds *DiscoveryService) HandlePeerFound(pi peer.AddrInfo) {
 		ds.peers[pi.ID] = struct{}{}
 		ds.peersMutex.Unlock()
 
-		ds.logger.Debugf("discovered new peer: %s", pi.ID)
+		ds.logger.Debugf("[discovery] discovered new peer: %s", pi.ID)
 
 		// 尝试连接到发现的节点
 		go func() {
 			if err := ds.host.Connect(ds.ctx, pi); err != nil {
-				ds.logger.Warnf("failed to connect to discovered peer %s: %v", pi.ID, err)
+				ds.logger.Warnf("[discovery] failed to connect to discovered peer %s: %v", pi.ID, err)
 			} else {
-				ds.logger.Infof("successfully connected to peer: %s", pi.ID)
+				ds.logger.Infof("[discovery] successfully connected to peer: %s", pi.ID)
 				// 调用回调函数
 				if ds.onPeerFound != nil {
 					ds.onPeerFound(pi.ID, pi)
