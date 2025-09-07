@@ -2,23 +2,25 @@ package libp2p
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"sync"
+	"time"
 
 	"github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	"github.com/libp2p/go-libp2p"
-	libp2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	quic "github.com/libp2p/go-libp2p/p2p/transport/quic"
-	"github.com/libp2p/go-libp2p/p2p/transport/tcp"
-	libp2pwebrtc "github.com/libp2p/go-libp2p/p2p/transport/webrtc"
-	"github.com/libp2p/go-libp2p/p2p/transport/websocket"
+	securitynoise "github.com/libp2p/go-libp2p/p2p/security/noise"
+	securitytls "github.com/libp2p/go-libp2p/p2p/security/tls"
+	transportquic "github.com/libp2p/go-libp2p/p2p/transport/quic"
+	transporttcp "github.com/libp2p/go-libp2p/p2p/transport/tcp"
+	transportwebrtc "github.com/libp2p/go-libp2p/p2p/transport/webrtc"
+	transportwebsocket "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	"github.com/multiformats/go-multiaddr"
 
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
@@ -117,11 +119,11 @@ func (lc *Control) initNode() error {
 		libp2p.ListenAddrStrings(lc.libp2pConfig.ListenAddr...),
 
 		// libp2p.DefaultTransports,
-		libp2p.Transport(tcp.NewTCPTransport),
-		libp2p.Transport(quic.NewTransport),
-		libp2p.Transport(websocket.New),
+		libp2p.Transport(transporttcp.NewTCPTransport),
+		libp2p.Transport(transportquic.NewTransport),
+		libp2p.Transport(transportwebsocket.New),
 		libp2p.Transport(webtransport.New),
-		libp2p.Transport(libp2pwebrtc.New),
+		libp2p.Transport(transportwebrtc.New),
 
 		libp2p.Ping(false),
 
@@ -132,18 +134,19 @@ func (lc *Control) initNode() error {
 		libp2p.EnableNATService(), // NAT
 		libp2p.EnableAutoNATv2(),
 
-		// libp2p.Security(libp2ptls.ID, libp2ptls.New),
+		libp2p.Security(securitytls.ID, securitytls.New),
+		libp2p.Security(securitynoise.ID, securitynoise.New),
 	}
 
-	priv, pubk, err := libp2pcrypto.GenerateEd25519Key(rand.Reader)
-	if err != nil {
-		lc.logger.Errorf("[control] failed to generate ed25519 private key: %v", err)
-		return err
-	}
-
-	lc.logger.Debugf("[control] priv %v", priv)
-	lc.logger.Debugf("[control] pubk %v", pubk)
-	opts = append(opts, libp2p.Identity(priv))
+	// priv, pubk, err := libp2pcrypto.GenerateEd25519Key(rand.Reader)
+	// if err != nil {
+	// 	lc.logger.Errorf("[control] failed to generate ed25519 private key: %v", err)
+	// 	return err
+	// }
+	//
+	// lc.logger.Debugf("[control] priv %v", priv)
+	// lc.logger.Debugf("[control] pubk %v", pubk)
+	// opts = append(opts, libp2p.Identity(priv))
 
 	// 创建host
 	h, err := libp2p.New(opts...)
@@ -157,6 +160,7 @@ func (lc *Control) initNode() error {
 	// 打印节点信息
 	lc.logger.Infof("[control] libp2p node created successfully")
 	lc.logger.Infof("[control] libp2p node ID: %s", h.ID())
+
 	lc.logger.Infof("[control] libp2p node addresses: %v", h.Addrs())
 
 	protocolID := protocol.ID(lc.libp2pConfig.ProtocolID)
@@ -256,6 +260,7 @@ func (lc *Control) BroadcastMessage(msg *Message) error {
 		if err := lc.sendMessage(peerID, protocolID, msg); err != nil {
 			lc.logger.Warnf("[control] failed to send message to peer %s: %v", peerID, err)
 		}
+		time.Sleep(time.Duration(rand.IntN(500)) * time.Millisecond)
 	}
 
 	lc.logger.Debugf("[control] broadcast message to %d peers...", len(lc.discoveryService.peers))
@@ -280,7 +285,10 @@ func (lc *Control) sendMessage(peerID peer.ID, protocolID protocol.ID, msg *Mess
 	}
 	defer func() {
 		if err := stream.Close(); err != nil {
+			// 忽略流已取消的错误，这是正常的行为
+			// if !network.IsClosedStreamError(err) && !network.IsCanceledError(err) {
 			lc.logger.Errorf("[control] failed to close stream to peer %s: %v", peerID, err)
+			// }
 		}
 	}()
 
@@ -298,7 +306,10 @@ func (lc *Control) defaultStreamHandler(stream network.Stream) {
 	lc.logger.Debugf("[control] default stream handler...")
 	defer func() {
 		if err := stream.Close(); err != nil {
+			// 忽略流已取消的错误，这是正常的行为
+			// if !network.IsClosedStreamError(err) && !network.IsCanceledError(err) {
 			lc.logger.Errorf("[control] failed to close stream: %v", err)
+			// }
 		}
 	}()
 
