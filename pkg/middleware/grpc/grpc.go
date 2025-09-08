@@ -7,7 +7,6 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	logger2 "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
 	"go.uber.org/zap"
-	"os"
 )
 
 type Control struct {
@@ -17,7 +16,7 @@ type Control struct {
 	logger *zap.SugaredLogger
 }
 
-func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger2.Control) (*Control, error) {
+func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger2.Control, failedFunc func(err error)) (*Control, error) {
 	grpcLogger := loggerControl.GenLogger(logger2.ModuleGrpc)
 	grpcLogger.Infof("starting new grpc control...")
 	serverControl, err := NewServerControl(grpcConfig.Server, grpcLogger)
@@ -25,10 +24,8 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger2.Contro
 		grpcLogger.Errorf("new grpc server control err: %v", err)
 		return nil, err
 	}
-	if err = serverControl.SetUp(func(err error) {
-		grpcLogger.Errorf("failedFunc grpc server start err: %v", err)
-		os.Exit(1)
-	}); err != nil {
+
+	if err = serverControl.StartUp(failedFunc); err != nil {
 		grpcLogger.Errorf("grpc server start err: %v", err)
 		return nil, err
 	}

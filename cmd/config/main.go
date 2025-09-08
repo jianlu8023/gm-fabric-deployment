@@ -73,7 +73,7 @@ func genDefaultConfig() error {
 		},
 		Libp2pConfig: &config.Libp2pConfig{
 			ListenAddr: []string{
-				" /ip4/0.0.0.0/tcp/2000",
+				"/ip4/0.0.0.0/tcp/2000",
 				"/ip6/::1/tcp/2000",
 				"/ip4/0.0.0.0/udp/2000/quic-v1",
 				"/ip4/127.0.0.1/udp/2000/quic-v1",
@@ -86,6 +86,17 @@ func genDefaultConfig() error {
 			BootstrapList: []string{
 				// "/ip4/127.0.0.1/tcp/2000/p2p/12D3KooWAiFrSLkqdaz4KC423i7ZgRks8xjrR1CbjnjJ39f8V1f6",
 			},
+		},
+		DataSourceConfig: &config.DataSourceConfig{
+			DataSourceType: "sqlite3",
+			DataBaseName:   "",
+			DataBasePath:   "./db/gm-fabric.db",
+			UserName:       "username",
+			Password:       "password",
+			Host:           "localhost",
+			Port:           3306,
+			MaxIdleConn:    10,
+			MaxOpenConn:    50,
 		},
 	}
 
@@ -113,6 +124,7 @@ func saveConfig(cfg config.Config, configPath string) error {
 	viper.Set("logger", cfg.LoggerConfig)
 	viper.Set("http", cfg.HttpConfig)
 	viper.Set("libp2p", cfg.Libp2pConfig)
+	viper.Set("datasource", cfg.DataSourceConfig)
 
 	// 写入配置文件
 	err := viper.WriteConfigAs(configPath)

@@ -267,7 +267,7 @@ func NewServerControl(serverConfig *config.GrpcServerConfig, logger *zap.Sugared
 	}, nil
 }
 
-func (s *ServerControl) SetUp(failedFunc func(err error)) error {
+func (s *ServerControl) StartUp(failedFunc func(err error)) error {
 	s.logger.Infof("start grpc server on %v", s.Config.Host)
 	listen, err := net.Listen("tcp", s.Config.Host)
 	if err != nil {
@@ -279,7 +279,6 @@ func (s *ServerControl) SetUp(failedFunc func(err error)) error {
 		}
 	}()
 	return nil
-
 }
 
 func (s *ServerControl) Stop() {

@@ -51,6 +51,12 @@ func (c *Control) GetLibp2pConfig() *Libp2pConfig {
 	return c.config.Libp2pConfig
 }
 
+func (c *Control) GetDataSourceConfig() *DataSourceConfig {
+	c.RLock()
+	defer c.RUnlock()
+	return c.config.DataSourceConfig
+}
+
 func (c *Control) Flush() error {
 	c.Lock()
 	defer c.Unlock()

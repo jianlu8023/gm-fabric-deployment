@@ -1,3 +1,12 @@
+datasource:
+  data_source_type: sqlite3
+  db_username: username
+  db_password: password
+  db_host: localhost
+  db_port: 3306
+  db_path: ./db/gm-fabric.db
+  max_idle_conn: 10
+  max_open_conn: 50
 grpc:
   server:
     host: 127.0.0.1:65534
@@ -37,7 +46,7 @@ libp2p:
   protocol_id: /gm-fabric/chat/1.0.0
   service_tag: gm-fabric-deployment
   bootstrap_list:
-    #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
+  #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
 logger:
   default_log_level: debug
   stack_log_level: error

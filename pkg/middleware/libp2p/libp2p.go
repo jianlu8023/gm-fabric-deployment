@@ -191,8 +191,8 @@ func (lc *Control) RegisterProtocolHandler(protocolID protocol.ID, handler Messa
 	// }
 }
 
-// Start 启动libp2p服务
-func (lc *Control) Start(failedFunc func(err error)) {
+// StartUp 启动libp2p服务
+func (lc *Control) StartUp(failedFunc func(err error)) {
 	lc.logger.Infof("[control] starting libp2p service...")
 	// 启动发现服务
 	if err := lc.discoveryService.Start(); err != nil {
