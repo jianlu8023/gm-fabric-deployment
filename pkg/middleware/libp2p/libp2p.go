@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
 	"math/rand/v2"
 	"sync"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -284,11 +284,14 @@ func (lc *Control) sendMessage(peerID peer.ID, protocolID protocol.ID, msg *Mess
 		return err
 	}
 	defer func() {
-		if err := stream.Close(); err != nil {
-			// 忽略流已取消的错误，这是正常的行为
-			// if !network.IsClosedStreamError(err) && !network.IsCanceledError(err) {
-			lc.logger.Errorf("[control] failed to close stream to peer %s: %v", peerID, err)
-			// }
+		// if err := stream.Close(); err != nil {
+		// 	// 忽略流已取消的错误，这是正常的行为
+		// 	// if !network.IsClosedStreamError(err) && !network.IsCanceledError(err) {
+		// 	lc.logger.Errorf("[control] failed to close stream to peer %s: %v", peerID, err)
+		// 	// }
+		// }
+		if err := stream.CloseWrite(); err != nil {
+			lc.logger.Errorf("[control] failed to close stream writer to peer %s: %v", peerID, err)
 		}
 	}()
 
@@ -305,11 +308,14 @@ func (lc *Control) sendMessage(peerID peer.ID, protocolID protocol.ID, msg *Mess
 func (lc *Control) defaultStreamHandler(stream network.Stream) {
 	lc.logger.Debugf("[control] default stream handler...")
 	defer func() {
-		if err := stream.Close(); err != nil {
-			// 忽略流已取消的错误，这是正常的行为
-			// if !network.IsClosedStreamError(err) && !network.IsCanceledError(err) {
-			lc.logger.Errorf("[control] failed to close stream: %v", err)
-			// }
+		// if err := stream.Close(); err != nil {
+		// 	// 忽略流已取消的错误，这是正常的行为
+		// 	// if !network.IsClosedStreamError(err) && !network.IsCanceledError(err) {
+		// 	lc.logger.Errorf("[control] failed to close stream: %v", err)
+		// 	// }
+		// }
+		if err := stream.CloseRead(); err != nil {
+			lc.logger.Errorf("[control] failed to close stream read: %v", err)
 		}
 	}()
 

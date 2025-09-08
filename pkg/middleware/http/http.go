@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	logger2 "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
@@ -41,8 +41,8 @@ func (s *ServerControl) Shutdown() {
 	_ = s.server.Shutdown(s.ctx)
 }
 
-func NewServerControl(serverConfig *config.HttpServerConfig, loggerControl *mylogger.Control) *ServerControl {
-	webLogger := loggerControl.GenLogger(mylogger.ModuleWeb)
+func NewServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger2.Control) *ServerControl {
+	webLogger := loggerControl.GenLogger(logger2.ModuleWeb)
 	webLogger.Infof("start new http server control...")
 	gin.SetMode(serverConfig.RunMode)
 	engine := gin.Default()

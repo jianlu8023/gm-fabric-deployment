@@ -11,10 +11,6 @@ import (
 	"sync"
 )
 
-var (
-	_logMap = make(map[string]*zap.SugaredLogger)
-)
-
 type Control struct {
 	loggerConfig *config.LoggerConfig
 	_logMap      map[string]*zap.SugaredLogger
@@ -38,15 +34,15 @@ func NewLoggerControl(loggerConfig *config.LoggerConfig) *Control {
 func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 	c.Lock()
 	defer c.Unlock()
-	existLogger, ok := _logMap[moduleName]
+	existLogger, ok := c._logMap[moduleName]
 	if ok {
 		return existLogger
 	}
 
 	opts := []glog.Option{
 		glog.WithModuleName(moduleName),
-		glog.WithStackLogLevel("error"),
 		glog.WithCaller(),
+		glog.WithCallerSkip(0),
 		glog.WithConsoleConfig(zapcore.EncoderConfig{
 			MessageKey:       "msg",
 			LevelKey:         "level",
@@ -86,15 +82,21 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 			LocalTime:    true,
 			RotationTime: strconv.Itoa(c.loggerConfig.RotationTime),
 		}),
+		glog.WithFileLogLevel("debug"),
+	}
+
+	// 设置stack 日志界别 当日志级别高于stack日志级别时，才会打印stack信息
+	if !str.IsBlank(c.loggerConfig.StackLogLevel) {
+		opts = append(opts, glog.WithStackLogLevel(c.loggerConfig.StackLogLevel))
 	}
 
 	// 日志日志级别
 	if level, ok := c._loggerLevel[strings.ToLower(moduleName)]; ok {
 		// 配置文件中有日志级别
-		opts = append(opts, glog.WithLogLevel(level))
+		opts = append(opts, glog.WithDefaultLogLevel(level))
 	} else {
 		// 配置文件中没有日志级别
-		opts = append(opts, glog.WithLogLevel(c.loggerConfig.DefaultLogLevel))
+		opts = append(opts, glog.WithDefaultLogLevel(c.loggerConfig.DefaultLogLevel))
 		c._loggerLevel[strings.ToLower(moduleName)] = c.loggerConfig.DefaultLogLevel
 	}
 
@@ -107,7 +109,7 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 
 	logger := glog.NewSugaredLogger(opts...)
 
-	_logMap[moduleName] = logger
+	c._logMap[moduleName] = logger
 
 	return logger
 }
