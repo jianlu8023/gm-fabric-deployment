@@ -10,56 +10,70 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Control 控制器
 type Control struct {
 	config *Config
-	sync.RWMutex
+	mutex  sync.RWMutex
 }
 
 func (c *Control) printConfig() {
-	c.RLock()
-	defer c.RUnlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	fmt.Printf("Config:%v\n", c.config)
 }
 
 func (c *Control) GetConfig() *Config {
-	c.RLock()
-	defer c.RUnlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.config
 }
 
 func (c *Control) GetLoggerConfig() *LoggerConfig {
-	c.RLock()
-	defer c.RUnlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.config.LoggerConfig
 }
 
 func (c *Control) GetWebConfig() *HttpServerConfig {
-	c.RLock()
-	defer c.RUnlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.config.HttpConfig
 }
 
+// GetGrpcConfig 获取grpc配置
+// @return *GrpcConfig grpc配置
 func (c *Control) GetGrpcConfig() *GrpcConfig {
-	c.RLock()
-	defer c.RUnlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.config.GrpcConfig
 }
 
+// GetLibp2pConfig 获取libp2p配置
+// @return *Libp2pConfig libp2p配置
 func (c *Control) GetLibp2pConfig() *Libp2pConfig {
-	c.RLock()
-	defer c.RUnlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.config.Libp2pConfig
 }
 
+// GetDataSourceConfig 获取数据库配置
+// @return *DataSourceConfig 数据库配置
 func (c *Control) GetDataSourceConfig() *DataSourceConfig {
-	c.RLock()
-	defer c.RUnlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.config.DataSourceConfig
 }
 
+// GetDockerConfig 获取docker配置
+func (c *Control) GetDockerConfig() *DockerConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.DockerConfig
+}
+
 func (c *Control) Flush() error {
-	c.Lock()
-	defer c.Unlock()
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	newConfig, err := loadConfig()
 	if err != nil {
 		return err
@@ -129,6 +143,9 @@ func loadConfig() (Config, error) {
 	return cfg, nil
 }
 
+// NewConfigControl 新建config控制器
+// @return *Control 控制器
+// @return error 新建过程中可能产生的错误
 func NewConfigControl() (*Control, error) {
 	config, err := loadConfig()
 	if err != nil {

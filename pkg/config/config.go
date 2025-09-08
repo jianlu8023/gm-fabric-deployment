@@ -3,9 +3,25 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/wd"
 	"path/filepath"
+
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/wd"
 )
+
+type DockerConfig struct {
+	Host           string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`
+	APIVersion     string `json:"api_version,omitempty" yaml:"api_version,omitempty" mapstructure:"api_version"`
+	TlsEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`
+	TlsCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`
+	TlsKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`
+	TlsCAFile      string `json:"tls_ca_file,omitempty" yaml:"tls_ca_file,omitempty" mapstructure:"tls_ca_file"`
+	DefaultTimeout int    `json:"default_timeout,omitempty" yaml:"default_timeout,omitempty" mapstructure:"default_timeout"`
+}
+
+func (d DockerConfig) String() string {
+	bytes, _ := json.MarshalIndent(d, "", " ")
+	return string(bytes)
+}
 
 type DataSourceConfig struct {
 	DataSourceType string `json:"data_source_type,omitempty" yaml:"data_source_type,omitempty" mapstructure:"data_source_type"` // 数据源类型 mysql postgres sqlite3
@@ -168,6 +184,7 @@ type Config struct {
 	HttpConfig       *HttpServerConfig `json:"http_config,omitempty" yaml:"http_config,omitempty" mapstructure:"http"`
 	Libp2pConfig     *Libp2pConfig     `json:"libp2p_config,omitempty" yaml:"libp2p_config,omitempty" mapstructure:"libp2p"`
 	DataSourceConfig *DataSourceConfig `json:"datasource_config,omitempty" yaml:"datasource_config,omitempty" mapstructure:"datasource"`
+	DockerConfig     *DockerConfig     `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`
 }
 
 func (c Config) String() string {
