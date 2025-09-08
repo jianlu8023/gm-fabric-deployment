@@ -37,9 +37,10 @@ libp2p:
   protocol_id: /gm-fabric/chat/1.0.0
   service_tag: gm-fabric-deployment
   bootstrap_list:
-
+    #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
 logger:
   default_log_level: debug
+  stack_log_level: error
   print_format: console
   file_path: ./logs/app.log
   max_age: 7
@@ -47,3 +48,4 @@ logger:
   logger_level:
     grpc: debug
     libp2p: info
+    main: info

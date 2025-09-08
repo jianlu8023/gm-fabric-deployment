@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
+	mygrpc "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/grpc"
+	mylibp2p "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/libp2p"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
 
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/internal/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/middleware/grpc"
-	mylibp2p "github.com/jianlu8023/gm-fabric-deployment/internal/middleware/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/proto/message"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/pidfile"
@@ -30,7 +30,7 @@ func main() {
 		fmt.Println("Running on Windows...")
 	case "linux":
 		fmt.Println("Running on Linux...")
-		if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
+		if err := pidfile.CreateOrUpdatePIDFile("client.pid"); err != nil {
 			fmt.Printf("generate pid file failed: %v\n", err)
 			return
 		}
@@ -39,7 +39,7 @@ func main() {
 		}()
 	case "darwin": // macOS
 		fmt.Println("Running on macOS...")
-		if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
+		if err := pidfile.CreateOrUpdatePIDFile("client.pid"); err != nil {
 			fmt.Printf("generate pid file failed: %v\n", err)
 			return
 		}
@@ -83,7 +83,7 @@ func main() {
 			TlsRCACertFile:     "./certs/root-ca.crt",
 		},
 	}
-	control, err := grpc.NewGrpcControl(grpcConfig, loggerControl)
+	control, err := mygrpc.NewGrpcControl(grpcConfig, loggerControl)
 	if err != nil {
 		fmt.Println(err)
 		return

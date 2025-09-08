@@ -7,7 +7,7 @@ toolchain go1.22.10
 require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/ipfs/go-cid v0.5.0
-	github.com/jianlu8023/go-logger/v2 v2.0.0-20250905080011-cc2c7be6a78e
+	github.com/jianlu8023/go-logger/v2 v2.0.0
 	github.com/libp2p/go-libp2p v0.40.0
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0
 	github.com/multiformats/go-multiaddr v0.14.0

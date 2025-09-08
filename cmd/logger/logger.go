@@ -1,17 +1,18 @@
 package main
 
 import (
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
 )
 
 func main() {
 	loggerConfig := &config.LoggerConfig{
 		DefaultLogLevel: "debug",
+		StackLogLevel:   "error",
 		PrintFormat:     "console",
 		FilePath:        "./logs/app.log",
 		MaxAge:          7,
-		RotationTime:    3,
+		RotationTime:    1,
 		LoggerLevel: map[string]string{
 			"main": "debug",
 			"grpc": "debug",

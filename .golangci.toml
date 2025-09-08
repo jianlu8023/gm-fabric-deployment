@@ -68,8 +68,8 @@ linters = ["staticcheck"]
 text = "S1025"
 
 [linters-settings.stylecheck]
-checks=["all","-ST1003"]
-dot-import-whitelist=[""]
+checks = ["all", "-ST1003"]
+dot-import-whitelist = [""]
 
 
 

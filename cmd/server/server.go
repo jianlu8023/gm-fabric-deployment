@@ -3,6 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	mygrpc "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/grpc"
+	myhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/http"
+	mylibp2p "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/libp2p"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,10 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/internal/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/middleware/grpc"
-	myhttp "github.com/jianlu8023/gm-fabric-deployment/internal/middleware/http"
-	mylibp2p "github.com/jianlu8023/gm-fabric-deployment/internal/middleware/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -41,6 +41,13 @@ func main() {
 		}()
 	case "darwin": // macOS
 		fmt.Println("Running on macOS")
+		if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
+			fmt.Printf("generate pid file failed: %v\n", err)
+			return
+		}
+		defer func() {
+			pidfile.ReleasePID()
+		}()
 	default:
 		fmt.Printf("Running on an unknown operating system: %s\n", runOS)
 	}
@@ -59,7 +66,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	control, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl)
+	control, err := mygrpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl)
 	if err != nil {
 		fmt.Println(err)
 		return

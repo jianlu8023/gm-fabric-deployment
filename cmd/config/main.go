@@ -52,6 +52,7 @@ func genDefaultConfig() error {
 		},
 		LoggerConfig: &config.LoggerConfig{
 			DefaultLogLevel: "debug",
+			StackLogLevel:   "error",
 			PrintFormat:     "console",
 			FilePath:        "./logs/app.log",
 			MaxAge:          7,
@@ -72,9 +73,13 @@ func genDefaultConfig() error {
 		},
 		Libp2pConfig: &config.Libp2pConfig{
 			ListenAddr: []string{
-				"/ip4/0.0.0.0/tcp/2000",
+				" /ip4/0.0.0.0/tcp/2000",
 				"/ip6/::1/tcp/2000",
-				"/ip4/0.0.0.0/udp/2000/quic",
+				"/ip4/0.0.0.0/udp/2000/quic-v1",
+				"/ip4/127.0.0.1/udp/2000/quic-v1",
+				"/ip4/0.0.0.0/udp/2000/quic-v1/webtransport",
+				"/ip4/0.0.0.0/udp/2000/webrtc-direct",
+				"/dns4/localhost/udp/2000/ws",
 			}, // 监听所有接口的2000端口
 			ProtocolID:    "/gm-fabric/chat/1.0.0", // 自定义协议ID
 			ServiceTag:    "gm-fabric-deployment",

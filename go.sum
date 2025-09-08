@@ -324,8 +324,8 @@ github.com/jbenet/go-temp-err-catcher v0.1.0/go.mod h1:0kJRvmDZXNMIiJirNPEYfhpPw
 github.com/jbenet/goprocess v0.1.4 h1:DRGOFReOMqqDNXwW70QkacFW0YN9QnwLV0Vqk+3oU0o=
 github.com/jbenet/goprocess v0.1.4/go.mod h1:5yspPrukOVuOLORacaBi858NqyClJPQxYZlqdZVfqY4=
 github.com/jellevandenhooff/dkim v0.0.0-20150330215556-f50fe3d243e1/go.mod h1:E0B/fFc00Y+Rasa88328GlI/XbtyysCtTHZS8h7IrBU=
-github.com/jianlu8023/go-logger/v2 v2.0.0-20250905080011-cc2c7be6a78e h1:CrPzivXm2Sz0c5EwPK3AC1ePWTlYVE0YnD7fOT76v6Y=
-github.com/jianlu8023/go-logger/v2 v2.0.0-20250905080011-cc2c7be6a78e/go.mod h1:H61dRpB06Z+rB39mCjAf/PcciYYqU2pEuFvFpqfTyi0=
+github.com/jianlu8023/go-logger/v2 v2.0.0 h1:2SXvV/0r484icZLx5onh4sAP2I/k4XhpypUpP4o3eVQ=
+github.com/jianlu8023/go-logger/v2 v2.0.0/go.mod h1:H61dRpB06Z+rB39mCjAf/PcciYYqU2pEuFvFpqfTyi0=
 github.com/jianlu8023/go-tools v1.0.3 h1:/jTz37S1d7SK0D7Jg2ZLXjANMltbCBRI4d81oV95O/Q=
 github.com/jianlu8023/go-tools v1.0.3/go.mod h1:D7UFAylMji1OLzGoIZR+9D/wMT+2mOiKB6xa1YbsJ2Q=
 github.com/jonboulle/clockwork v0.4.0 h1:p4Cf1aMWXnXAUh8lVfewRBx1zaTSYKrKMF2g3ST4RZ4=

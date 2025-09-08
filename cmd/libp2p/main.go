@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/jianlu8023/gm-fabric-deployment/internal/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	"github.com/libp2p/go-libp2p"
 	peerstore "github.com/libp2p/go-libp2p/core/peer"
@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 
-	loggerControl := logger.NewLoggerControl(configControl.GetConfig().LoggerConfig)
+	loggerControl := mylogger.NewLoggerControl(configControl.GetConfig().LoggerConfig)
 
 	mainLogger := loggerControl.GenLogger("main")
 
