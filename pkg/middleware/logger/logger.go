@@ -15,7 +15,11 @@ type Control struct {
 	loggerConfig *config.LoggerConfig
 	_logMap      map[string]*zap.SugaredLogger
 	_loggerLevel map[string]string
-	sync.RWMutex
+	loggerMutex  sync.RWMutex
+}
+
+func (c *Control) GetConfig() *config.LoggerConfig {
+	return c.loggerConfig
 }
 
 func NewLoggerControl(loggerConfig *config.LoggerConfig) *Control {
@@ -32,8 +36,8 @@ func NewLoggerControl(loggerConfig *config.LoggerConfig) *Control {
 }
 
 func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
-	c.Lock()
-	defer c.Unlock()
+	c.loggerMutex.Lock()
+	defer c.loggerMutex.Unlock()
 	existLogger, ok := c._logMap[moduleName]
 	if ok {
 		return existLogger
