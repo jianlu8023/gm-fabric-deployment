@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
-	logger2 "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/http/middleware/cors"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/http/middleware/gzip"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/http/middleware/request"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/http/middleware/requestid"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
@@ -41,11 +45,34 @@ func (s *ServerControl) Shutdown() {
 	_ = s.server.Shutdown(s.ctx)
 }
 
-func NewServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger2.Control) *ServerControl {
-	webLogger := loggerControl.GenLogger(logger2.ModuleWeb)
+func NewServerControl(serverConfig *config.HttpServerConfig, loggerControl *mylogger.Control) *ServerControl {
+	webLogger := loggerControl.GenLogger(mylogger.ModuleWeb)
 	webLogger.Infof("start new http server control...")
 	gin.SetMode(serverConfig.RunMode)
+	// gin.ForceConsoleColor()
+
 	engine := gin.Default()
+	engine.Use(requestid.EnableRequestID())
+	engine.Use(request.EnableRequestLog(webLogger))
+	engine.Use(cors.EnableCors())
+	engine.Use(gzip.EnableGzip())
+
+	// engine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+	// 	// 你的自定义格式
+	// 127.0.0.1 - [2025-09-08 19:57:12.078] "GET /example/ping HTTP/2.0 200 50.066µs "curl/7.68.0" "
+	// 	return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+	// 		param.ClientIP,
+	// 		param.TimeStamp.Format("2006-01-02 15:04:05.000"),
+	// 		param.Method,
+	// 		param.Path,
+	// 		param.Request.Proto,
+	// 		param.StatusCode,
+	// 		param.Latency,
+	// 		param.Request.UserAgent(),
+	// 		param.ErrorMessage,
+	// 	)
+	// }))
+
 	initRouters(engine, serverConfig, webLogger)
 	srv := &http.Server{
 		Addr:    serverConfig.Address,

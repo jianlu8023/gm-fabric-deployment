@@ -1,12 +1,12 @@
 package logger
 
 import (
+	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	glog "github.com/jianlu8023/go-logger/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -82,9 +82,9 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 		glog.WithFileOutPut(),
 		glog.WithRotateLog(&glog.RotateLogConfig{
 			FileName:     c.loggerConfig.FilePath,
-			MaxAge:       strconv.Itoa(c.loggerConfig.MaxAge),
+			MaxAge:       fmt.Sprintf("%vd", c.loggerConfig.MaxAge),
 			LocalTime:    true,
-			RotationTime: strconv.Itoa(c.loggerConfig.RotationTime),
+			RotationTime: fmt.Sprintf("%vh", c.loggerConfig.RotationTime),
 		}),
 		glog.WithFileLogLevel("debug"),
 	}
