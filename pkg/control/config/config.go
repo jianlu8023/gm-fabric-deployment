@@ -265,8 +265,8 @@ func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
 
 // Identity 配置身份信息
 type Identity struct {
-	PeerID  string `json:"peer_id" yaml:"peer_id" mapstructure:"peer_id"`
-	PrivKey string `json:",omitempty" yaml:",omitempty" mapstructure:"priv_key"`
+	PeerID  string `json:"peer_id,omitempty" yaml:"peer_id,omitempty" mapstructure:"peer_id"`
+	PrivKey string `json:",omitempty" yaml:",omitempty" mapstructure:"privkey"`
 }
 
 // DecodePrivateKey is a helper to decode the users PrivateKey.

@@ -141,6 +141,7 @@ func loadConfig() (Config, error) {
 		return cfg, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 
+	fmt.Printf("---------------------\n%v\n", cfg)
 	// 判断libp2p 是否设置了privKey peerId
 	if cfg.Libp2pConfig.Identity == nil ||
 		str.IsBlank(cfg.Libp2pConfig.Identity.PrivKey) ||

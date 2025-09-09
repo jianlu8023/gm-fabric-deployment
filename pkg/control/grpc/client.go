@@ -150,7 +150,7 @@ func (c *ClientControl) Stop() error {
 }
 
 func (c *ClientControl) SendMessage(req *pb.BaseRequest) (*pb.BaseResponse, error) {
-	c.logger.Debugf("grpc client send pb messageType %v", req.MessageType)
+	c.logger.Debugf("grpc client send message messageType %v", req.MessageType)
 	return c.SendMessageBidi(req, 0)
 }
 

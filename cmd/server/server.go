@@ -1,7 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/docker/image"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/node"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
@@ -9,7 +12,6 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"os"
@@ -25,45 +27,74 @@ var (
 
 func main() {
 	fmt.Printf("start server version %s\n", version)
-
-	runOS := runtime.GOOS
-	switch runOS {
-	case "windows":
-		fmt.Println("Running on Windows")
-	case "linux":
-		fmt.Println("Running on Linux")
-		if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
-			fmt.Printf("generate pid file failed: %v\n", err)
-			return
+	// pidfile
+	{
+		runOS := runtime.GOOS
+		switch runOS {
+		case "windows":
+			fmt.Println("Running on Windows")
+		case "linux":
+			fmt.Println("Running on Linux")
+			if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
+				fmt.Printf("generate pid file failed: %v\n", err)
+				return
+			}
+			defer func() {
+				pidfile.ReleasePID()
+			}()
+		case "darwin": // macOS
+			fmt.Println("Running on macOS")
+			if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
+				fmt.Printf("generate pid file failed: %v\n", err)
+				return
+			}
+			defer func() {
+				pidfile.ReleasePID()
+			}()
+		default:
+			fmt.Printf("Running on an unknown operating system: %s\n", runOS)
 		}
-		defer func() {
-			pidfile.ReleasePID()
-		}()
-	case "darwin": // macOS
-		fmt.Println("Running on macOS")
-		if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
-			fmt.Printf("generate pid file failed: %v\n", err)
-			return
-		}
-		defer func() {
-			pidfile.ReleasePID()
-		}()
-	default:
-		fmt.Printf("Running on an unknown operating system: %s\n", runOS)
 	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
+	// config
 	configControl, err := config.NewConfigControl()
 	if err != nil {
 		fmt.Printf("load config failed: %v\n", err)
 		return
 	}
 
+	// logger
 	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	mainLogger := loggerControl.GenLogger("main")
 
+	// datasource
+	var (
+		imageMapper *image.Mapper
+		nodeMapper  *node.Mapper
+	)
+	{
+		mainLogger.Infof("starting datasource server...")
+		dataSourceControl, err := datasource.NewDataSourceControl(configControl.GetDataSourceConfig(), loggerControl)
+		if err != nil {
+			mainLogger.Fatalf("create datasource control failed: %v", err)
+			return
+		}
+		defer func() {
+			if err := dataSourceControl.Close(); err != nil {
+				mainLogger.Errorf("close datasource control failed: %v", err)
+			}
+		}()
+		if err = dataSourceControl.AutoMigrateTable(&image.Info{}, &node.Info{}); err != nil {
+			mainLogger.Errorf("auto migrate table failed: %v", err)
+		}
+		imageMapper = image.NewImageMapper(dataSourceControl.GetConn())
+		nodeMapper = node.NewNodeMapper(dataSourceControl.GetConn())
+	}
+
+	// grpc
 	{
 		mainLogger.Infof("starting grpc server...")
 		grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl, func(err error) {
@@ -77,6 +108,7 @@ func main() {
 		defer grpcControl.Shutdown()
 	}
 
+	// libp2p
 	{
 		mainLogger.Infof("starting libp2p server...")
 		libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
@@ -98,8 +130,42 @@ func main() {
 		// 	fmt.Printf("New peer discovered and connected: %s\n", id)
 		// })
 
+		myself := node.NewNodeInfo()
+		myself.NodeId = libp2pControl.GetLocalID().String()
+		myself.IsAlive = sql.NullBool{Bool: true, Valid: true}
+		myself.IsMySelf = sql.NullBool{Bool: true, Valid: true}
+		myself.LastAliveMessageTime = time.Now()
+		if err = nodeMapper.InsertOrUpdate(myself); err != nil {
+			mainLogger.Errorf("insert myself info failed: %v", err)
+		}
+
 		libp2pControl.RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
-			mainLogger.Infof("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
+			mainLogger.Debugf("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
+		})
+		libp2pControl.RegisterMessageHandler("node_info", func(protocolID protocol.ID, msg *libp2p.Message) {
+			mainLogger.Debugf("received %v protocol node info message from %s content %v", protocolID, msg.From, string(msg.Content))
+			mainLogger.Infof("starting insert or update node info...")
+			// 返回节点信息
+			info := node.NewNodeInfo()
+			info.NodeId = msg.From.String()
+			info.IsAlive = sql.NullBool{Bool: true, Valid: true}
+			info.LastAliveMessageTime = time.Now()
+			if err := nodeMapper.InsertOrUpdate(info); err != nil {
+				mainLogger.Errorf("insert or update node info failed: %v", err)
+			}
+		})
+
+		libp2pControl.RegisterMessageHandler("base/shutdown", func(protocolId protocol.ID, msg *libp2p.Message) {
+			mainLogger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
+			libp2pControl.DisconnectFromPeer(msg.From)
+			mainLogger.Infof("from connect peer list remove peer %v", msg.From)
+			info := node.NewNodeInfo()
+			info.NodeId = msg.From.String()
+			info.IsAlive = sql.NullBool{Bool: false, Valid: true}
+			info.LastAliveMessageTime = time.Now()
+			if err := nodeMapper.InsertOrUpdate(info); err != nil {
+				mainLogger.Errorf("update node info failed: %v", err)
+			}
 		})
 
 		// 模拟发送一条消息
@@ -110,32 +176,24 @@ func main() {
 
 			for range ticker.C {
 				// 创建一条聊天消息
-				msg := &libp2p.Message{
+				collectInfoMsg := &libp2p.Message{
 					From:    libp2pControl.GetLocalID(),
-					Type:    "chat_message",
-					Content: []byte("Hello from libp2p example!"),
+					Type:    "collect_info",
+					Content: []byte("collect all node info"),
 				}
 
 				// 广播消息
-				if err := libp2pControl.BroadcastMessage(msg); err != nil {
-					mainLogger.Errorf("broadcast message failed: %v", err)
-				} else {
-					mainLogger.Debugf("broadcast message successfully")
+				if err := libp2pControl.BroadcastMessage(collectInfoMsg); err != nil {
+					mainLogger.Errorf("broadcast collect info message failed: %v", err)
 				}
-			}
-		}()
-	}
-
-	{
-		mainLogger.Infof("starting datasource server...")
-		dataSourceControl, err := datasource.NewDataSourceControl(configControl.GetDataSourceConfig(), loggerControl)
-		if err != nil {
-			mainLogger.Fatalf("create datasource control failed: %v", err)
-			return
-		}
-		defer func() {
-			if err := dataSourceControl.Close(); err != nil {
-				mainLogger.Errorf("close datasource control failed: %v", err)
+				chatMsg := &libp2p.Message{
+					From:    libp2pControl.GetLocalID(),
+					Type:    "chat_message",
+					Content: []byte("hello libp2p"),
+				}
+				if err := libp2pControl.BroadcastMessage(chatMsg); err != nil {
+					mainLogger.Errorf("broadcast chat message failed: %v", err)
+				}
 			}
 		}()
 	}
@@ -169,13 +227,14 @@ func main() {
 				mainLogger.Errorf("get docker image list failed: %v", err)
 
 			} else {
-				mainLogger.Infof("get docker image success...")
-				for _, image := range imageList {
-					bytes, err := json.MarshalIndent(image, "", " ")
-					if err != nil {
-						mainLogger.Errorf("marshal image failed: %v", err)
-					} else {
-						mainLogger.Infof("image: %s", string(bytes))
+				mainLogger.Infof("get docker img success...")
+				for _, img := range imageList {
+					info := image.NewImageInfo()
+					info.ImageName = img.RepoTags[0]
+					info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+						mainLogger.Errorf("insert image info failed: %v", err)
 					}
 				}
 			}

@@ -24,6 +24,18 @@ func (c *Control) GetConn() *gorm.DB {
 	return c.dbConn
 }
 
+// AutoMigrateTable 自动迁移表
+// @param tables interface{} 表结构
+// @return error 错误信息
+func (c *Control) AutoMigrateTable(tables ...interface{}) error {
+	c.logger.Infof("[control] start auto migrate table...")
+	if err := c.dbConn.AutoMigrate(tables...); err != nil {
+		c.logger.Errorf("[control] auto migrate table failed: %v", err)
+		return err
+	}
+	return nil
+}
+
 func (c *Control) setConnPool() error {
 	sqlDB, err := c.dbConn.DB()
 	if err != nil {
