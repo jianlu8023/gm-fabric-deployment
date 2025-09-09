@@ -3,10 +3,11 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 
 	"github.com/spf13/viper"
 )
@@ -141,7 +142,6 @@ func loadConfig() (Config, error) {
 		return cfg, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 
-	fmt.Printf("---------------------\n%v\n", cfg)
 	// 判断libp2p 是否设置了privKey peerId
 	if cfg.Libp2pConfig.Identity == nil ||
 		str.IsBlank(cfg.Libp2pConfig.Identity.PrivKey) ||

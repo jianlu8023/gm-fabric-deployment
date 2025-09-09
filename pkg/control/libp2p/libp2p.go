@@ -3,6 +3,11 @@ package libp2p
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
@@ -18,10 +23,6 @@ import (
 	transportwebrtc "github.com/libp2p/go-libp2p/p2p/transport/webrtc"
 	transportwebsocket "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	"github.com/multiformats/go-multiaddr"
-	"math/rand/v2"
-	"strings"
-	"sync"
-	"time"
 
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 	"go.uber.org/zap"
@@ -45,11 +46,23 @@ type Control struct {
 
 	// 自定义libp2p配置
 	libp2pConfig *config.Libp2pConfig
+
+	// 消息队列，用于异步发送消息
+	messageQueue chan MessageWithPeer
+
+	// 工作协程组
+	wg sync.WaitGroup
 }
 
 // NewLibp2pControl 创建一个新的libp2p控制器
+//
+// @param libp2pConfig *config.Libp2pConfig libp2p配置
+// @param loggerControl *logger.Control 日志控制器
+//
+// @return *Control libp2p控制器
+// @return error 错误
 func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.Control) (*Control, error) {
-	libp2pLogger := loggerControl.GenLogger("libp2p")
+	libp2pLogger := loggerControl.GenLogger(logger.ModuleLibp2p)
 	libp2pLogger.Infof("[control] starting new libp2p control...")
 
 	// 创建上下文
@@ -62,6 +75,8 @@ func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.C
 		protocols:    make(map[protocol.ID]MessageHandler),
 		handlers:     make(map[string]MessageHandler),
 		libp2pConfig: libp2pConfig,
+		// 创建带缓冲的消息队列，大小可以根据需要调整
+		messageQueue: make(chan MessageWithPeer, 100),
 	}
 
 	// 初始化libp2p节点
@@ -96,11 +111,17 @@ func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.C
 	return lc, nil
 }
 
+// GetLocalID 获取本地节点ID
+//
+// @return peer.ID 本地节点的Peer ID
 func (lc *Control) GetLocalID() peer.ID {
 	lc.logger.Debugf("[control] get local id...")
 	return lc.host.ID()
 }
 
+// initDHT 初始化DHT服务
+//
+// @return error 错误信息，如果初始化成功则返回nil
 func (lc *Control) initDHT() error {
 	lc.logger.Debugf("[control] control init dht...")
 	// 初始化discoveryService中的DHT服务
@@ -111,7 +132,9 @@ func (lc *Control) initDHT() error {
 	return nil
 }
 
-// 初始化libp2p节点
+// initNode 初始化libp2p节点
+//
+// @return error 错误信息，如果初始化成功则返回nil
 func (lc *Control) initNode() error {
 	lc.logger.Debugf("[control] initializing libp2p node...")
 	// 创建libp2p节点选项
@@ -182,6 +205,8 @@ func (lc *Control) initNode() error {
 }
 
 // StartUp 启动libp2p服务
+//
+// @param failedFunc func(err error) 启动失败时的回调函数
 func (lc *Control) StartUp(failedFunc func(err error)) {
 	lc.logger.Infof("[control] starting libp2p service...")
 	// 启动发现服务
@@ -203,10 +228,16 @@ func (lc *Control) StartUp(failedFunc func(err error)) {
 	// 启动健康检查
 	go lc.discoveryService.StartHealthCheck()
 
+	// 启动消息处理工作协程
+	lc.wg.Add(1)
+	go lc.messageProcessor()
+
 	lc.logger.Infof("[control] libp2p service started...")
 }
 
 // Shutdown 关闭libp2p服务
+//
+// @return error 错误信息，如果关闭成功则返回nil
 func (lc *Control) Shutdown() error {
 	lc.logger.Debugf("[control] shutting down libp2p service...")
 
@@ -230,6 +261,11 @@ func (lc *Control) Shutdown() error {
 		}
 	}
 
+	// 关闭消息队列并等待工作协程结束
+	lc.logger.Debugf("[control] closing message queue and waiting for workers...")
+	close(lc.messageQueue) // 关闭通道，通知工作协程结束
+	lc.wg.Wait()           // 等待所有工作协程完成
+
 	// 关闭host
 	if lc.host != nil {
 		lc.logger.Debugf("[control] close libp2p host...")
@@ -243,7 +279,10 @@ func (lc *Control) Shutdown() error {
 	return nil
 }
 
-// BroadcastMessage 广播消息到所有节点
+// BroadcastMessage 广播消息到所有已知节点
+//
+// @param msg *Message 要广播的消息
+// @return error 错误信息，如果广播过程中出现严重错误则返回错误
 func (lc *Control) BroadcastMessage(msg *Message) error {
 	lc.logger.Debugf("[control] starting broadcast message...")
 	lc.discoveryService.peersMutex.RLock()
@@ -265,48 +304,184 @@ func (lc *Control) BroadcastMessage(msg *Message) error {
 	return nil
 }
 
+// messageProcessor 消息处理工作协程，从消息队列读取消息并分发到工作池
+//
+// 该方法创建固定数量的工作协程，然后从messageQueue接收消息并发送到工作池进行处理
+// 当messageQueue关闭时，该方法也会关闭工作通道并退出
+func (lc *Control) messageProcessor() {
+	defer lc.wg.Done()
+	lc.logger.Debugf("[control] message processor started")
+
+	// 创建工作池来限制并发处理的消息数量
+	// 根据系统资源和需求调整工作协程数量
+	const workerCount = 5
+	jobs := make(chan MessageWithPeer)
+
+	// 启动工作协程池
+	for i := 0; i < workerCount; i++ {
+		lc.wg.Add(1)
+		go lc.worker(jobs)
+	}
+
+	// 从队列中接收消息并发送到工作池
+	for msgWithPeer := range lc.messageQueue {
+		select {
+		case jobs <- msgWithPeer:
+			// 消息已发送到工作池
+		case <-lc.ctx.Done():
+			// 上下文已取消，退出循环
+			break
+		}
+	}
+
+	// 关闭工作通道，通知所有工作协程退出
+	close(jobs)
+	// 不需要在这里调用wg.Wait()，因为每个worker都会调用wg.Done()
+
+	lc.logger.Debugf("[control] message processor shutdown")
+}
+
+// worker 工作协程，从jobs通道中获取消息并处理
+//
+// @param jobs <-chan MessageWithPeer 消息通道，包含待处理的消息及其目标节点信息
+func (lc *Control) worker(jobs <-chan MessageWithPeer) {
+	defer lc.wg.Done()
+	lc.logger.Debugf("[control] message worker started")
+
+	for msgWithPeer := range jobs {
+		// 处理消息
+		lc.processMessage(msgWithPeer)
+	}
+
+	lc.logger.Debugf("[control] message worker shutdown")
+}
+
+// processMessage 处理单个消息的实际发送逻辑
+//
+// @param msgWithPeer MessageWithPeer 包含待发送消息及其目标节点信息的结构体
+func (lc *Control) processMessage(msgWithPeer MessageWithPeer) {
+	peerID := msgWithPeer.PeerID
+	protocolID := msgWithPeer.ProtocolID
+	msg := msgWithPeer.Msg
+
+	// 检查上下文是否已取消
+	if lc.ctx.Err() != nil {
+		lc.logger.Debugf("[control] context canceled, skipping message to peer %s", peerID)
+		return
+	}
+
+	// 检查连接是否存在
+	if lc.host.Network().Connectedness(peerID) == network.NotConnected {
+		lc.logger.Warnf("[control] not connected to peer %s, skipping message", peerID)
+		return
+	}
+
+	// 创建到目标节点的流
+	stream, err := lc.host.NewStream(lc.ctx, peerID, protocolID)
+	if err != nil {
+		lc.logger.Errorf("[control] failed to create stream to peer %s: %v", peerID, err)
+		return
+	}
+
+	// 使用defer确保流正确关闭
+	defer func() {
+		// 先关闭写入端
+		if err := stream.CloseWrite(); err != nil {
+			// 只记录关闭流写入端的错误，不影响消息处理结果
+			// 许多关闭错误是正常的，例如对端已关闭连接
+			lc.logger.Debugf("[control] stream write closed to peer %s: %v (non-critical)", peerID, err)
+		}
+		// 然后关闭整个流
+		if err := stream.Close(); err != nil {
+			// 只记录关闭流的错误，不影响消息处理结果
+			lc.logger.Debugf("[control] stream fully closed to peer %s: %v (non-critical)", peerID, err)
+		}
+	}()
+
+	// 尝试发送消息
+	err = json.NewEncoder(stream).Encode(msg)
+	if err != nil {
+		lc.logger.Errorf("[control] failed to encode message to peer %s: %v", peerID, err)
+	} else {
+		lc.logger.Infof("[control] send message messageType %v to peer %s success...", msg.Type, peerID)
+	}
+}
+
 // SendMessageToPeer 发送消息到指定节点
+//
+// @param peerID peer.ID 目标节点的Peer ID
+// @param msg *Message 要发送的消息对象
+// @return error 错误信息，如果消息发送成功则返回nil
 func (lc *Control) SendMessageToPeer(peerID peer.ID, msg *Message) error {
 	lc.logger.Debugf("[control] sending message to peer %s", peerID)
 	protocolID := protocol.ID(lc.libp2pConfig.ProtocolID)
 	return lc.sendMessage(peerID, protocolID, msg)
 }
 
-// 发送消息的内部方法
+// sendMessage 发送消息的内部方法 - 现在改为异步方式，将消息发送到队列中
+//
+// @param peerID peer.ID 目标节点的Peer ID
+// @param protocolID protocol.ID 协议ID
+// @param msg *Message 要发送的消息对象
+// @return error 错误信息，如果消息成功加入队列则返回nil
 func (lc *Control) sendMessage(peerID peer.ID, protocolID protocol.ID, msg *Message) error {
-	lc.logger.Debugf("[control] sending message to peer %s", peerID)
-	// 创建到目标节点的流
-	stream, err := lc.host.NewStream(lc.ctx, peerID, protocolID)
-	if err != nil {
-		lc.logger.Errorf("[control] failed to create stream to peer %s: %v", peerID, err)
-		return err
-	}
-	defer func() {
-		if err := stream.CloseWrite(); err != nil {
-			lc.logger.Errorf("[control] failed to close stream writer to peer %s: %v", peerID, err)
-		}
-	}()
+	lc.logger.Debugf("[control] queueing message to peer %s", peerID)
 
-	if err = json.NewEncoder(stream).Encode(msg); err != nil {
-		lc.logger.Errorf("[control] failed to encode message to peer %s: %v", peerID, err)
-		return err
+	// 创建消息副本以避免并发问题
+	msgCopy := &Message{
+		Type:    msg.Type,
+		Content: make([]byte, len(msg.Content)),
+		From:    msg.From,
+		To:      msg.To,
+	}
+	copy(msgCopy.Content, msg.Content)
+
+	// 检查上下文是否已取消
+	if lc.ctx.Err() != nil {
+		return fmt.Errorf("context canceled")
 	}
 
-	lc.logger.Infof("[control] send message messageType %v to peer %s sccuess...", msg.Type, peerID)
-	return nil
+	// 将消息发送到队列
+	select {
+	case lc.messageQueue <- MessageWithPeer{
+		PeerID:     peerID,
+		ProtocolID: protocolID,
+		Msg:        msgCopy,
+	}:
+		// 消息成功加入队列
+		lc.logger.Debugf("[control] message queued successfully to peer %s", peerID)
+		return nil
+	case <-lc.ctx.Done():
+		// 上下文已取消
+		return fmt.Errorf("context canceled while queueing message")
+	default:
+		// 通道已满，记录警告但不阻塞主线程
+		lc.logger.Warnf("[control] message queue full, dropping message to peer %s", peerID)
+		return fmt.Errorf("message queue is full")
+	}
 }
 
-// 处理接收到的流
+// defaultStreamHandler 默认的流处理器，处理接收到的流
+//
+// @param stream network.Stream 接收到的网络流，包含来自远程节点的消息
 func (lc *Control) defaultStreamHandler(stream network.Stream) {
 	lc.logger.Debugf("[control] default stream handler...")
-	defer func() {
-		if err := stream.CloseRead(); err != nil {
-			lc.logger.Errorf("[control] failed to close stream read: %v", err)
-		}
-	}()
-
 	peerID := stream.Conn().RemotePeer()
 	protocolID := stream.Protocol()
+
+	// 使用defer确保流正确关闭
+	defer func() {
+		// 先关闭读取端
+		if err := stream.CloseRead(); err != nil {
+			// 只记录关闭流读取端的错误，不影响消息处理结果
+			lc.logger.Debugf("[control] stream read closed from peer %s: %v (non-critical)", peerID, err)
+		}
+		// 然后关闭整个流
+		if err := stream.Close(); err != nil {
+			// 只记录关闭流的错误，不影响消息处理结果
+			lc.logger.Debugf("[control] stream fully closed from peer %s: %v (non-critical)", peerID, err)
+		}
+	}()
 
 	lc.logger.Debugf("[control] received stream from peer %s using protocol %s", peerID, protocolID)
 
@@ -327,7 +502,10 @@ func (lc *Control) defaultStreamHandler(stream network.Stream) {
 	handler(protocolID, &msg)
 }
 
-// 默认的消息处理器
+// defaultMessageHandler 默认的消息处理器，处理未注册特定处理器的消息
+//
+// @param protocolId protocol.ID 消息使用的协议ID
+// @param msg *Message 接收到的消息对象
 func (lc *Control) defaultMessageHandler(protocolId protocol.ID, msg *Message) {
 	lc.logger.Debugf("[control] default message handler...")
 	lc.logger.Debugf("[control] received message from %s, type: %s", msg.From, msg.Type)
@@ -341,7 +519,10 @@ func (lc *Control) defaultMessageHandler(protocolId protocol.ID, msg *Message) {
 	}
 }
 
-// RegisterMessageHandler 注册消息处理器
+// RegisterMessageHandler 注册特定消息类型的处理器
+//
+// @param messageType string 消息类型
+// @param handler MessageHandler 消息处理函数，用于处理指定类型的消息
 func (lc *Control) RegisterMessageHandler(messageType string, handler MessageHandler) {
 	lc.logger.Debugf("[control] registering handler for message type: %s", messageType)
 	lc.handlersMutex.Lock()
@@ -351,11 +532,19 @@ func (lc *Control) RegisterMessageHandler(messageType string, handler MessageHan
 	lc.logger.Infof("[control] registered handler for message type: %s", messageType)
 }
 
+// RegisterNotifyPeerFound 注册节点发现回调函数
+//
+// @param call func(id peer.ID, info peer.AddrInfo) 节点发现时的回调函数，接收节点ID和地址信息
 func (lc *Control) RegisterNotifyPeerFound(call func(id peer.ID, info peer.AddrInfo)) {
 	lc.logger.Debugf("[control] register notify peer found handler...")
 	lc.discoveryService.NotifyPeerFound(call)
 }
 
+// RegisterProtocolHandler 注册协议处理器和流处理器
+//
+// @param protocolID protocol.ID 协议ID
+// @param protocolHandler MessageHandler 协议消息处理函数
+// @param streamHandler network.StreamHandler 流处理函数
 func (lc *Control) RegisterProtocolHandler(protocolID protocol.ID, protocolHandler MessageHandler, streamHandler network.StreamHandler) {
 	lc.logger.Debugf("[control] register %v protocol handler...", protocolID)
 	// 注册默认的消息处理协议
@@ -368,6 +557,9 @@ func (lc *Control) RegisterProtocolHandler(protocolID protocol.ID, protocolHandl
 	lc.logger.Infof("[control] success register %v protocol handler...", protocolID)
 }
 
+// defaultMessageRegister 注册默认的消息处理器
+//
+// 该方法注册基础的ping/pong和shutdown消息处理逻辑
 func (lc *Control) defaultMessageRegister() {
 	lc.logger.Debugf("register some default message...")
 	lc.RegisterMessageHandler("base/ping", func(protocolId protocol.ID, msg *Message) {
@@ -390,8 +582,6 @@ func (lc *Control) defaultMessageRegister() {
 	})
 	lc.logger.Debugf("registed some default message...")
 }
-
-// ///////////////////////////////////////////////////////////////////////////////////////////
 
 // GetPeers 获取所有连接的节点
 func (lc *Control) GetPeers() []peer.ID {

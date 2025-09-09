@@ -1,3 +1,16 @@
+datasource:
+  data_source_type: sqlite3
+  db_username: username
+  db_password: password
+  db_host: localhost
+  db_port: 3306
+  db_path: ./db/gm-fabric.db
+  max_idle_conn: 10
+  max_open_conn: 50
+  log_in_console: true
+docker:
+  host: unix:///var/run/docker.sock
+  default_timeout: 5
 grpc:
   server:
     host: 127.0.0.1:65534
@@ -25,12 +38,30 @@ http:
   tls_enabled: true
   tls_cert_file: ./certs/hserver.crt
   tls_key_file: ./certs/hserver.key
+libp2p:
+  listen_addr:
+    - /ip4/0.0.0.0/tcp/2000
+    - /ip6/::1/tcp/2000
+    - /ip4/0.0.0.0/udp/2000/quic-v1
+    - /ip4/127.0.0.1/udp/2000/quic-v1
+    - /ip4/0.0.0.0/udp/2000/quic-v1/webtransport
+    - /ip4/0.0.0.0/udp/2000/webrtc-direct
+    - /dns4/localhost/udp/2000/ws
+  identity:
+    peer_id: 12D3KooWEeXfZpxfqwxFLJ2JYH21x85DnTMnCnmfUs4yQnCngM5T
+    privkey: CAESQJY27DDSC9bEnAfcOE+rCLV6OVm/AETqUCt1swmR7HD9R8VdYQoGM7931nd+BX/URL1JLEGRvXX8IkGCK+boblo=
+  protocol_id: /gm-fabric/chat/1.0.0
+  service_tag: gm-fabric-deployment
+  bootstrap_list:
+  #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
 logger:
   default_log_level: debug
+  stack_log_level: error
   print_format: console
   file_path: ./logs/app.log
   max_age: 7
   rotation_time: 1
   logger_level:
     grpc: debug
+    libp2p: info
     main: info

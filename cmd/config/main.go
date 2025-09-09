@@ -102,6 +102,7 @@ func genDefaultConfig() error {
 			Port:           3306,
 			MaxIdleConn:    10,
 			MaxOpenConn:    50,
+			LogInConsole:   true,
 		},
 		DockerConfig: &config.DockerConfig{
 			// Host:"tcp://127.0.0.1:2375",

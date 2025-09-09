@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"fmt"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -69,3 +70,10 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 
 // MessageHandler 消息处理函数类型
 type MessageHandler func(protocolID protocol.ID, msg *Message)
+
+// MessageWithPeer 包含消息和目标节点信息的结构体
+type MessageWithPeer struct {
+	PeerID     peer.ID
+	ProtocolID protocol.ID
+	Msg        *Message
+}

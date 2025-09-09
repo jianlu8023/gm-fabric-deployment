@@ -1,10 +1,10 @@
 package info
 
 import (
-	"github.com/jianlu8023/go-tools/pkg/format/json"
 	"runtime"
 	"time"
 
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/mem"
@@ -25,8 +25,8 @@ type Server struct {
 }
 
 func (s Server) String() string {
-	jsonStr, _ := json.ToJSON(s)
-	return jsonStr
+	bytes, _ := json.Marshal(s)
+	return string(bytes)
 }
 
 type Os struct {
@@ -38,8 +38,8 @@ type Os struct {
 }
 
 func (s Os) String() string {
-	jsonStr, _ := json.ToJSON(s)
-	return jsonStr
+	bytes, _ := json.Marshal(s)
+	return string(bytes)
 }
 
 type Cpu struct {
@@ -48,8 +48,8 @@ type Cpu struct {
 }
 
 func (s Cpu) String() string {
-	jsonStr, _ := json.ToJSON(s)
-	return jsonStr
+	bytes, _ := json.Marshal(s)
+	return string(bytes)
 }
 
 type Ram struct {
@@ -59,8 +59,8 @@ type Ram struct {
 }
 
 func (s Ram) String() string {
-	jsonStr, _ := json.ToJSON(s)
-	return jsonStr
+	bytes, _ := json.Marshal(s)
+	return string(bytes)
 }
 
 type Disk struct {
@@ -73,8 +73,8 @@ type Disk struct {
 }
 
 func (s Disk) String() string {
-	jsonStr, _ := json.ToJSON(s)
-	return jsonStr
+	bytes, _ := json.Marshal(s)
+	return string(bytes)
 }
 
 // InitOS 初始化系统信息

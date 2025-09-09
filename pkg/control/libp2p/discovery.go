@@ -44,6 +44,15 @@ type DiscoveryService struct {
 }
 
 // newDiscoveryService 创建一个新的节点发现服务
+//
+// @param ctx context.Context 上下文对象
+// @param host host.Host libp2p主机实例
+// @param serviceTag string 服务标签，用于mDNS发现
+// @param logger *zap.SugaredLogger 日志记录器
+// @param libp2pConfig *config.Libp2pConfig libp2p配置
+//
+// @return *DiscoveryService 发现服务实例
+// @return error 错误信息，如果创建失败则返回错误
 func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string, logger *zap.SugaredLogger, libp2pConfig *config.Libp2pConfig) (*DiscoveryService, error) {
 	logger.Infof("[discovery] creating discovery service...")
 	ds := &DiscoveryService{
@@ -63,6 +72,9 @@ func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string,
 }
 
 // Start 启动节点发现服务
+//
+// 该方法初始化并启动mDNS服务和定期扫描协程
+// @return error 错误信息，如果启动失败则返回错误
 func (ds *DiscoveryService) Start() error {
 	ds.logger.Infof("[discovery] starting discovery service...")
 	// 创建mDNS服务
@@ -85,6 +97,9 @@ func (ds *DiscoveryService) Start() error {
 }
 
 // InitDHT 初始化DHT服务
+//
+// 该方法创建并配置分布式哈希表(DHT)服务，用于节点发现和数据索引
+// @return error 错误信息，如果初始化失败则返回错误
 func (ds *DiscoveryService) InitDHT() error {
 	ds.logger.Infof("[discovery] initializing DHT service...")
 	dhtOpts := []dht.Option{
@@ -130,6 +145,9 @@ func (ds *DiscoveryService) InitDHT() error {
 }
 
 // BootstrapDHT 引导DHT服务
+//
+// 该方法连接到引导节点以引导DHT网络
+// @return error 错误信息，如果引导失败则返回错误
 func (ds *DiscoveryService) BootstrapDHT() error {
 	if ds.dht == nil {
 		return fmt.Errorf("DHT service is not initialized")
@@ -144,6 +162,8 @@ func (ds *DiscoveryService) BootstrapDHT() error {
 }
 
 // ConnectBootstrapPeers 连接bootstrap节点列表中的所有节点
+//
+// 该方法异步连接到配置中指定的所有bootstrap节点
 func (ds *DiscoveryService) ConnectBootstrapPeers() {
 	if len(ds.libp2pConfig.BootstrapList) == 0 {
 		ds.logger.Infof("[discovery] no bootstrap peers configured")
@@ -191,6 +211,8 @@ func (ds *DiscoveryService) ConnectBootstrapPeers() {
 }
 
 // StartHealthCheck 启动节点健康检查
+//
+// 该方法启动定期检查节点连接状态的协程
 func (ds *DiscoveryService) StartHealthCheck() {
 	ds.logger.Infof("[discovery] starting peer health check...")
 	checkInterval := 60 * time.Second // 每分钟检查一次
@@ -210,6 +232,8 @@ func (ds *DiscoveryService) StartHealthCheck() {
 }
 
 // CheckPeersHealth 检查所有节点的健康状态
+//
+// 该方法遍历所有已知节点并异步检查它们的连接状态
 func (ds *DiscoveryService) CheckPeersHealth() {
 	ds.logger.Debugf("[discovery] checking peers health...")
 
@@ -227,6 +251,8 @@ func (ds *DiscoveryService) CheckPeersHealth() {
 }
 
 // CheckPeerHealth 检查单个节点的健康状态
+//
+// @param peerID peer.ID 要检查的节点ID
 func (ds *DiscoveryService) CheckPeerHealth(peerID peer.ID) {
 	ds.logger.Debugf("[discovery] checking health for peer %s", peerID)
 
@@ -252,6 +278,8 @@ func (ds *DiscoveryService) CheckPeerHealth(peerID peer.ID) {
 }
 
 // GetBootstrapPeers 获取所有bootstrap节点
+//
+// @return []peer.ID bootstrap节点ID列表
 func (ds *DiscoveryService) GetBootstrapPeers() []peer.ID {
 	ds.bootstrapMutex.RLock()
 	defer ds.bootstrapMutex.RUnlock()
@@ -302,6 +330,9 @@ func (ds *DiscoveryService) FindPeer(peerID peer.ID) (*peer.AddrInfo, error) {
 }
 
 // GetDHTRoutingTableInfo 获取DHT路由表信息
+//
+// @return int 路由表中的节点数量
+// @return error 错误信息，如果DHT未初始化则返回错误
 func (ds *DiscoveryService) GetDHTRoutingTableInfo() (int, error) {
 	if ds.dht == nil {
 		return 0, fmt.Errorf("DHT service is not initialized")
@@ -335,6 +366,11 @@ func (ds *DiscoveryService) Provide(key string) error {
 }
 
 // FindProviders 使用DHT查找提供指定数据的节点
+//
+// @param key string 要查找的索引键
+// @param count int 要查找的最大节点数量
+// @return []peer.AddrInfo 提供该数据的节点列表
+// @return error 错误信息，如果查找失败则返回错误
 func (ds *DiscoveryService) FindProviders(key string, count int) ([]peer.AddrInfo, error) {
 	if ds.dht == nil {
 		return nil, fmt.Errorf("DHT service is not initialized")
@@ -364,6 +400,8 @@ func (ds *DiscoveryService) NotifyPeerFound(callback func(peer.ID, peer.AddrInfo
 }
 
 // GetDiscoveredPeers 获取所有发现的节点
+//
+// @return []peer.ID 已发现的节点ID列表
 func (ds *DiscoveryService) GetDiscoveredPeers() []peer.ID {
 	ds.logger.Infof("[discovery] get discovered peers...")
 	ds.peersMutex.RLock()

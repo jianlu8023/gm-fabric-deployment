@@ -2,12 +2,13 @@ package docker
 
 import (
 	"context"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"io"
 	"os"
 	"time"
+
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -32,7 +33,7 @@ type Control struct {
 // @return *Control docker控制器
 // @return error 新建过程中的错误
 func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.Control) (*Control, error) {
-	dockerLogger := loggerControl.GenLogger("docker")
+	dockerLogger := loggerControl.GenLogger(logger.ModuleDocker)
 	dockerLogger.Infof("[control] starting new docker control...")
 
 	// 创建上下文

@@ -1,12 +1,13 @@
 package datasource
 
 import (
+	"time"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"github.com/jianlu8023/go-logger/v2/dblogger"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"time"
 )
 
 type Control struct {
@@ -50,7 +51,7 @@ func (c *Control) setConnPool() error {
 }
 
 func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control) (*Control, error) {
-	dsLogger := loggerControl.GenLogger("ds")
+	dsLogger := loggerControl.GenLogger(logger.ModuleDataSource)
 	dsLogger.Infof("[control] starting new datasource control...")
 
 	ctl := &Control{
