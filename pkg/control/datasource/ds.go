@@ -56,7 +56,7 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 	ctl := &Control{
 		dbConfig: dbConfig,
 		logger:   dsLogger,
-		dbLogger: newDbLogger(loggerControl.GetConfig()),
+		dbLogger: newDbLogger(loggerControl.GetConfig(), dbConfig.LogInConsole),
 	}
 
 	switch dbConfig.DataSourceType {

@@ -18,8 +18,10 @@ import (
 	transportwebrtc "github.com/libp2p/go-libp2p/p2p/transport/webrtc"
 	transportwebsocket "github.com/libp2p/go-libp2p/p2p/transport/websocket"
 	"github.com/multiformats/go-multiaddr"
+	"math/rand/v2"
 	"strings"
 	"sync"
+	"time"
 
 	webtransport "github.com/libp2p/go-libp2p/p2p/transport/webtransport"
 	"go.uber.org/zap"
@@ -256,7 +258,7 @@ func (lc *Control) BroadcastMessage(msg *Message) error {
 		if err := lc.sendMessage(peerID, protocolID, msg); err != nil {
 			lc.logger.Warnf("[control] failed to send message to peer %s: %v", peerID, err)
 		}
-		// time.Sleep(time.Duration(rand.IntN(500)) * time.Millisecond)
+		time.Sleep(time.Duration(rand.IntN(500)) * time.Millisecond)
 	}
 
 	lc.logger.Debugf("[control] broadcast message to %d peers...", len(lc.discoveryService.peers))

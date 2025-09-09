@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func newDbLogger(loggerConfig *config.LoggerConfig) *dblogger.Logger {
+func newDbLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *dblogger.Logger {
 	var fileName = "sql.log"
 	fileDir := filepath.Dir(loggerConfig.FilePath)
 	fileName = filepath.Clean(filepath.Join(fileDir, fileName))
@@ -62,6 +62,13 @@ func newDbLogger(loggerConfig *config.LoggerConfig) *dblogger.Logger {
 		glog.WithDefaultLogLevel("info"),
 		glog.WithConsoleLogLevel("info"),
 	}
+
+	if logInConsole {
+		opts = append(opts, glog.WithConsoleOutPut())
+	} else {
+		opts = append(opts, glog.WithOutConsoleOutPut())
+	}
+
 	logger := glog.NewLogger(opts...)
 	// logger.Debug("testing logger...")
 	dbLogger := dblogger.NewDBLogger(dblogger.Config{
