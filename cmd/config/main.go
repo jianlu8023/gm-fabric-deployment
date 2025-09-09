@@ -25,7 +25,11 @@ func main() {
 }
 
 func genDefaultConfig() error {
-
+	ident, err := config.CreateIdentity(config.Ed25519, -1)
+	if err != nil {
+		fmt.Printf("create identity failed: %v\n", err)
+		return err
+	}
 	cfg := config.Config{
 		GrpcConfig: &config.GrpcConfig{
 			Server: &config.GrpcServerConfig{
@@ -83,6 +87,7 @@ func genDefaultConfig() error {
 			}, // 监听所有接口的2000端口
 			ProtocolID:    "/gm-fabric/chat/1.0.0", // 自定义协议ID
 			ServiceTag:    "gm-fabric-deployment",
+			Identity:      &ident,
 			BootstrapList: []string{
 				// "/ip4/127.0.0.1/tcp/2000/p2p/12D3KooWAiFrSLkqdaz4KC423i7ZgRks8xjrR1CbjnjJ39f8V1f6",
 			},

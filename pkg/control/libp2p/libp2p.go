@@ -138,15 +138,12 @@ func (lc *Control) initNode() error {
 		libp2p.Security(securitynoise.ID, securitynoise.New),
 	}
 
-	// priv, pubk, err := libp2pcrypto.GenerateEd25519Key(rand.Reader)
-	// if err != nil {
-	// 	lc.logger.Errorf("[control] failed to generate ed25519 private key: %v", err)
-	// 	return err
-	// }
-	//
-	// lc.logger.Debugf("[control] priv %v", priv)
-	// lc.logger.Debugf("[control] pubk %v", pubk)
-	// opts = append(opts, libp2p.Identity(priv))
+	privK, err := lc.libp2pConfig.Identity.DecodePrivateKey("")
+	if err != nil {
+		lc.logger.Errorf("[control] failed to decode private key: %v", err)
+		return err
+	}
+	opts = append(opts, libp2p.Identity(privK))
 
 	// 创建host
 	h, err := libp2p.New(opts...)

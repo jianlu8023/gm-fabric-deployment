@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"os"
@@ -136,7 +138,48 @@ func main() {
 				mainLogger.Errorf("close datasource control failed: %v", err)
 			}
 		}()
+	}
 
+	{
+		switch runtime.GOOS {
+		case "windows":
+			mainLogger.Infof("windows os not starting docker server...")
+		case "linux":
+			fallthrough
+		case "darwin":
+			fallthrough
+		default:
+			mainLogger.Infof("starting docker server...")
+			mainLogger.Infof("starting docker server...")
+			dockerControl, err := docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
+			if err != nil {
+				mainLogger.Fatalf("create docker control failed: %v", err)
+			}
+			dockerControl.StartUp(func(err error) {
+				mainLogger.Errorf("check docker daemon failed: %v", err)
+				quit <- os.Interrupt
+			})
+			defer func() {
+				if err := dockerControl.Shutdown(); err != nil {
+					mainLogger.Errorf("shutdown docker control failed: %v", err)
+				}
+			}()
+			imageList, err := dockerControl.ImageList()
+			if err != nil {
+				mainLogger.Errorf("get docker image list failed: %v", err)
+
+			} else {
+				mainLogger.Infof("get docker image success...")
+				for _, image := range imageList {
+					bytes, err := json.MarshalIndent(image, "", " ")
+					if err != nil {
+						mainLogger.Errorf("marshal image failed: %v", err)
+					} else {
+						mainLogger.Infof("image: %s", string(bytes))
+					}
+				}
+			}
+		}
 	}
 
 	{

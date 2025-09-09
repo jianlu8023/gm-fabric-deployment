@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -138,6 +139,22 @@ func loadConfig() (Config, error) {
 
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return cfg, fmt.Errorf("解析配置文件失败: %w", err)
+	}
+
+	// 判断libp2p 是否设置了privKey peerId
+	if cfg.Libp2pConfig.Identity == nil ||
+		str.IsBlank(cfg.Libp2pConfig.Identity.PrivKey) ||
+		str.IsBlank(cfg.Libp2pConfig.Identity.PeerID) {
+		ident, err := CreateIdentity(Ed25519, -1)
+		if err != nil {
+			return cfg, fmt.Errorf("生成libp2p身份失败: %w", err)
+		}
+		cfg.Libp2pConfig.Identity = &ident
+
+		viper.Set("libp2p.identity", cfg.Libp2pConfig.Identity)
+		if err = viper.WriteConfig(); err != nil {
+			return cfg, fmt.Errorf("更新libp2p的identity失败: %w", err)
+		}
 	}
 
 	return cfg, nil

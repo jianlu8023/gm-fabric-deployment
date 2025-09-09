@@ -31,7 +31,7 @@ func main() {
 		fmt.Printf("load docker failed: %v\n", err)
 		return
 	}
-	dockerControl.Start(func(err error) {
+	dockerControl.StartUp(func(err error) {
 		fmt.Printf("docker start failed: %v\n", err)
 	})
 

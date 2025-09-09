@@ -1,9 +1,14 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/wd"
+	"github.com/libp2p/go-libp2p/core/crypto"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"os"
 	"path/filepath"
 )
@@ -202,12 +207,87 @@ func (g GrpcConfig) String() string {
 	return string(bytes)
 }
 
+const (
+	Ed25519 = "ed25519"
+	Rsa     = "rsa"
+)
+
+// CreateIdentity 生成libp2p身份
+// @param algorithm 身份算法
+// @param rsaKeyLen rsa密钥长度
+// @return Identity libp2p身份
+// @return error 错误信息
+func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
+	ident := Identity{}
+
+	var sk crypto.PrivKey
+	var pk crypto.PubKey
+
+	switch algorithm {
+	case Rsa:
+		fmt.Printf("generate rsa key pair with key length: %d\n", rsaKeyLen)
+		privK, pubK, err := crypto.GenerateKeyPair(crypto.RSA, rsaKeyLen)
+		if err != nil {
+			fmt.Printf("generate rsa key pair failed: %v\n", err)
+			return ident, err
+		}
+		sk = privK
+		pk = pubK
+	case Ed25519:
+		fmt.Println("generate ed25519 key pair")
+		privK, pubK, err := crypto.GenerateEd25519Key(rand.Reader)
+		if err != nil {
+			fmt.Printf("generate ed25519 key pair failed: %v\n", err)
+			return ident, err
+		}
+		sk = privK
+		pk = pubK
+	default:
+		fmt.Println("algorithm no support...")
+		return ident, errors.New("algorithm no support")
+	}
+
+	skBytes, err := crypto.MarshalPrivateKey(sk)
+	if err != nil {
+		fmt.Printf("marshal private key failed: %v\n", err)
+		return ident, err
+	}
+
+	ident.PrivKey = base64.StdEncoding.EncodeToString(skBytes)
+	peerId, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		fmt.Printf("generate peer id failed: %v\n", err)
+		return ident, err
+	}
+	ident.PeerID = peerId.String()
+	return ident, nil
+}
+
+// Identity 配置身份信息
+type Identity struct {
+	PeerID  string `json:"peer_id" yaml:"peer_id" mapstructure:"peer_id"`
+	PrivKey string `json:",omitempty" yaml:",omitempty" mapstructure:"priv_key"`
+}
+
+// DecodePrivateKey is a helper to decode the users PrivateKey.
+func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
+	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// currently storing key unencrypted. in the future we need to encrypt it.
+	// TODO(security)
+	return crypto.UnmarshalPrivateKey(pkb)
+}
+
 // Libp2pConfig 配置Libp2p
 type Libp2pConfig struct {
-	ListenAddr    []string `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`          // 监听地址
-	ProtocolID    string   `json:"protocol_id,omitempty" yaml:"protocol_id,omitempty" mapstructure:"protocol_id"`          // 协议ID
-	ServiceTag    string   `json:"service_tag,omitempty" yaml:"service_tag,omitempty" mapstructure:"service_tag"`          // mdns服务标签
-	BootstrapList []string `json:"bootstrap_list,omitempty" yaml:"bootstrap_list,omitempty" mapstructure:"bootstrap_list"` // bootstrap节点列表
+	ListenAddr    []string  `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`          // 监听地址
+	Identity      *Identity `json:"identity,omitempty" yaml:"identity,omitempty" mapstructure:"identity"`                   // 身份信息
+	ProtocolID    string    `json:"protocol_id,omitempty" yaml:"protocol_id,omitempty" mapstructure:"protocol_id"`          // 协议ID
+	ServiceTag    string    `json:"service_tag,omitempty" yaml:"service_tag,omitempty" mapstructure:"service_tag"`          // mdns服务标签
+	BootstrapList []string  `json:"bootstrap_list,omitempty" yaml:"bootstrap_list,omitempty" mapstructure:"bootstrap_list"` // bootstrap节点列表
 }
 
 // String Libp2pConfig的字符串表示

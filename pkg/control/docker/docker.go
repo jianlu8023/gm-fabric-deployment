@@ -97,8 +97,8 @@ func (dc *Control) initClient() error {
 	return nil
 }
 
-// Start 启动Docker服务（如果需要）
-func (dc *Control) Start(failedFunc func(err error)) {
+// StartUp 启动Docker服务（如果需要）
+func (dc *Control) StartUp(failedFunc func(err error)) {
 	// dc.logger.Infof("[control] docker service is already running")
 	// 测试连接
 	version, err := dc.client.ServerVersion(dc.ctx)
