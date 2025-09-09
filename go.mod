@@ -22,6 +22,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/ipfs/go-cid v0.5.0
 	github.com/jianlu8023/go-logger/v2 v2.0.0
+	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-libp2p v0.40.0
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0
 	github.com/multiformats/go-multiaddr v0.14.0
@@ -99,7 +100,6 @@ require (
 	github.com/jianlu8023/go-tools v1.0.3 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/koron/go-ssdp v0.0.5 // indirect
@@ -129,8 +129,10 @@ require (
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.2 // indirect
+	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiformats/go-base32 v0.1.0 // indirect
 	github.com/multiformats/go-base36 v0.2.0 // indirect

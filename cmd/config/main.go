@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/spf13/viper"
 )
 
@@ -98,6 +98,16 @@ func genDefaultConfig() error {
 			MaxIdleConn:    10,
 			MaxOpenConn:    50,
 		},
+		DockerConfig: &config.DockerConfig{
+			// Host:"tcp://127.0.0.1:2375",
+			Host:           "unix:///var/run/docker.sock",
+			APIVersion:     "",
+			TlsEnabled:     false,
+			TlsCertFile:    "",
+			TlsKeyFile:     "",
+			TlsCAFile:      "",
+			DefaultTimeout: 5,
+		},
 	}
 
 	if err := saveConfig(cfg, "configs/default.yaml"); err != nil {
@@ -125,6 +135,7 @@ func saveConfig(cfg config.Config, configPath string) error {
 	viper.Set("http", cfg.HttpConfig)
 	viper.Set("libp2p", cfg.Libp2pConfig)
 	viper.Set("datasource", cfg.DataSourceConfig)
+	viper.Set("docker", cfg.DockerConfig)
 
 	// 写入配置文件
 	err := viper.WriteConfigAs(configPath)

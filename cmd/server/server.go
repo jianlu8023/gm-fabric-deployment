@@ -1,16 +1,15 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
-	mygrpc "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/grpc"
-	myhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/http"
-	mylibp2p "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/libp2p"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/pidfile"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"net/http"
 	"os"
 	"os/signal"
 	"runtime"
@@ -60,12 +59,12 @@ func main() {
 		return
 	}
 
-	loggerControl := mylogger.NewLoggerControl(configControl.GetLoggerConfig())
+	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	mainLogger := loggerControl.GenLogger("main")
 
 	{
 		mainLogger.Infof("starting grpc server...")
-		grpcControl, err := mygrpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl, func(err error) {
+		grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl, func(err error) {
 			mainLogger.Errorf("grpc server startUp failed: %v", err)
 			quit <- os.Interrupt
 		})
@@ -78,7 +77,7 @@ func main() {
 
 	{
 		mainLogger.Infof("starting libp2p server...")
-		libp2pControl, err := mylibp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
+		libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
 		if err != nil {
 			mainLogger.Errorf("create libp2p control failed: %v", err)
 			return
@@ -97,7 +96,7 @@ func main() {
 		// 	fmt.Printf("New peer discovered and connected: %s\n", id)
 		// })
 
-		libp2pControl.RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *mylibp2p.Message) {
+		libp2pControl.RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Infof("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
 		})
 
@@ -109,7 +108,7 @@ func main() {
 
 			for range ticker.C {
 				// 创建一条聊天消息
-				msg := &mylibp2p.Message{
+				msg := &libp2p.Message{
 					From:    libp2pControl.GetLocalID(),
 					Type:    "chat_message",
 					Content: []byte("Hello from libp2p example!"),
@@ -126,11 +125,22 @@ func main() {
 	}
 
 	{
+		mainLogger.Infof("starting datasource server...")
+		dataSourceControl, err := datasource.NewDataSourceControl(configControl.GetDataSourceConfig(), loggerControl)
+		if err != nil {
+			mainLogger.Fatalf("create datasource control failed: %v", err)
+			return
+		}
+		defer dataSourceControl.Close()
+
+	}
+
+	{
 		mainLogger.Infof("starting http server...")
-		httpControl := myhttp.NewServerControl(configControl.GetWebConfig(), loggerControl)
+		httpControl := http.NewServerControl(configControl.GetWebConfig(), loggerControl)
 
 		httpControl.StartUp(func(err error) {
-			if !errors.Is(err, http.ErrServerClosed) {
+			if !http.IsHttpErrServerClosed(err) {
 				mainLogger.Errorf("start http server err: %v", err)
 			}
 			quit <- os.Interrupt

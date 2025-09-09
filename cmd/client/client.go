@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/proto/message"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
-	mygrpc "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/grpc"
-	mylibp2p "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/libp2p"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/pidfile"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"os"
 	"os/signal"
@@ -61,7 +61,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	loggerControl := mylogger.NewLoggerControl(configControl.GetLoggerConfig())
+	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	mainLogger := loggerControl.GenLogger("main")
 
 	{
@@ -89,7 +89,7 @@ func main() {
 				TlsRCACertFile:     "./certs/root-ca.crt",
 			},
 		}
-		grpcControl, err := mygrpc.NewGrpcControl(grpcConfig, loggerControl, func(err error) {
+		grpcControl, err := grpc.NewGrpcControl(grpcConfig, loggerControl, func(err error) {
 			mainLogger.Errorf("start grpc server failed: %v", err)
 			quit <- os.Interrupt
 		})
@@ -102,13 +102,13 @@ func main() {
 		go func() {
 			ticker := time.NewTicker(time.Second * 10)
 			for range ticker.C {
-				response, err := grpcControl.Call(&message.BaseRequest{
+				response, err := grpcControl.Call(&pb.BaseRequest{
 					MessageType: "base/ping",
 				})
 				if err != nil {
-					mainLogger.Errorf("send ping message err: %v", err)
+					mainLogger.Errorf("send ping pb err: %v", err)
 				} else {
-					mainLogger.Debugf("send ping message success %v", response)
+					mainLogger.Debugf("send ping pb success %v", response)
 				}
 			}
 		}()
@@ -125,7 +125,7 @@ func main() {
 			BootstrapList: []string{},
 		}
 
-		libp2pControl, err := mylibp2p.NewLibp2pControl(libp2pConfig, loggerControl)
+		libp2pControl, err := libp2p.NewLibp2pControl(libp2pConfig, loggerControl)
 		if err != nil {
 			mainLogger.Errorf("create libp2p grpcControl failed: %v", err)
 			return
@@ -140,8 +140,8 @@ func main() {
 			}
 		}()
 
-		libp2pControl.RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *mylibp2p.Message) {
-			mainLogger.Infof("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
+		libp2pControl.RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
+			mainLogger.Infof("received %v protocol chat pb from %s content %v", protocolID, msg.From, string(msg.Content))
 		})
 	}
 

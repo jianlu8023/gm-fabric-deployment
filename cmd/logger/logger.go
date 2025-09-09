@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 )
 
 func main() {

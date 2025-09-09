@@ -10,10 +10,6 @@ set "hour=%dt:~8,2%"
 set "minute=%dt:~10,2%"
 set "BUILDTIME=%year%-%month%-%day% %hour%:%minute%"
 
-REM 定义颜色
-set "GREEN=[92m"
-set "RESET=[0m"
-
 REM 清理函数
 :clean
     echo Cleaning build files...
@@ -21,7 +17,7 @@ REM 清理函数
     if exist client.exe del /q client.exe
     if exist server.latest del /q server.latest
     if exist client.latest del /q client.latest
-    echo %GREEN%Clean done%RESET%
+    echo Clean done
     goto :eof
 
 REM 构建服务端函数
@@ -36,7 +32,7 @@ REM 构建服务端函数
     )
     echo version : %VERSION%>server.latest
     echo time : %BUILDTIME%>>server.latest
-    echo %GREEN%Server build done%RESET%
+    echo Server build done
     goto :eof
 
 REM 构建客户端函数
@@ -51,7 +47,7 @@ REM 构建客户端函数
     )
     echo version : %VERSION%>client.latest
     echo time : %BUILDTIME%>>client.latest
-    echo %GREEN%Client build done%RESET%
+    echo Client build done
     goto :eof
 
 REM 构建所有

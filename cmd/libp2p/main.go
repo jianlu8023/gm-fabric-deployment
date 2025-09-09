@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
+	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/libp2p/go-libp2p"
 	peerstore "github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/protocol/ping"

@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/config"
-	mydatasource "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/datasource"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/middleware/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +23,7 @@ func main() {
 		return
 	}
 
-	loggerControl := mylogger.NewLoggerControl(configControl.GetLoggerConfig())
+	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 
 	datasourceConfig := &config.DataSourceConfig{
 		Host:           "localhost",
@@ -36,7 +36,7 @@ func main() {
 		MaxOpenConn:    50,
 	}
 
-	dataSourceControl, err := mydatasource.NewDataSourceControl(datasourceConfig, loggerControl)
+	dataSourceControl, err := datasource.NewDataSourceControl(datasourceConfig, loggerControl)
 	if err != nil {
 		fmt.Printf("init datasource failed: %v\n", err)
 		return

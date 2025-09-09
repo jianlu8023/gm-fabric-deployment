@@ -7,6 +7,9 @@ datasource:
   db_path: ./db/gm-fabric.db
   max_idle_conn: 10
   max_open_conn: 50
+docker:
+  host: unix:///var/run/docker.sock
+  default_timeout: 5
 grpc:
   server:
     host: 127.0.0.1:65534
