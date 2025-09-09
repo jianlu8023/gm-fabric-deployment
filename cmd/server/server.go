@@ -131,7 +131,11 @@ func main() {
 			mainLogger.Fatalf("create datasource control failed: %v", err)
 			return
 		}
-		defer dataSourceControl.Close()
+		defer func() {
+			if err := dataSourceControl.Close(); err != nil {
+				mainLogger.Errorf("close datasource control failed: %v", err)
+			}
+		}()
 
 	}
 

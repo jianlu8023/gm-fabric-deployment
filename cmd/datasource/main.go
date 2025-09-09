@@ -28,10 +28,11 @@ func main() {
 	datasourceConfig := &config.DataSourceConfig{
 		Host:           "localhost",
 		Port:           3306,
-		DataSourceType: "mysql",
+		DataSourceType: "sqlite3",
 		UserName:       "root",
 		Password:       "123456",
 		DataBaseName:   "basic",
+		DataBasePath:   "./db/example.db",
 		MaxIdleConn:    10,
 		MaxOpenConn:    50,
 	}
@@ -44,12 +45,12 @@ func main() {
 	dataSourceControl.Close()
 	conn := dataSourceControl.GetConn()
 
-	var version string
-	if err = conn.Raw("select version()").Scan(&version).Error; err != nil {
-		fmt.Printf("get mysql version failed: %v\n", err)
-		return
-	}
-	fmt.Printf("mysql version: %s\n", version)
+	// var version string
+	// if err = conn.Raw("select version()").Scan(&version).Error; err != nil {
+	// 	fmt.Printf("get mysql version failed: %v\n", err)
+	// 	return
+	// }
+	// fmt.Printf("mysql version: %s\n", version)
 	ctx := context.Background()
 
 	// Migrate the schema

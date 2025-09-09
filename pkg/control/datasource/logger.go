@@ -1,7 +1,6 @@
 package datasource
 
 import (
-	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	glog "github.com/jianlu8023/go-logger/v2"
 	"github.com/jianlu8023/go-logger/v2/dblogger"
@@ -14,17 +13,16 @@ func newDbLogger(loggerConfig *config.LoggerConfig) *dblogger.Logger {
 	var fileName = "sql.log"
 	fileDir := filepath.Dir(loggerConfig.FilePath)
 	fileName = filepath.Clean(filepath.Join(fileDir, fileName))
-	fmt.Printf("fileName: %s\n", fileName)
 	opts := []glog.Option{
 		glog.WithModuleName("Sql"),
 		glog.WithCaller(),
 		glog.WithCallerSkip(0),
 		glog.WithConsoleConfig(zapcore.EncoderConfig{
 			MessageKey:       "msg",
-			LevelKey:         "level",
+			LevelKey:         "",
 			TimeKey:          "time",
 			NameKey:          "logger",
-			CallerKey:        "caller",
+			CallerKey:        "",
 			StacktraceKey:    "stacktrace",
 			ConsoleSeparator: "  ",
 			// FunctionKey:    "func",
@@ -37,10 +35,10 @@ func newDbLogger(loggerConfig *config.LoggerConfig) *dblogger.Logger {
 		}),
 		glog.WithFileConfig(zapcore.EncoderConfig{
 			MessageKey:       "msg",
-			LevelKey:         "level",
+			LevelKey:         "",
 			TimeKey:          "time",
 			NameKey:          "logger",
-			CallerKey:        "caller",
+			CallerKey:        "",
 			StacktraceKey:    "stacktrace",
 			ConsoleSeparator: "  ",
 			// FunctionKey:    "func",
