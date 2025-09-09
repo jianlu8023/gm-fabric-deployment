@@ -17,7 +17,7 @@ type Info struct {
 	AutoUid             int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`
 	ImageName           string       `json:"image_name,omitempty" yaml:"image_name,omitempty" gorm:"column:image_name;type:varchar(255);"`
 	ImageLocationPeerId string       `json:"image_location_peer_id,omitempty" yaml:"image_location_peer_id,omitempty" gorm:"column:image_location_peer_id;type:varchar(255);"`
-	IsDelete            sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:bool;default:true"`
+	IsDelete            sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:bool;default:false"`
 	// ImageFrom string `json:"image_from,omitempty" yaml:"image_from,omitempty" gorm:"column:image_from;type:varchar(255);"`
 }
 

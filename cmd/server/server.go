@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/docker/image"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/docker/network"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/node"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
@@ -12,6 +13,7 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"os"
@@ -72,8 +74,9 @@ func main() {
 
 	// datasource
 	var (
-		imageMapper *image.Mapper
-		nodeMapper  *node.Mapper
+		imageMapper   *image.Mapper
+		nodeMapper    *node.Mapper
+		networkMapper *network.Mapper
 	)
 	{
 		mainLogger.Infof("starting datasource server...")
@@ -87,11 +90,12 @@ func main() {
 				mainLogger.Errorf("close datasource control failed: %v", err)
 			}
 		}()
-		if err = dataSourceControl.AutoMigrateTable(&image.Info{}, &node.Info{}); err != nil {
+		if err = dataSourceControl.AutoMigrateTable(&image.Info{}, &node.Info{}, &network.Info{}); err != nil {
 			mainLogger.Errorf("auto migrate table failed: %v", err)
 		}
 		imageMapper = image.NewImageMapper(dataSourceControl.GetConn())
 		nodeMapper = node.NewNodeMapper(dataSourceControl.GetConn())
+		networkMapper = network.NewNetworkMapper(dataSourceControl.GetConn())
 	}
 
 	// grpc
@@ -235,6 +239,55 @@ func main() {
 					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
 					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
 						mainLogger.Errorf("insert image info failed: %v", err)
+					}
+				}
+			}
+
+			if err = dockerControl.PullImage("alpine:latest"); err != nil {
+				mainLogger.Errorf("pull image failed: %v", err)
+			}
+
+			if imageList, err = dockerControl.ImageList(); err != nil {
+				mainLogger.Errorf("get docker image list failed: %v", err)
+			} else {
+				mainLogger.Infof("get docker img success...")
+				for _, img := range imageList {
+					info := image.NewImageInfo()
+					info.ImageName = img.RepoTags[0]
+					info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+						mainLogger.Errorf("insert image info failed: %v", err)
+					}
+				}
+			}
+
+			networkList, err := dockerControl.ListNetworks(true)
+			if err != nil {
+				mainLogger.Errorf("get docker network list failed: %v", err)
+			} else {
+				mainLogger.Infof("get docker network success...")
+				for _, net := range networkList {
+					info := network.NewNetworkInfo()
+					info.NetworkName = net.Name
+					info.NetworkID = net.ID
+					info.NetworkCreateTime = net.Created
+					info.NetworkScope = net.Scope
+					info.NetworkDriver = net.Driver
+					info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
+					ipamBytes, err := json.Marshal(net.IPAM)
+					if err != nil {
+						mainLogger.Errorf("marshal network ipam failed: %v", err)
+						continue
+					}
+					info.NetworkIpam = string(ipamBytes)
+					info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
+					info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
+					info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
+					info.NetworkLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					if err := networkMapper.InsertOrUpdateOne(info); err != nil {
+						mainLogger.Errorf("insert or update network info failed: %v", err)
 					}
 				}
 			}

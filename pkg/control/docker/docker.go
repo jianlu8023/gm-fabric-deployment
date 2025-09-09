@@ -2,9 +2,11 @@ package docker
 
 import (
 	"context"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"io"
+	"os"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -130,15 +132,48 @@ func (dc *Control) PullImage(imageName string) error {
 	dc.logger.Infof("[control] pulling image: %s", imageName)
 
 	// 创建拉取选项
-	options := types.ImagePullOptions{}
+	options := types.ImagePullOptions{
+		All: true,
+	}
 
 	// 获取拉取镜像的输出流
-	resp, err := dc.client.ImagePull(dc.ctx, imageName, options)
+	resp, err := dc.client.ImagePull(context.Background(), imageName, options)
 	if err != nil {
 		dc.logger.Errorf("[control] failed to pull image %s: %v", imageName, err)
 		return err
 	}
 	defer resp.Close()
+
+	// scanner := bufio.NewScanner(resp)
+	// for scanner.Scan() {
+	// 	line := scanner.Text()
+	// 	var jm map[string]interface{}
+	// 	if err := json.Unmarshal([]byte(line), &jm); err != nil {
+	// 		dc.logger.Errorf("[control] failed to unmarshal json: %v", err)
+	// 		continue
+	// 	}
+	// 	if errMsg, ok := jm["error"]; ok {
+	// 		dc.logger.Errorf("[control] failed to pull image %s: %v", imageName, errMsg)
+	// 		return errors.New(errMsg.(string))
+	// 	}
+	// 	status, hasStatus := jm["status"]
+	// 	id, hasID := jm["id"]
+	// 	progressDetail, hasProgressDetail := jm["progressDetail"]
+	//
+	// 	if hasID && hasStatus {
+	// 		dc.logger.Infof("[control] pulling %s: %s: %v", imageName, id, status)
+	// 	} else if hasStatus {
+	// 		dc.logger.Infof("[control] pulling %s: %v", imageName, status)
+	// 	}
+	//
+	// 	if hasProgressDetail {
+	// 		dc.logger.Debugf("[control] pulling %s: progress detail: %v", imageName, progressDetail)
+	// 	}
+	// }
+	// if err := scanner.Err(); err != nil {
+	// 	dc.logger.Errorf("[control] error reading response: %v", err)
+	// 	return err
+	// }
 
 	// 解析JSON响应
 	decoder := json.NewDecoder(resp)
@@ -153,15 +188,15 @@ func (dc *Control) PullImage(imageName string) error {
 			return err
 		}
 
-		if jm.Error != nil {
-			dc.logger.Errorf("[control] error pulling image: %v", jm.Error)
-			return jm.Error
-		}
-
+		// if jm.Error != nil {
+		// 	dc.logger.Errorf("[control] error pulling image: %v", jm.Error)
+		// 	return jm.Error
+		// }
+		jm.Display(os.Stdout, false)
 		// 输出进度信息
-		if jm.Progress != nil {
-			dc.logger.Debugf("[control] pulling %s: %s", imageName, jm.Progress.String())
-		}
+		// if jm.Progress != nil {
+		// 	dc.logger.Debugf("[control] pulling %s: %s", imageName, jm.Progress.String())
+		// }
 	}
 
 	dc.logger.Infof("[control] image %s pulled successfully", imageName)
@@ -240,6 +275,20 @@ func (dc *Control) RemoveContainer(containerID string, force bool) error {
 
 	dc.logger.Infof("[control] container %s removed successfully", containerID)
 	return nil
+}
+
+func (dc *Control) ListNetworks(all bool) ([]types.NetworkResource, error) {
+	dc.logger.Debugf("[control] listing networks,all: %v", all)
+	// 列出网络选项
+	opts := types.NetworkListOptions{
+		Filters: filters.NewArgs(),
+	}
+	networkList, err := dc.client.NetworkList(dc.ctx, opts)
+	if err != nil {
+		dc.logger.Errorf("[control] failed to list networks: %v", err)
+		return nil, err
+	}
+	return networkList, nil
 }
 
 // ListContainers 列出Docker容器
