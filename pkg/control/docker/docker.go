@@ -127,13 +127,124 @@ func (dc *Control) Shutdown() error {
 	return nil
 }
 
+// ListNetworks 列出Docker网络
+//
+// @param networkListOpts func(args *[]filters.KeyValuePair) 选项
+//
+// @return []types.NetworkResource 网络资源列表
+// @return error 错误信息
+func (dc *Control) ListNetworks(networkListOpts ...func(args *[]filters.KeyValuePair)) ([]types.NetworkResource, error) {
+	dc.logger.Debugf("[control] listing networks...")
+
+	// 列出网络选项
+	ftArr := make([]filters.KeyValuePair, 0, 5)
+	for _, opt := range networkListOpts {
+		opt(&ftArr)
+	}
+	opts := types.NetworkListOptions{
+		Filters: filters.NewArgs(ftArr...),
+	}
+
+	networkList, err := dc.client.NetworkList(dc.ctx, opts)
+	if err != nil {
+		dc.logger.Errorf("[control] failed to list networks: %v", err)
+		return nil, err
+	}
+	return networkList, nil
+}
+
+// GetNetwork 获取Docker网络
+//
+// @param networkName 网络名称
+// @param networkId 网络ID
+//
+// @return types.NetworkResource 网络资源
+// @return error 错误信息
+func (dc *Control) GetNetwork(networkListOpts ...func(args *[]filters.KeyValuePair)) (types.NetworkResource, error) {
+	dc.logger.Debugf("[control] getting network...")
+	listNetworks, err := dc.ListNetworks(
+		networkListOpts...,
+	)
+	if err != nil {
+		dc.logger.Errorf("[control] get network failed: %v", err)
+		return types.NetworkResource{}, err
+	}
+	return listNetworks[0], nil
+}
+
+// CreateNetwork 创建网络
+//
+// @param networkName 网络名称
+// @param driver 网络驱动
+// @param opts func(create *types.NetworkCreate) 网络创建选项
+//
+// @return types.NetworkResource 网络资源
+// @return error 错误信息
+func (dc *Control) CreateNetwork(networkName string, driver string, opts ...func(create *types.NetworkCreate)) (types.NetworkResource, error) {
+	dc.logger.Debugf("[control] creating network: %s, driver: %s", networkName, driver)
+
+	dc.logger.Debugf("[control] check network %s exists...", networkName)
+	if network, err := dc.GetNetwork(WithNetworkName(networkName)); err == nil {
+		// network exists
+		dc.logger.Debugf("[control] network %s exists", networkName)
+		return network, err
+	} else {
+		dc.logger.Debugf("[control] network %s need creating...", networkName)
+	}
+
+	networkOpts := types.NetworkCreate{
+		// 驱动类型
+		Driver: driver,
+		// 默认不启用ipv6
+		EnableIPv6: false,
+		// 默认创建桥接网络
+		CheckDuplicate: true,
+	}
+	for _, opt := range opts {
+		opt(&networkOpts)
+	}
+
+	resp, err := dc.client.NetworkCreate(dc.ctx, networkName, networkOpts)
+	if err != nil {
+		dc.logger.Errorf("[control] failed to create network: %v", err)
+		return types.NetworkResource{}, err
+	}
+	dc.logger.Infof("[control] network %v created sucesfully, ID %s", networkName, resp.ID)
+
+	return dc.GetNetwork(WithNetworkName(networkName), WithNetworkID(resp.ID))
+}
+
+// RemoveNetwork 删除网络
+//
+// @param networkId 网络ID
+//
+// @returns error 错误信息
+func (dc *Control) RemoveNetwork(networkId string) error {
+	dc.logger.Debugf("[control] removing network: %s", networkId)
+
+	if err := dc.client.NetworkRemove(dc.ctx, networkId); err != nil {
+		dc.logger.Errorf("[control] failed to remove network: %v", err)
+		return err
+	}
+	dc.logger.Infof("[control] network %s removed sucesfully", networkId)
+	return nil
+
+}
+
 // PullImage 拉取Docker镜像
-func (dc *Control) PullImage(imageName string) error {
+//
+// @param imageName 镜像名称
+//
+// @returns error 错误信息
+func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *types.ImagePullOptions)) error {
 	dc.logger.Infof("[control] pulling image: %s", imageName)
 
 	// 创建拉取选项
 	options := types.ImagePullOptions{
 		All: true,
+	}
+	for _, opt := range pullImageOpts {
+		opt(&options)
 	}
 
 	// 获取拉取镜像的输出流
@@ -185,6 +296,46 @@ func (dc *Control) PullImage(imageName string) error {
 
 	dc.logger.Infof("[control] image %s pulled successfully", imageName)
 	return nil
+}
+
+func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *types.ImageRemoveOptions)) ([]types.ImageDeleteResponseItem, error) {
+	dc.logger.Debugf("[control] removing image: %s", imageId)
+
+	// 删除镜像
+	opts := types.ImageRemoveOptions{}
+
+	for _, opt := range removeImageOpts {
+		opt(&opts)
+	}
+
+	resp, err := dc.client.ImageRemove(dc.ctx, imageId, opts)
+	if err != nil {
+		dc.logger.Errorf("[control] failed to remove image: %s", err)
+		return nil, err
+	}
+	return resp, nil
+
+}
+
+func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair)) ([]types.ImageSummary, error) {
+	dc.logger.Debugf("[control] listing images...")
+
+	// 列出网络选项
+	ftArr := make([]filters.KeyValuePair, 0, 5)
+	for _, opt := range imageListOpts {
+		opt(&ftArr)
+	}
+
+	opts := types.ImageListOptions{
+		All:     true,
+		Filters: filters.NewArgs(ftArr...),
+	}
+	imageList, err := dc.client.ImageList(dc.ctx, opts)
+	if err != nil {
+		dc.logger.Errorf("[control] failed to list images: %v", err)
+		return nil, err
+	}
+	return imageList, nil
 }
 
 // CreateContainer 创建Docker容器
@@ -253,79 +404,6 @@ func (dc *Control) RemoveContainer(containerID string, force bool) error {
 
 	dc.logger.Infof("[control] container %s removed successfully", containerID)
 	return nil
-}
-
-// ListNetworks 列出Docker网络
-//
-// @param networkListOpts func(args *[]filters.KeyValuePair) 选项
-//
-// @return []types.NetworkResource 网络资源列表
-// @return error 错误信息
-func (dc *Control) ListNetworks(networkListOpts ...func(args *[]filters.KeyValuePair)) ([]types.NetworkResource, error) {
-	dc.logger.Debugf("[control] listing networks...")
-
-	// 列出网络选项
-	ftArr := make([]filters.KeyValuePair, 0, 5)
-	for _, opt := range networkListOpts {
-		opt(&ftArr)
-	}
-	opts := types.NetworkListOptions{
-		Filters: filters.NewArgs(ftArr...),
-	}
-
-	networkList, err := dc.client.NetworkList(dc.ctx, opts)
-	if err != nil {
-		dc.logger.Errorf("[control] failed to list networks: %v", err)
-		return nil, err
-	}
-	return networkList, nil
-}
-
-func (dc *Control) GetNetwork(networkName string, networkId string) (types.NetworkResource, error) {
-	dc.logger.Debugf("[control] getting network: %s", networkName)
-	listNetworks, err := dc.ListNetworks(
-		WithNetworkListName(networkName),
-		WithNetworkListID(networkId),
-	)
-	if err != nil {
-		dc.logger.Errorf("[control] get network %v id %v failed: %v", networkName, networkId, err)
-		return types.NetworkResource{}, err
-	}
-	return listNetworks[0], nil
-}
-
-func (dc *Control) CreateNetwork(networkName string, driver string, opts ...func(create *types.NetworkCreate)) (types.NetworkResource, error) {
-	dc.logger.Debugf("[control] creating network: %s, driver: %s", networkName, driver)
-
-	dc.logger.Debugf("[control] check network %s exists...", networkName)
-	if network, err := dc.GetNetwork(networkName, ""); err == nil {
-		// network exists
-		dc.logger.Debugf("[control] network %s exists", networkName)
-		return network, err
-	} else {
-		dc.logger.Debugf("[control] network %s need creating...", networkName)
-	}
-
-	networkOpts := types.NetworkCreate{
-		// 驱动类型
-		Driver: driver,
-		// 默认不启用ipv6
-		EnableIPv6: false,
-		// 默认创建桥接网络
-		CheckDuplicate: true,
-	}
-	for _, opt := range opts {
-		opt(&networkOpts)
-	}
-
-	resp, err := dc.client.NetworkCreate(dc.ctx, networkName, networkOpts)
-	if err != nil {
-		dc.logger.Errorf("[control] failed to create network: %v", err)
-		return types.NetworkResource{}, err
-	}
-	dc.logger.Infof("[control] network %v created sucesfully, ID %s", networkName, resp.ID)
-
-	return dc.GetNetwork(networkName, resp.ID)
 }
 
 // ListContainers 列出Docker容器
@@ -400,25 +478,4 @@ func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, err
 
 	dc.logger.Infof("[control] command executed successfully in container %s", containerID)
 	return string(output), nil
-}
-
-func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair)) ([]types.ImageSummary, error) {
-	dc.logger.Debugf("[control] listing images...")
-
-	// 列出网络选项
-	ftArr := make([]filters.KeyValuePair, 0, 5)
-	for _, opt := range imageListOpts {
-		opt(&ftArr)
-	}
-
-	opts := types.ImageListOptions{
-		All:     true,
-		Filters: filters.NewArgs(ftArr...),
-	}
-	imageList, err := dc.client.ImageList(dc.ctx, opts)
-	if err != nil {
-		dc.logger.Errorf("[control] failed to list images: %v", err)
-		return nil, err
-	}
-	return imageList, nil
 }

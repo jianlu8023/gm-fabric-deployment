@@ -220,6 +220,14 @@ func main() {
 			for _, img := range imageList {
 				info := image.NewImageInfo()
 				info.ImageName = img.RepoTags[0]
+				info.ImageId = img.ID
+				info.ImageCreated = img.Created
+				labels, err := json.Marshal(img.Labels)
+				if err != nil {
+					mainLogger.Errorf("marshal image labels failed: %v", err)
+					continue
+				}
+				info.ImageLabels = string(labels)
 				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
 				info.ImageLocationPeerId = msg.From.String()
 				if err := imageMapper.InsertOrUpdateOne(info); err != nil {
@@ -321,6 +329,14 @@ func main() {
 					info := image.NewImageInfo()
 					info.ImageName = img.RepoTags[0]
 					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					info.ImageId = img.ID
+					info.ImageCreated = img.Created
+					labels, err := json.Marshal(img.Labels)
+					if err != nil {
+						mainLogger.Errorf("marshal image labels failed: %v", err)
+						continue
+					}
+					info.ImageLabels = string(labels)
 					info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
 					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
 						mainLogger.Errorf("insert or update image info failed: %v", err)
@@ -355,6 +371,10 @@ func main() {
 						mainLogger.Errorf("insert or update network info failed: %v", err)
 					}
 				}
+			}
+
+			if err = dockerControl.PullImage("busybox:latest"); err != nil {
+				mainLogger.Errorf("pull image failed: %v", err)
 			}
 
 		}

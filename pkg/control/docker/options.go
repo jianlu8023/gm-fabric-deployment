@@ -7,8 +7,8 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 )
 
-// WithNetworkListName 查看网络 filter name
-func WithNetworkListName(name string) func(args *[]filters.KeyValuePair) {
+// WithNetworkName 查看网络 filter name
+func WithNetworkName(name string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
 		if !str.IsBlank(name) {
 			*args = append(*args, filters.Arg("name", name))
@@ -16,12 +16,60 @@ func WithNetworkListName(name string) func(args *[]filters.KeyValuePair) {
 	}
 }
 
-// WithNetworkListID 查看网络 filter id
-func WithNetworkListID(id string) func(args *[]filters.KeyValuePair) {
+// WithNetworkID 查看网络 filter id
+func WithNetworkID(id string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
 		if !str.IsBlank(id) {
 			*args = append(*args, filters.Arg("id", id))
 		}
+	}
+}
+
+// WithImagePullPlatform 配置镜像拉取平台
+//
+// @param platform 镜像平台
+//
+// @return func(options *types.ImagePullOptions) 配置函数
+func WithImagePullPlatform(platform string) func(options *types.ImagePullOptions) {
+	return func(options *types.ImagePullOptions) {
+		if !str.IsBlank(platform) {
+			options.Platform = platform
+		}
+	}
+}
+
+// WithImagePullRegistryAuth 配置镜像拉取的认证信息
+//
+// @param registryAuth 认证信息
+//
+// @return func(options *types.ImagePullOptions) 配置函数
+func WithImagePullRegistryAuth(registryAuth string) func(options *types.ImagePullOptions) {
+	return func(options *types.ImagePullOptions) {
+		if !str.IsBlank(registryAuth) {
+			options.RegistryAuth = registryAuth
+		}
+	}
+}
+
+// WithRemoveImageForce 配置镜像删除是否强制删除
+//
+// @param force 是否强制删除
+//
+// @return func(options *types.ImageRemoveOptions) 配置函数
+func WithRemoveImageForce(force bool) func(options *types.ImageRemoveOptions) {
+	return func(options *types.ImageRemoveOptions) {
+		options.Force = force
+	}
+}
+
+// WithRemoveImagePruneChildren 配置镜像删除是否删除子镜像
+//
+// @param pruneChildren 是否删除子镜像
+//
+// @return func(options *types.ImageRemoveOptions) 配置函数
+func WithRemoveImagePruneChildren(pruneChildren bool) func(options *types.ImageRemoveOptions) {
+	return func(options *types.ImageRemoveOptions) {
+		options.PruneChildren = pruneChildren
 	}
 }
 
