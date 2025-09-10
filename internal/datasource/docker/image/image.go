@@ -55,6 +55,9 @@ func NewImageMapper(conn *gorm.DB) *Mapper {
 // @param imageInfo *Info 镜像信息
 // @return error 错误信息
 func (m *Mapper) InsertOneWithCheck(imageInfo *Info) error {
+	if m.dbConn == nil {
+		return datasource.ErrNoDataSourceConn
+	}
 	return m.dbConn.Transaction(func(tx *gorm.DB) error {
 		var count int64
 		if err := tx.Model(&Info{}).Where(&Info{
@@ -77,6 +80,9 @@ func (m *Mapper) InsertOneWithCheck(imageInfo *Info) error {
 }
 
 func (m *Mapper) InsertOrUpdateOne(info *Info) error {
+	if m.dbConn == nil {
+		return datasource.ErrNoDataSourceConn
+	}
 	return m.dbConn.Transaction(func(tx *gorm.DB) error {
 		var existInfo Info
 		if err := tx.Model(&Info{}).Where(&Info{

@@ -1,17 +1,16 @@
 package docker
 
 import (
+	"bufio"
 	"context"
-	"io"
-	"os"
-	"time"
-
-	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"io"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
@@ -143,61 +142,45 @@ func (dc *Control) PullImage(imageName string) error {
 		dc.logger.Errorf("[control] failed to pull image %s: %v", imageName, err)
 		return err
 	}
-	defer resp.Close()
+	defer func(resp io.ReadCloser) {
+		if err := resp.Close(); err != nil {
+			dc.logger.Errorf("[control] failed to close response: %v", err)
+		}
+	}(resp)
 
-	// scanner := bufio.NewScanner(resp)
-	// for scanner.Scan() {
-	// 	line := scanner.Text()
-	// 	var jm map[string]interface{}
-	// 	if err := json.Unmarshal([]byte(line), &jm); err != nil {
-	// 		dc.logger.Errorf("[control] failed to unmarshal json: %v", err)
-	// 		continue
-	// 	}
-	// 	if errMsg, ok := jm["error"]; ok {
-	// 		dc.logger.Errorf("[control] failed to pull image %s: %v", imageName, errMsg)
-	// 		return errors.New(errMsg.(string))
-	// 	}
-	// 	status, hasStatus := jm["status"]
-	// 	id, hasID := jm["id"]
-	// 	progressDetail, hasProgressDetail := jm["progressDetail"]
-	//
-	// 	if hasID && hasStatus {
-	// 		dc.logger.Infof("[control] pulling %s: %s: %v", imageName, id, status)
-	// 	} else if hasStatus {
-	// 		dc.logger.Infof("[control] pulling %s: %v", imageName, status)
-	// 	}
-	//
-	// 	if hasProgressDetail {
-	// 		dc.logger.Debugf("[control] pulling %s: progress detail: %v", imageName, progressDetail)
-	// 	}
-	// }
-	// if err := scanner.Err(); err != nil {
-	// 	dc.logger.Errorf("[control] error reading response: %v", err)
-	// 	return err
-	// }
-
-	// 解析JSON响应
-	decoder := json.NewDecoder(resp)
-	// decoder := jsonmessage.NewDecoder(resp)
-	for {
-		var jm jsonmessage.JSONMessage
-		if err := decoder.Decode(&jm); err != nil {
-			if err == io.EOF {
-				break
-			}
-			dc.logger.Errorf("[control] error decoding pull response: %v", err)
-			return err
+	// 使用bufio.Scanner逐行处理响应
+	scanner := bufio.NewScanner(resp)
+	for scanner.Scan() {
+		line := scanner.Text()
+		var jm jsonmessage.JSONMessage // 使用docker的JSONMessage结构
+		if err := json.Unmarshal([]byte(line), &jm); err != nil {
+			dc.logger.Errorf("[control] failed to unmarshal json: %v, line: %s", err, line)
+			continue
 		}
 
-		// if jm.Error != nil {
-		// 	dc.logger.Errorf("[control] error pulling image: %v", jm.Error)
-		// 	return jm.Error
-		// }
-		jm.Display(os.Stdout, false)
-		// 输出进度信息
-		// if jm.Progress != nil {
-		// 	dc.logger.Debugf("[control] pulling %s: %s", imageName, jm.Progress.String())
-		// }
+		// 检查是否有错误
+		if jm.Error != nil {
+			dc.logger.Errorf("[control] failed to pull image %s: %v", imageName, jm.Error)
+			return jm.Error
+		}
+
+		// 输出状态信息
+		if jm.ID != "" && jm.Status != "" {
+			dc.logger.Infof("[control] pulling %s: %s: %s", imageName, jm.ID, jm.Status)
+		} else if jm.Status != "" {
+			dc.logger.Infof("[control] pulling %s: %s", imageName, jm.Status)
+		}
+
+		// 输出进度详情（调试用）
+		if jm.Progress != nil {
+			dc.logger.Debugf("[control] pulling %s: progress: %s", imageName, jm.Progress.String())
+		}
+	}
+
+	// 检查scanner是否有错误
+	if err := scanner.Err(); err != nil {
+		dc.logger.Errorf("[control] error reading response: %v", err)
+		return err
 	}
 
 	dc.logger.Infof("[control] image %s pulled successfully", imageName)
@@ -243,17 +226,11 @@ func (dc *Control) StartContainer(containerID string) error {
 func (dc *Control) StopContainer(containerID string, timeout *time.Duration) error {
 	dc.logger.Infof("[control] stopping container: %s", containerID)
 
-	// 停止容器选项
-	// opts := types.StopOptions{}
-	// if timeout != nil {
-	// 	opts.Timeout = timeout
-	// }
-
 	// 停止容器
-	// if err := dc.client.ContainerStop(dc.ctx, containerID, opts); err != nil {
-	// 	dc.logger.Errorf("[control] failed to stop container %s: %v", containerID, err)
-	// 	return err
-	// }
+	if err := dc.client.ContainerStop(dc.ctx, containerID, timeout); err != nil {
+		dc.logger.Errorf("[control] failed to stop container %s: %v", containerID, err)
+		return err
+	}
 
 	dc.logger.Infof("[control] container %s stopped successfully", containerID)
 	return nil
@@ -278,18 +255,77 @@ func (dc *Control) RemoveContainer(containerID string, force bool) error {
 	return nil
 }
 
-func (dc *Control) ListNetworks(all bool) ([]types.NetworkResource, error) {
-	dc.logger.Debugf("[control] listing networks,all: %v", all)
+// ListNetworks 列出Docker网络
+//
+// @param networkListOpts func(args *[]filters.KeyValuePair) 选项
+//
+// @return []types.NetworkResource 网络资源列表
+// @return error 错误信息
+func (dc *Control) ListNetworks(networkListOpts ...func(args *[]filters.KeyValuePair)) ([]types.NetworkResource, error) {
+	dc.logger.Debugf("[control] listing networks...")
+
 	// 列出网络选项
-	opts := types.NetworkListOptions{
-		Filters: filters.NewArgs(),
+	ftArr := make([]filters.KeyValuePair, 0, 5)
+	for _, opt := range networkListOpts {
+		opt(&ftArr)
 	}
+	opts := types.NetworkListOptions{
+		Filters: filters.NewArgs(ftArr...),
+	}
+
 	networkList, err := dc.client.NetworkList(dc.ctx, opts)
 	if err != nil {
 		dc.logger.Errorf("[control] failed to list networks: %v", err)
 		return nil, err
 	}
 	return networkList, nil
+}
+
+func (dc *Control) GetNetwork(networkName string, networkId string) (types.NetworkResource, error) {
+	dc.logger.Debugf("[control] getting network: %s", networkName)
+	listNetworks, err := dc.ListNetworks(
+		WithNetworkListName(networkName),
+		WithNetworkListID(networkId),
+	)
+	if err != nil {
+		dc.logger.Errorf("[control] get network %v id %v failed: %v", networkName, networkId, err)
+		return types.NetworkResource{}, err
+	}
+	return listNetworks[0], nil
+}
+
+func (dc *Control) CreateNetwork(networkName string, driver string, opts ...func(create *types.NetworkCreate)) (types.NetworkResource, error) {
+	dc.logger.Debugf("[control] creating network: %s, driver: %s", networkName, driver)
+
+	dc.logger.Debugf("[control] check network %s exists...", networkName)
+	if network, err := dc.GetNetwork(networkName, ""); err == nil {
+		// network exists
+		dc.logger.Debugf("[control] network %s exists", networkName)
+		return network, err
+	} else {
+		dc.logger.Debugf("[control] network %s need creating...", networkName)
+	}
+
+	networkOpts := types.NetworkCreate{
+		// 驱动类型
+		Driver: driver,
+		// 默认不启用ipv6
+		EnableIPv6: false,
+		// 默认创建桥接网络
+		CheckDuplicate: true,
+	}
+	for _, opt := range opts {
+		opt(&networkOpts)
+	}
+
+	resp, err := dc.client.NetworkCreate(dc.ctx, networkName, networkOpts)
+	if err != nil {
+		dc.logger.Errorf("[control] failed to create network: %v", err)
+		return types.NetworkResource{}, err
+	}
+	dc.logger.Infof("[control] network %v created sucesfully, ID %s", networkName, resp.ID)
+
+	return dc.GetNetwork(networkName, resp.ID)
 }
 
 // ListContainers 列出Docker容器
@@ -366,9 +402,18 @@ func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, err
 	return string(output), nil
 }
 
-func (dc *Control) ImageList() ([]types.ImageSummary, error) {
+func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair)) ([]types.ImageSummary, error) {
+	dc.logger.Debugf("[control] listing images...")
+
+	// 列出网络选项
+	ftArr := make([]filters.KeyValuePair, 0, 5)
+	for _, opt := range imageListOpts {
+		opt(&ftArr)
+	}
+
 	opts := types.ImageListOptions{
-		All: true,
+		All:     true,
+		Filters: filters.NewArgs(ftArr...),
 	}
 	imageList, err := dc.client.ImageList(dc.ctx, opts)
 	if err != nil {

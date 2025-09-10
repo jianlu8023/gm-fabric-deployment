@@ -1,0 +1,41 @@
+networks:
+  myapp:
+    name: "net_myapp"
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 99.99.97.0/24
+          gateway: 99.99.97.254
+
+services:
+  app-server:
+    image: gm-fabric:v202509101502
+    ports:
+      - "8080:8080"
+      - "65534:65534"
+    volumes:
+      - ./logs:/myapp/logs
+      - ./certs:/myapp/certs
+      - ./configs:/myapp/configs
+      - ./db:/myapp/db
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - myapp
+    container_name: app-server
+    command: server -config configs/server.yaml -type dev
+    restart: unless-stopped
+  app-client:
+    image: gm-fabric:v202509101502
+    ports:
+      - "65533:65533"
+    volumes:
+      - ./logs:/myapp/logs
+      - ./certs:/myapp/certs
+      - ./configs:/myapp/configs
+      - ./db:/myapp/db
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - myapp
+    container_name: app-client
+    command: client
+    restart: unless-stopped

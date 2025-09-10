@@ -50,6 +50,9 @@ func NewNodeMapper(conn *gorm.DB) *Mapper {
 }
 
 func (m *Mapper) InsertOneWithCheck(node *Info) error {
+	if m.dbConn == nil {
+		return datasource.ErrNoDataSourceConn
+	}
 	return m.dbConn.Transaction(func(tx *gorm.DB) error {
 		var count int64
 		if err := tx.Model(&Info{}).Where(&Info{
@@ -70,6 +73,9 @@ func (m *Mapper) InsertOneWithCheck(node *Info) error {
 }
 
 func (m *Mapper) InsertOrUpdate(node *Info) error {
+	if m.dbConn == nil {
+		return datasource.ErrNoDataSourceConn
+	}
 	return m.dbConn.Transaction(func(tx *gorm.DB) error {
 		var existInfo Info
 		if err := tx.Model(&Info{}).Where(&Info{

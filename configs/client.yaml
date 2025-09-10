@@ -1,6 +1,6 @@
 grpc:
   server:
-    host: 127.0.0.1:65534
+    host: 0.0.0.0:65533
     max_recv_msg_size: 5242880
     max_send_msg_size: 5242880
     chunk_size: 4194304
@@ -9,7 +9,7 @@ grpc:
     tls_key_file: ./certs/gserver.key
     tls_rca_cert_file: ./certs/root-ca.crt
   client:
-    host: 127.0.0.1:65533
+    host: 192.168.58.110:65534
     max_call_recv_msg_size: 5242880
     max_call_send_msg_size: 5242880
     chunk_size: 4194304

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"github.com/docker/docker/api/types"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/docker/image"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/docker/network"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/node"
@@ -60,6 +62,8 @@ func main() {
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	// config
 	configControl, err := config.NewConfigControl()
@@ -130,10 +134,6 @@ func main() {
 			}
 		}()
 
-		// libp2pControl.RegisterNotifyPeerFound(func(id peer.ID, info peer.AddrInfo) {
-		// 	fmt.Printf("New peer discovered and connected: %s\n", id)
-		// })
-
 		myself := node.NewNodeInfo()
 		myself.NodeId = libp2pControl.GetLocalID().String()
 		myself.IsAlive = sql.NullBool{Bool: true, Valid: true}
@@ -146,7 +146,7 @@ func main() {
 		libp2pControl.RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
 		})
-		libp2pControl.RegisterMessageHandler("node_info", func(protocolID protocol.ID, msg *libp2p.Message) {
+		libp2pControl.RegisterMessageHandler(libp2p.Libp2pNode, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol node info message from %s content %v", protocolID, msg.From, string(msg.Content))
 			mainLogger.Infof("starting insert or update node info...")
 			// 返回节点信息
@@ -159,7 +159,7 @@ func main() {
 			}
 		})
 
-		libp2pControl.RegisterMessageHandler("base/shutdown", func(protocolId protocol.ID, msg *libp2p.Message) {
+		libp2pControl.RegisterMessageHandler(libp2p.BaseShutdown, func(protocolId protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
 			libp2pControl.DisconnectFromPeer(msg.From)
 			mainLogger.Infof("from connect peer list remove peer %v", msg.From)
@@ -172,33 +172,120 @@ func main() {
 			}
 		})
 
+		libp2pControl.RegisterMessageHandler(libp2p.DockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
+			mainLogger.Debugf("received %v protocol message from %v", protocolID, msg.From)
+			// 处理消息
+			var networks []types.NetworkResource
+
+			if err := json.Unmarshal(msg.Content, &networks); err != nil {
+				mainLogger.Errorf("unmarshal docker networks failed: %v", err)
+				return
+			}
+
+			for _, net := range networks {
+				info := network.NewNetworkInfo()
+				info.NetworkName = net.Name
+				info.NetworkID = net.ID
+				info.NetworkCreateTime = net.Created
+				info.NetworkScope = net.Scope
+				info.NetworkDriver = net.Driver
+				info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
+				ipamBytes, err := json.Marshal(net.IPAM)
+				if err != nil {
+					mainLogger.Errorf("marshal network ipam failed: %v", err)
+					continue
+				}
+				info.NetworkIpam = string(ipamBytes)
+				info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
+				info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
+				info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
+				info.NetworkLocationPeerId = msg.From.String()
+				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+				if err := networkMapper.InsertOrUpdateOne(info); err != nil {
+					mainLogger.Errorf("insert or update network info failed: %v", err)
+				}
+			}
+		})
+
+		// 注册处理docker镜像的消息
+		libp2pControl.RegisterMessageHandler(libp2p.DockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
+			mainLogger.Debugf("receive %v protocol %v message from %v", protocolID, msg.Type, msg.From)
+
+			var imageList []types.ImageSummary
+			if err := json.Unmarshal(msg.Content, &imageList); err != nil {
+				mainLogger.Errorf("unmarshal docker images failed: %v", err)
+				return
+			}
+
+			for _, img := range imageList {
+				info := image.NewImageInfo()
+				info.ImageName = img.RepoTags[0]
+				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+				info.ImageLocationPeerId = msg.From.String()
+				if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+					mainLogger.Errorf("insert or update image info failed: %v", err)
+					continue
+				}
+			}
+
+		})
+
 		// 模拟发送一条消息
 		go func() {
 			// 等待一段时间，让节点有机会发现其他节点
 			time.Sleep(5 * time.Second)
-			ticker := time.NewTicker(time.Second * 5)
+			chatMsgTicker := time.NewTicker(time.Second * 5)
+			defer chatMsgTicker.Stop()
+			collectDockerNetworkTicker := time.NewTicker(time.Second * 10)
+			defer collectDockerNetworkTicker.Stop()
+			collectNodeTicker := time.NewTicker(time.Second * 7)
+			defer collectNodeTicker.Stop()
+			collectDockerImageTicker := time.NewTicker(time.Second * 15)
+			defer collectDockerImageTicker.Stop()
 
-			for range ticker.C {
-				// 创建一条聊天消息
-				collectInfoMsg := &libp2p.Message{
-					From:    libp2pControl.GetLocalID(),
-					Type:    "collect_info",
-					Content: []byte("collect all node info"),
-				}
-
-				// 广播消息
-				if err := libp2pControl.BroadcastMessage(collectInfoMsg); err != nil {
-					mainLogger.Errorf("broadcast collect info message failed: %v", err)
-				}
-				chatMsg := &libp2p.Message{
-					From:    libp2pControl.GetLocalID(),
-					Type:    "chat_message",
-					Content: []byte("hello libp2p"),
-				}
-				if err := libp2pControl.BroadcastMessage(chatMsg); err != nil {
-					mainLogger.Errorf("broadcast chat message failed: %v", err)
+			for {
+				select {
+				case <-ctx.Done():
+					mainLogger.Infof("received cancel signal, stopping server")
+					return
+				case <-chatMsgTicker.C:
+					chatMsg := &libp2p.Message{
+						Type:    "chat_message",
+						Content: []byte("hello libp2p"),
+					}
+					if err := libp2pControl.BroadcastMessage(chatMsg); err != nil {
+						mainLogger.Errorf("broadcast chat message failed: %v", err)
+					}
+				case <-collectDockerNetworkTicker.C:
+					// 收集docker网络信息
+					dockerNetworkMsg := &libp2p.Message{
+						Content: []byte("collect all node docker network info..."),
+						Type:    libp2p.CollectionDockerNetworks,
+					}
+					if err := libp2pControl.BroadcastMessage(dockerNetworkMsg); err != nil {
+						mainLogger.Errorf("broadcast collect docker network info message failed: %v", err)
+					}
+				case <-collectNodeTicker.C:
+					collectInfoMsg := &libp2p.Message{
+						Type:    libp2p.CollectionNode,
+						Content: []byte("collect all node info"),
+					}
+					// 广播消息
+					if err := libp2pControl.BroadcastMessage(collectInfoMsg); err != nil {
+						mainLogger.Errorf("broadcast collect info message failed: %v", err)
+					}
+				case <-collectDockerImageTicker.C:
+					// 收集docker镜像信息
+					collectDockerImageMsg := &libp2p.Message{
+						Type:    libp2p.CollectionDockerImages,
+						Content: []byte("collect all node docker image info..."),
+					}
+					if err := libp2pControl.BroadcastMessage(collectDockerImageMsg); err != nil {
+						mainLogger.Errorf("broadcast collect docker image info message failed: %v", err)
+					}
 				}
 			}
+
 		}()
 	}
 
@@ -211,7 +298,6 @@ func main() {
 		case "darwin":
 			fallthrough
 		default:
-			mainLogger.Infof("starting docker server...")
 			mainLogger.Infof("starting docker server...")
 			dockerControl, err := docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
 			if err != nil {
@@ -226,71 +312,6 @@ func main() {
 					mainLogger.Errorf("shutdown docker control failed: %v", err)
 				}
 			}()
-			imageList, err := dockerControl.ImageList()
-			if err != nil {
-				mainLogger.Errorf("get docker image list failed: %v", err)
-
-			} else {
-				mainLogger.Infof("get docker img success...")
-				for _, img := range imageList {
-					info := image.NewImageInfo()
-					info.ImageName = img.RepoTags[0]
-					info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
-					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
-						mainLogger.Errorf("insert image info failed: %v", err)
-					}
-				}
-			}
-
-			if err = dockerControl.PullImage("alpine:latest"); err != nil {
-				mainLogger.Errorf("pull image failed: %v", err)
-			}
-
-			if imageList, err = dockerControl.ImageList(); err != nil {
-				mainLogger.Errorf("get docker image list failed: %v", err)
-			} else {
-				mainLogger.Infof("get docker img success...")
-				for _, img := range imageList {
-					info := image.NewImageInfo()
-					info.ImageName = img.RepoTags[0]
-					info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
-					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
-						mainLogger.Errorf("insert image info failed: %v", err)
-					}
-				}
-			}
-
-			networkList, err := dockerControl.ListNetworks(true)
-			if err != nil {
-				mainLogger.Errorf("get docker network list failed: %v", err)
-			} else {
-				mainLogger.Infof("get docker network success...")
-				for _, net := range networkList {
-					info := network.NewNetworkInfo()
-					info.NetworkName = net.Name
-					info.NetworkID = net.ID
-					info.NetworkCreateTime = net.Created
-					info.NetworkScope = net.Scope
-					info.NetworkDriver = net.Driver
-					info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
-					ipamBytes, err := json.Marshal(net.IPAM)
-					if err != nil {
-						mainLogger.Errorf("marshal network ipam failed: %v", err)
-						continue
-					}
-					info.NetworkIpam = string(ipamBytes)
-					info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
-					info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
-					info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
-					info.NetworkLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
-					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-					if err := networkMapper.InsertOrUpdateOne(info); err != nil {
-						mainLogger.Errorf("insert or update network info failed: %v", err)
-					}
-				}
-			}
 		}
 	}
 
@@ -309,4 +330,5 @@ func main() {
 
 	<-quit
 	mainLogger.Infof("received shutdown signal...")
+	cancel()
 }

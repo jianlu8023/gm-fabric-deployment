@@ -37,7 +37,7 @@ func main() {
 
 	defer dockerControl.Shutdown()
 
-	imageList, err := dockerControl.ImageList()
+	imageList, err := dockerControl.ListImages()
 	if err != nil {
 		fmt.Printf("docker image list failed: %v\n", err)
 		return

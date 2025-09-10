@@ -288,13 +288,12 @@ func (lc *Control) BroadcastMessage(msg *Message) error {
 	lc.discoveryService.peersMutex.RLock()
 	defer lc.discoveryService.peersMutex.RUnlock()
 
-	protocolID := protocol.ID(lc.libp2pConfig.ProtocolID)
-
 	// 遍历所有已知节点并发送消息
 	for peerID := range lc.discoveryService.peers {
 		msg.To = peerID
+		msg.From = lc.GetLocalID()
 		lc.logger.Debugf("[control] broadcasting message to peer %s", peerID)
-		if err := lc.sendMessage(peerID, protocolID, msg); err != nil {
+		if err := lc.SendMessageToPeer(peerID, msg); err != nil {
 			lc.logger.Warnf("[control] failed to send message to peer %s: %v", peerID, err)
 		}
 		time.Sleep(time.Duration(rand.IntN(500)) * time.Millisecond)
@@ -336,7 +335,6 @@ func (lc *Control) messageProcessor() {
 
 	// 关闭工作通道，通知所有工作协程退出
 	close(jobs)
-	// 不需要在这里调用wg.Wait()，因为每个worker都会调用wg.Done()
 
 	lc.logger.Debugf("[control] message processor shutdown")
 }
@@ -349,8 +347,13 @@ func (lc *Control) worker(jobs <-chan MessageWithPeer) {
 	lc.logger.Debugf("[control] message worker started")
 
 	for msgWithPeer := range jobs {
-		// 处理消息
-		lc.processMessage(msgWithPeer)
+		select {
+		case <-lc.ctx.Done():
+			return
+		default:
+			// 处理消息
+			lc.processMessage(msgWithPeer)
+		}
 	}
 
 	lc.logger.Debugf("[control] message worker shutdown")
@@ -360,6 +363,15 @@ func (lc *Control) worker(jobs <-chan MessageWithPeer) {
 //
 // @param msgWithPeer MessageWithPeer 包含待发送消息及其目标节点信息的结构体
 func (lc *Control) processMessage(msgWithPeer MessageWithPeer) {
+	lc.discoveryService.peersMutex.RLock()
+	_, exist := lc.discoveryService.peers[msgWithPeer.PeerID]
+	lc.discoveryService.peersMutex.RUnlock()
+	if !exist {
+		// 如果连接不存在，则跳过消息
+		lc.logger.Debugf("[control] peer %s not found, skipping message", msgWithPeer.PeerID)
+		return
+	}
+
 	peerID := msgWithPeer.PeerID
 	protocolID := msgWithPeer.ProtocolID
 	msg := msgWithPeer.Msg
@@ -561,26 +573,26 @@ func (lc *Control) RegisterProtocolHandler(protocolID protocol.ID, protocolHandl
 //
 // 该方法注册基础的ping/pong和shutdown消息处理逻辑
 func (lc *Control) defaultMessageRegister() {
-	lc.logger.Debugf("register some default message...")
-	lc.RegisterMessageHandler("base/ping", func(protocolId protocol.ID, msg *Message) {
+	lc.logger.Debugf("[control] register some default message...")
+	lc.RegisterMessageHandler(BasePing, func(protocolId protocol.ID, msg *Message) {
 		lc.logger.Debugf("[control] received %v protocol ping message from %v", protocolId, msg.From)
 		pongMsg := &Message{
 			From:    msg.To,
 			To:      msg.From,
 			Content: []byte("pong"),
-			Type:    "base/pong",
+			Type:    BasePong,
 		}
 		_ = lc.SendMessageToPeer(pongMsg.To, pongMsg)
 	})
-	lc.RegisterMessageHandler("base/pong", func(protocolID protocol.ID, msg *Message) {
-		lc.logger.Debugf("received %v protocol pong message from %v content %v", protocolID, msg.From, string(msg.Content))
+	lc.RegisterMessageHandler(BasePong, func(protocolID protocol.ID, msg *Message) {
+		lc.logger.Debugf("[control] received %v protocol pong message from %v content %v", protocolID, msg.From, string(msg.Content))
 	})
-	lc.RegisterMessageHandler("base/shutdown", func(protocolId protocol.ID, msg *Message) {
+	lc.RegisterMessageHandler(BaseShutdown, func(protocolId protocol.ID, msg *Message) {
 		lc.logger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
 		lc.DisconnectFromPeer(msg.From)
-		lc.logger.Infof("from connect peer list remove peer %v", msg.From)
+		lc.logger.Infof("[control] from connect peer list remove peer %v", msg.From)
 	})
-	lc.logger.Debugf("registed some default message...")
+	lc.logger.Debugf("[control] registered some default message...")
 }
 
 // GetPeers 获取所有连接的节点

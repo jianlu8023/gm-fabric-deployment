@@ -19,13 +19,16 @@ WORKDIR /buildspace
 
 COPY . .
 
-RUN go build -ldflags="-X main.version=$(git describe --tags --always --dirty)" -o server.bin cmd/server/server.go && go build -ldflags="-X main.version=$(shell git describe --tags --always --dirty)" -o client.bin cmd/client/client.go
+RUN echo "starting build server.bin" && \
+    go build -ldflags="-X main.version=$(git describe --tags --always --dirty)" -o server.bin cmd/server/server.go && \
+    echo "starting build client.bin" && \
+    go build -ldflags="-X main.version=$(git describe --tags --always --dirty)" -o client.bin cmd/client/client.go
 
 # 下载grpcurl tini
-FROM ubuntu:20.04 AS toolsbuilder
+FROM ubuntu:22.04 AS toolsbuilder
 
 ENV GRPCURL_VERSION=1.9.3
-ENV GHPROXY=https://gh-proxy.com/
+ENV GHPROXY=https://ghproxy.8023202.xyz/
 
 RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list && \
     sed -i s@/security.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list && \
@@ -35,7 +38,27 @@ RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list &
     dpkg -i grpcurl_${GRPCURL_VERSION}_linux_amd64.deb
 
 
-FROM alpine:3.21 AS runner
+# FROM alpine:3.21 AS runner
+FROM ubuntu:22.04 AS runner
+
+#ENV GOROOT=/usr/local/go
+#RUN mkdir -p $GOROOT/lib/time
+#COPY --from=go-build /usr/local/go/lib/time/zoneinfo.zip $GOROOT/lib/time/zoneinfo.zip
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list && \
+    sed -i s@/security.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install curl tzdata gosu tini -y && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    dpkg-reconfigure -f noninteractive tzdata && \
+    apt-get clean cache && \
+    apt-get autoremove -y && \
+    apt-get autoclean && \
+    rm -rf /var/lib/apt/lists/*
+
 
 WORKDIR /myapp
 
@@ -45,11 +68,33 @@ COPY --from=go-build /buildspace/server.bin /myapp/server.bin
 COPY --from=go-build /buildspace/client.bin /myapp/client.bin
 COPY --from=go-build /buildspace/configs /myapp/configs
 COPY --from=go-build /buildspace/certs /myapp/certs
+COPY --from=go-build /buildspace/docker-entrypoint.sh /docker-entrypoint.sh
+
+#创建非 root 用户
+RUN mkdir -p /myapp/logs && \
+    mkdir -p /myapp/db && \
+    groupadd -r myusers && useradd -r -u 1000 -g myusers appuser && \
+    chown -R appuser:myusers /myapp && \
+    chown appuser:myusers /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
+
+# 需要docker.sock
+USER root
 
 EXPOSE 8080/tcp \
     65534/tcp \
-    65533/tcp
+    65533/tcp \
+    2000/tcp \
+    2001/tcp
 
-ENTRYPOINT ["/usr/bin/tini","--","/myapp/server.bin"]
+VOLUME /myapp/logs \
+    /myapp/db \
+    /myapp/certs \
+    /myapp/configs
 
-CMD ["-config","/myapp/configs/server.yaml","-type","dev"]
+
+ENTRYPOINT ["/usr/bin/tini","--","/docker-entrypoint.sh"]
+
+HEALTHCHECK --interval=60s --timeout=5s --retries=3 --start-period=30s CMD curl -ksS https://localhost:8080/example/health || exit 1
+
+CMD ["server","--config","/myapp/configs/server.yaml","--type","dev"]

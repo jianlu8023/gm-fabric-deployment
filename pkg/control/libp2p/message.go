@@ -77,3 +77,15 @@ type MessageWithPeer struct {
 	ProtocolID protocol.ID
 	Msg        *Message
 }
+
+const (
+	BasePing                 = "base/ping"
+	BasePong                 = "base/pong"
+	BaseShutdown             = "base/shutdown"
+	DockerNetworks           = "docker/networks"
+	CollectionNode           = "collection/node"
+	CollectionDockerNetworks = "collection/docker/networks"
+	CollectionDockerImages   = "collection/docker/images"
+	DockerImages             = "docker/images"
+	Libp2pNode               = "libp2p/node"
+)

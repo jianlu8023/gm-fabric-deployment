@@ -3,6 +3,7 @@ package network
 import (
 	"database/sql"
 	"errors"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"gorm.io/gorm"
 	"time"
@@ -50,6 +51,9 @@ func NewNetworkMapper(conn *gorm.DB) *Mapper {
 }
 
 func (m *Mapper) InsertOrUpdateOne(info *Info) error {
+	if m.dbConn == nil {
+		return datasource.ErrNoDataSourceConn
+	}
 	return m.dbConn.Transaction(func(tx *gorm.DB) error {
 		var existInfo Info
 		if err := tx.Model(&Info{}).Where(&Info{
