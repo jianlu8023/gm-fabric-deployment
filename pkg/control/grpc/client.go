@@ -77,7 +77,7 @@ func genClientTlsConfig(clientConfig *config.GrpcClientConfig) (*tls.Config, err
 }
 
 func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.SugaredLogger) (*ClientControl, error) {
-	logger.Infof("start new grpc client control...")
+	logger.Infof("[client] start new grpc client control...")
 	var gClient *grpc.ClientConn
 	var err error
 
@@ -87,13 +87,13 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 	}
 
 	if clientConfig.TlsEnabled {
-		logger.Debugf("gen tls client server...")
+		logger.Debugf("[client] generate tls client server...")
 
 		var transportCredentials credentials.TransportCredentials
 		transportCredentials, err = credentials.NewClientTLSFromFile(clientConfig.TlsRCACertFile,
 			"grpc")
 		if err != nil {
-			logger.Errorf("gen transportCredentials err: %v", err)
+			logger.Errorf("[client] generate transportCredentials err: %v", err)
 			return nil, err
 		}
 		opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
@@ -109,15 +109,15 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 
 		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
 		if err != nil {
-			logger.Errorf("gen tls client err: %v", err)
+			logger.Errorf("[client] generate tls client err: %v", err)
 			return nil, err
 		}
 	} else {
-		logger.Debugf("gen no tls client server...")
+		logger.Debugf("[client] generate no tls client server...")
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
 		if err != nil {
-			logger.Errorf("gen no tls client server err: %v", err)
+			logger.Errorf("[client] generate no tls client server err: %v", err)
 			return nil, err
 		}
 	}
@@ -134,15 +134,15 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 }
 
 func (c *ClientControl) Stop() error {
-	c.logger.Infof("grpc client stop...")
+	c.logger.Infof("[client] grpc client stop...")
 	_, _ = c.SendMessage(&pb.BaseRequest{
-		MessageType: "base/shutdown",
+		MessageType: BaseShutdown,
 		ClientId:    c.Config.Host,
 	})
 
 	defer func() {
 		if err := c.gClient.Close(); err != nil {
-			c.logger.Errorf("grpc client close err: %v", err)
+			c.logger.Errorf("[client] grpc client close err: %v", err)
 		}
 	}()
 
@@ -150,7 +150,7 @@ func (c *ClientControl) Stop() error {
 }
 
 func (c *ClientControl) SendMessage(req *pb.BaseRequest) (*pb.BaseResponse, error) {
-	c.logger.Debugf("grpc client send message messageType %v", req.MessageType)
+	c.logger.Debugf("[client] grpc client send message messageType %v", req.MessageType)
 	return c.SendMessageBidi(req, 0)
 }
 

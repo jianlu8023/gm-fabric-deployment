@@ -16,6 +16,7 @@ import (
 type Control struct {
 	config *Config
 	mutex  sync.RWMutex
+	once   sync.Once
 }
 
 func (c *Control) printConfig() {
@@ -86,6 +87,20 @@ func (c *Control) Flush() error {
 
 func (c *Control) WatchDog() {
 	fmt.Printf("watching %s\n", configPath)
+}
+
+//nolint:unused
+func (c *Control) StartUp(failedFunc func(err error)) {
+	// no-op
+	c.once.Do(func() {
+		fmt.Printf("starting up config server...\n")
+	})
+}
+
+func (c *Control) Shutdown() error {
+	// no-op
+	fmt.Printf("shutting down config server...\n")
+	return nil
 }
 
 func loadConfig() (Config, error) {

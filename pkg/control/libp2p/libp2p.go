@@ -52,6 +52,8 @@ type Control struct {
 
 	// 工作协程组
 	wg sync.WaitGroup
+
+	once sync.Once
 }
 
 // NewLibp2pControl 创建一个新的libp2p控制器
@@ -208,31 +210,33 @@ func (lc *Control) initNode() error {
 //
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (lc *Control) StartUp(failedFunc func(err error)) {
-	lc.logger.Infof("[control] starting libp2p service...")
-	// 启动发现服务
-	if err := lc.discoveryService.Start(); err != nil {
-		lc.logger.Errorf("[control] failed to start discovery service: %v", err)
-		failedFunc(err)
-	}
+	lc.once.Do(func() {
+		lc.logger.Infof("[control] starting libp2p service...")
+		// 启动发现服务
+		if err := lc.discoveryService.Start(); err != nil {
+			lc.logger.Errorf("[control] failed to start discovery service: %v", err)
+			failedFunc(err)
+		}
 
-	// 启动DHT引导
-	lc.logger.Infof("[control] bootstrapping DHT...")
-	if err := lc.discoveryService.BootstrapDHT(); err != nil {
-		lc.logger.Errorf("[control] failed to bootstrap DHT: %v", err)
-		failedFunc(err)
-	}
+		// 启动DHT引导
+		lc.logger.Infof("[control] bootstrapping DHT...")
+		if err := lc.discoveryService.BootstrapDHT(); err != nil {
+			lc.logger.Errorf("[control] failed to bootstrap DHT: %v", err)
+			failedFunc(err)
+		}
 
-	// 连接bootstrap节点
-	go lc.discoveryService.ConnectBootstrapPeers()
+		// 连接bootstrap节点
+		go lc.discoveryService.ConnectBootstrapPeers()
 
-	// 启动健康检查
-	go lc.discoveryService.StartHealthCheck()
+		// 启动健康检查
+		go lc.discoveryService.StartHealthCheck()
 
-	// 启动消息处理工作协程
-	lc.wg.Add(1)
-	go lc.messageProcessor()
+		// 启动消息处理工作协程
+		lc.wg.Add(1)
+		go lc.messageProcessor()
 
-	lc.logger.Infof("[control] libp2p service started...")
+		lc.logger.Infof("[control] libp2p service started...")
+	})
 }
 
 // Shutdown 关闭libp2p服务

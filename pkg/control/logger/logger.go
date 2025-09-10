@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	glog "github.com/jianlu8023/go-logger/v2"
@@ -16,6 +17,7 @@ type Control struct {
 	_logMap      map[string]*zap.SugaredLogger
 	_loggerLevel map[string]string
 	loggerMutex  sync.RWMutex
+	once         sync.Once
 }
 
 func (c *Control) GetConfig() *config.LoggerConfig {
@@ -118,4 +120,18 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 	c._logMap[moduleName] = logger
 
 	return logger
+}
+
+func (c *Control) StartUp(failedFunc func(err error)) {
+	// no-op
+	c.once.Do(func() {
+		fmt.Printf("starting logger server...\n")
+	})
+}
+
+func (c *Control) Shutdown() error {
+
+	fmt.Printf("shutting down logger server...\n")
+	// no-op
+	return nil
 }

@@ -9,7 +9,9 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"math/rand/v2"
@@ -26,33 +28,45 @@ var (
 
 func main() {
 
-	fmt.Printf("start client version %s\n", version)
+	// config
+	configControl, err := config.NewConfigControl()
+	if err != nil {
+		fmt.Printf("load config failed: %v\n", err)
+		return
+	}
 
+	// logger
+	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
+	mainLogger := loggerControl.GenLogger("main")
+
+	mainLogger.Infof("start server version %v", version)
+
+	// pidfile
 	{
 		runOS := runtime.GOOS
 		switch runOS {
 		case "windows":
-			fmt.Println("Running on Windows...")
+			mainLogger.Infof("running on Windows")
 		case "linux":
-			fmt.Println("Running on Linux...")
+			mainLogger.Infof("running on Linux")
 			if err := pidfile.CreateOrUpdatePIDFile("client.pid"); err != nil {
-				fmt.Printf("generate pid file failed: %v\n", err)
+				mainLogger.Errorf("generate pid file failed: %v", err)
 				return
 			}
 			defer func() {
 				pidfile.ReleasePID()
 			}()
 		case "darwin": // macOS
-			fmt.Println("Running on macOS...")
+			mainLogger.Infof("running on MacOS")
 			if err := pidfile.CreateOrUpdatePIDFile("client.pid"); err != nil {
-				fmt.Printf("generate pid file failed: %v\n", err)
+				mainLogger.Errorf("generate pid file failed: %v", err)
 				return
 			}
 			defer func() {
 				pidfile.ReleasePID()
 			}()
 		default:
-			fmt.Printf("Running on an unknown operating system: %s\n", runOS)
+			mainLogger.Warnf("running on an unknown operating system: %s", runOS)
 		}
 	}
 
@@ -61,27 +75,46 @@ func main() {
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	configControl, err := config.NewConfigControl()
+	mainLogger.Infof("starting grpc server...")
+	grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl)
 	if err != nil {
-		fmt.Printf("load config failed: %v\n", err)
+		mainLogger.Errorf("start grpc server failed: %v", err)
 		return
 	}
 
-	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
-	mainLogger := loggerControl.GenLogger("main")
-
-	{
-		mainLogger.Infof("starting grpc server...")
-		grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl, func(err error) {
-			mainLogger.Errorf("start grpc server failed: %v", err)
-			quit <- os.Interrupt
-		})
+	mainLogger.Infof("starting docker server...")
+	var dockerControl *docker.Control
+	if str.CompareIgnoreCase("windows", runtime.GOOS) {
+		mainLogger.Infof("windows not start docker server...")
+		dockerControl = nil
+	} else {
+		dockerControl, err = docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
 		if err != nil {
-			mainLogger.Errorf("start grpc server failed: %v", err)
+			mainLogger.Fatalf("create docker control failed: %v", err)
 			return
 		}
-		defer grpcControl.Shutdown()
+	}
 
+	mainLogger.Infof("starting libp2p server...")
+	libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
+	if err != nil {
+		mainLogger.Errorf("create libp2p grpcControl failed: %v", err)
+		return
+	}
+
+	serverControl := server.NewServerControl(dockerControl, configControl, libp2pControl, grpcControl, nil, nil, loggerControl)
+	serverControl.StartUp(func(err error) {
+		mainLogger.Errorf("start server failed: %v", err)
+		quit <- os.Interrupt
+	})
+	defer func(serverControl *server.Control) {
+		if err := serverControl.Shutdown(); err != nil {
+			mainLogger.Errorf("shutdown server failed: %v", err)
+		}
+	}(serverControl)
+
+	// grpc
+	{
 		go func() {
 			ticker := time.NewTicker(time.Second * time.Duration(rand.IntN(5-3)+3))
 			for range ticker.C {
@@ -103,51 +136,8 @@ func main() {
 		}()
 	}
 
-	var dockerControl *docker.Control
+	// libp2p
 	{
-		switch runtime.GOOS {
-		case "windows":
-			mainLogger.Infof("windows os not starting docker server...")
-		case "linux":
-			fallthrough
-		case "darwin":
-			fallthrough
-		default:
-			mainLogger.Infof("starting docker server...")
-			dockerControl, err = docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
-			if err != nil {
-				mainLogger.Fatalf("create docker control failed: %v", err)
-			}
-			dockerControl.StartUp(func(err error) {
-				mainLogger.Errorf("check docker daemon failed: %v", err)
-				quit <- os.Interrupt
-			})
-			defer func() {
-				if err := dockerControl.Shutdown(); err != nil {
-					mainLogger.Errorf("shutdown docker control failed: %v", err)
-				}
-			}()
-
-		}
-	}
-
-	{
-		mainLogger.Infof("starting libp2p server...")
-		libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
-		if err != nil {
-			mainLogger.Errorf("create libp2p grpcControl failed: %v", err)
-			return
-		}
-		libp2pControl.StartUp(func(err error) {
-			mainLogger.Errorf("start libp2p failed: %v", err)
-			quit <- os.Interrupt
-		})
-		defer func() {
-			if err := libp2pControl.Shutdown(); err != nil {
-				mainLogger.Errorf("shutdown libp2p failed: %v", err)
-			}
-		}()
-
 		libp2pControl.RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %v messageType from %s content %v", protocolID, msg.Type, msg.From, string(msg.Content))
 		})

@@ -15,7 +15,9 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 	"os"
@@ -30,40 +32,6 @@ var (
 )
 
 func main() {
-	fmt.Printf("start server version %s\n", version)
-	// pidfile
-	{
-		runOS := runtime.GOOS
-		switch runOS {
-		case "windows":
-			fmt.Println("Running on Windows")
-		case "linux":
-			fmt.Println("Running on Linux")
-			if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
-				fmt.Printf("generate pid file failed: %v\n", err)
-				return
-			}
-			defer func() {
-				pidfile.ReleasePID()
-			}()
-		case "darwin": // macOS
-			fmt.Println("Running on macOS")
-			if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
-				fmt.Printf("generate pid file failed: %v\n", err)
-				return
-			}
-			defer func() {
-				pidfile.ReleasePID()
-			}()
-		default:
-			fmt.Printf("Running on an unknown operating system: %s\n", runOS)
-		}
-	}
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-
-	ctx, cancel := context.WithCancel(context.Background())
 
 	// config
 	configControl, err := config.NewConfigControl()
@@ -76,6 +44,102 @@ func main() {
 	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	mainLogger := loggerControl.GenLogger("main")
 
+	mainLogger.Infof("start server version %v", version)
+
+	// pidfile
+	{
+		runOS := runtime.GOOS
+		switch runOS {
+		case "windows":
+			mainLogger.Infof("running on Windows")
+		case "linux":
+			mainLogger.Infof("running on Linux")
+			if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
+				mainLogger.Errorf("generate pid file failed: %v", err)
+				return
+			}
+			defer func() {
+				pidfile.ReleasePID()
+			}()
+		case "darwin": // macOS
+			mainLogger.Infof("running on MacOS")
+			if err := pidfile.CreateOrUpdatePIDFile("server.pid"); err != nil {
+				mainLogger.Errorf("generate pid file failed: %v", err)
+				return
+			}
+			defer func() {
+				pidfile.ReleasePID()
+			}()
+		default:
+			mainLogger.Warnf("running on an unknown operating system: %s", runOS)
+		}
+	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	mainLogger.Infof("starting datasource server...")
+	dataSourceControl, err := datasource.NewDataSourceControl(configControl.GetDataSourceConfig(), loggerControl)
+	if err != nil {
+		mainLogger.Fatalf("create datasource control failed: %v", err)
+		return
+	}
+
+	mainLogger.Infof("starting grpc server...")
+	grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl)
+	if err != nil {
+		mainLogger.Errorf("create grpc grpcControl failed: %v", err)
+		return
+	}
+
+	mainLogger.Infof("starting libp2p server...")
+	libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
+	if err != nil {
+		mainLogger.Errorf("create libp2p control failed: %v", err)
+		return
+	}
+
+	mainLogger.Infof("starting http server...")
+	httpControl := http.NewWebServerControl(configControl.GetWebConfig(), loggerControl)
+
+	mainLogger.Infof("starting docker server...")
+	var dockerControl *docker.Control
+	if str.CompareIgnoreCase("windows", runtime.GOOS) {
+		mainLogger.Infof("windows not start docker server...")
+		dockerControl = nil
+	} else {
+		dockerControl, err = docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
+		if err != nil {
+			mainLogger.Fatalf("create docker control failed: %v", err)
+			return
+		}
+	}
+
+	serverControl := server.NewServerControl(dockerControl, configControl, libp2pControl, grpcControl, httpControl, dataSourceControl, loggerControl)
+	serverControl.StartUp(func(err error) {
+		// if http.IsHttpErrServerClosed(err) {
+		// 	// mainLogger.Errorf("start http server err: %v", err)
+		// 	// http 正常关闭
+		// } else {
+		// 	mainLogger.Errorf("ohther server start err: %v", err)
+		// }
+		// quit <- os.Interrupt
+		if err != nil && !http.IsHttpErrServerClosed(err) {
+			mainLogger.Errorf("ohther server start err: %v", err)
+			quit <- os.Interrupt
+
+		} else {
+			mainLogger.Infof("http server closed normally") // 可选：记录正常关闭日志
+		}
+	})
+	defer func(serverControl *server.Control) {
+		if err := serverControl.Shutdown(); err != nil {
+			mainLogger.Errorf("shutdown server err: %v", err)
+		}
+	}(serverControl)
+
 	// datasource
 	var (
 		imageMapper   *image.Mapper
@@ -83,17 +147,6 @@ func main() {
 		networkMapper *network.Mapper
 	)
 	{
-		mainLogger.Infof("starting datasource server...")
-		dataSourceControl, err := datasource.NewDataSourceControl(configControl.GetDataSourceConfig(), loggerControl)
-		if err != nil {
-			mainLogger.Fatalf("create datasource control failed: %v", err)
-			return
-		}
-		defer func() {
-			if err := dataSourceControl.Close(); err != nil {
-				mainLogger.Errorf("close datasource control failed: %v", err)
-			}
-		}()
 		if err = dataSourceControl.AutoMigrateTable(&image.Info{}, &node.Info{}, &network.Info{}); err != nil {
 			mainLogger.Errorf("auto migrate table failed: %v", err)
 		}
@@ -102,38 +155,8 @@ func main() {
 		networkMapper = network.NewNetworkMapper(dataSourceControl.GetConn())
 	}
 
-	// grpc
-	{
-		mainLogger.Infof("starting grpc server...")
-		grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl, func(err error) {
-			mainLogger.Errorf("grpc server startUp failed: %v", err)
-			quit <- os.Interrupt
-		})
-		if err != nil {
-			mainLogger.Errorf("create grpc grpcControl failed: %v", err)
-			return
-		}
-		defer grpcControl.Shutdown()
-	}
-
 	// libp2p
 	{
-		mainLogger.Infof("starting libp2p server...")
-		libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
-		if err != nil {
-			mainLogger.Errorf("create libp2p control failed: %v", err)
-			return
-		}
-		libp2pControl.StartUp(func(err error) {
-			mainLogger.Errorf("start libp2p failed: %v", err)
-			quit <- os.Interrupt
-		})
-		defer func() {
-			if err := libp2pControl.Shutdown(); err != nil {
-				mainLogger.Errorf("shutdown libp2p failed: %v", err)
-			}
-		}()
-
 		myself := node.NewNodeInfo()
 		myself.NodeId = libp2pControl.GetLocalID().String()
 		myself.IsAlive = sql.NullBool{Bool: true, Valid: true}
@@ -297,101 +320,71 @@ func main() {
 		}()
 	}
 
-	{
-		switch runtime.GOOS {
-		case "windows":
-			mainLogger.Infof("windows os not starting docker server...")
-		case "linux":
-			fallthrough
-		case "darwin":
-			fallthrough
-		default:
-			mainLogger.Infof("starting docker server...")
-			dockerControl, err := docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
-			if err != nil {
-				mainLogger.Fatalf("create docker control failed: %v", err)
-			}
-			dockerControl.StartUp(func(err error) {
-				mainLogger.Errorf("check docker daemon failed: %v", err)
-				quit <- os.Interrupt
-			})
-			defer func() {
-				if err := dockerControl.Shutdown(); err != nil {
-					mainLogger.Errorf("shutdown docker control failed: %v", err)
+	if !str.CompareIgnoreCase("windows", runtime.GOOS) {
+		imageList, err := dockerControl.ListImages()
+		if err != nil {
+			mainLogger.Errorf("list docker images failed: %v", err)
+		} else {
+			for _, img := range imageList {
+				info := image.NewImageInfo()
+				info.ImageName = img.RepoTags[0]
+				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+				info.ImageId = img.ID
+				info.ImageCreated = img.Created
+				labels, err := json.Marshal(img.Labels)
+				if err != nil {
+					mainLogger.Errorf("marshal image labels failed: %v", err)
+					continue
 				}
-			}()
-
-			imageList, err := dockerControl.ListImages()
-			if err != nil {
-				mainLogger.Errorf("list docker images failed: %v", err)
-			} else {
-				for _, img := range imageList {
-					info := image.NewImageInfo()
-					info.ImageName = img.RepoTags[0]
-					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-					info.ImageId = img.ID
-					info.ImageCreated = img.Created
-					labels, err := json.Marshal(img.Labels)
-					if err != nil {
-						mainLogger.Errorf("marshal image labels failed: %v", err)
-						continue
-					}
-					info.ImageLabels = string(labels)
-					info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
-					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
-						mainLogger.Errorf("insert or update image info failed: %v", err)
-						continue
-					}
+				info.ImageLabels = string(labels)
+				info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+				if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+					mainLogger.Errorf("insert or update image info failed: %v", err)
+					continue
 				}
 			}
-			networkList, err := dockerControl.ListNetworks()
-			if err != nil {
-				mainLogger.Errorf("list docker networks failed: %v", err)
-			} else {
-				for _, net := range networkList {
-					info := network.NewNetworkInfo()
-					info.NetworkName = net.Name
-					info.NetworkID = net.ID
-					info.NetworkCreateTime = net.Created
-					info.NetworkScope = net.Scope
-					info.NetworkDriver = net.Driver
-					info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
-					ipamBytes, err := json.Marshal(net.IPAM)
-					if err != nil {
-						mainLogger.Errorf("marshal network ipam failed: %v", err)
-						continue
-					}
-					info.NetworkIpam = string(ipamBytes)
-					info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
-					info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
-					info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
-					info.NetworkLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
-					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-					if err := networkMapper.InsertOrUpdateOne(info); err != nil {
-						mainLogger.Errorf("insert or update network info failed: %v", err)
-					}
-				}
-			}
-
-			if err = dockerControl.PullImage("busybox:latest"); err != nil {
-				mainLogger.Errorf("pull image failed: %v", err)
-			}
-
 		}
-	}
-
-	{
-		mainLogger.Infof("starting http server...")
-		httpControl := http.NewServerControl(configControl.GetWebConfig(), loggerControl)
-
-		httpControl.StartUp(func(err error) {
-			if !http.IsHttpErrServerClosed(err) {
-				mainLogger.Errorf("start http server err: %v", err)
+		networkList, err := dockerControl.ListNetworks()
+		if err != nil {
+			mainLogger.Errorf("list docker networks failed: %v", err)
+		} else {
+			for _, net := range networkList {
+				info := network.NewNetworkInfo()
+				info.NetworkName = net.Name
+				info.NetworkID = net.ID
+				info.NetworkCreateTime = net.Created
+				info.NetworkScope = net.Scope
+				info.NetworkDriver = net.Driver
+				info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
+				ipamBytes, err := json.Marshal(net.IPAM)
+				if err != nil {
+					mainLogger.Errorf("marshal network ipam failed: %v", err)
+					continue
+				}
+				info.NetworkIpam = string(ipamBytes)
+				info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
+				info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
+				info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
+				info.NetworkLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+				if err := networkMapper.InsertOrUpdateOne(info); err != nil {
+					mainLogger.Errorf("insert or update network info failed: %v", err)
+				}
 			}
-			quit <- os.Interrupt
-		})
-		defer httpControl.Shutdown()
+		}
+
+		// if err = dockerControl.PullImage("busybox:latest"); err != nil {
+		// 	mainLogger.Errorf("pull image failed: %v", err)
+		// }
 	}
+
+	mainLogger.Infof("starting http server agagin...")
+	httpControl.StartUp(func(err error) {
+		if !http.IsHttpErrServerClosed(err) {
+			mainLogger.Errorf("start http server err: %v", err)
+		}
+		quit <- os.Interrupt
+	})
 
 	<-quit
 	mainLogger.Infof("received shutdown signal...")

@@ -1,6 +1,7 @@
 package datasource
 
 import (
+	"sync"
 	"time"
 
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
@@ -15,6 +16,7 @@ type Control struct {
 	dbConn   *gorm.DB
 	logger   *zap.SugaredLogger
 	dbLogger *dblogger.Logger
+	once     sync.Once
 }
 
 func (c *Control) Close() error {
@@ -47,6 +49,35 @@ func (c *Control) setConnPool() error {
 	sqlDB.SetMaxOpenConns(c.dbConfig.MaxOpenConn)
 	sqlDB.SetConnMaxLifetime(time.Minute)
 	c.logger.Debugf("[control] success to set conn pool...")
+	return nil
+}
+
+func (c *Control) StartUp(failedFunc func(err error)) {
+	c.once.Do(func() {
+		c.logger.Debugf("[control] call db ping instead startup...")
+		sqlDB, err := c.dbConn.DB()
+		if err != nil {
+			c.logger.Errorf("[control] failed from gorm.DB get sql.DB: %v", err)
+			failedFunc(err)
+		}
+		if err = sqlDB.Ping(); err != nil {
+			c.logger.Errorf("[control] failed from sqlDB.Ping: %v", err)
+			failedFunc(err)
+		}
+	})
+}
+
+func (c *Control) Shutdown() error {
+	c.logger.Debugf("[control] shutdown datasource...")
+	sqlDB, err := c.dbConn.DB()
+	if err != nil {
+		c.logger.Errorf("[control] failed from gorm.DB get sql.DB: %v", err)
+		return err
+	}
+	if err = sqlDB.Close(); err != nil {
+		c.logger.Errorf("[control] failed from sqlDB.Close: %v", err)
+		return err
+	}
 	return nil
 }
 

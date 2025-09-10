@@ -7,59 +7,71 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/gzip"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/request"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/requestid"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"go.uber.org/zap"
 	"net/http"
 	"strings"
+	"sync"
 )
 
-type ServerControl struct {
+type Control struct {
 	serverConfig *config.HttpServerConfig
 	server       *http.Server
+	ginRouter    *gin.Engine
 	ctx          context.Context
 	logger       *zap.SugaredLogger
+	routers      []MyRouter
+	once         sync.Once
 }
 
-func (s *ServerControl) StartUp(failedFunc func(err error)) {
-	if s.serverConfig.TlsEnabled {
-		s.logger.Infof("start https server on %v", s.serverConfig.Address)
-		go func() {
-			if err := s.server.ListenAndServeTLS(s.serverConfig.TlsCertFile, s.serverConfig.TlsKeyFile); err != nil {
-				failedFunc(err)
-			}
-		}()
-	} else {
-		s.logger.Infof("start http server on %v", s.serverConfig.Address)
-		go func() {
-			if err := s.server.ListenAndServe(); err != nil {
-				failedFunc(err)
-			}
-		}()
+func (c *Control) StartUp(failedFunc func(err error)) {
+	c.once.Do(func() {
+		if c.serverConfig.TlsEnabled {
+			c.logger.Infof("[control] start https server on %v", c.serverConfig.Address)
+			go func() {
+				if err := c.server.ListenAndServeTLS(c.serverConfig.TlsCertFile, c.serverConfig.TlsKeyFile); err != nil && !IsHttpErrServerClosed(err) {
+
+					failedFunc(err)
+				}
+			}()
+		} else {
+			c.logger.Infof("[control] start http server on %v", c.serverConfig.Address)
+			go func() {
+				if err := c.server.ListenAndServe(); err != nil && !IsHttpErrServerClosed(err) {
+					failedFunc(err)
+				}
+			}()
+		}
+	})
+}
+
+func (c *Control) Shutdown() error {
+	c.logger.Infof("[control] shutdown http server...")
+	if err := c.server.Shutdown(c.ctx); err != nil {
+		c.logger.Errorf("[control] shutdown http server failed: %v", err)
+		return err
 	}
+	return nil
 }
 
-func (s *ServerControl) Shutdown() {
-	s.logger.Infof("shutdown http server...")
-	_ = s.server.Shutdown(s.ctx)
-}
-
-func NewServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control) *ServerControl {
+func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control) *Control {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
-	webLogger.Infof("start new http server control...")
+	webLogger.Infof("[control] start new http server control...")
 	gin.SetMode(serverConfig.RunMode)
 	// gin.ForceConsoleColor()
 
+	webLogger.Debugf("[control] generate gin engine...")
 	engine := gin.Default()
-	engine.Use(requestid.EnableRequestID())
-	engine.Use(request.EnableRequestLog(webLogger))
+	webLogger.Debugf("[control] register gin middleware...")
+	engine.Use(requestid.EnableRequestID(webLogger))
 	engine.Use(cors.EnableCors())
 	engine.Use(gzip.EnableGzip())
 
 	// engine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 	// 	// 你的自定义格式
 	// 127.0.0.1 - [2025-09-08 19:57:12.078] "GET /example/ping HTTP/2.0 200 50.066µs "curl/7.68.0" "
+	// "%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
 	// 	return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
 	// 		param.ClientIP,
 	// 		param.TimeStamp.Format("2006-01-02 15:04:05.000"),
@@ -72,54 +84,66 @@ func NewServerControl(serverConfig *config.HttpServerConfig, loggerControl *logg
 	// 		param.ErrorMessage,
 	// 	)
 	// }))
-
-	initRouters(engine, serverConfig, webLogger)
+	webLogger.Debugf("[control] generate http server...")
 	srv := &http.Server{
 		Addr:    serverConfig.Address,
 		Handler: engine,
 	}
-
-	return &ServerControl{
+	webLogger.Debugf("[control] generate http control...")
+	control := &Control{
 		serverConfig: serverConfig,
 		server:       srv,
 		ctx:          context.Background(),
 		logger:       webLogger,
+		ginRouter:    engine,
 	}
+
+	control.logger.Warnf("[control] current not setting router please call control.RegisterRouter to register router...")
+	// 在这里不调用
+	// control.initRouters()
+	return control
 }
 
-func initRouters(ginEngine *gin.Engine, serverConfig *config.HttpServerConfig, logger *zap.SugaredLogger) {
-	logger.Infof("start init routers...")
+func (c *Control) RegisterRouter(routers []MyRouter) {
+	c.logger.Infof("[control] register router...")
+	c.routers = routers
+	c.logger.Debugf("[control] starting define router...")
+	c.initRouters()
+	c.logger.Infof("[control] register router success...")
+}
 
-	for _, router := range NewRouter() {
+func (c *Control) initRouters() {
+	c.logger.Infof("[control] start init routers...")
+
+	for _, router := range c.routers {
 		if router.Enabled {
-			logger.Debugf("register router uri %s method %s", router.Uri, router.Method)
+			c.logger.Debugf("[control] register router uri %s method %s", router.Uri, router.Method)
 			var url string
 			if strings.HasPrefix(router.Uri, "/") {
 				// 避免重复添加前缀
-				url = fmt.Sprintf("%s%s", serverConfig.ContextPath, router.Uri)
+				url = fmt.Sprintf("%s%s", c.serverConfig.ContextPath, router.Uri)
 			} else {
-				url = fmt.Sprintf("%s/%s", serverConfig.ContextPath, router.Uri)
+				url = fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, router.Uri)
 			}
 
 			switch router.Method {
 			case http.MethodPatch:
-				ginEngine.PATCH(url, router.HandlerFunc)
+				c.ginRouter.PATCH(url, router.HandlerFunc)
 			case http.MethodOptions:
-				ginEngine.OPTIONS(url, router.HandlerFunc)
+				c.ginRouter.OPTIONS(url, router.HandlerFunc)
 			case http.MethodPut:
-				ginEngine.PUT(url, router.HandlerFunc)
+				c.ginRouter.PUT(url, router.HandlerFunc)
 			case http.MethodHead:
-				ginEngine.HEAD(url, router.HandlerFunc)
+				c.ginRouter.HEAD(url, router.HandlerFunc)
 			case http.MethodDelete:
-				ginEngine.DELETE(url, router.HandlerFunc)
+				c.ginRouter.DELETE(url, router.HandlerFunc)
 			case http.MethodPost:
-				ginEngine.POST(url, router.HandlerFunc)
+				c.ginRouter.POST(url, router.HandlerFunc)
 			case http.MethodGet:
 				fallthrough
 			default:
-				ginEngine.GET(url, router.HandlerFunc)
+				c.ginRouter.GET(url, router.HandlerFunc)
 			}
 		}
 	}
-
 }

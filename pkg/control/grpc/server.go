@@ -40,6 +40,7 @@ type server struct {
 }
 
 func (s *server) SendMessageBidi(stream pb.MessageService_SendMessageBidiServer) error {
+	s.logger.Debugf("[server] starting send message bidi stream...")
 	// 收集上行数据到 buffer（注意：若 payload 极大，这里会占用内存）
 	var buf bytes.Buffer
 	var msgType, clientID string
@@ -220,18 +221,18 @@ func genServerTlsConfig(serverConfig *config.GrpcServerConfig) (*tls.Config, err
 }
 
 func NewServerControl(serverConfig *config.GrpcServerConfig, logger *zap.SugaredLogger) (*ServerControl, error) {
-	logger.Infof("start new server control...")
+	logger.Infof("[server] start new server control...")
 	var gServer *grpc.Server
 	opts := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(serverConfig.MaxRecvMsgSize),
 		grpc.MaxSendMsgSize(serverConfig.MaxSendMsgSize),
 	}
 	if serverConfig.TlsEnabled {
-		logger.Debugf("gen tls grpc server...")
+		logger.Debugf("[server] generate tls grpc server...")
 
 		transportCredentials, err := credentials.NewServerTLSFromFile(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
 		if err != nil {
-			logger.Errorf("gen transportCredentials err: %v", err)
+			logger.Errorf("[server] generate transportCredentials err: %v", err)
 			return nil, err
 		}
 		opts = append(opts, grpc.Creds(transportCredentials))
@@ -246,7 +247,7 @@ func NewServerControl(serverConfig *config.GrpcServerConfig, logger *zap.Sugared
 
 		gServer = grpc.NewServer(opts...)
 	} else {
-		logger.Debugf("gen no tls grpc server...")
+		logger.Debugf("[server] generate no tls grpc server...")
 		gServer = grpc.NewServer(opts...)
 	}
 
@@ -267,26 +268,27 @@ func NewServerControl(serverConfig *config.GrpcServerConfig, logger *zap.Sugared
 	}, nil
 }
 
-func (s *ServerControl) StartUp(failedFunc func(err error)) error {
-	s.logger.Infof("start grpc server on %v", s.Config.Host)
+func (s *ServerControl) StartUp(failedFunc func(err error)) {
+	s.logger.Infof("[server] start grpc server on %v", s.Config.Host)
 	listen, err := net.Listen("tcp", s.Config.Host)
 	if err != nil {
-		return err
+		s.logger.Errorf("[server] grpc generate listener failed: %v", err)
+		failedFunc(err)
 	}
 	go func() {
 		if err := s.gServer.Serve(listen); err != nil {
+			s.logger.Errorf("[server] grpc server start failed: %v", err)
 			failedFunc(err)
 		}
 	}()
-	return nil
 }
 
 func (s *ServerControl) Stop() {
-	s.logger.Infof("grpc server stop...")
+	s.logger.Infof("[server] grpc server stop...")
 	s.gServer.Stop()
 }
 
 func (s *ServerControl) GracefulStop() {
-	s.logger.Infof("grpc server graceful stop...")
+	s.logger.Infof("[server] grpc server graceful stop...")
 	s.gServer.GracefulStop()
 }

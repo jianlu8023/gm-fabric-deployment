@@ -40,13 +40,13 @@ http:
   tls_key_file: ./certs/hserver.key
 libp2p:
   listen_addr:
-    - /ip4/0.0.0.0/tcp/2000
-    - /ip6/::1/tcp/2000
-    - /ip4/0.0.0.0/udp/2000/quic-v1
-    - /ip4/127.0.0.1/udp/2000/quic-v1
-    - /ip4/0.0.0.0/udp/2000/quic-v1/webtransport
-    - /ip4/0.0.0.0/udp/2000/webrtc-direct
-    - /dns4/localhost/udp/2000/ws
+    - /ip4/0.0.0.0/tcp/2001
+    - /ip6/::1/tcp/2001
+    - /ip4/0.0.0.0/udp/2001/quic-v1
+    - /ip4/127.0.0.1/udp/2001/quic-v1
+    - /ip4/0.0.0.0/udp/2001/quic-v1/webtransport
+    - /ip4/0.0.0.0/udp/2001/webrtc-direct
+    - /dns4/localhost/udp/2001/ws
   identity:
     peer_id: 12D3KooWB9vcdUVqj3doZb2mQtmrXfwRF4ZcrNtquA77PQqZGZci
     privkey: CAESQAi11XdBy0ogf7CgJNNicEk0mKM/2A9k7QtA1jmQW1RfE95o0U/gmG1RraWA38kdmHXExAkKFr0UgvowIYQ4Qa8=
