@@ -312,6 +312,51 @@ func main() {
 					mainLogger.Errorf("shutdown docker control failed: %v", err)
 				}
 			}()
+
+			imageList, err := dockerControl.ListImages()
+			if err != nil {
+				mainLogger.Errorf("list docker images failed: %v", err)
+			} else {
+				for _, img := range imageList {
+					info := image.NewImageInfo()
+					info.ImageName = img.RepoTags[0]
+					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+						mainLogger.Errorf("insert or update image info failed: %v", err)
+						continue
+					}
+				}
+			}
+			networkList, err := dockerControl.ListNetworks()
+			if err != nil {
+				mainLogger.Errorf("list docker networks failed: %v", err)
+			} else {
+				for _, net := range networkList {
+					info := network.NewNetworkInfo()
+					info.NetworkName = net.Name
+					info.NetworkID = net.ID
+					info.NetworkCreateTime = net.Created
+					info.NetworkScope = net.Scope
+					info.NetworkDriver = net.Driver
+					info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
+					ipamBytes, err := json.Marshal(net.IPAM)
+					if err != nil {
+						mainLogger.Errorf("marshal network ipam failed: %v", err)
+						continue
+					}
+					info.NetworkIpam = string(ipamBytes)
+					info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
+					info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
+					info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
+					info.NetworkLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					if err := networkMapper.InsertOrUpdateOne(info); err != nil {
+						mainLogger.Errorf("insert or update network info failed: %v", err)
+					}
+				}
+			}
+
 		}
 	}
 
