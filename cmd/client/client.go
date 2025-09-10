@@ -61,48 +61,18 @@ func main() {
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	loggerConfig := &config.LoggerConfig{
-		DefaultLogLevel: "debug",
-		StackLogLevel:   "error",
-		PrintFormat:     "console",
-		FilePath:        "./logs/app.log",
-		MaxAge:          7,
-		RotationTime:    1,
-		LoggerLevel: map[string]string{
-			"main":   "info",
-			"grpc":   "debug",
-			"libp2p": "info",
-		},
+	configControl, err := config.NewConfigControl()
+	if err != nil {
+		fmt.Printf("load config failed: %v\n", err)
+		return
 	}
-	loggerControl := logger.NewLoggerControl(loggerConfig)
+
+	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	mainLogger := loggerControl.GenLogger("main")
 
 	{
 		mainLogger.Infof("starting grpc server...")
-		grpcConfig := &config.GrpcConfig{
-			Server: &config.GrpcServerConfig{
-				Host:           "0.0.0.0:65533",
-				MaxRecvMsgSize: 5242880,
-				MaxSendMsgSize: 5242880,
-				ChunkSize:      4194304,
-				TlsEnabled:     true,
-				TlsCertFile:    "./certs/gserver.crt",
-				TlsKeyFile:     "./certs/gserver.key",
-				TlsRCACertFile: "./certs/root-ca.crt",
-			},
-			Client: &config.GrpcClientConfig{
-				Host:               "192.168.58.110:65534",
-				MaxCallRecvMsgSize: 5242880,
-				MaxCallSendMsgSize: 5242880,
-				ChunkSize:          4194304,
-				CallTimeout:        99999,
-				TlsEnabled:         true,
-				TlsCertFile:        "./certs/gclient.crt",
-				TlsKeyFile:         "./certs/gclient.key",
-				TlsRCACertFile:     "./certs/root-ca.crt",
-			},
-		}
-		grpcControl, err := grpc.NewGrpcControl(grpcConfig, loggerControl, func(err error) {
+		grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl, func(err error) {
 			mainLogger.Errorf("start grpc server failed: %v", err)
 			quit <- os.Interrupt
 		})
@@ -134,7 +104,6 @@ func main() {
 	}
 
 	var dockerControl *docker.Control
-	var err error
 	{
 		switch runtime.GOOS {
 		case "windows":
@@ -145,16 +114,7 @@ func main() {
 			fallthrough
 		default:
 			mainLogger.Infof("starting docker server...")
-			dockerConfig := &config.DockerConfig{
-				Host:           "unix:///var/run/docker.sock",
-				APIVersion:     "",
-				TlsEnabled:     false,
-				TlsKeyFile:     "",
-				TlsCAFile:      "",
-				TlsCertFile:    "",
-				DefaultTimeout: 5,
-			}
-			dockerControl, err = docker.NewDockerControl(dockerConfig, loggerControl)
+			dockerControl, err = docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
 			if err != nil {
 				mainLogger.Fatalf("create docker control failed: %v", err)
 			}
@@ -172,23 +132,8 @@ func main() {
 	}
 
 	{
-		ident, err := config.CreateIdentity(config.Ed25519, -1)
-		if err != nil {
-			mainLogger.Errorf("create identity failed: %v", err)
-			return
-		}
 		mainLogger.Infof("starting libp2p server...")
-		libp2pConfig := &config.Libp2pConfig{
-			ListenAddr: []string{
-				"/ip4/0.0.0.0/tcp/2001",
-			},
-			ProtocolID:    "/gm-fabric/chat/1.0.0",
-			ServiceTag:    "gm-fabric-deployment",
-			BootstrapList: []string{},
-			Identity:      &ident,
-		}
-
-		libp2pControl, err := libp2p.NewLibp2pControl(libp2pConfig, loggerControl)
+		libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
 		if err != nil {
 			mainLogger.Errorf("create libp2p grpcControl failed: %v", err)
 			return
