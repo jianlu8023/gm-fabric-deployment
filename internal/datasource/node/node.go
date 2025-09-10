@@ -2,10 +2,7 @@ package node
 
 import (
 	"database/sql"
-	"errors"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
-	"gorm.io/gorm"
 	"time"
 )
 
@@ -39,63 +36,4 @@ func (i Info) String() string {
 // @return *Info 节点信息
 func NewNodeInfo() *Info {
 	return &Info{}
-}
-
-type Mapper struct {
-	dbConn *gorm.DB
-}
-
-func NewNodeMapper(conn *gorm.DB) *Mapper {
-	return &Mapper{dbConn: conn}
-}
-
-func (m *Mapper) InsertOneWithCheck(node *Info) error {
-	if m.dbConn == nil {
-		return datasource.ErrNoDataSourceConn
-	}
-	return m.dbConn.Transaction(func(tx *gorm.DB) error {
-		var count int64
-		if err := tx.Model(&Info{}).Where(&Info{
-			NodeId: node.NodeId,
-		}).Count(&count).Error; err != nil {
-			return err
-		}
-		if count > 0 {
-			// 节点已存在
-			return datasource.ErrAlreadyExists
-		}
-		// 节点不存在，插入
-		if err := tx.Model(&Info{}).Create(node).Error; err != nil {
-			return err
-		}
-		return nil
-	})
-}
-
-func (m *Mapper) InsertOrUpdate(node *Info) error {
-	if m.dbConn == nil {
-		return datasource.ErrNoDataSourceConn
-	}
-	return m.dbConn.Transaction(func(tx *gorm.DB) error {
-		var existInfo Info
-		if err := tx.Model(&Info{}).Where(&Info{
-			NodeId: node.NodeId,
-		}).First(&existInfo).Error; err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// 记录不存在
-				if err := tx.Model(&Info{}).Create(node).Error; err != nil {
-					return err
-				}
-			} else {
-				return err
-			}
-		} else {
-			// 记录存在，更新
-			node.AutoUid = existInfo.AutoUid
-			if err := tx.Model(&Info{}).Where(&Info{AutoUid: node.AutoUid}).Updates(node).Error; err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }

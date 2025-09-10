@@ -6,8 +6,10 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/libp2p/go-libp2p/core/peer"
 	"go.uber.org/zap"
 	"sync"
 )
@@ -20,6 +22,7 @@ type Control struct {
 	httpControl       *http.Control
 	datasourceControl *datasource.Control
 	loggerControl     *logger.Control
+	jobControl        *job.Control
 	logger            *zap.SugaredLogger
 	once              sync.Once
 }
@@ -31,6 +34,7 @@ func NewServerControl(dockerControl *docker.Control,
 	httpControl *http.Control,
 	datasourceControl *datasource.Control,
 	loggerControl *logger.Control,
+	jobControl *job.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger("server")
 	serverLogger.Infof("[control] starting new server control...")
@@ -43,6 +47,7 @@ func NewServerControl(dockerControl *docker.Control,
 		httpControl:       httpControl,
 		datasourceControl: datasourceControl,
 		loggerControl:     loggerControl,
+		jobControl:        jobControl,
 	}
 }
 
@@ -78,10 +83,14 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.dockerControl.StartUp(failedFunc)
 		}
 
+		c.logger.Debugf("[control] starting up job server...")
+		if c.jobControl != nil {
+			c.jobControl.StartUp(failedFunc)
+		}
+
 		c.logger.Debugf("[control] starting up http server...")
 		if c.httpControl != nil {
 			c.httpControl.RegisterRouter(http.NewRouter())
-
 			c.httpControl.StartUp(failedFunc)
 		}
 		c.logger.Infof("[control] all server started up successfully...")
@@ -124,6 +133,11 @@ func (c *Control) Shutdown() error {
 		}
 	}
 
+	if c.jobControl != nil {
+		c.logger.Debugf("[control] shutting down job server...")
+		_ = c.jobControl.Shutdown()
+	}
+
 	if c.httpControl != nil {
 		c.logger.Debugf("[control] shutting down http server...")
 		if err := c.httpControl.Shutdown(); err != nil {
@@ -132,4 +146,20 @@ func (c *Control) Shutdown() error {
 		}
 	}
 	return nil
+}
+
+func (c *Control) RegisterLibp2pMessageHandler(messageType string, handler libp2p.MessageHandler) {
+	c.logger.Debugf("[control] register libp2p message handler for %s", messageType)
+	c.libp2pControl.RegisterMessageHandler(messageType, handler)
+}
+
+func (c *Control) GetLocalhostLibp2pID() peer.ID {
+	c.logger.Debugf("[control] get localhost libp2p id")
+	return c.libp2pControl.GetLocalID()
+}
+
+func (c *Control) RegisterJob(job *job.Job) {
+	c.logger.Debugf("[control] register job %s", job.Name)
+	c.jobControl.RegisterJob(job)
+
 }

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
@@ -73,8 +73,6 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
-
 	mainLogger.Infof("starting grpc server...")
 	grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl)
 	if err != nil {
@@ -102,7 +100,9 @@ func main() {
 		return
 	}
 
-	serverControl := server.NewServerControl(dockerControl, configControl, libp2pControl, grpcControl, nil, nil, loggerControl)
+	jobControl := job.NewJobControl(loggerControl)
+
+	serverControl := server.NewServerControl(dockerControl, configControl, libp2pControl, grpcControl, nil, nil, loggerControl, jobControl)
 	serverControl.StartUp(func(err error) {
 		mainLogger.Errorf("start server failed: %v", err)
 		quit <- os.Interrupt
@@ -113,36 +113,43 @@ func main() {
 		}
 	}(serverControl)
 
-	// grpc
-	{
-		go func() {
-			ticker := time.NewTicker(time.Second * time.Duration(rand.IntN(5-3)+3))
-			for range ticker.C {
-				select {
-				default:
-					response, err := grpcControl.Call(&pb.BaseRequest{
-						MessageType: libp2p.BasePing,
-					})
-					if err != nil {
-						mainLogger.Errorf("send ping message err: %v", err)
-					} else {
-						mainLogger.Debugf("send ping message success %v", response)
-					}
-				case <-ctx.Done():
-					mainLogger.Infof("received interrupt signal, exiting...")
-					return
-				}
+	serverControl.RegisterJob(&job.Job{
+		Name: "grpc-ping-message",
+		Task: func() {
+			response, err := grpcControl.Call(&pb.BaseRequest{
+				MessageType: libp2p.BasePing,
+			})
+			if err != nil {
+				mainLogger.Errorf("send ping message err: %v", err)
+			} else {
+				mainLogger.Debugf("send ping message success %v", response)
 			}
-		}()
-	}
+		},
+		Interval: time.Second * time.Duration(rand.IntN(5-3)+3),
+	})
+
+	serverControl.RegisterJob(&job.Job{
+		Name:     "libp2p-ping-message",
+		Interval: time.Duration(rand.IntN(10-5)+5) * time.Second,
+		Task: func() {
+			pingMsg := &libp2p.Message{
+				Type:    libp2p.BasePing,
+				Content: []byte("ping"),
+				From:    libp2pControl.GetLocalID(),
+			}
+			if err := libp2pControl.BroadcastMessage(pingMsg); err != nil {
+				mainLogger.Errorf("broadcast ping message failed: %v", err)
+			}
+		},
+	})
 
 	// libp2p
 	{
-		libp2pControl.RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.RegisterLibp2pMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %v messageType from %s content %v", protocolID, msg.Type, msg.From, string(msg.Content))
 		})
 
-		libp2pControl.RegisterMessageHandler(libp2p.CollectionNode, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.RegisterLibp2pMessageHandler(libp2p.CollectionNode, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Infof("received %v protocol %v message from %s content %v", protocolID, msg.Type, msg.From, string(msg.Content))
 			nodeInfoMsg := &libp2p.Message{
 				From:    msg.To,
@@ -155,7 +162,7 @@ func main() {
 			}
 		})
 
-		libp2pControl.RegisterMessageHandler(libp2p.CollectionDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.RegisterLibp2pMessageHandler(libp2p.CollectionDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %v message from %v", protocolID, msg.Type, msg.From)
 			if dockerControl == nil {
 				return
@@ -182,7 +189,7 @@ func main() {
 			}
 		})
 
-		libp2pControl.RegisterMessageHandler(libp2p.CollectionDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.RegisterLibp2pMessageHandler(libp2p.CollectionDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %s message from %v", protocolID, msg.Type, msg.From)
 
 			if dockerControl == nil {
@@ -212,31 +219,10 @@ func main() {
 
 		})
 
-		go func() {
-			ticker := time.NewTicker(time.Duration(rand.IntN(10-5)+5) * time.Second)
-			defer ticker.Stop()
-			for range ticker.C {
-				select {
-				case <-ctx.Done():
-					mainLogger.Infof("received ctx done signal, exit")
-					return
-				default:
-					pingMsg := &libp2p.Message{
-						Type:    libp2p.BasePing,
-						Content: []byte("ping"),
-						From:    libp2pControl.GetLocalID(),
-					}
-					if err := libp2pControl.BroadcastMessage(pingMsg); err != nil {
-						mainLogger.Errorf("broadcast ping message failed: %v", err)
-					}
-				}
-
-			}
-		}()
 	}
 
 	<-quit
 	mainLogger.Infof("received shutdown signal...")
-	cancelFunc()
-	time.Sleep(3 * time.Second)
+
+	time.Sleep(5 * time.Second)
 }
