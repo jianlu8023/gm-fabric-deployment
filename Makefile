@@ -29,8 +29,8 @@ docker:
 	@docker pull golang:1.22
 	@docker pull ubuntu:22.04
 	@docker buildx build --platform linux/amd64 -t "$(IMAGE_NAME)" .
-	#@docker rmi golang:1.22 ubuntu:22.04
-	#@docker builder prune -a -f
+	@docker rmi golang:1.22 ubuntu:22.04
+	@docker builder prune -a -f
 	@echo "IMAGE NAME: $(IMAGE_NAME)"
 	@echo "docker done"
 .PHONY: docker
