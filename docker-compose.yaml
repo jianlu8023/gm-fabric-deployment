@@ -37,5 +37,5 @@ services:
     networks:
       - myapp
     container_name: app-client
-    command: client
+    command: client -config configs/client.yaml -type dev
     restart: unless-stopped
