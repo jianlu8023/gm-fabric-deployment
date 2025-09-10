@@ -1,4 +1,4 @@
-package requestid
+package middleware
 
 import (
 	"github.com/gin-contrib/requestid"

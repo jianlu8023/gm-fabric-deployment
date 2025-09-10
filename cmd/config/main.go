@@ -32,6 +32,7 @@ func genDefaultConfig() error {
 	}
 	cfg := config.Config{
 		GrpcConfig: &config.GrpcConfig{
+			Enabled: true,
 			Server: &config.GrpcServerConfig{
 				Host:           "127.0.0.1:65534",
 				MaxRecvMsgSize: 5242880,
@@ -68,6 +69,7 @@ func genDefaultConfig() error {
 			},
 		},
 		HttpConfig: &config.HttpServerConfig{
+			Enabled:     true,
 			Address:     ":8080",
 			RunMode:     "release",
 			ContextPath: "example",
@@ -76,6 +78,7 @@ func genDefaultConfig() error {
 			TlsKeyFile:  "./certs/hserver.key",
 		},
 		Libp2pConfig: &config.Libp2pConfig{
+			Enabled: true,
 			ListenAddr: []string{
 				"/ip4/0.0.0.0/tcp/2000",
 				"/ip6/::1/tcp/2000",
@@ -93,6 +96,7 @@ func genDefaultConfig() error {
 			},
 		},
 		DataSourceConfig: &config.DataSourceConfig{
+			Enabled:        true,
 			DataSourceType: "sqlite3",
 			DataBaseName:   "",
 			DataBasePath:   "./db/gm-fabric.db",
@@ -105,6 +109,7 @@ func genDefaultConfig() error {
 			LogInConsole:   true,
 		},
 		DockerConfig: &config.DockerConfig{
+			Enabled: true,
 			// Host:"tcp://127.0.0.1:2375",
 			Host:           "unix:///var/run/docker.sock",
 			APIVersion:     "",

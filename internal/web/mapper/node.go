@@ -2,21 +2,70 @@ package mapper
 
 import (
 	"errors"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/node"
+
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/node"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/dbpage"
 	"gorm.io/gorm"
 )
 
 type NodeMapper struct {
 	*Mapper
-	db *gorm.DB
 }
 
-func NewNodeMapper(mapper *Mapper, db *gorm.DB) *NodeMapper {
+func NewNodeMapper(mapper *Mapper) *NodeMapper {
 	return &NodeMapper{
 		Mapper: mapper,
-		db:     db,
 	}
+}
+
+// NodeList 查询节点列表
+// @param query 查询条件
+// @param isPage 是否分页
+// @param pageNo 页码
+// @param pageSize 每页大小
+// @return dbpage.Info[node.Info] 节点列表
+// @return error 错误信息
+func (m *NodeMapper) NodeList(query node.Info, isPage bool, pageNo int64, pageSize int64) (dbpage.Info[node.Info], error) {
+	page := dbpage.Info[node.Info]{}
+	if m.db == nil {
+		return page, datasource.ErrNoDataSourceConn
+	}
+	page.PageNo = pageNo
+	page.PageSize = pageSize
+
+	// 计算偏移量
+	offset := (pageNo - 1) * pageSize
+
+	// 构建查询
+	db := m.db.Model(&node.Info{}).Where(&query)
+
+	// 查询总记录数
+	if err := db.Count(&page.Count).Error; err != nil {
+		return page, err
+	}
+
+	// 计算最大页码
+	if page.Count > 0 {
+		page.MaxPage = (page.Count + pageSize - 1) / pageSize
+	}
+
+	// 查询记录
+	records := make([]node.Info, 0)
+	if isPage {
+		// 分页查询
+		if err := db.Offset(int(offset)).Limit(int(pageSize)).Find(&records).Error; err != nil {
+			return page, err
+		}
+	} else {
+		// 不分页查询
+		if err := db.Find(&records).Error; err != nil {
+			return page, err
+		}
+	}
+
+	page.Records = records
+	return page, nil
 }
 
 func (m *NodeMapper) InsertOneWithCheck(record *node.Info) error {

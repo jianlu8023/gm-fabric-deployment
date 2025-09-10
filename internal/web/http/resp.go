@@ -1,12 +1,13 @@
 package http
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 )
 
 type BaseResponse struct {

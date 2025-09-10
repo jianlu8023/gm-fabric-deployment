@@ -3,11 +3,12 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"sync"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
 	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"go.uber.org/zap"
-	"sync"
 )
 
 type Control struct {
@@ -82,7 +83,7 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *mylogger.Contr
 }
 
 func (c *Control) printHandlers() {
-	c.logger.Debugf("[control] print handlers...")
+	c.logger.Debugf("[control] print handler...")
 	for handlerName, _ := range c.server.mServer.handler.handlerMap {
 		c.logger.Debugf("[control] register handler %v", handlerName)
 	}

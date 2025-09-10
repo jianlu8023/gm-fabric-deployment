@@ -5,16 +5,18 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/wd"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
-	"os"
-	"path/filepath"
 )
 
 // DockerConfig docker配置结构体
 type DockerConfig struct {
+	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                         // 是否启用
 	Host           string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                  // host地址
 	APIVersion     string `json:"api_version,omitempty" yaml:"api_version,omitempty" mapstructure:"api_version"`             // docker api版本
 	TlsEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`             // 是否启用tls
@@ -33,6 +35,7 @@ func (d DockerConfig) String() string {
 
 // DataSourceConfig 数据源配置结构体
 type DataSourceConfig struct {
+	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
 	DataSourceType string `json:"data_source_type,omitempty" yaml:"data_source_type,omitempty" mapstructure:"data_source_type"` // 数据源类型 mysql postgres sqlite3
 	UserName       string `json:"db_username,omitempty" yaml:"db_username,omitempty" mapstructure:"db_username"`                // 数据库用户名
 	Password       string `json:"db_password,omitempty" yaml:"db_password,omitempty" mapstructure:"db_password"`                // 数据库密码
@@ -141,6 +144,7 @@ func (l LoggerConfig) String() string {
 
 // HttpServerConfig http服务配置
 type HttpServerConfig struct {
+	Enabled     bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                    // 是否启用
 	Address     string `yaml:"address,omitempty" json:"address,omitempty" mapstructure:"address"`                    // 服务地址
 	ContextPath string `yaml:"context_path,omitempty" json:"context_path,omitempty" mapstructure:"context_path"`     // 服务上下文路径
 	RunMode     string `yaml:"run_mode,omitempty" json:"run_mode,omitempty" mapstructure:"run_mode" `                // 服务运行模式
@@ -197,8 +201,9 @@ func (g GrpcClientConfig) String() string {
 
 // GrpcConfig 配置Grpc
 type GrpcConfig struct {
-	Server *GrpcServerConfig `yaml:"server,omitempty" json:"server,omitempty" mapstructure:"server"` // 服务端配置
-	Client *GrpcClientConfig `yaml:"client,omitempty" json:"client,omitempty" mapstructure:"client"` // 客户端配置
+	Enabled bool              `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用
+	Server  *GrpcServerConfig `yaml:"server,omitempty" json:"server,omitempty" mapstructure:"server"`    // 服务端配置
+	Client  *GrpcClientConfig `yaml:"client,omitempty" json:"client,omitempty" mapstructure:"client"`    // 客户端配置
 }
 
 // String GrpcConfig的字符串表示
@@ -270,6 +275,11 @@ type Identity struct {
 	PrivKey string `json:",omitempty" yaml:",omitempty" mapstructure:"privkey"`
 }
 
+func (i *Identity) String() string {
+	bytes, _ := json.Marshal(i)
+	return string(bytes)
+}
+
 // DecodePrivateKey is a helper to decode the users PrivateKey.
 func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
 	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
@@ -284,6 +294,7 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
 
 // Libp2pConfig 配置Libp2p
 type Libp2pConfig struct {
+	Enabled       bool      `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用
 	ListenAddr    []string  `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`          // 监听地址
 	Identity      *Identity `json:"identity,omitempty" yaml:"identity,omitempty" mapstructure:"identity"`                   // 身份信息
 	ProtocolID    string    `json:"protocol_id,omitempty" yaml:"protocol_id,omitempty" mapstructure:"protocol_id"`          // 协议ID

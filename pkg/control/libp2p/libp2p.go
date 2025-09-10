@@ -113,10 +113,10 @@ func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.C
 	return lc, nil
 }
 
-// GetLocalID 获取本地节点ID
+// GetLocalhostPeerID 获取本地节点ID
 //
 // @return peer.ID 本地节点的Peer ID
-func (lc *Control) GetLocalID() peer.ID {
+func (lc *Control) GetLocalhostPeerID() peer.ID {
 	lc.logger.Debugf("[control] get local id...")
 	return lc.host.ID()
 }
@@ -248,7 +248,7 @@ func (lc *Control) Shutdown() error {
 	lc.logger.Debugf("[control] broadcast my shutdown message...")
 	_ = lc.BroadcastMessage(&Message{
 		Type:    "base/shutdown",
-		From:    lc.GetLocalID(),
+		From:    lc.GetLocalhostPeerID(),
 		Content: []byte("bye"),
 	})
 
@@ -295,7 +295,7 @@ func (lc *Control) BroadcastMessage(msg *Message) error {
 	// 遍历所有已知节点并发送消息
 	for peerID := range lc.discoveryService.peers {
 		msg.To = peerID
-		msg.From = lc.GetLocalID()
+		msg.From = lc.GetLocalhostPeerID()
 		lc.logger.Debugf("[control] broadcasting message to peer %s", peerID)
 		if err := lc.SendMessageToPeer(peerID, msg); err != nil {
 			lc.logger.Warnf("[control] failed to send message to peer %s: %v", peerID, err)

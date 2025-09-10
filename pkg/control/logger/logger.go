@@ -2,14 +2,15 @@ package logger
 
 import (
 	"fmt"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	glog "github.com/jianlu8023/go-logger/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"strings"
-	"sync"
-	"time"
 )
 
 type Control struct {
@@ -125,7 +126,7 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 func (c *Control) StartUp(failedFunc func(err error)) {
 	// no-op
 	c.once.Do(func() {
-		fmt.Printf("starting logger server...\n")
+		fmt.Printf("starting up logger server...\n")
 	})
 }
 

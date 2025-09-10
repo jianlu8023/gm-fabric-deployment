@@ -3,16 +3,19 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
+	"time"
+
 	"github.com/docker/docker/api/types"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/docker/image"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/docker/network"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/datasource/node"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/image"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/network"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/node"
+
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
@@ -21,11 +24,6 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
-	"os"
-	"os/signal"
-	"runtime"
-	"syscall"
-	"time"
 )
 
 var (
@@ -34,17 +32,13 @@ var (
 
 func main() {
 
-	// config
-	configControl, err := config.NewConfigControl()
+	serverControl, err := server.NewServerControlFromFile()
 	if err != nil {
-		fmt.Printf("load config failed: %v\n", err)
+		fmt.Printf("generate server control failed: %v\n", err)
 		return
 	}
 
-	// logger
-	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
-	mainLogger := loggerControl.GenLogger("main")
-
+	mainLogger := serverControl.GetLoggerControl().GenLogger("main")
 	mainLogger.Infof("start server version %v", version)
 
 	// pidfile
@@ -79,54 +73,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	mainLogger.Infof("starting datasource server...")
-	dataSourceControl, err := datasource.NewDataSourceControl(configControl.GetDataSourceConfig(), loggerControl)
-	if err != nil {
-		mainLogger.Fatalf("create datasource control failed: %v", err)
-		return
-	}
-
-	mainLogger.Infof("starting grpc server...")
-	grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl)
-	if err != nil {
-		mainLogger.Errorf("create grpc grpcControl failed: %v", err)
-		return
-	}
-
-	mainLogger.Infof("starting libp2p server...")
-	libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
-	if err != nil {
-		mainLogger.Errorf("create libp2p control failed: %v", err)
-		return
-	}
-
-	mainLogger.Infof("starting http server...")
-	httpControl := http.NewWebServerControl(configControl.GetWebConfig(), loggerControl)
-
-	mainLogger.Infof("starting docker server...")
-	var dockerControl *docker.Control
-	if str.CompareIgnoreCase("windows", runtime.GOOS) {
-		mainLogger.Infof("windows not start docker server...")
-		dockerControl = nil
-	} else {
-		dockerControl, err = docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
-		if err != nil {
-			mainLogger.Fatalf("create docker control failed: %v", err)
-			return
-		}
-	}
-
-	jobControl := job.NewJobControl(loggerControl)
-
-	serverControl := server.NewServerControl(dockerControl, configControl, libp2pControl, grpcControl, httpControl, dataSourceControl, loggerControl, jobControl)
 	serverControl.StartUp(func(err error) {
-		// if http.IsHttpErrServerClosed(err) {
-		// 	// mainLogger.Errorf("start http server err: %v", err)
-		// 	// http 正常关闭
-		// } else {
-		// 	mainLogger.Errorf("ohther server start err: %v", err)
-		// }
-		// quit <- os.Interrupt
 		if err != nil && !http.IsHttpErrServerClosed(err) {
 			mainLogger.Errorf("ohther server start err: %v", err)
 			quit <- os.Interrupt
@@ -148,18 +95,21 @@ func main() {
 		networkMapper *network.Mapper
 	)
 	{
-		if err = dataSourceControl.AutoMigrateTable(&image.Info{}, &node.Info{}, &network.Info{}); err != nil {
+		if err = serverControl.GetDatasourceControl().AutoMigrateTable(&image.Info{}, &node.Info{}, &network.Info{}); err != nil {
 			mainLogger.Errorf("auto migrate table failed: %v", err)
 		}
-		imageMapper = image.NewImageMapper(dataSourceControl.GetConn())
-		nodeMapper = mapper.NewNodeMapper(mapper.NewMapper(loggerControl.GenLogger(logger.ModuleDataSource)), dataSourceControl.GetConn())
-		networkMapper = network.NewNetworkMapper(dataSourceControl.GetConn())
+		imageMapper = image.NewImageMapper(serverControl.GetDatasourceControl().GetConn())
+		nodeMapper = mapper.NewNodeMapper(mapper.NewMapper(
+			serverControl.GetLoggerControl().GenLogger(logger.ModuleDataSource),
+			serverControl.GetDatasourceControl().GetConn()),
+		)
+		networkMapper = network.NewNetworkMapper(serverControl.GetDatasourceControl().GetConn())
 	}
 
 	// libp2p
 	{
 		myself := node.NewNodeInfo()
-		myself.NodeId = serverControl.GetLocalhostLibp2pID().String()
+		myself.NodeId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
 		myself.IsAlive = sql.NullBool{Bool: true, Valid: true}
 		myself.IsMySelf = sql.NullBool{Bool: true, Valid: true}
 		myself.LastAliveMessageTime = time.Now()
@@ -167,10 +117,10 @@ func main() {
 			mainLogger.Errorf("insert myself info failed: %v", err)
 		}
 
-		serverControl.RegisterLibp2pMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
 		})
-		serverControl.RegisterLibp2pMessageHandler(libp2p.Libp2pNode, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.Libp2pNode, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol node info message from %s content %v", protocolID, msg.From, string(msg.Content))
 			mainLogger.Infof("starting insert or update node info...")
 			// 返回节点信息
@@ -183,9 +133,9 @@ func main() {
 			}
 		})
 
-		serverControl.RegisterLibp2pMessageHandler(libp2p.BaseShutdown, func(protocolId protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.BaseShutdown, func(protocolId protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
-			libp2pControl.DisconnectFromPeer(msg.From)
+			serverControl.GetLibp2pControl().DisconnectFromPeer(msg.From)
 			mainLogger.Infof("from connect peer list remove peer %v", msg.From)
 			info := node.NewNodeInfo()
 			info.NodeId = msg.From.String()
@@ -196,7 +146,7 @@ func main() {
 			}
 		})
 
-		serverControl.RegisterLibp2pMessageHandler(libp2p.DockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.DockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol message from %v", protocolID, msg.From)
 			// 处理消息
 			var networks []types.NetworkResource
@@ -232,7 +182,7 @@ func main() {
 		})
 
 		// 注册处理docker镜像的消息
-		serverControl.RegisterLibp2pMessageHandler(libp2p.DockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.DockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("receive %v protocol %v message from %v", protocolID, msg.Type, msg.From)
 
 			var imageList []types.ImageSummary
@@ -265,7 +215,7 @@ func main() {
 	}
 
 	{
-		serverControl.RegisterJob(&job.Job{
+		serverControl.GetJobControl().RegisterJob(&job.Job{
 			Name:     "collect-docker-network",
 			Interval: time.Second * 10,
 			Task: func() {
@@ -274,12 +224,12 @@ func main() {
 					Content: []byte("collect all node docker network info..."),
 					Type:    libp2p.CollectionDockerNetworks,
 				}
-				if err := libp2pControl.BroadcastMessage(dockerNetworkMsg); err != nil {
+				if err := serverControl.GetLibp2pControl().BroadcastMessage(dockerNetworkMsg); err != nil {
 					mainLogger.Errorf("broadcast collect docker network info message failed: %v", err)
 				}
 			},
 		})
-		serverControl.RegisterJob(&job.Job{
+		serverControl.GetJobControl().RegisterJob(&job.Job{
 			Name:     "collect-docker-images",
 			Interval: time.Second * 15,
 			Task: func() {
@@ -288,26 +238,26 @@ func main() {
 					Type:    libp2p.CollectionDockerImages,
 					Content: []byte("collect all node docker image info..."),
 				}
-				if err := libp2pControl.BroadcastMessage(collectDockerImageMsg); err != nil {
+				if err := serverControl.GetLibp2pControl().BroadcastMessage(collectDockerImageMsg); err != nil {
 					mainLogger.Errorf("broadcast collect docker image info message failed: %v", err)
 				}
 			},
 		})
-		serverControl.RegisterJob(&job.Job{
+		serverControl.GetJobControl().RegisterJob(&job.Job{
 			Name: "chat-message",
 			Task: func() {
 				chatMsg := &libp2p.Message{
 					Type:    "chat_message",
 					Content: []byte("hello libp2p"),
 				}
-				if err := libp2pControl.BroadcastMessage(chatMsg); err != nil {
+				if err := serverControl.GetLibp2pControl().BroadcastMessage(chatMsg); err != nil {
 					mainLogger.Errorf("broadcast chat message failed: %v", err)
 				}
 
 			},
 			Interval: time.Second * 5,
 		})
-		serverControl.RegisterJob(&job.Job{
+		serverControl.GetJobControl().RegisterJob(&job.Job{
 			Name: "collect-node-info",
 			Task: func() {
 				collectInfoMsg := &libp2p.Message{
@@ -315,7 +265,7 @@ func main() {
 					Content: []byte("collect all node info"),
 				}
 				// 广播消息
-				if err := libp2pControl.BroadcastMessage(collectInfoMsg); err != nil {
+				if err := serverControl.GetLibp2pControl().BroadcastMessage(collectInfoMsg); err != nil {
 					mainLogger.Errorf("broadcast collect info message failed: %v", err)
 				}
 			},
@@ -324,7 +274,7 @@ func main() {
 	}
 
 	if !str.CompareIgnoreCase("windows", runtime.GOOS) {
-		imageList, err := dockerControl.ListImages()
+		imageList, err := serverControl.GetDockerControl().ListImages()
 		if err != nil {
 			mainLogger.Errorf("list docker images failed: %v", err)
 		} else {
@@ -340,14 +290,14 @@ func main() {
 					continue
 				}
 				info.ImageLabels = string(labels)
-				info.ImageLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+				info.ImageLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
 				if err := imageMapper.InsertOrUpdateOne(info); err != nil {
 					mainLogger.Errorf("insert or update image info failed: %v", err)
 					continue
 				}
 			}
 		}
-		networkList, err := dockerControl.ListNetworks()
+		networkList, err := serverControl.GetDockerControl().ListNetworks()
 		if err != nil {
 			mainLogger.Errorf("list docker networks failed: %v", err)
 		} else {
@@ -368,7 +318,7 @@ func main() {
 				info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
 				info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
 				info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
-				info.NetworkLocationPeerId = configControl.GetLibp2pConfig().Identity.PeerID
+				info.NetworkLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
 				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
 				if err := networkMapper.InsertOrUpdateOne(info); err != nil {
 					mainLogger.Errorf("insert or update network info failed: %v", err)
@@ -382,7 +332,7 @@ func main() {
 	}
 
 	mainLogger.Infof("starting http server agagin...")
-	httpControl.StartUp(func(err error) {
+	serverControl.GetHttpControl().StartUp(func(err error) {
 		if !http.IsHttpErrServerClosed(err) {
 			mainLogger.Errorf("start http server err: %v", err)
 		}

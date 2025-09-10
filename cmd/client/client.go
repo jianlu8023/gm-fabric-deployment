@@ -2,24 +2,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
-	"github.com/libp2p/go-libp2p/core/protocol"
 	"math/rand/v2"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
+
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
+	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
 var (
@@ -28,16 +24,13 @@ var (
 
 func main() {
 
-	// config
-	configControl, err := config.NewConfigControl()
+	serverControl, err := server.NewServerControlFromFile()
 	if err != nil {
-		fmt.Printf("load config failed: %v\n", err)
+		fmt.Printf("generate server control failed: %v\n", err)
 		return
 	}
 
-	// logger
-	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
-	mainLogger := loggerControl.GenLogger("main")
+	mainLogger := serverControl.GetLoggerControl().GenLogger("main")
 
 	mainLogger.Infof("start server version %v", version)
 
@@ -73,36 +66,6 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	mainLogger.Infof("starting grpc server...")
-	grpcControl, err := grpc.NewGrpcControl(configControl.GetGrpcConfig(), loggerControl)
-	if err != nil {
-		mainLogger.Errorf("start grpc server failed: %v", err)
-		return
-	}
-
-	mainLogger.Infof("starting docker server...")
-	var dockerControl *docker.Control
-	if str.CompareIgnoreCase("windows", runtime.GOOS) {
-		mainLogger.Infof("windows not start docker server...")
-		dockerControl = nil
-	} else {
-		dockerControl, err = docker.NewDockerControl(configControl.GetDockerConfig(), loggerControl)
-		if err != nil {
-			mainLogger.Fatalf("create docker control failed: %v", err)
-			return
-		}
-	}
-
-	mainLogger.Infof("starting libp2p server...")
-	libp2pControl, err := libp2p.NewLibp2pControl(configControl.GetLibp2pConfig(), loggerControl)
-	if err != nil {
-		mainLogger.Errorf("create libp2p grpcControl failed: %v", err)
-		return
-	}
-
-	jobControl := job.NewJobControl(loggerControl)
-
-	serverControl := server.NewServerControl(dockerControl, configControl, libp2pControl, grpcControl, nil, nil, loggerControl, jobControl)
 	serverControl.StartUp(func(err error) {
 		mainLogger.Errorf("start server failed: %v", err)
 		quit <- os.Interrupt
@@ -113,10 +76,10 @@ func main() {
 		}
 	}(serverControl)
 
-	serverControl.RegisterJob(&job.Job{
+	serverControl.GetJobControl().RegisterJob(&job.Job{
 		Name: "grpc-ping-message",
 		Task: func() {
-			response, err := grpcControl.Call(&pb.BaseRequest{
+			response, err := serverControl.GetGrpcControl().Call(&pb.BaseRequest{
 				MessageType: libp2p.BasePing,
 			})
 			if err != nil {
@@ -128,16 +91,16 @@ func main() {
 		Interval: time.Second * time.Duration(rand.IntN(5-3)+3),
 	})
 
-	serverControl.RegisterJob(&job.Job{
+	serverControl.GetJobControl().RegisterJob(&job.Job{
 		Name:     "libp2p-ping-message",
 		Interval: time.Duration(rand.IntN(10-5)+5) * time.Second,
 		Task: func() {
 			pingMsg := &libp2p.Message{
 				Type:    libp2p.BasePing,
 				Content: []byte("ping"),
-				From:    libp2pControl.GetLocalID(),
+				From:    serverControl.GetLibp2pControl().GetLocalhostPeerID(),
 			}
-			if err := libp2pControl.BroadcastMessage(pingMsg); err != nil {
+			if err := serverControl.GetLibp2pControl().BroadcastMessage(pingMsg); err != nil {
 				mainLogger.Errorf("broadcast ping message failed: %v", err)
 			}
 		},
@@ -145,11 +108,11 @@ func main() {
 
 	// libp2p
 	{
-		serverControl.RegisterLibp2pMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %v messageType from %s content %v", protocolID, msg.Type, msg.From, string(msg.Content))
 		})
 
-		serverControl.RegisterLibp2pMessageHandler(libp2p.CollectionNode, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.CollectionNode, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Infof("received %v protocol %v message from %s content %v", protocolID, msg.Type, msg.From, string(msg.Content))
 			nodeInfoMsg := &libp2p.Message{
 				From:    msg.To,
@@ -157,17 +120,17 @@ func main() {
 				Content: []byte("success"),
 				Type:    libp2p.Libp2pNode,
 			}
-			if err := libp2pControl.SendMessageToPeer(nodeInfoMsg.To, nodeInfoMsg); err != nil {
+			if err := serverControl.GetLibp2pControl().SendMessageToPeer(nodeInfoMsg.To, nodeInfoMsg); err != nil {
 				mainLogger.Errorf("send node info to peer %v failed: %v", nodeInfoMsg.To, err)
 			}
 		})
 
-		serverControl.RegisterLibp2pMessageHandler(libp2p.CollectionDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.CollectionDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %v message from %v", protocolID, msg.Type, msg.From)
-			if dockerControl == nil {
+			if serverControl.GetDockerControl() == nil {
 				return
 			}
-			listNetworks, err := dockerControl.ListNetworks()
+			listNetworks, err := serverControl.GetDockerControl().ListNetworks()
 			if err != nil {
 				mainLogger.Errorf("list docker networks failed: %v", err)
 				return
@@ -184,19 +147,19 @@ func main() {
 				Content: bytes,
 				Type:    libp2p.DockerNetworks,
 			}
-			if err = libp2pControl.SendMessageToPeer(dockerNetworkMsg.To, dockerNetworkMsg); err != nil {
+			if err = serverControl.GetLibp2pControl().SendMessageToPeer(dockerNetworkMsg.To, dockerNetworkMsg); err != nil {
 				mainLogger.Errorf("send docker networks to peer %v failed: %v", dockerNetworkMsg.To, err)
 			}
 		})
 
-		serverControl.RegisterLibp2pMessageHandler(libp2p.CollectionDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.CollectionDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %s message from %v", protocolID, msg.Type, msg.From)
 
-			if dockerControl == nil {
+			if serverControl.GetDockerControl() == nil {
 				return
 			}
 
-			listImages, err := dockerControl.ListImages()
+			listImages, err := serverControl.GetDockerControl().ListImages()
 			if err != nil {
 				mainLogger.Errorf("list docker images failed: %v", err)
 				return
@@ -213,7 +176,7 @@ func main() {
 				Type:    libp2p.DockerImages,
 				Content: content,
 			}
-			if err = libp2pControl.SendMessageToPeer(dockerImageMsg.To, dockerImageMsg); err != nil {
+			if err = serverControl.GetLibp2pControl().SendMessageToPeer(dockerImageMsg.To, dockerImageMsg); err != nil {
 				mainLogger.Errorf("send docker images to peer %v failed: %v", dockerImageMsg.To, err)
 			}
 

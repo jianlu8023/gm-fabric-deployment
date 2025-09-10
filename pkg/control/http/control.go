@@ -3,16 +3,17 @@ package http
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/cors"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/gzip"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/requestid"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"go.uber.org/zap"
 	"net/http"
 	"strings"
 	"sync"
+
+	"github.com/gin-gonic/gin"
+	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
+	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"go.uber.org/zap"
 )
 
 type Control struct {
@@ -21,7 +22,7 @@ type Control struct {
 	ginRouter    *gin.Engine
 	ctx          context.Context
 	logger       *zap.SugaredLogger
-	routers      []MyRouter
+	routers      []commonhttp.RouterHandler
 	once         sync.Once
 }
 
@@ -30,7 +31,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.serverConfig.TlsEnabled {
 			c.logger.Infof("[control] start https server on %v", c.serverConfig.Address)
 			go func() {
-				if err := c.server.ListenAndServeTLS(c.serverConfig.TlsCertFile, c.serverConfig.TlsKeyFile); err != nil && !IsHttpErrServerClosed(err) {
+				if err := c.server.ListenAndServeTLS(c.serverConfig.TlsCertFile, c.serverConfig.TlsKeyFile); err != nil && !webhttp.IsHttpErrServerClosed(err) {
 
 					failedFunc(err)
 				}
@@ -38,7 +39,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		} else {
 			c.logger.Infof("[control] start http server on %v", c.serverConfig.Address)
 			go func() {
-				if err := c.server.ListenAndServe(); err != nil && !IsHttpErrServerClosed(err) {
+				if err := c.server.ListenAndServe(); err != nil && !webhttp.IsHttpErrServerClosed(err) {
 					failedFunc(err)
 				}
 			}()
@@ -64,9 +65,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	webLogger.Debugf("[control] generate gin engine...")
 	engine := gin.Default()
 	webLogger.Debugf("[control] register gin middleware...")
-	engine.Use(requestid.EnableRequestID(webLogger))
-	engine.Use(cors.EnableCors())
-	engine.Use(gzip.EnableGzip())
+	engine.Use(middleware.EnableRequestID(webLogger))
+	engine.Use(middleware.EnableCors())
+	engine.Use(middleware.EnableGzip())
 
 	// engine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 	// 	// 你的自定义格式
@@ -104,7 +105,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	return control
 }
 
-func (c *Control) RegisterRouter(routers []MyRouter) {
+func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
 	c.logger.Infof("[control] register router...")
 	c.routers = routers
 	c.logger.Debugf("[control] starting define router...")
@@ -116,33 +117,33 @@ func (c *Control) initRouters() {
 	c.logger.Infof("[control] start init routers...")
 
 	for _, router := range c.routers {
-		if router.Enabled {
-			c.logger.Debugf("[control] register router uri %s method %s", router.Uri, router.Method)
+		if router.IsEnabled() {
+			c.logger.Debugf("[control] register router uri %s method %s", router.GetUri(), router.GetMethod())
 			var url string
-			if strings.HasPrefix(router.Uri, "/") {
+			if strings.HasPrefix(router.GetUri(), "/") {
 				// 避免重复添加前缀
-				url = fmt.Sprintf("%s%s", c.serverConfig.ContextPath, router.Uri)
+				url = fmt.Sprintf("%s%s", c.serverConfig.ContextPath, router.GetUri())
 			} else {
-				url = fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, router.Uri)
+				url = fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, router.GetUri())
 			}
 
-			switch router.Method {
+			switch router.GetMethod() {
 			case http.MethodPatch:
-				c.ginRouter.PATCH(url, router.HandlerFunc)
+				c.ginRouter.PATCH(url, router.GetHandlerFunc())
 			case http.MethodOptions:
-				c.ginRouter.OPTIONS(url, router.HandlerFunc)
+				c.ginRouter.OPTIONS(url, router.GetHandlerFunc())
 			case http.MethodPut:
-				c.ginRouter.PUT(url, router.HandlerFunc)
+				c.ginRouter.PUT(url, router.GetHandlerFunc())
 			case http.MethodHead:
-				c.ginRouter.HEAD(url, router.HandlerFunc)
+				c.ginRouter.HEAD(url, router.GetHandlerFunc())
 			case http.MethodDelete:
-				c.ginRouter.DELETE(url, router.HandlerFunc)
+				c.ginRouter.DELETE(url, router.GetHandlerFunc())
 			case http.MethodPost:
-				c.ginRouter.POST(url, router.HandlerFunc)
+				c.ginRouter.POST(url, router.GetHandlerFunc())
 			case http.MethodGet:
 				fallthrough
 			default:
-				c.ginRouter.GET(url, router.HandlerFunc)
+				c.ginRouter.GET(url, router.GetHandlerFunc())
 			}
 		}
 	}

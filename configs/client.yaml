@@ -1,4 +1,5 @@
 datasource:
+  enabled: true
   data_source_type: sqlite3
   db_username: username
   db_password: password
@@ -9,9 +10,11 @@ datasource:
   max_open_conn: 50
   log_in_console: true
 docker:
+  enabled: true
   host: unix:///var/run/docker.sock
   default_timeout: 5
 grpc:
+  enabled: true
   server:
     host: 0.0.0.0:65533
     max_recv_msg_size: 5242880
@@ -32,6 +35,7 @@ grpc:
     tls_key_file: ./certs/gclient.key
     tls_rca_cert_file: ./certs/root-ca.crt
 http:
+  enabled: true
   address: :8080
   context_path: example
   run_mode: release
@@ -39,6 +43,7 @@ http:
   tls_cert_file: ./certs/hserver.crt
   tls_key_file: ./certs/hserver.key
 libp2p:
+  enabled: true
   listen_addr:
     - /ip4/0.0.0.0/tcp/2001
     - /ip6/::1/tcp/2001

@@ -1,5 +1,5 @@
 datasource:
-  enabled: true
+  enabled: false
   data_source_type: sqlite3
   db_username: username
   db_password: password
@@ -10,13 +10,13 @@ datasource:
   max_open_conn: 50
   log_in_console: true
 docker:
-  enabled: true
+  enabled: false
   host: unix:///var/run/docker.sock
   default_timeout: 5
 grpc:
   enabled: true
   server:
-    host: 127.0.0.1:65534
+    host: 0.0.0.0:65533
     max_recv_msg_size: 5242880
     max_send_msg_size: 5242880
     chunk_size: 4194304
@@ -25,7 +25,7 @@ grpc:
     tls_key_file: ./certs/gserver.key
     tls_rca_cert_file: ./certs/root-ca.crt
   client:
-    host: 127.0.0.1:65533
+    host: 127.0.0.1:65534
     max_call_recv_msg_size: 5242880
     max_call_send_msg_size: 5242880
     chunk_size: 4194304
@@ -35,7 +35,7 @@ grpc:
     tls_key_file: ./certs/gclient.key
     tls_rca_cert_file: ./certs/root-ca.crt
 http:
-  enabled: true
+  enabled: false
   address: :8080
   context_path: example
   run_mode: release
@@ -45,16 +45,16 @@ http:
 libp2p:
   enabled: true
   listen_addr:
-    - /ip4/0.0.0.0/tcp/2000
-    - /ip6/::1/tcp/2000
-    - /ip4/0.0.0.0/udp/2000/quic-v1
-    - /ip4/127.0.0.1/udp/2000/quic-v1
-    - /ip4/0.0.0.0/udp/2000/quic-v1/webtransport
-    - /ip4/0.0.0.0/udp/2000/webrtc-direct
-    - /dns4/localhost/udp/2000/ws
+    - /ip4/0.0.0.0/tcp/2001
+    - /ip6/::1/tcp/2001
+    - /ip4/0.0.0.0/udp/2001/quic-v1
+    - /ip4/127.0.0.1/udp/2001/quic-v1
+    - /ip4/0.0.0.0/udp/2001/quic-v1/webtransport
+    - /ip4/0.0.0.0/udp/2001/webrtc-direct
+    - /dns4/localhost/udp/2001/ws
   identity:
-    peer_id: 12D3KooWEeXfZpxfqwxFLJ2JYH21x85DnTMnCnmfUs4yQnCngM5T
-    privkey: CAESQJY27DDSC9bEnAfcOE+rCLV6OVm/AETqUCt1swmR7HD9R8VdYQoGM7931nd+BX/URL1JLEGRvXX8IkGCK+boblo=
+    peer_id: 12D3KooWB9vcdUVqj3doZb2mQtmrXfwRF4ZcrNtquA77PQqZGZci
+    privkey: CAESQAi11XdBy0ogf7CgJNNicEk0mKM/2A9k7QtA1jmQW1RfE95o0U/gmG1RraWA38kdmHXExAkKFr0UgvowIYQ4Qa8=
   protocol_id: /gm-fabric/chat/1.0.0
   service_tag: gm-fabric-deployment
   bootstrap_list:
@@ -68,5 +68,6 @@ logger:
   rotation_time: 1
   logger_level:
     grpc: debug
-    libp2p: info
-    main: info
+    libp2p: debug
+    main: debug
+    docker: debug
