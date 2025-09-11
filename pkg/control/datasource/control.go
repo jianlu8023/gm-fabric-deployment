@@ -12,11 +12,46 @@ import (
 )
 
 type Control struct {
-	dbConfig *config.DataSourceConfig
-	dbConn   *gorm.DB
-	logger   *zap.SugaredLogger
-	dbLogger *dblogger.Logger
-	once     sync.Once
+	dbConfig         *config.DataSourceConfig
+	dbConn           *gorm.DB
+	logger           *zap.SugaredLogger
+	dbLogger         *dblogger.Logger
+	once             sync.Once
+	autoMigrateTable []interface{}
+	autoMigrateMutex sync.RWMutex
+}
+
+func (c *Control) RegisterAutoMigrateTable(tables ...interface{}) {
+	c.logger.Debugf("[control] register auto migrate table...")
+
+	c.autoMigrateMutex.Lock()
+	defer c.autoMigrateMutex.Unlock()
+	for _, table := range tables {
+		c.autoMigrateTable = append(c.autoMigrateTable, table)
+	}
+	c.logger.Debugf("[control] register auto migrate table successfully...")
+}
+
+func (c *Control) autoMigrate() error {
+	c.logger.Debugf("[control] auto migrate table...")
+	c.autoMigrateMutex.RLock()
+	defer c.autoMigrateMutex.RUnlock()
+	if err := c.dbConn.AutoMigrate(c.autoMigrateTable...); err != nil {
+		c.logger.Errorf("[control] auto migrate table failed: %s", err)
+		return err
+	}
+	return nil
+}
+
+func (c *Control) ReAutoMigrate() error {
+	c.logger.Debugf("[control] call auto migrate table by hand...")
+	c.autoMigrateMutex.RLock()
+	defer c.autoMigrateMutex.RUnlock()
+	if err := c.dbConn.AutoMigrate(c.autoMigrateTable...); err != nil {
+		c.logger.Errorf("[control] auto migrate table failed: %s", err)
+		return err
+	}
+	return nil
 }
 
 func (c *Control) Close() error {
@@ -27,17 +62,17 @@ func (c *Control) GetConn() *gorm.DB {
 	return c.dbConn
 }
 
-// AutoMigrateTable 自动迁移表
-// @param tables interface{} 表结构
-// @return error 错误信息
-func (c *Control) AutoMigrateTable(tables ...interface{}) error {
-	c.logger.Infof("[control] start auto migrate table...")
-	if err := c.dbConn.AutoMigrate(tables...); err != nil {
-		c.logger.Errorf("[control] auto migrate table failed: %v", err)
-		return err
-	}
-	return nil
-}
+// // AutoMigrateTable 自动迁移表
+// // @param tables interface{} 表结构
+// // @return error 错误信息
+// func (c *Control) AutoMigrateTable(tables ...interface{}) error {
+// 	c.logger.Infof("[control] start auto migrate table...")
+// 	if err := c.dbConn.AutoMigrate(tables...); err != nil {
+// 		c.logger.Errorf("[control] auto migrate table failed: %v", err)
+// 		return err
+// 	}
+// 	return nil
+// }
 
 func (c *Control) setConnPool() error {
 	sqlDB, err := c.dbConn.DB()
@@ -54,6 +89,12 @@ func (c *Control) setConnPool() error {
 
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
+		c.logger.Debugf("[control] starting to auto migrate tables...")
+		if err := c.autoMigrate(); err != nil {
+			c.logger.Errorf("[control] auto migrate table failed: %v", err)
+			failedFunc(err)
+		}
+
 		c.logger.Debugf("[control] call db ping instead startup...")
 		sqlDB, err := c.dbConn.DB()
 		if err != nil {
@@ -86,9 +127,10 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 	dsLogger.Infof("[control] starting new datasource control...")
 
 	ctl := &Control{
-		dbConfig: dbConfig,
-		logger:   dsLogger,
-		dbLogger: newDbLogger(loggerControl.GetConfig(), dbConfig.LogInConsole),
+		dbConfig:         dbConfig,
+		logger:           dsLogger,
+		dbLogger:         newDbLogger(loggerControl.GetConfig(), dbConfig.LogInConsole),
+		autoMigrateTable: make([]interface{}, 0, 8),
 	}
 
 	switch dbConfig.DataSourceType {

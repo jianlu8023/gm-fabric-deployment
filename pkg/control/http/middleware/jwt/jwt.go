@@ -1,8 +1,9 @@
-package middleware
+package jwt
 
 import (
+	"context"
 	"errors"
-	"net/http"
+	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 	"strings"
 	"sync"
 	"time"
@@ -55,12 +56,13 @@ type SessionManager interface {
 // @param sessionManager 会话管理器实例
 // @return gin.HandlerFunc Gin中间件函数
 func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
 		// 从Authorization头中获取token
-		tokenString := c.GetHeader("Authorization")
+		tokenString := ctx.GetHeader("Authorization")
 		if tokenString == "" {
 			logger.Errorf("JWT认证失败：未提供token...")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "未提供认证信息"})
+			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "未提供认证信息")
+			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "未提供认证信息"})
 			return
 		}
 
@@ -68,7 +70,8 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		bearerToken := strings.Split(tokenString, " ")
 		if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
 			logger.Errorf("JWT认证失败：token格式错误...")
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "认证信息格式错误"})
+			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "认证信息格式错误")
+			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "认证信息格式错误"})
 			return
 		}
 
@@ -76,7 +79,8 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		claims, err := ParseToken(bearerToken[1])
 		if err != nil {
 			logger.Errorf("JWT认证失败：token解析错误: %v", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "认证信息无效或已过期"})
+			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "认证信息无效或已过期")
+			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "认证信息无效或已过期"})
 			return
 		}
 
@@ -84,23 +88,26 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		if sessionManager != nil {
 			if !sessionManager.ValidateSession(claims.SessionID) {
 				logger.Errorf("JWT认证失败：会话已失效: %v", claims.SessionID)
-				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "会话已失效，请重新登录"})
+				webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "会话已失效，请重新登录")
+				// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "会话已失效，请重新登录"})
 				return
 			}
 
 			// 更新会话最后活动时间
 			claims.LastActivityTime = time.Now().Unix()
-			sessionManager.SetSession(claims.SessionID, claims)
+			if err := sessionManager.SetSession(claims.SessionID, claims); err != nil {
+				logger.Errorf("设置 Session 失败: %v", err)
+			}
 		}
 
 		// 将用户信息存储在上下文
-		c.Set("user_id", claims.UserID)
-		c.Set("username", claims.Username)
-		c.Set("role", claims.Role)
-		c.Set("session_id", claims.SessionID)
-		c.Set("user_info", claims)
+		ctx.Set("user_id", claims.UserID)
+		ctx.Set("username", claims.Username)
+		ctx.Set("role", claims.Role)
+		ctx.Set("session_id", claims.SessionID)
+		ctx.Set("user_info", claims)
 
-		c.Next()
+		ctx.Next()
 	}
 }
 
@@ -170,15 +177,17 @@ type MemorySessionManager struct {
 	sessions map[string]*Claims
 	mutex    sync.RWMutex
 	logger   *zap.SugaredLogger
+	ctx      context.Context
 }
 
 // NewMemorySessionManager 创建内存会话管理器
 // @param logger Logger实例，用于记录日志
 // @return *MemorySessionManager 内存会话管理器实例
-func NewMemorySessionManager(logger *zap.SugaredLogger) *MemorySessionManager {
+func NewMemorySessionManager(logger *zap.SugaredLogger, ctx context.Context) *MemorySessionManager {
 	manager := &MemorySessionManager{
 		sessions: make(map[string]*Claims),
 		logger:   logger,
+		ctx:      ctx,
 	}
 
 	// 启动会话清理协程
@@ -262,6 +271,9 @@ func (m *MemorySessionManager) cleanupLoop() {
 			if expiredCount > 0 {
 				m.logger.Debugf("清理过期会话: %v", expiredCount)
 			}
+		case <-m.ctx.Done():
+			m.logger.Infof("会话管理器已停止...")
+			return
 		}
 	}
 }

@@ -15,5 +15,18 @@ client.bin
 server.latest
 client.latest
 
+### exe files ###
+server.exe
+client.exe
+
 ### db files ###
 db/*.db
+
+### golang files ###
+go.work
+go.work.sum
+*.swp
+*.out
+*.dll
+*.so
+# vendor/

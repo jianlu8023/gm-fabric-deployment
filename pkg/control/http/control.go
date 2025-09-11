@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/jwt"
 	"net/http"
 	"strings"
 	"sync"
@@ -23,7 +24,7 @@ type Control struct {
 	ctx            context.Context
 	logger         *zap.SugaredLogger
 	routers        []commonhttp.RouterHandler
-	sessionManager middleware.SessionManager
+	sessionManager jwt.SessionManager
 	once           sync.Once
 }
 
@@ -61,7 +62,10 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	webLogger.Infof("[control] start new http server control...")
 	gin.SetMode(serverConfig.RunMode)
-	// gin.ForceConsoleColor()
+	// 强制彩色输出
+	gin.ForceConsoleColor()
+
+	ctx := context.Background()
 
 	webLogger.Debugf("[control] generate gin engine...")
 	engine := gin.Default()
@@ -72,11 +76,11 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	// 创建会话管理器
 	webLogger.Debugf("[control] create session manager...")
-	sessionManager := middleware.NewMemorySessionManager(webLogger)
+	sessionManager := jwt.NewMemorySessionManager(webLogger, ctx)
 
 	// 注册JWT中间件
-	webLogger.Debugf("[control] register JWT middleware...")
-	engine.Use(middleware.EnableJWT(webLogger, sessionManager))
+	// webLogger.Debugf("[control] register JWT middleware...")
+	// engine.Use(middleware.EnableJWT(webLogger, sessionManager))
 
 	// engine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 	// 	// 你的自定义格式
@@ -103,7 +107,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	control := &Control{
 		serverConfig:   serverConfig,
 		server:         srv,
-		ctx:            context.Background(),
+		ctx:            ctx,
 		logger:         webLogger,
 		ginRouter:      engine,
 		sessionManager: sessionManager,
@@ -128,7 +132,6 @@ func (c *Control) initRouters() {
 
 	for _, router := range c.routers {
 		if router.IsEnabled() {
-			c.logger.Debugf("[control] register router uri %s method %s", router.GetUri(), router.GetMethod())
 			var url string
 			if strings.HasPrefix(router.GetUri(), "/") {
 				// 避免重复添加前缀
@@ -136,6 +139,7 @@ func (c *Control) initRouters() {
 			} else {
 				url = fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, router.GetUri())
 			}
+			c.logger.Debugf("[control] register router uri %s method %s", url, router.GetMethod())
 
 			// 获取处理器函数
 			handlerFunc := router.GetHandlerFunc()
@@ -144,47 +148,47 @@ func (c *Control) initRouters() {
 			switch router.GetMethod() {
 			case http.MethodPatch:
 				if router.GetEnableJWtVerify() {
-					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+					c.ginRouter.PATCH(url, handlerFunc, jwt.EnableJWT(c.logger, c.sessionManager))
 				} else {
 					c.ginRouter.PATCH(url, handlerFunc)
 				}
 			case http.MethodOptions:
 				if router.GetEnableJWtVerify() {
-					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+					c.ginRouter.OPTIONS(url, handlerFunc, jwt.EnableJWT(c.logger, c.sessionManager))
 				} else {
-					c.ginRouter.PATCH(url, handlerFunc)
+					c.ginRouter.OPTIONS(url, handlerFunc)
 				}
 			case http.MethodPut:
 				if router.GetEnableJWtVerify() {
-					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+					c.ginRouter.PUT(url, handlerFunc, jwt.EnableJWT(c.logger, c.sessionManager))
 				} else {
-					c.ginRouter.PATCH(url, handlerFunc)
+					c.ginRouter.PUT(url, handlerFunc)
 				}
 			case http.MethodHead:
 				if router.GetEnableJWtVerify() {
-					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+					c.ginRouter.HEAD(url, handlerFunc, jwt.EnableJWT(c.logger, c.sessionManager))
 				} else {
-					c.ginRouter.PATCH(url, handlerFunc)
+					c.ginRouter.HEAD(url, handlerFunc)
 				}
 			case http.MethodDelete:
 				if router.GetEnableJWtVerify() {
-					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+					c.ginRouter.DELETE(url, handlerFunc, jwt.EnableJWT(c.logger, c.sessionManager))
 				} else {
-					c.ginRouter.PATCH(url, handlerFunc)
+					c.ginRouter.DELETE(url, handlerFunc)
 				}
 			case http.MethodPost:
 				if router.GetEnableJWtVerify() {
-					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+					c.ginRouter.POST(url, handlerFunc, jwt.EnableJWT(c.logger, c.sessionManager))
 				} else {
-					c.ginRouter.PATCH(url, handlerFunc)
+					c.ginRouter.POST(url, handlerFunc)
 				}
 			case http.MethodGet:
 				fallthrough
 			default:
 				if router.GetEnableJWtVerify() {
-					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+					c.ginRouter.GET(url, handlerFunc, jwt.EnableJWT(c.logger, c.sessionManager))
 				} else {
-					c.ginRouter.PATCH(url, handlerFunc)
+					c.ginRouter.GET(url, handlerFunc)
 				}
 			}
 		}

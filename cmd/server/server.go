@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
 	"os"
 	"os/signal"
 	"runtime"
@@ -73,6 +74,15 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
+	if serverControl.GetDatasourceControl() != nil {
+		serverControl.GetDatasourceControl().RegisterAutoMigrateTable(
+			&image.Info{},
+			&node.Info{},
+			&network.Info{},
+			&model.UserInfo{},
+		)
+	}
+
 	serverControl.StartUp(func(err error) {
 		if err != nil && !http.IsHttpErrServerClosed(err) {
 			mainLogger.Errorf("ohther server start err: %v", err)
@@ -95,9 +105,6 @@ func main() {
 		networkMapper *network.Mapper
 	)
 	{
-		if err = serverControl.GetDatasourceControl().AutoMigrateTable(&image.Info{}, &node.Info{}, &network.Info{}); err != nil {
-			mainLogger.Errorf("auto migrate table failed: %v", err)
-		}
 		imageMapper = image.NewImageMapper(serverControl.GetDatasourceControl().GetConn())
 		nodeMapper = mapper.NewNodeMapper(mapper.NewMapper(
 			serverControl.GetLoggerControl().GenLogger(logger.ModuleDataSource),

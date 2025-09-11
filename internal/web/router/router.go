@@ -76,7 +76,6 @@ func (r *MyRouter) GetDesc() string {
 // @returns []http.RouterHandler 路由处理器列表
 // @example
 // routers := NewRouter(loggerControl, libp2pControl, grpcControl, dockerControl, datasourceControl)
-
 func NewRouter(loggerControl *logger.Control,
 	libp2pControl *libp2p.Control,
 	grpcControl *grpc.Control,
@@ -92,6 +91,12 @@ func NewRouter(loggerControl *logger.Control,
 		baseHandler,
 		service.NeeNodeService(baseService,
 			mapper.NewNodeMapper(baseMapper),
+		),
+	)
+	userHandler := handler.NewUserHandler(
+		baseHandler,
+		service.NewUserService(baseService,
+			mapper.NewUserMapper(baseMapper),
 		),
 	)
 
@@ -147,6 +152,17 @@ func NewRouter(loggerControl *logger.Control,
 			},
 		},
 		"auth": {},
+		"user": {
+			&MyRouter{
+				Name:            "registerUser",
+				Uri:             "user/register",
+				Method:          http.MethodPost,
+				HandlerFunc:     userHandler.RegisterUserHandler,
+				Enabled:         true,
+				Desc:            "register a user",
+				EnableJWtVerify: false,
+			},
+		},
 		"node": {
 			&MyRouter{
 				Name:            "nodeList",

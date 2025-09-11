@@ -8,7 +8,7 @@ datasource:
   db_path: ./db/gm-fabric.db
   max_idle_conn: 10
   max_open_conn: 50
-  log_in_console: false
+  log_in_console: true
 docker:
   enabled: true
   host: unix:///var/run/docker.sock
@@ -38,7 +38,8 @@ http:
   enabled: true
   address: :8080
   context_path: example
-  run_mode: release
+  # 可选 debug release
+  run_mode: debug
   tls_enabled: true
   tls_cert_file: ./certs/hserver.crt
   tls_key_file: ./certs/hserver.key
@@ -61,7 +62,7 @@ libp2p:
   #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
 logger:
   default_log_level: debug
-  stack_log_level: error
+  stack_log_level: fatal
   print_format: console
   file_path: ./logs/app.log
   max_age: 7
