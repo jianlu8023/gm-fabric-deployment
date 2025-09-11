@@ -1,10 +1,10 @@
 datasource:
   enabled: true
   data_source_type: mysql
-  db_username: root
-  db_password: 123456
+  db_username: myself
+  db_password: myself_pw
   db_host: localhost
-  db_name: basic
+  db_name: myself_example
   db_port: 3306
   db_path: ./db/gm-fabric.db
   max_idle_conn: 10
