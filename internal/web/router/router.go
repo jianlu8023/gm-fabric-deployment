@@ -20,12 +20,13 @@ import (
 )
 
 type MyRouter struct {
-	Name        string                 `yaml:"name"`
-	Uri         string                 `yaml:"uri"`
-	Method      string                 `yaml:"method"`
-	HandlerFunc func(ctx *gin.Context) `yaml:"handlerFunc"`
-	Enabled     bool                   `yaml:"enabled"`
-	Desc        string                 `yaml:"desc"`
+	Name            string                 `yaml:"name"`
+	Uri             string                 `yaml:"uri"`
+	Method          string                 `yaml:"method"`
+	HandlerFunc     func(ctx *gin.Context) `yaml:"handlerFunc"`
+	Enabled         bool                   `yaml:"enabled"`
+	Desc            string                 `yaml:"desc"`
+	EnableJWtVerify bool                   `yaml:"enableJWtVerify"`
 }
 
 // GetName 获取路由名称
@@ -46,6 +47,11 @@ func (r *MyRouter) GetMethod() string {
 // GetHandlerFunc 获取处理函数
 func (r *MyRouter) GetHandlerFunc() gin.HandlerFunc {
 	return r.HandlerFunc
+}
+
+// GetEnableJWtVerify 获取是否启用JWT验证
+func (r *MyRouter) GetEnableJWtVerify() bool {
+	return r.EnableJWtVerify
 }
 
 // IsEnabled 检查路由是否启用
@@ -143,12 +149,13 @@ func NewRouter(loggerControl *logger.Control,
 		"auth": {},
 		"node": {
 			&MyRouter{
-				Name:        "nodeList",
-				Uri:         "node/list",
-				Method:      http.MethodGet,
-				HandlerFunc: nodeHandler.NodeListHandler,
-				Enabled:     true,
-				Desc:        "node list",
+				Name:            "nodeList",
+				Uri:             "node/list",
+				Method:          http.MethodGet,
+				HandlerFunc:     nodeHandler.NodeListHandler,
+				Enabled:         true,
+				Desc:            "node list",
+				EnableJWtVerify: true,
 			},
 		},
 	}

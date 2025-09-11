@@ -17,13 +17,14 @@ import (
 )
 
 type Control struct {
-	serverConfig *config.HttpServerConfig
-	server       *http.Server
-	ginRouter    *gin.Engine
-	ctx          context.Context
-	logger       *zap.SugaredLogger
-	routers      []commonhttp.RouterHandler
-	once         sync.Once
+	serverConfig   *config.HttpServerConfig
+	server         *http.Server
+	ginRouter      *gin.Engine
+	ctx            context.Context
+	logger         *zap.SugaredLogger
+	routers        []commonhttp.RouterHandler
+	sessionManager middleware.SessionManager
+	once           sync.Once
 }
 
 func (c *Control) StartUp(failedFunc func(err error)) {
@@ -69,6 +70,14 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	engine.Use(middleware.EnableCors())
 	engine.Use(middleware.EnableGzip())
 
+	// 创建会话管理器
+	webLogger.Debugf("[control] create session manager...")
+	sessionManager := middleware.NewMemorySessionManager(webLogger)
+
+	// 注册JWT中间件
+	webLogger.Debugf("[control] register JWT middleware...")
+	engine.Use(middleware.EnableJWT(webLogger, sessionManager))
+
 	// engine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 	// 	// 你的自定义格式
 	// 127.0.0.1 - [2025-09-08 19:57:12.078] "GET /example/ping HTTP/2.0 200 50.066µs "curl/7.68.0" "
@@ -92,11 +101,12 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	}
 	webLogger.Debugf("[control] generate http control...")
 	control := &Control{
-		serverConfig: serverConfig,
-		server:       srv,
-		ctx:          context.Background(),
-		logger:       webLogger,
-		ginRouter:    engine,
+		serverConfig:   serverConfig,
+		server:         srv,
+		ctx:            context.Background(),
+		logger:         webLogger,
+		ginRouter:      engine,
+		sessionManager: sessionManager,
 	}
 
 	control.logger.Warnf("[control] current not setting router please call control.RegisterRouter to register router...")
@@ -127,23 +137,55 @@ func (c *Control) initRouters() {
 				url = fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, router.GetUri())
 			}
 
+			// 获取处理器函数
+			handlerFunc := router.GetHandlerFunc()
+
+			// 检查是否需要启用JWT验证
 			switch router.GetMethod() {
 			case http.MethodPatch:
-				c.ginRouter.PATCH(url, router.GetHandlerFunc())
+				if router.GetEnableJWtVerify() {
+					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+				} else {
+					c.ginRouter.PATCH(url, handlerFunc)
+				}
 			case http.MethodOptions:
-				c.ginRouter.OPTIONS(url, router.GetHandlerFunc())
+				if router.GetEnableJWtVerify() {
+					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+				} else {
+					c.ginRouter.PATCH(url, handlerFunc)
+				}
 			case http.MethodPut:
-				c.ginRouter.PUT(url, router.GetHandlerFunc())
+				if router.GetEnableJWtVerify() {
+					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+				} else {
+					c.ginRouter.PATCH(url, handlerFunc)
+				}
 			case http.MethodHead:
-				c.ginRouter.HEAD(url, router.GetHandlerFunc())
+				if router.GetEnableJWtVerify() {
+					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+				} else {
+					c.ginRouter.PATCH(url, handlerFunc)
+				}
 			case http.MethodDelete:
-				c.ginRouter.DELETE(url, router.GetHandlerFunc())
+				if router.GetEnableJWtVerify() {
+					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+				} else {
+					c.ginRouter.PATCH(url, handlerFunc)
+				}
 			case http.MethodPost:
-				c.ginRouter.POST(url, router.GetHandlerFunc())
+				if router.GetEnableJWtVerify() {
+					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+				} else {
+					c.ginRouter.PATCH(url, handlerFunc)
+				}
 			case http.MethodGet:
 				fallthrough
 			default:
-				c.ginRouter.GET(url, router.GetHandlerFunc())
+				if router.GetEnableJWtVerify() {
+					c.ginRouter.PATCH(url, handlerFunc, middleware.EnableJWT(c.logger, c.sessionManager))
+				} else {
+					c.ginRouter.PATCH(url, handlerFunc)
+				}
 			}
 		}
 	}

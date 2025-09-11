@@ -33,6 +33,8 @@ type RouterHandler interface {
 	IsEnabled() bool
 	// GetDesc 获取路由描述
 	GetDesc() string
+	// GetEnableJWtVerify 获取是否启用jwt验证
+	GetEnableJWtVerify() bool
 }
 
 // RouterProvider 提供路由的接口
