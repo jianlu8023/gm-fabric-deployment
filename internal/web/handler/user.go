@@ -31,5 +31,18 @@ func (u *UserHandler) RegisterUserHandler(ctx *gin.Context) {
 	}
 
 	u.userService.RegisterUser(ctx, req)
+}
 
+// LoginUserHandler 处理用户登录请求
+func (u *UserHandler) LoginUserHandler(ctx *gin.Context) {
+	u.logger.Debugf("login user handler...")
+	req := new(request.UserLoginRequest)
+
+	if err := binding.BindJSON(ctx, req); err != nil {
+		u.logger.Errorf("bind user login request failed: %v", err)
+		webhttp.FailedResponseWithMessage(ctx, webhttp.InvalidParameter, "绑定请求参数失败")
+		return
+	}
+
+	u.userService.LoginUser(ctx, req)
 }

@@ -24,3 +24,22 @@ func (u UserRegisterRequest) IsLegal() bool {
 	}
 	return true
 }
+
+// UserLoginRequest 登录请求结构体
+type UserLoginRequest struct {
+	Username string `json:"username,omitempty" yaml:"username,omitempty" form:"username" binding:"required"`
+	Password string `json:"password,omitempty" yaml:"password,omitempty" form:"password" binding:"required"`
+}
+
+func (u UserLoginRequest) String() string {
+	bytes, _ := json.Marshal(u)
+	return string(bytes)
+}
+
+func (u UserLoginRequest) IsLegal() bool {
+	if str.IsBlank(u.Username) ||
+		str.IsBlank(u.Password) {
+		return false
+	}
+	return true
+}

@@ -2,10 +2,8 @@ package router
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-contrib/requestid"
-	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/handler"
 	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
@@ -15,8 +13,10 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
+	httpcontrol "github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/websocket"
 )
 
 type MyRouter struct {
@@ -81,6 +81,8 @@ func NewRouter(loggerControl *logger.Control,
 	grpcControl *grpc.Control,
 	dockerControl *docker.Control,
 	datasourceControl *datasource.Control,
+	websocketControl *websocket.Control,
+	httpControl *httpcontrol.Control,
 ) []commonhttp.RouterHandler {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	baseHandler := handler.NewHandler(webLogger)
@@ -97,6 +99,24 @@ func NewRouter(loggerControl *logger.Control,
 		baseHandler,
 		service.NewUserService(baseService,
 			mapper.NewUserMapper(baseMapper),
+			httpControl.GetSessionManager(),
+		),
+	)
+
+	websocketHandler := handler.NewWebSocketHandler(
+		baseHandler,
+		service.NewWebSocketService(
+			baseService,
+			mapper.NewWebSocketMapper(baseMapper),
+			websocketControl,
+		),
+	)
+
+	sseHandler := handler.NewSSEHandler(
+		baseHandler,
+		service.NewSSEService(
+			baseService,
+			mapper.NewSSEMapper(baseMapper),
 		),
 	)
 
@@ -127,28 +147,12 @@ func NewRouter(loggerControl *logger.Control,
 				Desc:    "health check",
 			},
 			&MyRouter{
-				Name:   "sse",
-				Uri:    "/sse",
-				Method: http.MethodGet,
-				HandlerFunc: func(ctx *gin.Context) {
-					sse.Encode(ctx.Writer, sse.Event{
-						Event: "message",
-						Data:  "some data\nmore data",
-					})
-
-					// also a complex type, like a map, a struct or a slice
-					sse.Encode(ctx.Writer, sse.Event{
-						Id:    "124",
-						Event: "message",
-						Data: map[string]interface{}{
-							"user":    "manu",
-							"date":    time.Now().Unix(),
-							"content": "hi!",
-						},
-					})
-				},
-				Enabled: true,
-				Desc:    "sse",
+				Name:        "sse",
+				Uri:         "/sse",
+				Method:      http.MethodGet,
+				HandlerFunc: sseHandler.SSE,
+				Enabled:     true,
+				Desc:        "sse",
 			},
 		},
 		"auth": {},
@@ -162,6 +166,15 @@ func NewRouter(loggerControl *logger.Control,
 				Desc:            "register a user",
 				EnableJWtVerify: false,
 			},
+			&MyRouter{
+				Name:            "loginUser",
+				Uri:             "user/login",
+				Method:          http.MethodPost,
+				HandlerFunc:     userHandler.LoginUserHandler,
+				Enabled:         true,
+				Desc:            "user login",
+				EnableJWtVerify: false,
+			},
 		},
 		"node": {
 			&MyRouter{
@@ -172,6 +185,57 @@ func NewRouter(loggerControl *logger.Control,
 				Enabled:         true,
 				Desc:            "node list",
 				EnableJWtVerify: true,
+			},
+		},
+		"websocket": {
+			// WebSocket连接升级路由
+			&MyRouter{
+				Name:            "websocketUpgrade",
+				Uri:             "ws",
+				HandlerFunc:     websocketHandler.UpgradeHandler,
+				Enabled:         true,
+				EnableJWtVerify: true,
+				Desc:            "websocket connection upgrade",
+			},
+			// WebSocket连接请求路由
+			&MyRouter{
+				Name:            "websocketConnect",
+				Uri:             "ws/connect",
+				Method:          http.MethodPost,
+				HandlerFunc:     websocketHandler.ConnectHandler,
+				Enabled:         true,
+				EnableJWtVerify: true,
+				Desc:            "websocket connect request",
+			},
+			// WebSocket断开连接路由
+			&MyRouter{
+				Name:            "websocketDisconnect",
+				Uri:             "ws/disconnect",
+				Method:          http.MethodPost,
+				HandlerFunc:     websocketHandler.DisconnectHandler,
+				Enabled:         true,
+				EnableJWtVerify: true,
+				Desc:            "websocket disconnect request",
+			},
+			// WebSocket发送消息路由
+			&MyRouter{
+				Name:            "websocketSendMessage",
+				Uri:             "ws/message",
+				Method:          http.MethodPost,
+				HandlerFunc:     websocketHandler.SendMessageHandler,
+				Enabled:         true,
+				EnableJWtVerify: true,
+				Desc:            "send websocket message",
+			},
+			// 获取WebSocket连接列表路由
+			&MyRouter{
+				Name:            "websocketConnectionList",
+				Uri:             "ws/connections",
+				Method:          http.MethodGet,
+				HandlerFunc:     websocketHandler.GetConnectionListHandler,
+				Enabled:         true,
+				EnableJWtVerify: true,
+				Desc:            "get websocket connection list",
 			},
 		},
 	}

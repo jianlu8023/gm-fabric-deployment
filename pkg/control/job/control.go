@@ -2,10 +2,11 @@ package job
 
 import (
 	"context"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"go.uber.org/zap"
 	"sync"
 	"time"
+
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"go.uber.org/zap"
 )
 
 type Control struct {
@@ -22,7 +23,7 @@ type Control struct {
 }
 
 func NewJobControl(loggerControl *logger.Control) *Control {
-	jobLogger := loggerControl.GenLogger("Job")
+	jobLogger := loggerControl.GenLogger(logger.ModuleJob)
 	jobLogger.Infof("[control] starting create job control...")
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -82,7 +83,6 @@ func (c *Control) runJob(job *Job) {
 			job.Task()
 		}
 	}
-
 }
 
 func (c *Control) StartUp(failedFunc func(err error)) {
@@ -90,7 +90,6 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		c.logger.Infof("[control] starting job server...")
 		c.StartAllRegisterJobs()
 	})
-
 }
 
 func (c *Control) Shutdown() error {

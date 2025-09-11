@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 		},
 	}
 
-	loggerControl := mylogger.NewLoggerControl(loggerConfig)
+	loggerControl := logger.NewLoggerControl(loggerConfig)
 
 	logger := loggerControl.GenLogger("main")
 

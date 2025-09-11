@@ -26,9 +26,7 @@ func (c *Control) RegisterAutoMigrateTable(tables ...interface{}) {
 
 	c.autoMigrateMutex.Lock()
 	defer c.autoMigrateMutex.Unlock()
-	for _, table := range tables {
-		c.autoMigrateTable = append(c.autoMigrateTable, table)
-	}
+	c.autoMigrateTable = append(c.autoMigrateTable, tables...)
 	c.logger.Debugf("[control] register auto migrate table successfully...")
 }
 

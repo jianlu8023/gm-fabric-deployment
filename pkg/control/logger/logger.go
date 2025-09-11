@@ -131,7 +131,6 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 }
 
 func (c *Control) Shutdown() error {
-
 	fmt.Printf("shutting down logger server...\n")
 	// no-op
 	return nil

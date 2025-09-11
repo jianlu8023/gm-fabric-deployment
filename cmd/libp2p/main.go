@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"os"
 	"os/signal"
 	"syscall"
@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 
-	loggerControl := mylogger.NewLoggerControl(configControl.GetConfig().LoggerConfig)
+	loggerControl := logger.NewLoggerControl(configControl.GetConfig().LoggerConfig)
 
 	mainLogger := loggerControl.GenLogger("main")
 

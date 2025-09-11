@@ -7,6 +7,10 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"time"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
 	"go.uber.org/zap"
@@ -14,9 +18,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/peer"
-	"io"
-	"os"
-	"time"
 )
 
 type ClientControl struct {
@@ -130,7 +131,6 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 		ctx:     ctx,
 		logger:  logger,
 	}, nil
-
 }
 
 func (c *ClientControl) Stop() error {

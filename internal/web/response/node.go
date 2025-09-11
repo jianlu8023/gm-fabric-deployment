@@ -1,4 +1,3 @@
 package response
 
-type NodeResponse struct {
-}
+type NodeResponse struct{}

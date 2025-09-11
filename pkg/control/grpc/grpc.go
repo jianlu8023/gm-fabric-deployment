@@ -74,7 +74,6 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *mylogger.Contr
 			Message:      []byte("pong"),
 			ResponseCode: 200,
 		}, nil
-
 	})
 
 	control.printHandlers()
@@ -84,7 +83,7 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *mylogger.Contr
 
 func (c *Control) printHandlers() {
 	c.logger.Debugf("[control] print handler...")
-	for handlerName, _ := range c.server.mServer.handler.handlerMap {
+	for handlerName := range c.server.mServer.handler.handlerMap {
 		c.logger.Debugf("[control] register handler %v", handlerName)
 	}
 }

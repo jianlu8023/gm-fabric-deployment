@@ -11,7 +11,6 @@ type Person struct {
 }
 
 func TestNewPageInfo(t *testing.T) {
-
 	info := NewPageInfo(1, 2, 10, 5, []Person{
 		{Name: "张三", Age: 18},
 		{Name: "李四", Age: 20},
@@ -22,5 +21,4 @@ func TestNewPageInfo(t *testing.T) {
 		t.Error(err)
 	}
 	t.Log(string(bytes))
-
 }

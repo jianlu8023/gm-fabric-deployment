@@ -3,10 +3,11 @@ package jwt
 import (
 	"context"
 	"errors"
-	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 	"strings"
 	"sync"
 	"time"
+
+	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -63,6 +64,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 			logger.Errorf("JWT认证失败：未提供token...")
 			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "未提供认证信息")
 			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "未提供认证信息"})
+			ctx.Abort()
 			return
 		}
 
@@ -72,6 +74,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 			logger.Errorf("JWT认证失败：token格式错误...")
 			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "认证信息格式错误")
 			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "认证信息格式错误"})
+			ctx.Abort()
 			return
 		}
 
@@ -81,6 +84,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 			logger.Errorf("JWT认证失败：token解析错误: %v", err)
 			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "认证信息无效或已过期")
 			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "认证信息无效或已过期"})
+			ctx.Abort()
 			return
 		}
 
@@ -90,6 +94,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 				logger.Errorf("JWT认证失败：会话已失效: %v", claims.SessionID)
 				webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "会话已失效，请重新登录")
 				// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "会话已失效，请重新登录"})
+				ctx.Abort()
 				return
 			}
 
@@ -123,7 +128,6 @@ func ParseToken(tokenString string) (*Claims, error) {
 		}
 		return jwtSecret, nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +147,7 @@ func ParseToken(tokenString string) (*Claims, error) {
 // @param expireTime 过期时间（秒）
 // @return string 生成的令牌
 // @return error 生成过程中的错误
-func GenerateToken(userID, username, role, sessionID string, expireTime int64) (string, error) {
+func GenerateToken(userID, username, role, sessionID string, expireTime int64) (string, *Claims, error) {
 	now := time.Now()
 	claims := &Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -166,10 +170,10 @@ func GenerateToken(userID, username, role, sessionID string, expireTime int64) (
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return tokenString, nil
+	return tokenString, claims, nil
 }
 
 // MemorySessionManager 基于内存的会话管理器实现

@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	mydocker "github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
-	mylogger "github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 )
 
 func main() {
@@ -15,7 +15,7 @@ func main() {
 		return
 	}
 
-	loggerControl := mylogger.NewLoggerControl(configControl.GetLoggerConfig())
+	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	dockerConfig := &config.DockerConfig{
 		Host:           "unix:///var/run/docker.sock",
 		APIVersion:     "",
@@ -26,7 +26,7 @@ func main() {
 		DefaultTimeout: 5,
 	}
 
-	dockerControl, err := mydocker.NewDockerControl(dockerConfig, loggerControl)
+	dockerControl, err := docker.NewDockerControl(dockerConfig, loggerControl)
 	if err != nil {
 		fmt.Printf("load docker failed: %v\n", err)
 		return

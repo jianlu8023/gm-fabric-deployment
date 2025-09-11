@@ -1,16 +1,17 @@
 package datasource
 
 import (
+	"path/filepath"
+	"time"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	glog "github.com/jianlu8023/go-logger/v2"
 	"github.com/jianlu8023/go-logger/v2/dblogger"
 	"go.uber.org/zap/zapcore"
-	"path/filepath"
-	"time"
 )
 
 func newDbLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *dblogger.Logger {
-	var fileName = "sql.log"
+	fileName := "sql.log"
 	fileDir := filepath.Dir(loggerConfig.FilePath)
 	fileName = filepath.Clean(filepath.Join(fileDir, fileName))
 	opts := []glog.Option{
@@ -19,7 +20,7 @@ func newDbLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *dblogger
 		glog.WithCallerSkip(0),
 		glog.WithConsoleConfig(zapcore.EncoderConfig{
 			MessageKey:       "msg",
-			LevelKey:         "",
+			LevelKey:         "level",
 			TimeKey:          "time",
 			NameKey:          "logger",
 			CallerKey:        "",
@@ -35,7 +36,7 @@ func newDbLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *dblogger
 		}),
 		glog.WithFileConfig(zapcore.EncoderConfig{
 			MessageKey:       "msg",
-			LevelKey:         "",
+			LevelKey:         "level",
 			TimeKey:          "time",
 			NameKey:          "logger",
 			CallerKey:        "",

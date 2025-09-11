@@ -21,9 +21,7 @@ type PidFile struct {
 	Pid string
 }
 
-var (
-	lPid *PidFile
-)
+var lPid *PidFile
 
 func newPidFile(filename string) *PidFile {
 	return &PidFile{Pid: filename}
@@ -48,7 +46,7 @@ func CreateOrUpdatePIDFile(filename string) error {
 
 // createPIDFile creates or updates the PID file with the current process's PID.
 func createPIDFile(filename string) error {
-	pf, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0644)
+	pf, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0o644)
 	if err != nil {
 		return fmt.Errorf("error opening PID file: %w", err)
 	}

@@ -11,6 +11,7 @@ replace (
 	github.com/gin-contrib/requestid => github.com/gin-contrib/requestid v1.0.4
 	github.com/gin-contrib/sse => github.com/gin-contrib/sse v1.0.0
 	github.com/golang-jwt/jwt/v5 => github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.3
 	gorm.io/gorm => gorm.io/gorm v1.30.0
 )
 
@@ -32,6 +33,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/ipfs/go-cid v0.5.0
 	github.com/jianlu8023/go-logger/v2 v2.0.0
 	github.com/json-iterator/go v1.1.12
@@ -92,7 +94,6 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect

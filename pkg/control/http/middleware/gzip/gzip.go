@@ -1,4 +1,4 @@
-package middleware
+package gzip
 
 import (
 	"github.com/gin-contrib/gzip"

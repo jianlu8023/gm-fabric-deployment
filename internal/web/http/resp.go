@@ -67,7 +67,6 @@ func isSafePath(filePath string) bool {
 
 // fileDownload 下载文件
 func fileDownload(ctx *gin.Context, filepath, fileName string) {
-
 	// 检查文件路径的安全性 (非常重要!)
 	if !isSafePath(filepath) {
 		FailedResponseWithMessage(ctx, NormalFailed, "非法文件路径")

@@ -103,7 +103,6 @@ func (c *Control) Shutdown() error {
 }
 
 func loadConfig() (Config, error) {
-
 	var cfg Config
 
 	// 获取配置文件名（不包含扩展名）
@@ -141,7 +140,6 @@ func loadConfig() (Config, error) {
 	viper.SetConfigName(fileNameWithoutExt) // 恢复默认文件名
 	viper.AddConfigPath(filePath)
 	err := viper.ReadInConfig()
-
 	if err != nil {
 		// 如果找不到配置文件，返回错误
 		var configFileNotFoundError viper.ConfigFileNotFoundError

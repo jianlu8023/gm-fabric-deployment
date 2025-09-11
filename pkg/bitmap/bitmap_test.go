@@ -26,7 +26,6 @@ func TestXor(_ *testing.T) {
 
 // nolint: gosec
 func TestRand(_ *testing.T) {
-
 	for i := 0; i < 100; i++ {
 
 		// time.Sleep(1 * time.Second)
@@ -38,8 +37,8 @@ func TestRand(_ *testing.T) {
 		rr := rand.New(source)
 		fmt.Println(rr.Int63n(100))
 	}
-
 }
+
 func TestAnd(_ *testing.T) {
 	bitmap := &Bitmap{}
 	bitmap.Set(0).Set(1).Set(2).Set(900)

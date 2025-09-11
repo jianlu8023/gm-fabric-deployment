@@ -42,3 +42,12 @@ func BindQuery(ctx *gin.Context, body BodyLegal) error {
 	}
 	return nil
 }
+
+func BindJSON(ctx *gin.Context, body BodyLegal) error {
+	{
+		if err := ctx.ShouldBindWith(body, binding.JSON); err != nil {
+			return err
+		}
+		return nil
+	}
+}

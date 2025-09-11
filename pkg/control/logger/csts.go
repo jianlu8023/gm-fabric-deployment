@@ -6,4 +6,6 @@ const (
 	ModuleLibp2p     = "Libp2p"
 	ModuleDataSource = "Datasource"
 	ModuleDocker     = "Docker"
+	ModuleJob        = "Job"
+	ModuleWebSocket  = "Websocket"
 )

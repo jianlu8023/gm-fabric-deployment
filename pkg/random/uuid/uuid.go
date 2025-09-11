@@ -12,12 +12,12 @@ func getStandardUUID() string {
 }
 
 func GetUUID() string {
-	return strings.Replace(getStandardUUID(), "-", "", -1)
+	return strings.ReplaceAll(getStandardUUID(), "-", "")
 }
 
 // nolint: gosec
 func GetUUIDWithSeed(seed int64) string {
 	r := rand.New(rand.NewSource(seed))
-	uuid, _ := uuid.NewRandomFromReader(r)
-	return strings.Replace(uuid.String(), "-", "", -1)
+	uu, _ := uuid.NewRandomFromReader(r)
+	return strings.ReplaceAll(uu.String(), "-", "")
 }

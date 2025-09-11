@@ -17,6 +17,15 @@ import (
 	"go.uber.org/zap"
 )
 
+// 定义持久化数据结构
+// type PersistentPeerInfo struct {
+// 	PeerID        string                 `json:"peer_id"`
+// 	Addrs         []string               `json:"addresses"`
+// 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+// 	IsBootstrap   bool                   `json:"is_bootstrap"`
+// 	LastConnected time.Time              `json:"last_connected"`
+// }
+
 // DiscoveryService 节点发现服务
 type DiscoveryService struct {
 	ctx    context.Context
@@ -41,6 +50,14 @@ type DiscoveryService struct {
 
 	// 配置
 	libp2pConfig *config.Libp2pConfig
+
+	// peerstore互斥锁
+	peerstoreMutex sync.RWMutex
+
+	// 持久化相关字段
+	// persistenceFilePath string
+	// saveInterval        time.Duration
+	// persistenceEnabled  bool
 }
 
 // newDiscoveryService 创建一个新的节点发现服务
@@ -67,6 +84,10 @@ func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string,
 			// 默认回调，只是记录日志
 			logger.Debugf("[discovery] discovered peer: %s", id)
 		},
+		// 持久化配置
+		// persistenceEnabled:  true,
+		// saveInterval:        5 * time.Minute, // 默认每5分钟保存一次
+		// persistenceFilePath: filepath.Join("data", "peers.json"),
 	}
 	return ds, nil
 }
@@ -91,6 +112,16 @@ func (ds *DiscoveryService) Start() error {
 
 	// 启动定期扫描
 	go ds.scanPeers()
+
+	// 如果启用了持久化，加载已保存的节点信息
+	// if ds.persistenceEnabled {
+	// 	if err := ds.LoadPeersFromFile(); err != nil {
+	// 		ds.logger.Warnf("[discovery] failed to load peers from file, will continue without persisted data: %v", err)
+	// 	}
+	//
+	// 	// 启动定期保存
+	// 	go ds.periodicSavePeers()
+	// }
 
 	ds.logger.Debugf("[discovery] discovery service started with tag: %s", ds.serviceTag)
 	return nil
@@ -465,4 +496,299 @@ func (ds *DiscoveryService) HandlePeerFound(pi peer.AddrInfo) {
 			}
 		}()
 	}
+}
+
+// ===================== PeerStore 功能增强 =====================
+
+// GetPeerInfo 获取指定节点的完整信息
+//
+// PeerStore是libp2p中的一个核心组件，用于存储和管理网络中节点的信息，包括：
+// 1. 节点标识(Peer ID)
+// 2. 网络地址(Addrs)
+// 3. 支持的协议(Protocols)
+// 4. 连接元数据(Metadata)
+// 5. 证书信息(Certs)
+//
+// 通过PeerStore，节点可以高效地管理与其他节点的连接信息，无需每次连接时都重新解析和验证节点信息
+//
+// @param peerID peer.ID 目标节点的ID
+// @return *peer.AddrInfo 节点的地址信息，如果节点不存在则返回nil
+func (ds *DiscoveryService) GetPeerInfo(peerID peer.ID) *peer.AddrInfo {
+	ds.logger.Debugf("[peerstore] getting peer info for %s", peerID)
+	ds.peerstoreMutex.RLock()
+	defer ds.peerstoreMutex.RUnlock()
+
+	// 使用host内置的PeerStore获取节点地址信息
+	addrs := ds.host.Peerstore().Addrs(peerID)
+	if len(addrs) == 0 {
+		return nil
+	}
+
+	return &peer.AddrInfo{
+		ID:    peerID,
+		Addrs: addrs,
+	}
+}
+
+// AddPeerAddresses 向PeerStore中添加节点地址
+//
+// @param peerID peer.ID 节点ID
+// @param addrs []multiaddr.Multiaddr 节点地址列表
+// @param ttl time.Duration 地址的生存时间
+func (ds *DiscoveryService) AddPeerAddresses(peerID peer.ID, addrs []multiaddr.Multiaddr, ttl time.Duration) {
+	ds.logger.Debugf("[peerstore] adding %d addresses for peer %s", len(addrs), peerID)
+	ds.peerstoreMutex.Lock()
+	defer ds.peerstoreMutex.Unlock()
+
+	// 将地址添加到PeerStore中，并设置TTL
+	ds.host.Peerstore().AddAddrs(peerID, addrs, ttl)
+}
+
+// SetPeerMetadata 设置节点的元数据
+//
+// 元数据可以存储关于节点的额外信息，如节点类型、地理位置、性能指标等
+//
+// @param peerID peer.ID 节点ID
+// @param key string 元数据键
+// @param value interface{} 元数据值
+func (ds *DiscoveryService) SetPeerMetadata(peerID peer.ID, key string, value interface{}) error {
+	ds.logger.Debugf("[peerstore] setting metadata for peer %s, key: %s", peerID, key)
+	ds.peerstoreMutex.Lock()
+	defer ds.peerstoreMutex.Unlock()
+
+	// 设置节点元数据
+	return ds.host.Peerstore().Put(peerID, key, value)
+}
+
+// GetPeerMetadata 获取节点的元数据
+//
+// @param peerID peer.ID 节点ID
+// @param key string 元数据键
+// @return interface{} 元数据值
+// @return error 错误信息
+func (ds *DiscoveryService) GetPeerMetadata(peerID peer.ID, key string) (interface{}, error) {
+	ds.logger.Debugf("[peerstore] getting metadata for peer %s, key: %s", peerID, key)
+	ds.peerstoreMutex.RLock()
+	defer ds.peerstoreMutex.RUnlock()
+
+	// 获取节点元数据
+	return ds.host.Peerstore().Get(peerID, key)
+}
+
+// RemovePeerMetadata 移除节点的元数据
+
+// periodicSavePeers 定期保存节点信息到文件
+func (ds *DiscoveryService) periodicSavePeers() {
+	ds.logger.Info("[discovery] starting periodic peer persistence service")
+	// ticker := time.NewTicker(ds.saveInterval)
+	// defer ticker.Stop()
+
+	// for {
+	// 	select {
+	// 	case <-ds.ctx.Done():
+	// 		ds.logger.Info("[discovery] stopping periodic peer persistence service")
+	// 		// 在退出前最后保存一次
+	// 		ds.SavePeersToFile()
+	// 		return
+	// 	case <-ticker.C:
+	// 		if err := ds.SavePeersToFile(); err != nil {
+	// 			ds.logger.Errorf("[discovery] failed to save peers to file: %v", err)
+	// 		}
+	// 	}
+	// }
+}
+
+// SavePeersToFile 将节点信息保存到文件
+func (ds *DiscoveryService) SavePeersToFile() error {
+	ds.logger.Debug("[discovery] saving peers to file")
+
+	// 准备持久化数据
+	// peersInfo := []PersistentPeerInfo{}
+
+	// 获取所有发现的节点
+	ds.peersMutex.RLock()
+	ds.peerstoreMutex.RLock()
+	ds.bootstrapMutex.RLock()
+	defer func() {
+		ds.peersMutex.RUnlock()
+		ds.peerstoreMutex.RUnlock()
+		ds.bootstrapMutex.RUnlock()
+	}()
+
+	// 为每个节点准备持久化数据
+	for peerID := range ds.peers {
+		// 检查节点是否有效
+		addrs := ds.host.Peerstore().Addrs(peerID)
+		if len(addrs) == 0 {
+			continue
+		}
+
+		// 转换地址为字符串
+		addrStrings := make([]string, 0, len(addrs))
+		for _, addr := range addrs {
+			addrStrings = append(addrStrings, addr.String())
+		}
+
+		// 获取元数据（这里简化处理，获取所有元数据可能需要更复杂的逻辑）
+		// metadata := make(map[string]interface{})
+		// 在实际实现中，可以通过遍历已知的元数据键来获取值
+		// 这里为了简化，暂时不包含元数据
+
+		// 检查是否是bootstrap节点
+		// _, isBootstrap := ds.bootstrapPeers[peerID]
+
+		// 添加到持久化数据列表
+		// peersInfo = append(peersInfo, PersistentPeerInfo{
+		// 	PeerID:        peerID.String(),
+		// 	Addrs:         addrStrings,
+		// 	Metadata:      metadata,
+		// 	IsBootstrap:   isBootstrap,
+		// 	LastConnected: time.Now(),
+		// })
+	}
+
+	// 创建数据目录（如果不存在）
+	// dir := filepath.Dir(ds.persistenceFilePath)
+	// if err := os.MkdirAll(dir, 0755); err != nil {
+	// 	return fmt.Errorf("failed to create directory for peer persistence: %w", err)
+	// }
+
+	// 序列化数据
+	// jsonData, err := json.MarshalIndent(peersInfo, "", "  ")
+	// if err != nil {
+	// 	return fmt.Errorf("failed to marshal peer data: %w", err)
+	// }
+
+	// 写入文件
+	// if err := ioutil.WriteFile(ds.persistenceFilePath, jsonData, 0644); err != nil {
+	// 	return fmt.Errorf("failed to write peer data to file: %w", err)
+	// }
+
+	// ds.logger.Infof("[discovery] successfully saved %d peers to file: %s", len(peersInfo), ds.persistenceFilePath)
+	return nil
+}
+
+// LoadPeersFromFile 从文件加载节点信息
+func (ds *DiscoveryService) LoadPeersFromFile() error {
+	ds.logger.Info("[discovery] loading peers from file")
+
+	// 检查文件是否存在
+	// if _, err := os.Stat(ds.persistenceFilePath); os.IsNotExist(err) {
+	// 	ds.logger.Info("[discovery] no peer persistence file found, skipping load")
+	// 	return nil
+	// }
+
+	// 读取文件内容
+	// jsonData, err := ioutil.ReadFile(ds.persistenceFilePath)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to read peer data from file: %w", err)
+	// }
+
+	// 反序列化数据
+	// var peersInfo []PersistentPeerInfo
+	// if err := json.Unmarshal(jsonData, &peersInfo); err != nil {
+	// 	return fmt.Errorf("failed to unmarshal peer data: %w", err)
+	// }
+
+	// ds.logger.Infof("[discovery] loaded %d peers from file", len(peersInfo))
+
+	// 处理加载的节点信息
+	ds.peersMutex.Lock()
+	ds.peerstoreMutex.Lock()
+	ds.bootstrapMutex.Lock()
+	defer func() {
+		ds.peersMutex.Unlock()
+		ds.peerstoreMutex.Unlock()
+		ds.bootstrapMutex.Unlock()
+	}()
+
+	// for _, info := range peersInfo {
+	// 解析Peer ID
+	// peerID, err := peer.Decode(info.PeerID)
+	// if err != nil {
+	// 	ds.logger.Warnf("[discovery] failed to decode peer ID %s: %v", info.PeerID, err)
+	// 	continue
+	// }
+
+	// 忽略自己
+	// if peerID == ds.host.ID() {
+	// 	continue
+	// }
+
+	// 解析地址
+	// addrs := make([]multiaddr.Multiaddr, 0, len(info.Addrs))
+	// for _, addrStr := range info.Addrs {
+	// 	addr, err := multiaddr.NewMultiaddr(addrStr)
+	// 	if err != nil {
+	// 		ds.logger.Warnf("[discovery] failed to parse address %s: %v", addrStr, err)
+	// 		continue
+	// 	}
+	// 	addrs = append(addrs, addr)
+	// }
+
+	// 添加节点信息到peerstore
+	// if len(addrs) > 0 {
+	// 	ds.host.Peerstore().AddAddrs(peerID, addrs, peerstore.PermanentAddrTTL)
+
+	// 添加节点到发现列表
+	// ds.peers[peerID] = struct{}{}
+
+	// 如果是bootstrap节点，添加到bootstrap列表
+	// if info.IsBootstrap {
+	// 	ds.bootstrapPeers[peerID] = struct{}{}
+	// }
+
+	// ds.logger.Debugf("[discovery] loaded peer %s with %d addresses", peerID, len(addrs))
+	// }
+	// }
+
+	ds.logger.Info("[discovery] peer loading completed")
+	return nil
+}
+
+// @param peerID peer.ID 节点ID
+// @param key string 元数据键
+func (ds *DiscoveryService) RemovePeerMetadata(peerID peer.ID, key string) {
+	ds.logger.Debugf("[peerstore] removing metadata for peer %s, key: %s", peerID, key)
+	ds.peerstoreMutex.Lock()
+	defer ds.peerstoreMutex.Unlock()
+
+	// 移除节点元数据
+	ds.host.Peerstore().RemovePeer(peerID)
+}
+
+// GetAllPeerInfo 获取所有已知节点的信息
+//
+// @return []*peer.AddrInfo 所有节点的地址信息列表
+func (ds *DiscoveryService) GetAllPeerInfo() []*peer.AddrInfo {
+	ds.logger.Debugf("[peerstore] getting all peer info")
+	ds.peerstoreMutex.RLock()
+	defer ds.peerstoreMutex.RUnlock()
+
+	// 获取所有已知节点ID
+	peerIDs := ds.GetDiscoveredPeers()
+	result := make([]*peer.AddrInfo, 0, len(peerIDs))
+
+	// 为每个节点ID获取完整信息
+	for _, peerID := range peerIDs {
+		info := ds.GetPeerInfo(peerID)
+		if info != nil {
+			result = append(result, info)
+		}
+	}
+
+	return result
+}
+
+// GetConnectedness 获取与指定节点的连接状态
+//
+// @param peerID peer.ID 节点ID
+// @return network.Connectedness 连接状态
+func (ds *DiscoveryService) GetConnectedness(peerID peer.ID) network.Connectedness {
+	ds.logger.Debugf("[peerstore] getting connectedness for peer %s", peerID)
+	ds.peerstoreMutex.RLock()
+	defer ds.peerstoreMutex.RUnlock()
+
+	// 获取连接状态
+	return ds.host.Network().Connectedness(peerID)
 }

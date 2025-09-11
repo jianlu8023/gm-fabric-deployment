@@ -39,7 +39,6 @@ func IsFalse(str string) bool {
 // @param str2: 字符串2
 // @return bool: 两个字符串是否一致
 func CompareIgnoreCase(str1, str2 string) bool {
-
 	// 去除空格
 	str1 = strings.TrimSpace(str1)
 	str2 = strings.TrimSpace(str2)

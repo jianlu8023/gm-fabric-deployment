@@ -47,6 +47,7 @@ http:
   tls_enabled: true
   tls_cert_file: ./certs/hserver.crt
   tls_key_file: ./certs/hserver.key
+  tls_rca_cert_file: ./certs/root-ca.crt
 libp2p:
   enabled: true
   listen_addr:
@@ -63,7 +64,7 @@ libp2p:
   protocol_id: /gm-fabric/chat/1.0.0
   service_tag: gm-fabric-deployment
   bootstrap_list:
-    #- /ip4/127.0.0.1/tcp/2000/p2p/12D3KooWAiFrSLkqdaz4KC423i7ZgRks8xjrR1CbjnjJ39f8V1f6
+  #- /ip4/127.0.0.1/tcp/2000/p2p/12D3KooWAiFrSLkqdaz4KC423i7ZgRks8xjrR1CbjnjJ39f8V1f6
 logger:
   default_log_level: debug
   stack_log_level: fatal

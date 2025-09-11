@@ -694,3 +694,88 @@ func (lc *Control) FindProviders(key string, count int) ([]peer.AddrInfo, error)
 	}
 	return lc.discoveryService.FindProviders(key, count)
 }
+
+// GetPeerInfo 获取指定节点的完整信息
+//
+// @param peerID peer.ID 目标节点的ID
+// @return *peer.AddrInfo 节点的地址信息，如果节点不存在则返回nil
+func (lc *Control) GetPeerInfo(peerID peer.ID) *peer.AddrInfo {
+	if lc.discoveryService == nil {
+		lc.logger.Errorf("[control] discovery service is not initialized")
+		return nil
+	}
+	return lc.discoveryService.GetPeerInfo(peerID)
+}
+
+// AddPeerAddresses 向PeerStore中添加节点地址
+//
+// @param peerID peer.ID 节点ID
+// @param addrs []multiaddr.Multiaddr 节点地址列表
+// @param ttl time.Duration 地址的生存时间
+func (lc *Control) AddPeerAddresses(peerID peer.ID, addrs []multiaddr.Multiaddr, ttl time.Duration) {
+	if lc.discoveryService == nil {
+		lc.logger.Errorf("[control] discovery service is not initialized")
+		return
+	}
+	lc.discoveryService.AddPeerAddresses(peerID, addrs, ttl)
+}
+
+// SetPeerMetadata 设置节点的元数据
+//
+// @param peerID peer.ID 节点ID
+// @param key string 元数据键
+// @param value interface{} 元数据值
+func (lc *Control) SetPeerMetadata(peerID peer.ID, key string, value interface{}) error {
+	if lc.discoveryService == nil {
+		return fmt.Errorf("discovery service is not initialized")
+	}
+	return lc.discoveryService.SetPeerMetadata(peerID, key, value)
+}
+
+// GetPeerMetadata 获取节点的元数据
+//
+// @param peerID peer.ID 节点ID
+// @param key string 元数据键
+// @return interface{} 元数据值
+// @return error 错误信息
+func (lc *Control) GetPeerMetadata(peerID peer.ID, key string) (interface{}, error) {
+	if lc.discoveryService == nil {
+		return nil, fmt.Errorf("discovery service is not initialized")
+	}
+	return lc.discoveryService.GetPeerMetadata(peerID, key)
+}
+
+// RemovePeerMetadata 移除节点的元数据
+//
+// @param peerID peer.ID 节点ID
+// @param key string 元数据键
+func (lc *Control) RemovePeerMetadata(peerID peer.ID, key string) {
+	if lc.discoveryService == nil {
+		lc.logger.Errorf("[control] discovery service is not initialized")
+		return
+	}
+	lc.discoveryService.RemovePeerMetadata(peerID, key)
+}
+
+// GetAllPeerInfo 获取所有已知节点的信息
+//
+// @return []*peer.AddrInfo 所有节点的地址信息列表
+func (lc *Control) GetAllPeerInfo() []*peer.AddrInfo {
+	if lc.discoveryService == nil {
+		lc.logger.Errorf("[control] discovery service is not initialized")
+		return []*peer.AddrInfo{}
+	}
+	return lc.discoveryService.GetAllPeerInfo()
+}
+
+// GetConnectedness 获取与指定节点的连接状态
+//
+// @param peerID peer.ID 节点ID
+// @return network.Connectedness 连接状态
+func (lc *Control) GetConnectedness(peerID peer.ID) network.Connectedness {
+	if lc.discoveryService == nil {
+		lc.logger.Errorf("[control] discovery service is not initialized")
+		return network.NotConnected
+	}
+	return lc.discoveryService.GetConnectedness(peerID)
+}

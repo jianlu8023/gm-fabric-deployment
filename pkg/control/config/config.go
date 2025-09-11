@@ -85,7 +85,7 @@ func (d DataSourceConfig) GenSqlite3DSN() string {
 		dsnDir := filepath.Dir(dsn)
 		if _, err := os.Stat(dsnDir); os.IsNotExist(err) {
 			// 文件不存在
-			if err := os.MkdirAll(dsnDir, os.FileMode(0755)); err != nil {
+			if err := os.MkdirAll(dsnDir, os.FileMode(0o755)); err != nil {
 				panic(err)
 			}
 		}
@@ -144,13 +144,14 @@ func (l LoggerConfig) String() string {
 
 // HttpServerConfig http服务配置
 type HttpServerConfig struct {
-	Enabled     bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                    // 是否启用
-	Address     string `yaml:"address,omitempty" json:"address,omitempty" mapstructure:"address"`                    // 服务地址
-	ContextPath string `yaml:"context_path,omitempty" json:"context_path,omitempty" mapstructure:"context_path"`     // 服务上下文路径
-	RunMode     string `yaml:"run_mode,omitempty" json:"run_mode,omitempty" mapstructure:"run_mode" `                // 服务运行模式
-	TlsEnabled  bool   `yaml:"tls_enabled,omitempty" json:"tls_enabled,omitempty" mapstructure:"tls_enabled" `       // 是否启用TLS
-	TlsCertFile string `yaml:"tls_cert_file,omitempty" json:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" ` // TLS证书文件
-	TlsKeyFile  string `yaml:"tls_key_file,omitempty" json:"tls_key_file,omitempty" mapstructure:"tls_key_file"`     // TLS私钥文件
+	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                               // 是否启用
+	Address        string `yaml:"address,omitempty" json:"address,omitempty" mapstructure:"address"`                               // 服务地址
+	ContextPath    string `yaml:"context_path,omitempty" json:"context_path,omitempty" mapstructure:"context_path"`                // 服务上下文路径
+	RunMode        string `yaml:"run_mode,omitempty" json:"run_mode,omitempty" mapstructure:"run_mode" `                           // 服务运行模式
+	TlsEnabled     bool   `yaml:"tls_enabled,omitempty" json:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                  // 是否启用TLS
+	TlsCertFile    string `yaml:"tls_cert_file,omitempty" json:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `            // TLS证书文件
+	TlsKeyFile     string `yaml:"tls_key_file,omitempty" json:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
+	TlsRCACertFile string `yaml:"tls_rca_cert_file,omitempty" json:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
 }
 
 // String 返回配置的字符串表示
@@ -287,8 +288,6 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
 		return nil, err
 	}
 
-	// currently storing key unencrypted. in the future we need to encrypt it.
-	// TODO(security)
 	return crypto.UnmarshalPrivateKey(pkb)
 }
 

@@ -42,6 +42,7 @@ http:
   tls_enabled: true
   tls_cert_file: ./certs/hserver.crt
   tls_key_file: ./certs/hserver.key
+  tls_rca_cert_file: ./certs/root-ca.crt
 libp2p:
   enabled: true
   listen_addr:

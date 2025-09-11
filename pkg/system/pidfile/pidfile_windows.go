@@ -6,9 +6,7 @@ import (
 	"errors"
 )
 
-var (
-	ErrNotSupported = errors.New("windows not supported")
-)
+var ErrNotSupported = errors.New("windows not supported")
 
 func CreateOrUpdatePIDFile(filename string) error {
 	return ErrNotSupported

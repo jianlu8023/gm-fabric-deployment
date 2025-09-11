@@ -4,9 +4,7 @@ import (
 	"flag"
 )
 
-var (
-	_defaultConfig = "configs/default.yaml"
-)
+var _defaultConfig = "configs/default.yaml"
 
 var (
 	configPath string

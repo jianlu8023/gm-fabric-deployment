@@ -3,6 +3,8 @@ package server
 import (
 	"sync"
 
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/websocket"
+
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/router"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
@@ -24,6 +26,7 @@ type Control struct {
 	datasourceControl *datasource.Control
 	loggerControl     *logger.Control
 	jobControl        *job.Control
+	websocketControl  *websocket.Control
 	logger            *zap.SugaredLogger
 	once              sync.Once
 }
@@ -97,6 +100,9 @@ func NewServerControlFromFile() (*Control, error) {
 	if webConfig != nil && webConfig.Enabled {
 		webServerControl := http.NewWebServerControl(webConfig, loggerControl)
 		control.httpControl = webServerControl
+
+		websocketControl := websocket.NewWebsocketControl(webConfig, loggerControl)
+		control.websocketControl = websocketControl
 	}
 
 	return control, nil
@@ -105,27 +111,39 @@ func NewServerControlFromFile() (*Control, error) {
 func (c *Control) GetDockerControl() *docker.Control {
 	return c.dockerControl
 }
+
 func (c *Control) GetConfigControl() *config.Control {
 	return c.configControl
 }
+
 func (c *Control) GetLibp2pControl() *libp2p.Control {
 	return c.libp2pControl
 }
+
 func (c *Control) GetGrpcControl() *grpc.Control {
 	return c.grpcControl
 }
+
 func (c *Control) GetHttpControl() *http.Control {
 	return c.httpControl
 }
+
 func (c *Control) GetDatasourceControl() *datasource.Control {
 	return c.datasourceControl
 }
+
 func (c *Control) GetJobControl() *job.Control {
 	return c.jobControl
 }
+
 func (c *Control) GetLoggerControl() *logger.Control {
 	return c.loggerControl
 }
+
+func (c *Control) GetWebsocketControl() *websocket.Control {
+	return c.websocketControl
+}
+
 func NewServerControl(dockerControl *docker.Control,
 	configControl *config.Control,
 	libp2pControl *libp2p.Control,
@@ -134,6 +152,7 @@ func NewServerControl(dockerControl *docker.Control,
 	datasourceControl *datasource.Control,
 	loggerControl *logger.Control,
 	jobControl *job.Control,
+	websocketControl *websocket.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger("server")
 	serverLogger.Infof("[control] starting new server control...")
@@ -147,6 +166,7 @@ func NewServerControl(dockerControl *docker.Control,
 		datasourceControl: datasourceControl,
 		loggerControl:     loggerControl,
 		jobControl:        jobControl,
+		websocketControl:  websocketControl,
 	}
 }
 
@@ -195,35 +215,33 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 				c.grpcControl,
 				c.dockerControl,
 				c.datasourceControl,
+				c.websocketControl,
+				c.httpControl,
 			))
 			c.httpControl.StartUp(failedFunc)
 		}
+
+		if c.websocketControl != nil {
+			c.logger.Debugf("[control] starting up websocket server...")
+			c.websocketControl.StartUp(failedFunc)
+		}
+
 		c.logger.Infof("[control] all server started up successfully...")
 	})
 }
 
 func (c *Control) Shutdown() error {
-	// 不会有问题的关闭
-	if c.configControl != nil {
-		c.logger.Debugf("[control] shutting down config server...")
-		_ = c.configControl.Shutdown()
-	}
-	if c.loggerControl != nil {
-		c.logger.Debugf("[control] shutting down logger server...")
-		_ = c.loggerControl.Shutdown()
-	}
-
-	if c.datasourceControl != nil {
-		c.logger.Debugf("[control] shutting down datasource server...")
-		if err := c.datasourceControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown datasource server err: %v", err)
+	if c.httpControl != nil {
+		c.logger.Debugf("[control] shutting down http server...")
+		if err := c.httpControl.Shutdown(); err != nil {
+			c.logger.Errorf("[control] shutdown http server err: %v", err)
 			return err
 		}
 	}
 
-	if c.grpcControl != nil {
-		c.logger.Debugf("[control] shutting down grpc server...")
-		_ = c.grpcControl.Shutdown()
+	if c.jobControl != nil {
+		c.logger.Debugf("[control] shutting down job server...")
+		_ = c.jobControl.Shutdown()
 	}
 
 	if c.libp2pControl != nil {
@@ -234,6 +252,11 @@ func (c *Control) Shutdown() error {
 		}
 	}
 
+	if c.grpcControl != nil {
+		c.logger.Debugf("[control] shutting down grpc server...")
+		_ = c.grpcControl.Shutdown()
+	}
+
 	if c.dockerControl != nil {
 		c.logger.Debugf("[control] shutting down docker server...")
 		if err := c.dockerControl.Shutdown(); err != nil {
@@ -242,17 +265,24 @@ func (c *Control) Shutdown() error {
 		}
 	}
 
-	if c.jobControl != nil {
-		c.logger.Debugf("[control] shutting down job server...")
-		_ = c.jobControl.Shutdown()
-	}
-
-	if c.httpControl != nil {
-		c.logger.Debugf("[control] shutting down http server...")
-		if err := c.httpControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown http server err: %v", err)
+	if c.datasourceControl != nil {
+		c.logger.Debugf("[control] shutting down datasource server...")
+		if err := c.datasourceControl.Shutdown(); err != nil {
+			c.logger.Errorf("[control] shutdown datasource server err: %v", err)
 			return err
 		}
 	}
+
+	// 不会有问题的关闭
+	if c.loggerControl != nil {
+		c.logger.Debugf("[control] shutting down logger server...")
+		_ = c.loggerControl.Shutdown()
+	}
+
+	if c.configControl != nil {
+		c.logger.Debugf("[control] shutting down config server...")
+		_ = c.configControl.Shutdown()
+	}
+
 	return nil
 }

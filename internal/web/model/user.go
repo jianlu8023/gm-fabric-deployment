@@ -2,8 +2,9 @@ package model
 
 import (
 	"database/sql"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"time"
+
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 )
 
 const (

@@ -3,11 +3,12 @@ package docker
 import (
 	"bufio"
 	"context"
-	"github.com/docker/docker/pkg/jsonmessage"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"io"
 	"sync"
 	"time"
+
+	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -246,7 +247,6 @@ func (dc *Control) RemoveNetwork(networkId string) error {
 	}
 	dc.logger.Infof("[control] network %s removed sucesfully", networkId)
 	return nil
-
 }
 
 // PullImage 拉取Docker镜像
@@ -338,7 +338,6 @@ func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *
 		return nil, err
 	}
 	return resp, nil
-
 }
 
 func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair)) ([]types.ImageSummary, error) {
