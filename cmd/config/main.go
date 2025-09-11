@@ -57,7 +57,7 @@ func genDefaultConfig() error {
 		},
 		LoggerConfig: &config.LoggerConfig{
 			DefaultLogLevel: "debug",
-			StackLogLevel:   "error",
+			StackLogLevel:   "fatal",
 			PrintFormat:     "console",
 			FilePath:        "./logs/app.log",
 			MaxAge:          7,
@@ -88,17 +88,17 @@ func genDefaultConfig() error {
 				"/ip4/0.0.0.0/udp/2000/webrtc-direct",
 				"/dns4/localhost/udp/2000/ws",
 			}, // 监听所有接口的2000端口
-			ProtocolID:    "/gm-fabric/chat/1.0.0", // 自定义协议ID
-			ServiceTag:    "gm-fabric-deployment",
-			Identity:      &ident,
+			ProtocolID: "/gm-fabric/chat/1.0.0", // 自定义协议ID
+			ServiceTag: "gm-fabric-deployment",
+			Identity:   &ident,
 			BootstrapList: []string{
-				// "/ip4/127.0.0.1/tcp/2000/p2p/12D3KooWAiFrSLkqdaz4KC423i7ZgRks8xjrR1CbjnjJ39f8V1f6",
+				"/ip4/127.0.0.1/tcp/2000/p2p/12D3KooWAiFrSLkqdaz4KC423i7ZgRks8xjrR1CbjnjJ39f8V1f6",
 			},
 		},
 		DataSourceConfig: &config.DataSourceConfig{
 			Enabled:        true,
 			DataSourceType: "sqlite3",
-			DataBaseName:   "",
+			DataBaseName:   "db_name",
 			DataBasePath:   "./db/gm-fabric.db",
 			UserName:       "username",
 			Password:       "password",
@@ -112,11 +112,11 @@ func genDefaultConfig() error {
 			Enabled: true,
 			// Host:"tcp://127.0.0.1:2375",
 			Host:           "unix:///var/run/docker.sock",
-			APIVersion:     "",
+			APIVersion:     "1",
 			TlsEnabled:     false,
-			TlsCertFile:    "",
-			TlsKeyFile:     "",
-			TlsCAFile:      "",
+			TlsCertFile:    "./certs/dserver.crt",
+			TlsKeyFile:     "./certs/dserver.key",
+			TlsCAFile:      "./certs/root-ca.crt",
 			DefaultTimeout: 5,
 		},
 	}

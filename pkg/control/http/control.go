@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/jwt"
 	"net/http"
@@ -34,7 +35,6 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.logger.Infof("[control] start https server on %v", c.serverConfig.Address)
 			go func() {
 				if err := c.server.ListenAndServeTLS(c.serverConfig.TlsCertFile, c.serverConfig.TlsKeyFile); err != nil && !webhttp.IsHttpErrServerClosed(err) {
-
 					failedFunc(err)
 				}
 			}()
@@ -102,6 +102,21 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	srv := &http.Server{
 		Addr:    serverConfig.Address,
 		Handler: engine,
+		TLSConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12, // 设置最低TLS版本
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_AES_128_GCM_SHA256,       // tls 1.3
+				tls.TLS_AES_256_GCM_SHA384,       // tls 1.3
+				tls.TLS_CHACHA20_POLY1305_SHA256, // tls 1.3
+			},
+			CurvePreferences: []tls.CurveID{
+				tls.CurveP256, tls.X25519,
+			},
+		},
 	}
 	webLogger.Debugf("[control] generate http control...")
 	control := &Control{

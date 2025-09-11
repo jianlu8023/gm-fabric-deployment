@@ -5,6 +5,7 @@ datasource:
   db_password: password
   db_host: localhost
   db_port: 3306
+  db_name: db_name
   db_path: ./db/gm-fabric.db
   max_idle_conn: 10
   max_open_conn: 50
@@ -12,6 +13,10 @@ datasource:
 docker:
   enabled: true
   host: unix:///var/run/docker.sock
+  api_version: ""
+  tls_cert_file: ./certs/dserver.crt
+  tls_key_file: ./certs/dserver.key
+  tls_ca_file: ./certs/root-ca.crt
   default_timeout: 5
 grpc:
   enabled: true
@@ -58,7 +63,7 @@ libp2p:
   protocol_id: /gm-fabric/chat/1.0.0
   service_tag: gm-fabric-deployment
   bootstrap_list:
-  #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
+    #- /ip4/127.0.0.1/tcp/2000/p2p/12D3KooWAiFrSLkqdaz4KC423i7ZgRks8xjrR1CbjnjJ39f8V1f6
 logger:
   default_log_level: debug
   stack_log_level: fatal
