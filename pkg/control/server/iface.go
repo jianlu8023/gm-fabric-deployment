@@ -1,6 +1,6 @@
 package server
 
-type Server interface {
+type ControlInterface interface {
 	StartUp(failedFunc func(err error))
 	Shutdown() error
 }

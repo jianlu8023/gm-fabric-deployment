@@ -31,6 +31,9 @@ type Control struct {
 	once              sync.Once
 }
 
+// NewServerControlFromFile 从配置文件创建服务器控制器
+// @return *Control 服务器控制器实例
+// @return error 创建过程中可能产生的错误
 func NewServerControlFromFile() (*Control, error) {
 	control := new(Control)
 
@@ -108,42 +111,71 @@ func NewServerControlFromFile() (*Control, error) {
 	return control, nil
 }
 
+// GetDockerControl 获取Docker控制器
+// @return *docker.Control Docker控制器实例
 func (c *Control) GetDockerControl() *docker.Control {
 	return c.dockerControl
 }
 
+// GetConfigControl 获取配置控制器
+// @return *config.Control 配置控制器实例
 func (c *Control) GetConfigControl() *config.Control {
 	return c.configControl
 }
 
+// GetLibp2pControl 获取Libp2p控制器
+// @return *libp2p.Control Libp2p控制器实例
 func (c *Control) GetLibp2pControl() *libp2p.Control {
 	return c.libp2pControl
 }
 
+// GetGrpcControl 获取gRPC控制器
+// @return *grpc.Control gRPC控制器实例
 func (c *Control) GetGrpcControl() *grpc.Control {
 	return c.grpcControl
 }
 
+// GetHttpControl 获取HTTP控制器
+// @return *http.Control HTTP控制器实例
 func (c *Control) GetHttpControl() *http.Control {
 	return c.httpControl
 }
 
+// GetDatasourceControl 获取数据源控制器
+// @return *datasource.Control 数据源控制器实例
 func (c *Control) GetDatasourceControl() *datasource.Control {
 	return c.datasourceControl
 }
 
+// GetJobControl 获取作业控制器
+// @return *job.Control 作业控制器实例
 func (c *Control) GetJobControl() *job.Control {
 	return c.jobControl
 }
 
+// GetLoggerControl 获取日志控制器
+// @return *logger.Control 日志控制器实例
 func (c *Control) GetLoggerControl() *logger.Control {
 	return c.loggerControl
 }
 
+// GetWebsocketControl 获取WebSocket控制器
+// @return *websocket.Control WebSocket控制器实例
 func (c *Control) GetWebsocketControl() *websocket.Control {
 	return c.websocketControl
 }
 
+// NewServerControl 创建服务器控制器
+// @param dockerControl *docker.Control Docker控制器
+// @param configControl *config.Control 配置控制器
+// @param libp2pControl *libp2p.Control Libp2p控制器
+// @param grpcControl *grpc.Control gRPC控制器
+// @param httpControl *http.Control HTTP控制器
+// @param datasourceControl *datasource.Control 数据源控制器
+// @param loggerControl *logger.Control 日志控制器
+// @param jobControl *job.Control 作业控制器
+// @param websocketControl *websocket.Control WebSocket控制器
+// @return *Control 服务器控制器实例
 func NewServerControl(dockerControl *docker.Control,
 	configControl *config.Control,
 	libp2pControl *libp2p.Control,
@@ -170,6 +202,8 @@ func NewServerControl(dockerControl *docker.Control,
 	}
 }
 
+// StartUp 启动所有服务器组件
+// @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.configControl != nil {
@@ -230,6 +264,8 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	})
 }
 
+// Shutdown 关闭所有服务器组件
+// @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 	if c.httpControl != nil {
 		c.logger.Debugf("[control] shutting down http server...")

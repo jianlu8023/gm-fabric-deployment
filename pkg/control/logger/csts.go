@@ -8,4 +8,5 @@ const (
 	ModuleDocker     = "Docker"
 	ModuleJob        = "Job"
 	ModuleWebSocket  = "Websocket"
+	ModuleIpfs       = "Ipfs"
 )

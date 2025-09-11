@@ -18,24 +18,32 @@ type Control struct {
 	once   sync.Once
 }
 
+// printConfig 打印配置信息
+// @description 打印当前加载的配置信息
 func (c *Control) printConfig() {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	fmt.Printf("Config:%v\n", c.config)
 }
 
+// GetConfig 获取完整配置
+// @return *Config 完整配置对象
 func (c *Control) GetConfig() *Config {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.config
 }
 
+// GetLoggerConfig 获取日志配置
+// @return *LoggerConfig 日志配置
 func (c *Control) GetLoggerConfig() *LoggerConfig {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.config.LoggerConfig
 }
 
+// GetWebConfig 获取Web服务器配置
+// @return *HttpServerConfig Web服务器配置
 func (c *Control) GetWebConfig() *HttpServerConfig {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -67,12 +75,16 @@ func (c *Control) GetDataSourceConfig() *DataSourceConfig {
 }
 
 // GetDockerConfig 获取docker配置
+// @return *DockerConfig Docker配置
 func (c *Control) GetDockerConfig() *DockerConfig {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.config.DockerConfig
 }
 
+// Flush 重新加载配置文件
+// @description 从配置文件重新加载配置
+// @return error 重新加载过程中的错误
 func (c *Control) Flush() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -84,10 +96,15 @@ func (c *Control) Flush() error {
 	return nil
 }
 
+// WatchDog 监控配置文件变化
+// @description 监控配置文件的变化，当配置文件发生变化时可能触发相应操作
 func (c *Control) WatchDog() {
 	fmt.Printf("watching %s\n", configPath)
 }
 
+// StartUp 启动配置服务器
+// @description 启动配置服务器（空操作）
+// @param failedFunc func(err error) 启动失败回调函数
 //nolint:unused
 func (c *Control) StartUp(failedFunc func(err error)) {
 	// no-op
@@ -96,12 +113,18 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	})
 }
 
+// Shutdown 关闭配置服务器
+// @description 关闭配置服务器（空操作）
+// @return error 关闭过程中的错误
 func (c *Control) Shutdown() error {
 	// no-op
 	fmt.Printf("shutting down config server...\n")
 	return nil
 }
 
+// loadConfig 加载配置文件
+// @return Config 加载的配置对象
+// @return error 加载配置过程中的错误
 func loadConfig() (Config, error) {
 	var cfg Config
 

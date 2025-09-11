@@ -276,12 +276,17 @@ type Identity struct {
 	PrivKey string `json:"-" yaml:",omitempty" mapstructure:"privkey"`
 }
 
+// String 返回Identity的字符串表示
+// @return string Identity的字符串表示
 func (i *Identity) String() string {
 	bytes, _ := json.Marshal(i)
 	return string(bytes)
 }
 
-// DecodePrivateKey is a helper to decode the users PrivateKey.
+// DecodePrivateKey 解码用户的私钥
+// @param passphrase string 私钥密码（当前版本未使用）
+// @return crypto.PrivKey 解码后的私钥对象
+// @return error 解码过程中可能产生的错误
 func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
 	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
 	if err != nil {
@@ -308,6 +313,20 @@ func (l Libp2pConfig) String() string {
 	return string(bytes)
 }
 
+// IpfsConfig IPFS配置
+type IpfsConfig struct {
+	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                         // 是否启用
+	GatewayAddress string `json:"gateway_address,omitempty" yaml:"gateway_address,omitempty" mapstructure:"gateway_address"` // Gateway地址
+	ApiAddress     string `json:"api_address,omitempty" yaml:"api_address,omitempty" mapstructure:"api_address"`             // API地址
+}
+
+// String IpfsConfig的字符串表示
+// @return string IpfsConfig的字符串表示
+func (i IpfsConfig) String() string {
+	bytes, _ := json.MarshalIndent(i, "", " ")
+	return string(bytes)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig       *GrpcConfig       `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -316,6 +335,7 @@ type Config struct {
 	Libp2pConfig     *Libp2pConfig     `json:"libp2p_config,omitempty" yaml:"libp2p_config,omitempty" mapstructure:"libp2p"`             // libp2p配置
 	DataSourceConfig *DataSourceConfig `json:"datasource_config,omitempty" yaml:"datasource_config,omitempty" mapstructure:"datasource"` // 数据源配置
 	DockerConfig     *DockerConfig     `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`             // docker配置
+	IpfsConfig       *IpfsConfig       `json:"ipfs_config,omitempty" yaml:"ipfs_config,omitempty" mapstructure:"ipfs"`                   // IPFS配置
 }
 
 // String 返回配置的字符串表示

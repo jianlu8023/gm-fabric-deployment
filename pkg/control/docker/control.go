@@ -61,6 +61,8 @@ func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.C
 }
 
 // initClient 初始化Docker客户端
+// @description 初始化Docker客户端连接
+// @return error 初始化过程中的错误
 func (dc *Control) initClient() error {
 	dc.logger.Debugf("[control] initializing docker client...")
 
@@ -103,6 +105,8 @@ func (dc *Control) initClient() error {
 }
 
 // StartUp 启动Docker服务（如果需要）
+// @description 启动Docker服务，测试连接是否正常
+// @param failedFunc func(err error) 启动失败回调函数
 func (dc *Control) StartUp(failedFunc func(err error)) {
 	dc.once.Do(func() {
 		dc.logger.Debugf("[control] docker service is already running...")
@@ -119,6 +123,8 @@ func (dc *Control) StartUp(failedFunc func(err error)) {
 }
 
 // Shutdown 关闭Docker客户端连接
+// @description 关闭Docker客户端连接并释放资源
+// @return error 关闭过程中的错误
 func (dc *Control) Shutdown() error {
 	dc.logger.Infof("[control] shutting down docker control...")
 	dc.cancel()
@@ -319,6 +325,12 @@ func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *ty
 	return nil
 }
 
+// RemoveImage 删除Docker镜像
+// @description 删除指定的Docker镜像
+// @param imageId string 镜像ID
+// @param removeImageOpts ...func(options *types.ImageRemoveOptions) 镜像删除选项
+// @return []types.ImageDeleteResponseItem 镜像删除响应项列表
+// @return error 删除过程中的错误
 func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *types.ImageRemoveOptions)) ([]types.ImageDeleteResponseItem, error) {
 	dc.logger.Debugf("[control] removing image: %s", imageId)
 	if dc.client == nil {
@@ -340,6 +352,11 @@ func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *
 	return resp, nil
 }
 
+// ListImages 列出Docker镜像
+// @description 列出当前系统中的Docker镜像
+// @param imageListOpts ...func(args *[]filters.KeyValuePair) 镜像列表选项
+// @return []types.ImageSummary 镜像摘要列表
+// @return error 列出过程中的错误
 func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair)) ([]types.ImageSummary, error) {
 	dc.logger.Debugf("[control] listing images...")
 	if dc.client == nil {
@@ -365,6 +382,13 @@ func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair
 }
 
 // CreateContainer 创建Docker容器
+// @description 创建新的Docker容器
+// @param containerName string 容器名称
+// @param imageName string 镜像名称
+// @param config *container.Config 容器配置
+// @param hostConfig *container.HostConfig 主机配置
+// @return string 容器ID
+// @return error 创建过程中的错误
 func (dc *Control) CreateContainer(containerName string, imageName string, config *container.Config, hostConfig *container.HostConfig) (string, error) {
 	dc.logger.Infof("[control] creating container: %s with image: %s", containerName, imageName)
 	if dc.client == nil {
@@ -389,6 +413,9 @@ func (dc *Control) CreateContainer(containerName string, imageName string, confi
 }
 
 // StartContainer 启动Docker容器
+// @description 启动指定的Docker容器
+// @param containerID string 容器ID
+// @return error 启动过程中的错误
 func (dc *Control) StartContainer(containerID string) error {
 	dc.logger.Infof("[control] starting container: %s", containerID)
 	if dc.client == nil {
@@ -406,6 +433,10 @@ func (dc *Control) StartContainer(containerID string) error {
 }
 
 // StopContainer 停止Docker容器
+// @description 停止指定的Docker容器
+// @param containerID string 容器ID
+// @param timeout *time.Duration 停止超时时间
+// @return error 停止过程中的错误
 func (dc *Control) StopContainer(containerID string, timeout *time.Duration) error {
 	dc.logger.Infof("[control] stopping container: %s", containerID)
 
@@ -420,6 +451,10 @@ func (dc *Control) StopContainer(containerID string, timeout *time.Duration) err
 }
 
 // RemoveContainer 删除Docker容器
+// @description 删除指定的Docker容器
+// @param containerID string 容器ID
+// @param force bool 是否强制删除
+// @return error 删除过程中的错误
 func (dc *Control) RemoveContainer(containerID string, force bool) error {
 	dc.logger.Infof("[control] removing container: %s", containerID)
 
@@ -443,6 +478,10 @@ func (dc *Control) RemoveContainer(containerID string, force bool) error {
 }
 
 // ListContainers 列出Docker容器
+// @description 列出当前系统中的Docker容器
+// @param all bool 是否列出所有容器（包括已停止的）
+// @return []types.Container 容器列表
+// @return error 列出过程中的错误
 func (dc *Control) ListContainers(all bool) ([]types.Container, error) {
 	dc.logger.Infof("[control] listing containers, all: %v", all)
 	if dc.client == nil {
@@ -467,6 +506,10 @@ func (dc *Control) ListContainers(all bool) ([]types.Container, error) {
 }
 
 // GetContainerStatus 获取Docker容器状态
+// @description 获取指定Docker容器的运行状态
+// @param containerID string 容器ID
+// @return string 容器状态
+// @return error 获取过程中的错误
 func (dc *Control) GetContainerStatus(containerID string) (string, error) {
 	dc.logger.Infof("[control] getting status for container: %s", containerID)
 
@@ -487,6 +530,11 @@ func (dc *Control) GetContainerStatus(containerID string) (string, error) {
 }
 
 // ExecuteCommand 在容器中执行命令
+// @description 在指定的Docker容器中执行命令
+// @param containerID string 容器ID
+// @param cmd []string 要执行的命令
+// @return string 命令执行结果
+// @return error 执行过程中的错误
 func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, error) {
 	dc.logger.Infof("[control] executing command in container %s: %v", containerID, cmd)
 	if dc.client == nil {

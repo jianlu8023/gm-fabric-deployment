@@ -21,6 +21,8 @@ type Control struct {
 	autoMigrateMutex sync.RWMutex
 }
 
+// RegisterAutoMigrateTable 注册自动迁移的表
+// @param tables ...interface{} 要自动迁移的表结构
 func (c *Control) RegisterAutoMigrateTable(tables ...interface{}) {
 	c.logger.Debugf("[control] register auto migrate table...")
 
@@ -30,6 +32,8 @@ func (c *Control) RegisterAutoMigrateTable(tables ...interface{}) {
 	c.logger.Debugf("[control] register auto migrate table successfully...")
 }
 
+// autoMigrate 自动迁移表（内部方法）
+// @return error 迁移过程中可能产生的错误
 func (c *Control) autoMigrate() error {
 	c.logger.Debugf("[control] auto migrate table...")
 	c.autoMigrateMutex.RLock()
@@ -41,6 +45,8 @@ func (c *Control) autoMigrate() error {
 	return nil
 }
 
+// ReAutoMigrate 手动触发自动迁移
+// @return error 迁移过程中可能产生的错误
 func (c *Control) ReAutoMigrate() error {
 	c.logger.Debugf("[control] call auto migrate table by hand...")
 	c.autoMigrateMutex.RLock()
@@ -52,10 +58,14 @@ func (c *Control) ReAutoMigrate() error {
 	return nil
 }
 
+// Close 关闭数据库连接
+// @return error 关闭过程中可能产生的错误
 func (c *Control) Close() error {
 	return nil
 }
 
+// GetConn 获取数据库连接
+// @return *gorm.DB 数据库连接实例
 func (c *Control) GetConn() *gorm.DB {
 	return c.dbConn
 }
@@ -72,6 +82,8 @@ func (c *Control) GetConn() *gorm.DB {
 // 	return nil
 // }
 
+// setConnPool 设置数据库连接池参数（内部方法）
+// @return error 设置过程中可能产生的错误
 func (c *Control) setConnPool() error {
 	sqlDB, err := c.dbConn.DB()
 	if err != nil {
@@ -85,6 +97,8 @@ func (c *Control) setConnPool() error {
 	return nil
 }
 
+// StartUp 启动数据源服务
+// @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		c.logger.Debugf("[control] starting to auto migrate tables...")
@@ -106,6 +120,8 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	})
 }
 
+// Shutdown 关闭数据源服务
+// @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 	c.logger.Debugf("[control] shutdown datasource...")
 	sqlDB, err := c.dbConn.DB()
@@ -120,6 +136,11 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
+// NewDataSourceControl 创建数据源控制器
+// @param dbConfig *config.DataSourceConfig 数据源配置
+// @param loggerControl *logger.Control 日志控制器
+// @return *Control 数据源控制器实例
+// @return error 创建过程中可能产生的错误
 func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control) (*Control, error) {
 	dsLogger := loggerControl.GenLogger(logger.ModuleDataSource)
 	dsLogger.Infof("[control] starting new datasource control...")

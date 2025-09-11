@@ -600,6 +600,7 @@ func (lc *Control) defaultMessageRegister() {
 }
 
 // GetPeers 获取所有连接的节点
+// @return []peer.ID 连接的节点ID列表
 func (lc *Control) GetPeers() []peer.ID {
 	lc.logger.Debugf("[control] starting getting peers...")
 	lc.discoveryService.peersMutex.RLock()
@@ -614,6 +615,8 @@ func (lc *Control) GetPeers() []peer.ID {
 }
 
 // ConnectToPeer 手动连接到指定节点
+// @param addr string 节点的multiaddr地址
+// @return error 连接过程中可能产生的错误
 func (lc *Control) ConnectToPeer(addr string) error {
 	lc.logger.Debugf("[control] connecting to peer %s", addr)
 	// 解析multiaddr
@@ -646,7 +649,7 @@ func (lc *Control) ConnectToPeer(addr string) error {
 }
 
 // DisconnectFromPeer 断开与指定节点的连接
-// @param peer peer.ID 节点ID
+// @param peer peer.ID 要断开连接的节点ID
 func (lc *Control) DisconnectFromPeer(peer peer.ID) {
 	lc.logger.Debugf("[control] disconnecting from peer %v", peer)
 	lc.discoveryService.peersMutex.Lock()
@@ -656,6 +659,7 @@ func (lc *Control) DisconnectFromPeer(peer peer.ID) {
 }
 
 // GetBootstrapPeers 获取所有bootstrap节点
+// @return []peer.ID bootstrap节点ID列表
 func (lc *Control) GetBootstrapPeers() []peer.ID {
 	if lc.discoveryService == nil {
 		return []peer.ID{}
@@ -664,6 +668,9 @@ func (lc *Control) GetBootstrapPeers() []peer.ID {
 }
 
 // FindPeer 使用DHT查找指定ID的节点
+// @param peerID peer.ID 要查找的节点ID
+// @return *peer.AddrInfo 节点的地址信息
+// @return error 查找过程中可能产生的错误
 func (lc *Control) FindPeer(peerID peer.ID) (*peer.AddrInfo, error) {
 	if lc.discoveryService == nil {
 		return nil, fmt.Errorf("discovery service is not initialized")
@@ -672,6 +679,8 @@ func (lc *Control) FindPeer(peerID peer.ID) (*peer.AddrInfo, error) {
 }
 
 // GetDHTRoutingTableInfo 获取DHT路由表信息
+// @return int 路由表中的节点数量
+// @return error 获取过程中可能产生的错误
 func (lc *Control) GetDHTRoutingTableInfo() (int, error) {
 	if lc.discoveryService == nil {
 		return 0, fmt.Errorf("discovery service is not initialized")
@@ -680,6 +689,8 @@ func (lc *Control) GetDHTRoutingTableInfo() (int, error) {
 }
 
 // Provide 使用DHT提供数据索引
+// @param key string 要提供的数据索引键
+// @return error 提供过程中可能产生的错误
 func (lc *Control) Provide(key string) error {
 	if lc.discoveryService == nil {
 		return fmt.Errorf("discovery service is not initialized")
@@ -688,6 +699,10 @@ func (lc *Control) Provide(key string) error {
 }
 
 // FindProviders 使用DHT查找提供指定数据的节点
+// @param key string 要查找的数据索引键
+// @param count int 要查找的节点数量
+// @return []peer.AddrInfo 提供指定数据的节点地址信息列表
+// @return error 查找过程中可能产生的错误
 func (lc *Control) FindProviders(key string, count int) ([]peer.AddrInfo, error) {
 	if lc.discoveryService == nil {
 		return nil, fmt.Errorf("discovery service is not initialized")

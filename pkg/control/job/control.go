@@ -22,6 +22,9 @@ type Control struct {
 	wg sync.WaitGroup
 }
 
+// NewJobControl 创建作业控制器
+// @param loggerControl *logger.Control 日志控制器
+// @return *Control 作业控制器实例
 func NewJobControl(loggerControl *logger.Control) *Control {
 	jobLogger := loggerControl.GenLogger(logger.ModuleJob)
 	jobLogger.Infof("[control] starting create job control...")
@@ -36,6 +39,7 @@ func NewJobControl(loggerControl *logger.Control) *Control {
 	return control
 }
 
+// StartAllRegisterJobs 启动所有注册的作业
 func (c *Control) StartAllRegisterJobs() {
 	c.logger.Debugf("[control] starting all register jobs...")
 	c.jobMutex.Lock()
@@ -47,6 +51,7 @@ func (c *Control) StartAllRegisterJobs() {
 	}
 }
 
+// StopAllRegisterJobs 停止所有注册的作业
 func (c *Control) StopAllRegisterJobs() {
 	c.logger.Debugf("[control] stopping all register jobs...")
 	c.cancel()
@@ -54,6 +59,8 @@ func (c *Control) StopAllRegisterJobs() {
 	c.logger.Infof("[control] all register jobs stopped...")
 }
 
+// RegisterJob 注册一个新的作业
+// @param j *Job 要注册的作业对象
 func (c *Control) RegisterJob(j *Job) {
 	c.logger.Debugf("[control] register job name: %s", j.Name)
 
@@ -69,6 +76,8 @@ func (c *Control) RegisterJob(j *Job) {
 	c.logger.Infof("[control] register job name: %s successfully...", j.Name)
 }
 
+// runJob 运行指定的作业
+// @param job *Job 要运行的作业对象
 func (c *Control) runJob(job *Job) {
 	defer c.wg.Done()
 	ticker := time.NewTicker(job.Interval)
@@ -85,6 +94,8 @@ func (c *Control) runJob(job *Job) {
 	}
 }
 
+// StartUp 启动作业服务器
+// @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		c.logger.Infof("[control] starting job server...")
@@ -92,6 +103,8 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	})
 }
 
+// Shutdown 关闭作业服务器
+// @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 	c.logger.Infof("[control] shutting down job server...")
 	c.StopAllRegisterJobs()

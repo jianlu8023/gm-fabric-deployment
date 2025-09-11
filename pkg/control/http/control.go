@@ -36,6 +36,10 @@ type Control struct {
 	once           sync.Once
 }
 
+// NewWebServerControl 创建Web服务器控制器
+// @param serverConfig *config.HttpServerConfig HTTP服务器配置
+// @param loggerControl *logger.Control 日志控制器
+// @return *Control Web服务器控制器实例
 func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control) *Control {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	webLogger.Infof("[control] start new http server control...")
@@ -140,6 +144,8 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	return control
 }
 
+// StartUp 启动HTTP服务器
+// @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.serverConfig.TlsEnabled {
@@ -160,6 +166,8 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	})
 }
 
+// Shutdown 关闭HTTP服务器
+// @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 	c.logger.Infof("[control] shutdown http server...")
 	if err := c.server.Shutdown(c.ctx); err != nil {
@@ -169,13 +177,14 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
-// GetSessionManager 获取session管理器
-//
-// @return jwt.SessionManager session管理器
+// GetSessionManager 获取会话管理器
+// @return jwt.SessionManager 会话管理器
 func (c *Control) GetSessionManager() jwt.SessionManager {
 	return c.sessionManager
 }
 
+// RegisterRouter 注册HTTP路由
+// @param routers []commonhttp.RouterHandler 路由处理器列表
 func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
 	c.logger.Infof("[control] register router...")
 	c.routers = routers
@@ -184,6 +193,7 @@ func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
 	c.logger.Infof("[control] register router success...")
 }
 
+// initRouters 初始化所有注册的路由
 func (c *Control) initRouters() {
 	c.logger.Infof("[control] start init routers...")
 

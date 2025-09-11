@@ -94,16 +94,19 @@ func (wc *Control) UpgradeConnection(w http.ResponseWriter, r *http.Request) (st
 }
 
 // SetOnConnected 设置连接建立时的回调函数
+// @param callback func(conn *Connection) 连接建立时的回调函数
 func (wc *Control) SetOnConnected(callback func(conn *Connection)) {
 	wc.onConnected = callback
 }
 
 // SetOnDisconnected 设置连接关闭时的回调函数
+// @param callback func(conn *Connection) 连接关闭时的回调函数
 func (wc *Control) SetOnDisconnected(callback func(conn *Connection)) {
 	wc.onDisconnected = callback
 }
 
 // SetOnMessage 设置收到消息时的回调函数
+// @param callback func(conn *Connection, message []byte) 收到消息时的回调函数
 func (wc *Control) SetOnMessage(callback func(conn *Connection, message []byte)) {
 	wc.onMessage = callback
 }
@@ -227,7 +230,8 @@ func (wc *Control) GetConnectionCount() int {
 	return len(wc.connections)
 }
 
-// readPump 从WebSocket连接读取消息
+// readPump 从WebSocket连接读取消息（内部方法）
+// @param conn *Connection WebSocket连接对象
 func (wc *Control) readPump(conn *Connection) {
 	defer func() {
 		wc.RemoveConnection(conn.ID)
@@ -262,7 +266,8 @@ func (wc *Control) readPump(conn *Connection) {
 	}
 }
 
-// writePump 向WebSocket连接写入消息
+// writePump 向WebSocket连接写入消息（内部方法）
+// @param conn *Connection WebSocket连接对象
 func (wc *Control) writePump(conn *Connection) {
 	defer func() {
 		conn.Conn.Close()
@@ -298,6 +303,7 @@ func (wc *Control) writePump(conn *Connection) {
 }
 
 // StartUp 启动WebSocket控制器
+// @param failedFunc func(err error) 启动失败时的回调函数
 func (wc *Control) StartUp(failedFunc func(err error)) {
 	wc.once.Do(func() {
 		wc.logger.Infof("[control] websocket control started...")
