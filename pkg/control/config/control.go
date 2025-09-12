@@ -159,7 +159,7 @@ func (c *Control) loadConfig() (Config, error) {
 	viper.AddConfigPath(filePath)                         // 设置配置文件路径
 
 	// 如果指定了 configType, 尝试读取特定环境的配置文件
-	if str.IsBlank(c.flagsControl.GetConfigType()) {
+	if !str.IsBlank(c.flagsControl.GetConfigType()) {
 		envSpecificFileName := fmt.Sprintf("%s-%s", fileNameWithoutExt, c.flagsControl.GetConfigType())
 		viper.SetConfigName(envSpecificFileName) // 尝试读取特定环境的配置文件
 
