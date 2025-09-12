@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	dockerimage "github.com/docker/docker/api/types/image"
+	dockernetwork "github.com/docker/docker/api/types/network"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/router"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
@@ -12,9 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/image"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/network"
+	modelnetwork "github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/network"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/node"
 
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
@@ -80,7 +81,7 @@ func main() {
 		serverControl.GetDatasourceControl().RegisterAutoMigrateTable(
 			&image.Info{},
 			&node.Info{},
-			&network.Info{},
+			&modelnetwork.Info{},
 			&model.UserInfo{},
 		)
 	}
@@ -103,10 +104,8 @@ func main() {
 
 	serverControl.StartUp(func(err error) {
 		if err != nil && !http.IsHttpErrServerClosed(err) {
-			mainLogger.Errorf("http server start err: %v", err)
+			mainLogger.Errorf("start up failed: %v", err)
 			quit <- os.Interrupt
-		} else {
-			mainLogger.Infof("http server closed normally") // 可选：记录正常关闭日志
 		}
 	})
 	defer func(serverControl *server.Control) {
@@ -119,7 +118,7 @@ func main() {
 	var (
 		imageMapper   *image.Mapper
 		nodeMapper    *mapper.NodeMapper
-		networkMapper *network.Mapper
+		networkMapper *modelnetwork.Mapper
 	)
 	{
 		imageMapper = image.NewImageMapper(serverControl.GetDatasourceControl().GetConn())
@@ -127,7 +126,7 @@ func main() {
 			serverControl.GetLoggerControl().GenLogger(logger.ModuleDataSource),
 			serverControl.GetDatasourceControl().GetConn()),
 		)
-		networkMapper = network.NewNetworkMapper(serverControl.GetDatasourceControl().GetConn())
+		networkMapper = modelnetwork.NewNetworkMapper(serverControl.GetDatasourceControl().GetConn())
 	}
 
 	// libp2p
@@ -173,7 +172,7 @@ func main() {
 		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.DockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol message from %v", protocolID, msg.From)
 			// 处理消息
-			var networks []types.NetworkResource
+			var networks []dockernetwork.Summary
 
 			if err := json.Unmarshal(msg.Content, &networks); err != nil {
 				mainLogger.Errorf("unmarshal docker networks failed: %v", err)
@@ -181,7 +180,7 @@ func main() {
 			}
 
 			for _, net := range networks {
-				info := network.NewNetworkInfo()
+				info := modelnetwork.NewNetworkInfo()
 				info.NetworkName = net.Name
 				info.NetworkID = net.ID
 				info.NetworkCreateTime = net.Created
@@ -209,7 +208,7 @@ func main() {
 		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.DockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("receive %v protocol %v message from %v", protocolID, msg.Type, msg.From)
 
-			var imageList []types.ImageSummary
+			var imageList []dockerimage.Summary
 			if err := json.Unmarshal(msg.Content, &imageList); err != nil {
 				mainLogger.Errorf("unmarshal docker images failed: %v", err)
 				return
@@ -326,7 +325,7 @@ func main() {
 			mainLogger.Errorf("list docker networks failed: %v", err)
 		} else {
 			for _, net := range networkList {
-				info := network.NewNetworkInfo()
+				info := modelnetwork.NewNetworkInfo()
 				info.NetworkName = net.Name
 				info.NetworkID = net.ID
 				info.NetworkCreateTime = net.Created

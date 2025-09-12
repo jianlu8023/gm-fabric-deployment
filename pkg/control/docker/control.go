@@ -3,14 +3,13 @@ package docker
 import (
 	"bufio"
 	"context"
-	"io"
-	"sync"
-	"time"
-
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"io"
+	"sync"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -142,9 +141,9 @@ func (dc *Control) Shutdown() error {
 //
 // @param networkListOpts func(args *[]filters.KeyValuePair) 选项
 //
-// @return []types.NetworkResource 网络资源列表
+// @return []network.Summary 网络资源列表
 // @return error 错误信息
-func (dc *Control) ListNetworks(networkListOpts ...func(args *[]filters.KeyValuePair)) ([]types.NetworkResource, error) {
+func (dc *Control) ListNetworks(networkListOpts ...func(args *[]filters.KeyValuePair)) ([]network.Summary, error) {
 	dc.logger.Debugf("[control] listing networks...")
 	if dc.client == nil {
 		return nil, ErrNoAliveDockerClient
@@ -155,7 +154,7 @@ func (dc *Control) ListNetworks(networkListOpts ...func(args *[]filters.KeyValue
 	for _, opt := range networkListOpts {
 		opt(&ftArr)
 	}
-	opts := types.NetworkListOptions{
+	opts := network.ListOptions{
 		Filters: filters.NewArgs(ftArr...),
 	}
 
@@ -172,12 +171,12 @@ func (dc *Control) ListNetworks(networkListOpts ...func(args *[]filters.KeyValue
 // @param networkName 网络名称
 // @param networkId 网络ID
 //
-// @return types.NetworkResource 网络资源
+// @return network.Summary 网络资源
 // @return error 错误信息
-func (dc *Control) GetNetwork(networkListOpts ...func(args *[]filters.KeyValuePair)) (types.NetworkResource, error) {
+func (dc *Control) GetNetwork(networkListOpts ...func(args *[]filters.KeyValuePair)) (network.Summary, error) {
 	dc.logger.Debugf("[control] getting network...")
 	if dc.client == nil {
-		return types.NetworkResource{}, ErrNoAliveDockerClient
+		return network.Summary{}, ErrNoAliveDockerClient
 	}
 
 	listNetworks, err := dc.ListNetworks(
@@ -185,7 +184,7 @@ func (dc *Control) GetNetwork(networkListOpts ...func(args *[]filters.KeyValuePa
 	)
 	if err != nil {
 		dc.logger.Errorf("[control] get network failed: %v", err)
-		return types.NetworkResource{}, err
+		return network.Summary{}, err
 	}
 	return listNetworks[0], nil
 }
@@ -194,32 +193,33 @@ func (dc *Control) GetNetwork(networkListOpts ...func(args *[]filters.KeyValuePa
 //
 // @param networkName 网络名称
 // @param driver 网络驱动
-// @param opts func(create *types.NetworkCreate) 网络创建选项
+// @param opts func(create *network.CreateOptions) 网络创建选项
 //
-// @return types.NetworkResource 网络资源
+// @return network.Summary 网络资源
 // @return error 错误信息
-func (dc *Control) CreateNetwork(networkName string, driver string, opts ...func(create *types.NetworkCreate)) (types.NetworkResource, error) {
-	dc.logger.Debugf("[control] creating network: %s, driver: %s", networkName, driver)
+func (dc *Control) CreateNetwork(networkName string, driver string, opts ...func(create *network.CreateOptions)) (network.Summary, error) {
+	dc.logger.Debugf("[control] creating net: %s, driver: %s", networkName, driver)
 	if dc.client == nil {
-		return types.NetworkResource{}, ErrNoAliveDockerClient
+		return network.Summary{}, ErrNoAliveDockerClient
 	}
 
-	dc.logger.Debugf("[control] check network %s exists...", networkName)
-	if network, err := dc.GetNetwork(WithNetworkName(networkName)); err == nil {
-		// network exists
-		dc.logger.Debugf("[control] network %s exists", networkName)
-		return network, err
+	dc.logger.Debugf("[control] check net %s exists...", networkName)
+	if net, err := dc.GetNetwork(WithNetworkName(networkName)); err == nil {
+		// net exists
+		dc.logger.Debugf("[control] net %s exists", networkName)
+		return net, err
 	} else {
-		dc.logger.Debugf("[control] network %s need creating...", networkName)
+		dc.logger.Debugf("[control] net %s need creating...", networkName)
 	}
 
-	networkOpts := types.NetworkCreate{
+	ipv6Default := false
+	networkOpts := network.CreateOptions{
 		// 驱动类型
 		Driver: driver,
 		// 默认不启用ipv6
-		EnableIPv6: false,
+		EnableIPv6: &ipv6Default,
 		// 默认创建桥接网络
-		CheckDuplicate: true,
+		// CheckDuplicate: true,
 	}
 	for _, opt := range opts {
 		opt(&networkOpts)
@@ -227,10 +227,10 @@ func (dc *Control) CreateNetwork(networkName string, driver string, opts ...func
 
 	resp, err := dc.client.NetworkCreate(dc.ctx, networkName, networkOpts)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to create network: %v", err)
-		return types.NetworkResource{}, err
+		dc.logger.Errorf("[control] failed to create net: %v", err)
+		return network.Summary{}, err
 	}
-	dc.logger.Infof("[control] network %v created sucesfully, ID %s", networkName, resp.ID)
+	dc.logger.Infof("[control] net %v created sucesfully, ID %s", networkName, resp.ID)
 
 	return dc.GetNetwork(WithNetworkName(networkName), WithNetworkID(resp.ID))
 }
@@ -260,14 +260,14 @@ func (dc *Control) RemoveNetwork(networkId string) error {
 // @param imageName 镜像名称
 //
 // @returns error 错误信息
-func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *types.ImagePullOptions)) error {
+func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *image.PullOptions)) error {
 	dc.logger.Infof("[control] pulling image: %s", imageName)
 	if dc.client == nil {
 		return ErrNoAliveDockerClient
 	}
 
 	// 创建拉取选项
-	options := types.ImagePullOptions{
+	options := image.PullOptions{
 		All: true,
 	}
 	for _, opt := range pullImageOpts {
@@ -328,17 +328,17 @@ func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *ty
 // RemoveImage 删除Docker镜像
 // @description 删除指定的Docker镜像
 // @param imageId string 镜像ID
-// @param removeImageOpts ...func(options *types.ImageRemoveOptions) 镜像删除选项
-// @return []types.ImageDeleteResponseItem 镜像删除响应项列表
+// @param removeImageOpts ...func(options *image.RemoveOptions) 镜像删除选项
+// @return []image.DeleteResponse 镜像删除响应项列表
 // @return error 删除过程中的错误
-func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *types.ImageRemoveOptions)) ([]types.ImageDeleteResponseItem, error) {
+func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *image.RemoveOptions)) ([]image.DeleteResponse, error) {
 	dc.logger.Debugf("[control] removing image: %s", imageId)
 	if dc.client == nil {
 		return nil, ErrNoAliveDockerClient
 	}
 
 	// 删除镜像
-	opts := types.ImageRemoveOptions{}
+	opts := image.RemoveOptions{}
 
 	for _, opt := range removeImageOpts {
 		opt(&opts)
@@ -355,9 +355,9 @@ func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *
 // ListImages 列出Docker镜像
 // @description 列出当前系统中的Docker镜像
 // @param imageListOpts ...func(args *[]filters.KeyValuePair) 镜像列表选项
-// @return []types.ImageSummary 镜像摘要列表
+// @return []image.Summary 镜像摘要列表
 // @return error 列出过程中的错误
-func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair)) ([]types.ImageSummary, error) {
+func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair)) ([]image.Summary, error) {
 	dc.logger.Debugf("[control] listing images...")
 	if dc.client == nil {
 		return nil, ErrNoAliveDockerClient
@@ -369,7 +369,7 @@ func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair
 		opt(&ftArr)
 	}
 
-	opts := types.ImageListOptions{
+	opts := image.ListOptions{
 		All:     true,
 		Filters: filters.NewArgs(ftArr...),
 	}
@@ -423,7 +423,7 @@ func (dc *Control) StartContainer(containerID string) error {
 	}
 
 	// 启动容器
-	if err := dc.client.ContainerStart(dc.ctx, containerID, types.ContainerStartOptions{}); err != nil {
+	if err := dc.client.ContainerStart(dc.ctx, containerID, container.StartOptions{}); err != nil {
 		dc.logger.Errorf("[control] failed to start container %s: %v", containerID, err)
 		return err
 	}
@@ -435,13 +435,18 @@ func (dc *Control) StartContainer(containerID string) error {
 // StopContainer 停止Docker容器
 // @description 停止指定的Docker容器
 // @param containerID string 容器ID
-// @param timeout *time.Duration 停止超时时间
+// @param timeout int 停止超时时间
 // @return error 停止过程中的错误
-func (dc *Control) StopContainer(containerID string, timeout *time.Duration) error {
+func (dc *Control) StopContainer(containerID string, timeout int) error {
 	dc.logger.Infof("[control] stopping container: %s", containerID)
 
+	// 停止容器容器选项
+	opts := container.StopOptions{
+		Timeout: &timeout,
+	}
+
 	// 停止容器
-	if err := dc.client.ContainerStop(dc.ctx, containerID, timeout); err != nil {
+	if err := dc.client.ContainerStop(dc.ctx, containerID, opts); err != nil {
 		dc.logger.Errorf("[control] failed to stop container %s: %v", containerID, err)
 		return err
 	}
@@ -463,7 +468,7 @@ func (dc *Control) RemoveContainer(containerID string, force bool) error {
 	}
 
 	// 删除容器选项
-	opts := types.ContainerRemoveOptions{
+	opts := container.RemoveOptions{
 		Force: force,
 	}
 
@@ -480,16 +485,16 @@ func (dc *Control) RemoveContainer(containerID string, force bool) error {
 // ListContainers 列出Docker容器
 // @description 列出当前系统中的Docker容器
 // @param all bool 是否列出所有容器（包括已停止的）
-// @return []types.Container 容器列表
+// @return []container.Summary 容器列表
 // @return error 列出过程中的错误
-func (dc *Control) ListContainers(all bool) ([]types.Container, error) {
+func (dc *Control) ListContainers(all bool) ([]container.Summary, error) {
 	dc.logger.Infof("[control] listing containers, all: %v", all)
 	if dc.client == nil {
 		return nil, ErrNoAliveDockerClient
 	}
 
 	// 列出容器选项
-	opts := types.ContainerListOptions{
+	opts := container.ListOptions{
 		All: all,
 	}
 
@@ -541,7 +546,7 @@ func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, err
 		return "", ErrNoAliveDockerClient
 	}
 	// 执行命令选项
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecOptions{
 		Cmd:          cmd,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -554,8 +559,11 @@ func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, err
 		return "", err
 	}
 
+	// Attach到执行
+	execAttachOpts := container.ExecAttachOptions{}
+
 	// 开始执行
-	execResp, err := dc.client.ContainerExecAttach(dc.ctx, resp.ID, types.ExecStartCheck{})
+	execResp, err := dc.client.ContainerExecAttach(dc.ctx, resp.ID, execAttachOpts)
 	if err != nil {
 		dc.logger.Errorf("[control] failed to start exec in container %s: %v", containerID, err)
 		return "", err
