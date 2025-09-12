@@ -120,6 +120,14 @@ func NewRouter(loggerControl *logger.Control,
 		),
 	)
 
+	systemHandler := handler.NewSystemHandler(
+		baseHandler,
+		service.NewSystemService(
+			baseService,
+			mapper.NewSystemMapper(baseMapper),
+		),
+	)
+
 	routers := map[string][]commonhttp.RouterHandler{
 		"base": {
 			&MyRouter{
@@ -236,6 +244,17 @@ func NewRouter(loggerControl *logger.Control,
 				Enabled:         true,
 				EnableJWtVerify: true,
 				Desc:            "get websocket connection list",
+			},
+		},
+		"system": {
+			&MyRouter{
+				Name:            "systemOverview",
+				Uri:             "system/overview",
+				Enabled:         true,
+				EnableJWtVerify: true,
+				Method:          http.MethodGet,
+				Desc:            "get system overview",
+				HandlerFunc:     systemHandler.GetSystemOverview,
 			},
 		},
 	}
