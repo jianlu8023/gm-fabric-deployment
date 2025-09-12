@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/router"
+	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 	"os"
 	"os/signal"
 	"runtime"
@@ -83,11 +85,26 @@ func main() {
 		)
 	}
 
+	if serverControl.GetHttpControl() != nil {
+		serverControl.GetHttpControl().RegisterRouter(func() []commonhttp.RouterHandler {
+			return []commonhttp.RouterHandler{}
+		}())
+
+		serverControl.GetHttpControl().RegisterRouter(router.NewRouter(
+			serverControl.GetLoggerControl(),
+			serverControl.GetLibp2pControl(),
+			serverControl.GetGrpcControl(),
+			serverControl.GetDockerControl(),
+			serverControl.GetDatasourceControl(),
+			serverControl.GetWebsocketControl(),
+			serverControl.GetHttpControl(),
+		))
+	}
+
 	serverControl.StartUp(func(err error) {
 		if err != nil && !http.IsHttpErrServerClosed(err) {
-			mainLogger.Errorf("ohther server start err: %v", err)
+			mainLogger.Errorf("http server start err: %v", err)
 			quit <- os.Interrupt
-
 		} else {
 			mainLogger.Infof("http server closed normally") // 可选：记录正常关闭日志
 		}

@@ -77,9 +77,14 @@ func (d DataSourceConfig) GenPostgresDSN() string {
 // GenSqlite3DSN 生成sqlite3的dsn
 // @return string dsn
 func (d DataSourceConfig) GenSqlite3DSN() string {
-	// 格式 test.db
+	// 格式 test.db?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL
+	// test.db 数据库名称
+	// _pragma=journal_mode=WAL 设置wal模式
+	// _pragma=synchronous=NORMAL 设置同步模式 NORMAL 性能和数据安全之间平衡 FULL 最安全但最慢 OFF 最快但数据丢失风险最高
+	// _pragma=busy_timeout=5000 设置超时时间
 	if filepath.IsAbs(d.DataBasePath) {
-		return d.DataBasePath
+		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL",
+			d.DataBasePath)
 	} else {
 		dsn := filepath.Clean(filepath.Join(wd.GetWorkDir(), d.DataBasePath))
 		dsnDir := filepath.Dir(dsn)
@@ -89,7 +94,8 @@ func (d DataSourceConfig) GenSqlite3DSN() string {
 				panic(err)
 			}
 		}
-		return dsn
+		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL",
+			dsn)
 	}
 }
 

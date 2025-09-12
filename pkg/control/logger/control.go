@@ -41,6 +41,11 @@ func NewLoggerControl(loggerConfig *config.LoggerConfig) *Control {
 func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 	c.loggerMutex.Lock()
 	defer c.loggerMutex.Unlock()
+
+	if c.loggerConfig == nil {
+		return nil
+	}
+
 	existLogger, ok := c._logMap[moduleName]
 	if ok {
 		return existLogger

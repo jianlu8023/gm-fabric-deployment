@@ -9,4 +9,5 @@ const (
 	ModuleJob        = "Job"
 	ModuleWebSocket  = "Websocket"
 	ModuleIpfs       = "Ipfs"
+	ModuleServer     = "Control"
 )

@@ -187,7 +187,7 @@ func (c *Control) GetSessionManager() jwt.SessionManager {
 // @param routers []commonhttp.RouterHandler 路由处理器列表
 func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
 	c.logger.Infof("[control] register router...")
-	c.routers = routers
+	c.routers = append(c.routers, routers...)
 	c.logger.Debugf("[control] starting define router...")
 	c.initRouters()
 	c.logger.Infof("[control] register router success...")

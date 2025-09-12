@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -13,9 +14,10 @@ import (
 
 // Control 控制器
 type Control struct {
-	config *Config
-	mutex  sync.RWMutex
-	once   sync.Once
+	flagsControl *flags.Control
+	config       *Config
+	mutex        sync.RWMutex
+	once         sync.Once
 }
 
 // printConfig 打印配置信息
@@ -88,7 +90,7 @@ func (c *Control) GetDockerConfig() *DockerConfig {
 func (c *Control) Flush() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	newConfig, err := loadConfig()
+	newConfig, err := c.loadConfig()
 	if err != nil {
 		return err
 	}
@@ -99,17 +101,35 @@ func (c *Control) Flush() error {
 // WatchDog 监控配置文件变化
 // @description 监控配置文件的变化，当配置文件发生变化时可能触发相应操作
 func (c *Control) WatchDog() {
-	fmt.Printf("watching %s\n", configPath)
+	fmt.Printf("watching %s\n", c.flagsControl.GetConfigPath())
 }
 
 // StartUp 启动配置服务器
-// @description 启动配置服务器（空操作）
+// @description 启动配置服务器
 // @param failedFunc func(err error) 启动失败回调函数
+//
 //nolint:unused
 func (c *Control) StartUp(failedFunc func(err error)) {
-	// no-op
 	c.once.Do(func() {
 		fmt.Printf("starting up config server...\n")
+
+		// 检查是否请求显示版本信息
+		if c.flagsControl != nil && c.flagsControl.IsVersionRequested() {
+			c.flagsControl.PrintVersion()
+		}
+
+		// 到这里 说明不是请求显示版本信息
+		config, err := c.loadConfig()
+		if err != nil {
+			fmt.Printf("[control] load config failed: %s\n", err)
+			failedFunc(err)
+			return
+		}
+		c.config = &config
+
+		if c.flagsControl.IsDebugMode() {
+			c.printConfig()
+		}
 	})
 }
 
@@ -125,22 +145,22 @@ func (c *Control) Shutdown() error {
 // loadConfig 加载配置文件
 // @return Config 加载的配置对象
 // @return error 加载配置过程中的错误
-func loadConfig() (Config, error) {
+func (c *Control) loadConfig() (Config, error) {
 	var cfg Config
 
 	// 获取配置文件名（不包含扩展名）
-	fileName := filepath.Base(configPath)
-	fileExt := filepath.Ext(configPath)
+	fileName := filepath.Base(c.flagsControl.GetConfigPath())
+	fileExt := filepath.Ext(c.flagsControl.GetConfigPath())
 	fileNameWithoutExt := strings.TrimSuffix(fileName, fileExt)
-	filePath := filepath.Dir(configPath)
+	filePath := filepath.Dir(c.flagsControl.GetConfigPath())
 
 	viper.SetConfigName(fileNameWithoutExt)               // 设置配置文件名
 	viper.SetConfigType(strings.TrimPrefix(fileExt, ".")) // 设置配置文件类型 (yaml, json, toml 等)
 	viper.AddConfigPath(filePath)                         // 设置配置文件路径
 
 	// 如果指定了 configType, 尝试读取特定环境的配置文件
-	if configType != "" {
-		envSpecificFileName := fmt.Sprintf("%s-%s", fileNameWithoutExt, configType)
+	if str.IsBlank(c.flagsControl.GetConfigType()) {
+		envSpecificFileName := fmt.Sprintf("%s-%s", fileNameWithoutExt, c.flagsControl.GetConfigType())
 		viper.SetConfigName(envSpecificFileName) // 尝试读取特定环境的配置文件
 
 		// viper.AddConfigPath(".") // 放在这里是为了优先查找当前目录下的特定环境配置文件
@@ -167,7 +187,7 @@ func loadConfig() (Config, error) {
 		// 如果找不到配置文件，返回错误
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
-			return cfg, fmt.Errorf("未找到配置文件: %s", configPath)
+			return cfg, fmt.Errorf("未找到配置文件: %s", c.flagsControl.GetConfigPath())
 		}
 	}
 
@@ -200,18 +220,11 @@ func loadConfig() (Config, error) {
 }
 
 // NewConfigControl 新建config控制器
+// @param flagsControl *flags.Control 命令行参数控制器
 // @return *Control 控制器
 // @return error 新建过程中可能产生的错误
-func NewConfigControl() (*Control, error) {
-	config, err := loadConfig()
-	if err != nil {
-		return nil, err
+func NewConfigControl(flagsControl *flags.Control) *Control {
+	return &Control{
+		flagsControl: flagsControl,
 	}
-	ctr := &Control{
-		config: &config,
-	}
-
-	ctr.printConfig()
-
-	return ctr, nil
 }
