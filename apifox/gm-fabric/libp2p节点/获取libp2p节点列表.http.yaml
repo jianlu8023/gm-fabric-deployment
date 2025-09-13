@@ -1,0 +1,10 @@
+method: get
+url: "{{addr}}/{{contextpath}}/node/list?pageNo=1&pageSize=2&isPage=true"
+parameters:
+  query:
+    - name: pageNo
+      value: "1"
+    - name: pageSize
+      value: "2"
+    - name: isPage
+      value: "true"

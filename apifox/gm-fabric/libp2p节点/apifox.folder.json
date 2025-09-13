@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "type": "noauth",
+    "jwt": {
+      "algorithm": "HS256",
+      "isSecretBase64Encoded": false,
+      "addTokenTo": "header"
+    }
+  }
+}
