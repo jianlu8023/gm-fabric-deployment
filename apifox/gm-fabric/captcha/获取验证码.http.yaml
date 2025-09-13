@@ -1,0 +1,39 @@
+method: get
+url: "{{addr}}/{{contextpath}}/captcha/generate"
+postProcessors:
+  - type: extractor
+    data:
+      variableName: captchab64
+      variableType: local
+      subject: responseJson
+      template: ""
+      expression: $.data.imgBase64
+      extractSettings:
+        expression: $.data.imgBase64
+        continueExtractorSettings:
+          isContinueExtractValue: false
+          JsonArrayValueIndexValue: ""
+    defaultEnable: true
+    enable: true
+  - type: customScript
+    data: "\r
+
+      // 将接口返回数据，封装成自己需要的结构\r
+
+      var resp = {\r
+
+      \    response: pm.variables.get(\"captchab64\")\r
+
+      }\r
+
+      // html 模板字符\r
+
+      var template = `<html><img src=\"{{response}}\" /></html>`;\r
+
+      \r
+
+      // 设置 visualizer 数据。传模板、解析对象。\r
+
+      pm.visualizer.set(template, resp);"
+    defaultEnable: true
+    enable: true
