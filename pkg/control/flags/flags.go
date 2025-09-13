@@ -2,6 +2,7 @@ package flags
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/jessevdk/go-flags"
@@ -71,12 +72,13 @@ func (f *Flags) Parse(args []string) error {
 	// 使用go-flags解析命令行参数
 	remainingArgs, err := f.parser.ParseArgs(args)
 	// 判断是否是用户请求输出help
-	if err != nil && !flags.WroteHelp(err) {
-		// 检查是否是帮助请求或版本请求的错误
-		// if flags.WroteHelp(err) {
-		// 	用户请求了帮助信息，这不是真正的错误
-		// return nil
-		// }
+	if err != nil {
+		// 检查是否是帮助请求
+		if flags.WroteHelp(err) {
+			// 用户请求了帮助信息(-h或--help)，这不是真正的错误
+			// 直接退出程序，不继续执行
+			os.Exit(0)
+		}
 		return fmt.Errorf("解析命令行参数失败: %w", err)
 	}
 
