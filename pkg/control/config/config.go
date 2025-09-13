@@ -319,6 +319,25 @@ func (l Libp2pConfig) String() string {
 	return string(bytes)
 }
 
+// CaptchaConfig 验证码配置结构体
+type CaptchaConfig struct {
+	Enabled     bool    `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                // 是否启用
+	MaxAge      int     `json:"max_age,omitempty" yaml:"max_age,omitempty" mapstructure:"max_age"`                // 验证码有效期（秒）
+	Width       int     `json:"width,omitempty" yaml:"width,omitempty" mapstructure:"width"`                      // 默认宽度
+	Height      int     `json:"height,omitempty" yaml:"height,omitempty" mapstructure:"height"`                   // 默认高度
+	MaxSkew     float64 `json:"max_skew,omitempty" yaml:"max_skew,omitempty" mapstructure:"max_skew"`             // 最大倾斜度
+	DotCount    int     `json:"dot_count,omitempty" yaml:"dot_count,omitempty" mapstructure:"dot_count"`          // 干扰点数量
+	LineCount   int     `json:"line_count,omitempty" yaml:"line_count,omitempty" mapstructure:"line_count"`       // 干扰线数量
+	DefaultType string  `json:"default_type,omitempty" yaml:"default_type,omitempty" mapstructure:"default_type"` // 默认验证码类型
+}
+
+// String CaptchConfig的字符串表示
+// @return CaptchConfig的字符串表示
+func (c CaptchaConfig) String() string {
+	bytes, _ := json.MarshalIndent(c, "", " ")
+	return string(bytes)
+}
+
 // IpfsConfig IPFS配置
 type IpfsConfig struct {
 	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                         // 是否启用
@@ -342,6 +361,7 @@ type Config struct {
 	DataSourceConfig *DataSourceConfig `json:"datasource_config,omitempty" yaml:"datasource_config,omitempty" mapstructure:"datasource"` // 数据源配置
 	DockerConfig     *DockerConfig     `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`             // docker配置
 	IpfsConfig       *IpfsConfig       `json:"ipfs_config,omitempty" yaml:"ipfs_config,omitempty" mapstructure:"ipfs"`                   // IPFS配置
+	CaptchaConfig    *CaptchaConfig    `json:"captcha_config,omitempty" yaml:"captcha_config,omitempty" mapstructure:"captcha"`          // 验证码配置
 }
 
 // String 返回配置的字符串表示

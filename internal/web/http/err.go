@@ -6,22 +6,32 @@ import (
 	"net/http"
 )
 
-// IsHttpErrServerClosed 判断错误是否是http.ErrServerClosed
-// @param err error 错误
-// @return bool 是否是http.ErrServerClosed
+// IsHttpErrServerClosed 判断错误是否是HTTP服务器关闭错误
+//
+// @description 检查给定的错误是否是http.ErrServerClosed类型的错误
+// @param err error 需要检查的错误
+// @return bool 如果是http.ErrServerClosed错误则返回true，否则返回false
 func IsHttpErrServerClosed(err error) bool {
 	return errors.Is(err, http.ErrServerClosed)
 }
 
-// Error 错误结构体
+// Error HTTP错误结构体
+//
+// @description 定义HTTP响应中的错误信息结构
+// @struct
 type Error struct {
-	Code    ErrCode `json:"code"`
-	Message string  `json:"message"`
+	// Code 错误码，标识具体的错误类型
+	Code ErrCode `json:"code"`
+	// Message 错误描述信息，提供给前端显示
+	Message string `json:"message"`
 }
 
-// NewError 创建错误
+// NewError 创建新的错误实例
+//
+// @description 根据错误码和错误信息创建一个新的Error结构体实例
 // @param code ErrCode 错误码
-// @param message string 错误信息
+// @param message string 错误描述信息
+// @return Error 错误结构体实例
 func NewError(code ErrCode, message string) Error {
 	return Error{
 		Code:    code,
@@ -99,6 +109,12 @@ const (
 	ResourceUnavailable ErrCode = 7003 // 资源不可用
 	DataConflict        ErrCode = 7004 // 数据冲突
 
+	// 验证码相关错误
+
+	InvalidCaptcha          ErrCode = 7100 // 验证码无效
+	CaptchaExpired          ErrCode = 7101 // 验证码过期
+	CaptchaGenerationFailed ErrCode = 7102 // 验证码生成失败
+
 	// 第三方服务错误
 
 	ThirdPartyServiceError ErrCode = 8000 // 第三方服务错误
@@ -174,6 +190,12 @@ const (
 	ErrMsgInsufficientFunds   = "余额不足"
 	ErrMsgResourceUnavailable = "资源不可用"
 	ErrMsgDataConflict        = "数据冲突，请稍后再试"
+
+	// 验证码相关错误信息
+
+	ErrMsgInvalidCaptcha          = "验证码不正确"
+	ErrMsgCaptchaExpired          = "验证码已过期，请刷新"
+	ErrMsgCaptchaGenerationFailed = "验证码生成失败，请稍后再试"
 
 	// 第三方服务错误信息
 

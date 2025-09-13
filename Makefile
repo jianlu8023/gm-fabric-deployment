@@ -2,13 +2,13 @@ VERSION:=$(shell git branch --show-current)-$(shell git describe --tags --always
 BUILDTIME=$(shell date +"%Y-%m-%d %H:%M:%S")
 
 server:
-	@go build -ldflags="-X main.version=$(shell git describe --tags --always --dirty)" -o server.bin cmd/server/server.go
+	@go build -tags=jsoniter -ldflags="-X main.version=$(shell git describe --tags --always --dirty)" -o server.bin cmd/server/server.go
 	@echo -e "version : ${VERSION}\ntime : ${BUILDTIME}" > server.latest
 	@echo "server done"
 .PHONY: server
 
 client:
-	@go build -ldflags="-X main.version=$(shell git describe --tags --always --dirty)" -o client.bin cmd/client/client.go
+	@go build -tags=jsoniter -ldflags="-X main.version=$(shell git describe --tags --always --dirty)" -o client.bin cmd/client/client.go
 	@echo -e "version : ${VERSION}\ntime : ${BUILDTIME}" > client.latest
 	@echo "client done"
 .PHONY: client

@@ -5,12 +5,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/gzip"
@@ -32,6 +33,7 @@ type Control struct {
 	ctx            context.Context
 	logger         *zap.SugaredLogger
 	routers        []commonhttp.RouterHandler
+	routerMutex    sync.RWMutex
 	sessionManager jwt.SessionManager
 	once           sync.Once
 }
@@ -138,6 +140,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		sessionManager: sessionManager,
 	}
 
+	// control.logger.Debugf("[control] register 404 405 handler...")
+	// control.registerDefaultRouter()
+
 	control.logger.Warnf("[control] current not setting router please call control.RegisterRouter to register router...")
 	// 在这里不调用
 	// control.initRouters()
@@ -148,6 +153,12 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
+		c.logger.Debugf("[control] starting up http server...")
+
+		c.logger.Debugf("[control] starting define router...")
+		c.initRouters()
+		c.registerDefaultRouter()
+
 		if c.serverConfig.TlsEnabled {
 			c.logger.Infof("[control] start https server on %v", c.serverConfig.Address)
 			go func() {
@@ -177,6 +188,49 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
+// registerDefaultRouter 注册默认路由处理器
+// @description 注册404(路径不存在)和405(方法不允许)的默认处理函数
+func (c *Control) registerDefaultRouter() {
+	c.logger.Debugf("[control] register default router (NoRoute and NoMethod)...")
+	{
+		// 首先注册NoMethod处理器（方法不允许）
+		// NoMethod应该在NoRoute之前注册，以确保当路径存在但方法不支持时能正确返回405
+		c.ginRouter.NoMethod(func(ctx *gin.Context) {
+			c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
+			ctx.JSON(http.StatusMethodNotAllowed, gin.H{
+				"code":    http.StatusMethodNotAllowed,
+				"message": "Method Not Allowed",
+				"data":    nil,
+			})
+		})
+	}
+
+	{
+		// 然后注册NoRoute处理器（路径不存在）
+		c.ginRouter.NoRoute(func(ctx *gin.Context) {
+			c.logger.Warnf("[control] 404 Not Found: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"code":    http.StatusNotFound,
+				"message": "Not Found",
+				"data":    nil,
+			})
+
+		})
+	}
+
+	{
+		// 定义路由
+		allRouterUri := fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, "routers")
+
+		c.ginRouter.GET(allRouterUri, func(ctx *gin.Context) {
+			webhttp.SuccessResponse(ctx, gin.H{
+				"routers": c.routers,
+			})
+		})
+	}
+	c.logger.Debugf("[control] default router registered successfully")
+}
+
 // GetSessionManager 获取会话管理器
 // @return jwt.SessionManager 会话管理器
 func (c *Control) GetSessionManager() jwt.SessionManager {
@@ -187,10 +241,33 @@ func (c *Control) GetSessionManager() jwt.SessionManager {
 // @param routers []commonhttp.RouterHandler 路由处理器列表
 func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
 	c.logger.Infof("[control] register router...")
+	c.routerMutex.Lock()
 	c.routers = append(c.routers, routers...)
-	c.logger.Debugf("[control] starting define router...")
-	c.initRouters()
+	c.routerMutex.Unlock()
+	c.logger.Debugf("[control] deduplicate routers...")
+	c.deduplicateRouters()
+
 	c.logger.Infof("[control] register router success...")
+}
+
+func (c *Control) deduplicateRouters() {
+	c.logger.Debugf("[control] starting deduplicate routers...")
+	c.routerMutex.RLock()
+	defer c.routerMutex.RUnlock()
+	after := make([]commonhttp.RouterHandler, 0, len(c.routers))
+	seen := make(map[string]struct{}, len(c.routers))
+
+	for _, router := range c.routers {
+		if _, ok := seen[router.GetUri()]; ok {
+			// 已经存在
+			continue
+		}
+		// 还不存在
+		seen[router.GetUri()] = struct{}{}
+		after = append(after, router)
+	}
+	c.logger.Debugf("[control] finished deduplicate routers...")
+	c.routers = after
 }
 
 // initRouters 初始化所有注册的路由

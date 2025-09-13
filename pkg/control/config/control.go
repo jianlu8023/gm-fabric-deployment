@@ -84,6 +84,14 @@ func (c *Control) GetDockerConfig() *DockerConfig {
 	return c.config.DockerConfig
 }
 
+// GetCaptchaConfig 获取验证码配置
+// @return *CaptchaConfig 验证码配置
+func (c *Control) GetCaptchaConfig() *CaptchaConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.CaptchaConfig
+}
+
 // Flush 重新加载配置文件
 // @description 从配置文件重新加载配置
 // @return error 重新加载过程中的错误

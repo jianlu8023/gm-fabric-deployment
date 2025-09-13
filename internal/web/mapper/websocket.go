@@ -9,13 +9,20 @@ import (
 	"gorm.io/gorm"
 )
 
-// WebSocketMapper 提供WebSocket连接相关的数据库操作
-
+// WebSocketMapper WebSocket连接数据访问层结构体
+//
+// @description 提供WebSocket连接相关的数据访问操作
+// @struct
+//
 type WebSocketMapper struct {
 	*Mapper
 }
 
 // NewWebSocketMapper 创建一个新的WebSocketMapper实例
+//
+// @param mapper *Mapper 基础Mapper
+// @return *WebSocketMapper WebSocketMapper实例
+//
 func NewWebSocketMapper(mapper *Mapper) *WebSocketMapper {
 	return &WebSocketMapper{
 		Mapper: mapper,
@@ -23,6 +30,10 @@ func NewWebSocketMapper(mapper *Mapper) *WebSocketMapper {
 }
 
 // SaveConnection 保存WebSocket连接信息
+//
+// @param conn *model.ConnectionInfo 连接信息
+// @return error 错误信息
+//
 func (m *WebSocketMapper) SaveConnection(conn *model.ConnectionInfo) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
@@ -31,6 +42,11 @@ func (m *WebSocketMapper) SaveConnection(conn *model.ConnectionInfo) error {
 }
 
 // UpdateConnectionStatus 更新WebSocket连接状态
+//
+// @param id string 连接ID
+// @param status string 连接状态
+// @return error 错误信息
+//
 func (m *WebSocketMapper) UpdateConnectionStatus(id string, status string) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
@@ -39,6 +55,10 @@ func (m *WebSocketMapper) UpdateConnectionStatus(id string, status string) error
 }
 
 // UpdateConnectionLastActive 更新WebSocket连接的最后活动时间
+//
+// @param id string 连接ID
+// @return error 错误信息
+//
 func (m *WebSocketMapper) UpdateConnectionLastActive(id string) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
@@ -47,6 +67,11 @@ func (m *WebSocketMapper) UpdateConnectionLastActive(id string) error {
 }
 
 // GetConnectionByID 根据ID获取WebSocket连接信息
+//
+// @param id string 连接ID
+// @return *model.ConnectionInfo 连接信息
+// @return error 错误信息，如果连接不存在返回自定义错误
+//
 func (m *WebSocketMapper) GetConnectionByID(id string) (*model.ConnectionInfo, error) {
 	if m.db == nil {
 		return nil, datasource.ErrNoDataSourceConn
@@ -63,6 +88,14 @@ func (m *WebSocketMapper) GetConnectionByID(id string) (*model.ConnectionInfo, e
 }
 
 // GetConnectionsByUserID 根据用户ID获取WebSocket连接列表
+//
+// @param userID string 用户ID
+// @param isPage bool 是否分页
+// @param pageNo int64 页码
+// @param pageSize int64 每页大小
+// @return dbpage.Info[model.ConnectionInfo] 连接列表
+// @return error 错误信息
+//
 func (m *WebSocketMapper) GetConnectionsByUserID(userID string, isPage bool, pageNo int64, pageSize int64) (dbpage.Info[model.ConnectionInfo], error) {
 	page := dbpage.Info[model.ConnectionInfo]{}
 	if m.db == nil {
@@ -106,6 +139,10 @@ func (m *WebSocketMapper) GetConnectionsByUserID(userID string, isPage bool, pag
 }
 
 // DeleteConnection 删除WebSocket连接信息
+//
+// @param id string 连接ID
+// @return error 错误信息
+//
 func (m *WebSocketMapper) DeleteConnection(id string) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn

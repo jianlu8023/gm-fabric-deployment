@@ -2,12 +2,14 @@ package server
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
 	"os"
 	"sync"
 
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/websocket"
 
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/captcha"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
@@ -30,6 +32,7 @@ type Control struct {
 	httpControl       *http.Control
 	websocketControl  *websocket.Control
 	jobControl        *job.Control
+	captchaControl    *captcha.Control
 	logger            *zap.SugaredLogger
 	once              sync.Once
 	mutex             sync.RWMutex
@@ -45,7 +48,6 @@ func NewServerControlFromFile() (*Control, error) {
 
 	flagsControl := flags.NewFlagsControl("1.0.0")
 	control.flagsControl = flagsControl
-
 	flagsControl.StartUp(func(err error) {
 		fmt.Printf("flgas control start up failed: %v\n", err)
 		os.Exit(-1)
@@ -110,6 +112,16 @@ func NewServerControlFromFile() (*Control, error) {
 			return nil, err
 		}
 		control.dockerControl = dockerControl
+	}
+
+	// 检查并创建验证码控制器
+	captchaConfig := configControl.GetCaptchaConfig()
+	if captchaConfig != nil && captchaConfig.Enabled {
+		captchaControl, err := captcha.NewCaptchaControl(captchaConfig, loggerControl)
+		if err != nil {
+			return nil, err
+		}
+		control.captchaControl = captchaControl
 	}
 
 	// 检查并创建HTTP控制器
@@ -197,6 +209,16 @@ func (c *Control) GetWebsocketControl() *websocket.Control {
 	return c.websocketControl
 }
 
+// GetCaptchaControl 获取验证码控制器
+// @return *captcha.Control 验证码控制器实例
+func (c *Control) GetCaptchaControl() *captcha.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.captchaControl
+}
+
+// GetFlagsControl 获取flags控制器
+// @return *flags.Control flags控制器
 func (c *Control) GetFlagsControl() *flags.Control {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -213,6 +235,7 @@ func (c *Control) GetFlagsControl() *flags.Control {
 // @param loggerControl *logger.Control 日志控制器
 // @param jobControl *job.Control 作业控制器
 // @param websocketControl *websocket.Control WebSocket控制器
+// @param flagsControl *flags.Control flags控制器
 // @return *Control 服务器控制器实例
 func NewServerControl(dockerControl *docker.Control,
 	configControl *config.Control,
@@ -224,6 +247,7 @@ func NewServerControl(dockerControl *docker.Control,
 	jobControl *job.Control,
 	websocketControl *websocket.Control,
 	flagsControl *flags.Control,
+	captchaControl *captcha.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -239,6 +263,7 @@ func NewServerControl(dockerControl *docker.Control,
 		jobControl:        jobControl,
 		websocketControl:  websocketControl,
 		flagsControl:      flagsControl,
+		captchaControl:    captchaControl,
 	}
 }
 
@@ -287,6 +312,16 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.jobControl.StartUp(failedFunc)
 		}
 
+		if c.captchaControl != nil {
+			c.logger.Debugf("[control] starting up captcha server...")
+			c.captchaControl.StartUp(failedFunc)
+		}
+
+		if c.websocketControl != nil {
+			c.logger.Debugf("[control] starting up websocket server...")
+			c.websocketControl.StartUp(failedFunc)
+		}
+
 		if c.httpControl != nil {
 			c.logger.Debugf("[control] starting up http server...")
 			// if runtime.GOOS == runtime.GOOS &&
@@ -304,11 +339,6 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.httpControl.StartUp(failedFunc)
 		}
 
-		if c.websocketControl != nil {
-			c.logger.Debugf("[control] starting up websocket server...")
-			c.websocketControl.StartUp(failedFunc)
-		}
-
 		c.logger.Infof("[control] all server started up successfully...")
 	})
 }
@@ -316,6 +346,17 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // Shutdown 关闭所有服务器组件
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
+
+	if c.websocketControl != nil {
+		c.logger.Debugf("[control] shutting down websocket server...")
+		_ = c.websocketControl.Shutdown()
+	}
+
+	if c.captchaControl != nil {
+		c.logger.Debugf("[control] shutting down captcha server...")
+		_ = c.captchaControl.Shutdown()
+	}
+
 	if c.httpControl != nil {
 		c.logger.Debugf("[control] shutting down http server...")
 		if err := c.httpControl.Shutdown(); err != nil {

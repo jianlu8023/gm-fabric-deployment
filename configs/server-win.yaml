@@ -71,3 +71,12 @@ logger:
     grpc: debug
     libp2p: info
     main: info
+captcha:
+  enabled: true
+  max_age: 300  # 验证码有效期5分钟
+  width: 240    # 验证码图片宽度
+  height: 80    # 验证码图片高度
+  max_skew: 0.7 # 最大倾斜度
+  dot_count: 20 # 干扰点数量
+  line_count: 3 # 干扰线数量
+  default_type: "number" # 默认验证码类型：string, number, math, chinese

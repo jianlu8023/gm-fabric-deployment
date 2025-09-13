@@ -83,6 +83,14 @@ func (m *Mapper) InsertOneWithCheck(imageInfo *Info) error {
 	})
 }
 
+// InsertOrUpdateOne 插入或更新Docker镜像信息
+// @description 在事务中插入或更新Docker镜像信息，根据名称和位置确定是否存在
+// @param info *Info 要插入或更新的镜像信息
+// @return error 操作结果错误信息
+// InsertOrUpdateOne 插入或更新Docker镜像信息
+// @description 在事务中插入或更新Docker镜像信息，根据名称和位置确定是否存在
+// @param info *Info 要插入或更新的镜像信息
+// @return error 操作结果错误信息
 func (m *Mapper) InsertOrUpdateOne(info *Info) error {
 	if m.dbConn == nil {
 		return datasource.ErrNoDataSourceConn

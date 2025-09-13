@@ -3,16 +3,17 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	dockerimage "github.com/docker/docker/api/types/image"
-	dockernetwork "github.com/docker/docker/api/types/network"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/router"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
+
+	dockerimage "github.com/docker/docker/api/types/image"
+	dockernetwork "github.com/docker/docker/api/types/network"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/router"
+	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/image"
 	modelnetwork "github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/network"
@@ -99,6 +100,7 @@ func main() {
 			serverControl.GetDatasourceControl(),
 			serverControl.GetWebsocketControl(),
 			serverControl.GetHttpControl(),
+			serverControl.GetCaptchaControl(),
 		))
 	}
 

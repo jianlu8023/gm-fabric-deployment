@@ -8,11 +8,21 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
 )
 
+// SSEService SSE服务
+// @description 提供Server-Sent Events功能的服务，用于实时推送消息
+// @struct
+// @property *Service 基础服务
+// @property sseMapper *mapper.SSEMapper SSE映射器
 type SSEService struct {
 	*Service
 	sseMapper *mapper.SSEMapper
 }
 
+// NewSSEService 创建SSE服务实例
+// @description 创建并返回一个新的SSE服务实例
+// @param baseService *Service 基础服务
+// @param sseMapper *mapper.SSEMapper SSE映射器
+// @return *SSEService SSE服务实例
 func NewSSEService(baseService *Service, sseMapper *mapper.SSEMapper) *SSEService {
 	return &SSEService{
 		Service:   baseService,
@@ -20,6 +30,9 @@ func NewSSEService(baseService *Service, sseMapper *mapper.SSEMapper) *SSEServic
 	}
 }
 
+// SSE 处理SSE连接请求
+// @description 处理客户端的SSE连接请求，发送示例消息
+// @param ctx *gin.Context Gin上下文
 func (s *SSEService) SSE(ctx *gin.Context) {
 	s.logger.Debugf("received sse request...")
 	if err := sse.Encode(ctx.Writer, sse.Event{

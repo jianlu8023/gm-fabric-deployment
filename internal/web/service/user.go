@@ -14,12 +14,24 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/jwt"
 )
 
+// UserService 用户服务
+// @description 提供用户相关的服务功能，如用户注册、登录等
+// @struct
+// @property *Service 基础服务
+// @property userMapper *mapper.UserMapper 用户映射器
+// @property sessionManager jwt.SessionManager 会话管理器
 type UserService struct {
 	*Service
 	userMapper     *mapper.UserMapper
 	sessionManager jwt.SessionManager
 }
 
+// NewUserService 创建用户服务实例
+// @description 创建并返回一个新的用户服务实例
+// @param baseService *Service 基础服务
+// @param userMapper *mapper.UserMapper 用户映射器
+// @param sessionManager jwt.SessionManager 会话管理器
+// @return *UserService 用户服务实例
 func NewUserService(baseService *Service, userMapper *mapper.UserMapper, sessionManager jwt.SessionManager) *UserService {
 	return &UserService{
 		Service:        baseService,
@@ -28,6 +40,10 @@ func NewUserService(baseService *Service, userMapper *mapper.UserMapper, session
 	}
 }
 
+// RegisterUser 用户注册服务
+// @description 处理用户注册请求，验证用户邮箱是否已存在，创建新用户
+// @param ctx *gin.Context Gin上下文
+// @param req *request.UserRegisterRequest 用户注册请求参数
 func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRequest) {
 	s.logger.Debugf("received register user request: %v", req)
 
@@ -61,6 +77,9 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 }
 
 // LoginUser 处理用户登录请求
+// @description 处理用户登录请求，验证用户凭据，生成JWT令牌和会话
+// @param ctx *gin.Context Gin上下文
+// @param req *request.UserLoginRequest 用户登录请求参数
 func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest) {
 	s.logger.Debugf("received login user request: %v", req)
 
