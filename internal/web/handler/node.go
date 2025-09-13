@@ -66,6 +66,8 @@ func (h *NodeHandler) NodeListHandler(ctx *gin.Context) {
 	req := new(request.NodeListRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
 		h.logger.Errorf("binding request failed: %v", err)
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Infof("validation errors: %v", messages)
 		webhhtp.FailedResponse(ctx, webhhtp.NewError(webhhtp.InvalidParameter, webhhtp.ErrMsgInvalidParameter))
 		return
 	}

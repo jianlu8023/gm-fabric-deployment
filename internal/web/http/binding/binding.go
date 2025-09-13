@@ -3,6 +3,7 @@ package binding
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 // BindFormData 绑定表单数据
@@ -13,7 +14,13 @@ import (
 // @return error 绑定过程中发生的错误，成功则返回nil
 func BindFormData(ctx *gin.Context, body BodyLegal) error {
 	if err := ctx.ShouldBindWith(body, binding.Form); err != nil {
-		return err
+		// 检查是否是validator.ValidationErrors错误
+		if IsValidationErrors(err) {
+			return NewValidationErrors(err.(validator.ValidationErrors))
+		}
+
+		// 其他错误作为参数验证错误处理
+		return NewInvalidValidationError(err)
 	}
 	return nil
 }
@@ -26,7 +33,13 @@ func BindFormData(ctx *gin.Context, body BodyLegal) error {
 // @return error 绑定过程中发生的错误，成功则返回nil
 func BindMultiPartForm(ctx *gin.Context, body BodyLegal) error {
 	if err := ctx.ShouldBindWith(body, binding.FormMultipart); err != nil {
-		return err
+		// 检查是否是validator.ValidationErrors错误
+		if IsValidationErrors(err) {
+			return NewValidationErrors(err.(validator.ValidationErrors))
+		}
+
+		// 其他错误作为参数验证错误处理
+		return NewInvalidValidationError(err)
 	}
 	return nil
 }
@@ -39,7 +52,13 @@ func BindMultiPartForm(ctx *gin.Context, body BodyLegal) error {
 // @return error 绑定过程中发生的错误，成功则返回nil
 func BindQuery(ctx *gin.Context, body BodyLegal) error {
 	if err := ctx.ShouldBindWith(body, binding.Query); err != nil {
-		return err
+		// 检查是否是validator.ValidationErrors错误
+		if IsValidationErrors(err) {
+			return NewValidationErrors(err.(validator.ValidationErrors))
+		}
+
+		// 其他错误作为参数验证错误处理
+		return NewInvalidValidationError(err)
 	}
 	return nil
 }
@@ -52,8 +71,13 @@ func BindQuery(ctx *gin.Context, body BodyLegal) error {
 // @return error 绑定过程中发生的错误，成功则返回nil
 func BindJSON(ctx *gin.Context, body BodyLegal) error {
 	if err := ctx.ShouldBindWith(body, binding.JSON); err != nil {
-		return err
+		// 检查是否是validator.ValidationErrors错误
+		if IsValidationErrors(err) {
+			return NewValidationErrors(err.(validator.ValidationErrors))
+		}
+
+		// 其他错误作为参数验证错误处理
+		return NewInvalidValidationError(err)
 	}
 	return nil
-
 }

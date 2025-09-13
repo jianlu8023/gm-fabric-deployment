@@ -1,7 +1,7 @@
 package request
 
 import (
-	validation "github.com/go-ozzo/ozzo-validation/v4"
+	// validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 )
@@ -12,12 +12,12 @@ type UserRegisterRequest struct {
 	Email    string `json:"email,omitempty" yaml:"email,omitempty" form:"email" binding:"required,email"`
 }
 
-func (u UserRegisterRequest) Valid() error {
-	err := validation.ValidateStruct(u,
-		validation.Field(&u.Username, validation.Required, validation.Nil),
-	)
-	return err
-}
+// func (u UserRegisterRequest) Valid() error {
+// 	err := validation.ValidateStruct(u,
+// 		validation.Field(&u.Username, validation.Required, validation.Nil),
+// 	)
+// 	return err
+// }
 
 func (u UserRegisterRequest) String() string {
 	bytes, _ := json.Marshal(u)
