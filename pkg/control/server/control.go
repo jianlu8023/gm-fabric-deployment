@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/version"
 	"os"
 	"sync"
 
@@ -46,7 +47,7 @@ func NewServerControlFromFile() (*Control, error) {
 	// control.mutex.Lock()
 	// defer control.mutex.Unlock()
 
-	flagsControl := flags.NewFlagsControl("1.0.0")
+	flagsControl := flags.NewFlagsControl(version.Version)
 	control.flagsControl = flagsControl
 	flagsControl.StartUp(func(err error) {
 		fmt.Printf("flgas control start up failed: %v\n", err)

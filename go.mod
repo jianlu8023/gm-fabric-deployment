@@ -45,6 +45,7 @@ require (
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-ipfs-api v0.7.0
 	github.com/ipfs/kubo v0.28.0
+	github.com/jessevdk/go-flags v1.6.1 // flags增强 `short:"-v" long:"--version"  required:"true" default:"default"`
 	github.com/jianlu8023/go-logger/v2 v2.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-libp2p v0.40.0
@@ -111,7 +112,6 @@ require (
 	// github.com/fsnotify/fsnotify v1.9.0 // 监听文件变化
 	// github.com/mitchellh/go-homedir v1.1.0 // 获取home目录 为什么不适用os/user(需要cgo交叉编译)
 	// github.com/gocolly/colly/v2 v2.1.0 // 爬虫
-	// github.com/jessevdk/go-flags v1.6.1 // flags增强 `short:"-v" long:"--version"  required:"true" default:"default"`
 	gorm.io/gorm v1.30.0
 )
 

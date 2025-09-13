@@ -171,7 +171,7 @@ func (c *Control) PrintHelp() {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	fmt.Println("使用方法:")
-	c.flags.flagSet.PrintDefaults()
+	c.flags.parser.WriteHelp(os.Stdout)
 }
 
 // IsParsed 检查命令行参数是否已解析

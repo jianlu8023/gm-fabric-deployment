@@ -1,9 +1,10 @@
 package flags
 
 import (
-	"flag"
 	"fmt"
 	"strings"
+
+	"github.com/jessevdk/go-flags"
 )
 
 var _defaultConfig = "configs/default.yaml"
@@ -19,19 +20,17 @@ var _defaultConfig = "configs/default.yaml"
 // @field Version 是否显示版本信息
 // @field OtherFlags 存储其他自定义命令行参数
 // @field Parsed 是否已解析命令行参数
-// @field mutex 用于保证并发安全的互斥锁
-// @field flagSet 自定义的flag集合，避免使用全局flag
-
+// @field parser go-flags解析器
 type Flags struct {
-	ConfigPath string // 配置文件路径
-	ConfigType string // 配置文件类型(dev, prod等)
-	// LogLevel    string            // 日志级别
-	// LogFile     string            // 日志文件路径
-	Debug      bool              // 是否启用调试模式
-	Version    bool              // 是否显示版本信息
+	ConfigPath string `long:"config" short:"c" description:"配置文件路径: configs/default.yaml" default:"configs/default.yaml"`
+	ConfigType string `long:"type" short:"t" description:"配置文件类型: dev 或 prod" default:""`
+	// LogLevel    string            `long:"loglevel" description:"日志级别: debug, info, warn, error, fatal"`
+	// LogFile     string            `long:"logfile" description:"日志文件路径: ./logs/app.log"`
+	Debug      bool              `long:"debug" short:"d" description:"启用调试模式"`
+	Version    bool              `long:"version" short:"v" description:"显示版本信息"`
 	OtherFlags map[string]string // 存储其他自定义命令行参数
 	Parsed     bool              // 是否已解析命令行参数
-	flagSet    *flag.FlagSet     // 自定义的flag集合，避免使用全局flag
+	parser     *flags.Parser     // go-flags解析器
 }
 
 // newFlags 创建一个新的Flags实例
@@ -39,8 +38,6 @@ type Flags struct {
 // @description 初始化Flags结构体并设置默认值
 func newFlags() *Flags {
 	// fmt.Printf("starting new Flags...\n")
-	flagSet := flag.NewFlagSet("gm-fabric-deployment", flag.ExitOnError)
-
 	f := &Flags{
 		ConfigPath: _defaultConfig, // 默认配置文件路径
 		ConfigType: "",             // 默认不指定配置类型
@@ -50,25 +47,19 @@ func newFlags() *Flags {
 		Version:    false, // 默认不显示版本信息
 		OtherFlags: make(map[string]string),
 		Parsed:     false,
-		flagSet:    flagSet,
 	}
 
-	// 注册标准命令行参数
-	// fmt.Printf("starting register standard flags...\n")
-	f.registerStandardFlags()
+	// 创建go-flags解析器，添加IgnoreUnknown选项以忽略未知标志
+	f.parser = flags.NewParser(f, flags.Default|flags.IgnoreUnknown|flags.HelpFlag)
 
 	return f
 }
 
-// registerStandardFlags 注册标准命令行参数到flagSet
+// registerStandardFlags 注册标准命令行参数
 // @description 为Flags实例注册内置的标准命令行参数
+// 注意：go-flags使用结构体标签定义flag，此函数保留以保持API兼容性
 func (f *Flags) registerStandardFlags() {
-	f.flagSet.StringVar(&f.ConfigPath, "config", f.ConfigPath, "配置文件路径: configs/default.yaml")
-	f.flagSet.StringVar(&f.ConfigType, "type", f.ConfigType, "配置文件类型: dev 或 prod")
-	// f.flagSet.StringVar(&f.LogLevel, "loglevel", f.LogLevel, "日志级别: debug, info, warn, error, fatal")
-	// f.flagSet.StringVar(&f.LogFile, "logfile", f.LogFile, "日志文件路径: ./logs/app.log")
-	f.flagSet.BoolVar(&f.Debug, "debug", f.Debug, "启用调试模式")
-	f.flagSet.BoolVar(&f.Version, "version", f.Version, "显示版本信息")
+	// 无需实现，go-flags使用结构体标签自动注册flag
 }
 
 // Parse 解析命令行参数
@@ -77,14 +68,22 @@ func (f *Flags) registerStandardFlags() {
 // @description 解析命令行参数并设置到Flags结构体中
 func (f *Flags) Parse(args []string) error {
 	// fmt.Printf("starting parse flags...\n")
-	if err := f.flagSet.Parse(args); err != nil {
+	// 使用go-flags解析命令行参数
+	remainingArgs, err := f.parser.ParseArgs(args)
+	// 判断是否是用户请求输出help
+	if err != nil && !flags.WroteHelp(err) {
+		// 检查是否是帮助请求或版本请求的错误
+		// if flags.WroteHelp(err) {
+		// 	用户请求了帮助信息，这不是真正的错误
+		// return nil
+		// }
 		return fmt.Errorf("解析命令行参数失败: %w", err)
 	}
 
 	f.Parsed = true
 
-	// 处理非flag参数
-	remainingArgs := f.flagSet.Args()
+	// 处理剩余的非flag参数
+	// go-flags会自动处理--key=value格式的参数，但这里保留以保持与原代码的兼容性
 	for i := 0; i < len(remainingArgs); i++ {
 		arg := remainingArgs[i]
 		// 处理格式为--key=value的参数
@@ -201,6 +200,6 @@ func (f *Flags) String() string {
 	builder.WriteString("}")
 	builder.WriteString(", Parsed=")
 	builder.WriteString(fmt.Sprintf("%v", f.Parsed))
-	builder.WriteString(")")
+	builder.WriteString("}")
 	return builder.String()
 }
