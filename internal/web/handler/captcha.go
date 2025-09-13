@@ -66,7 +66,7 @@ func (c *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
 
 	// 绑定请求参数
 	req := new(request.CaptchaRequest)
-	if err := binding.BindJSON(ctx, req); err != nil {
+	if err := binding.BindMultiPartForm(ctx, req); err != nil {
 		c.logger.Errorf("绑定验证验证码请求参数失败: %v", err)
 		webhttp.FailedResponseWithMessage(ctx, webhttp.InvalidParameter, "绑定验证验证码参数失败")
 		return

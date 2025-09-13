@@ -1,0 +1,12 @@
+method: post
+url: "{{addr}}/{{contextpath}}/captcha/validate"
+requestBody:
+  type: multipart/form-data
+  parameters:
+    - name: captchaId
+      value: ORzb1fTV3sDcaVOKD8Vj
+      type: text
+    - name: code
+      value: "984725"
+      type: text
+  data: "{\r\n    \"captchaId\":\"\"\r\n}"
