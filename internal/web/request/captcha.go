@@ -13,7 +13,7 @@ import (
 // @property height int 验证码图片高度
 type CaptchaRequest struct {
 	CaptchaId string `form:"captchaId" json:"captchaId"`
-	Code      string `form:"code" json:"code" binding:"required,min=4,max=6"`
+	Code      string `form:"code" json:"code" binding:"required,min=4,max=6"` // gin 也使用这个库`validate:"min=200"`参数错误时，返回InvalidValidationError类型；校验错误时返回ValidationErrors
 	// CaptchaType string `form:"captchaType" json:"captchaType" binding:"omitempty,oneof=string math chinese"`
 	// Width       int    `form:"width" json:"width" binding:"omitempty,min=80,max=400"`
 	// Height      int    `form:"height" json:"height" binding:"omitempty,min=40,max=200"`

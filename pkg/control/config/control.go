@@ -92,6 +92,14 @@ func (c *Control) GetCaptchaConfig() *CaptchaConfig {
 	return c.config.CaptchaConfig
 }
 
+// GetEmailConfig 获取邮件配置
+// @return *EmailConfig 邮件配置
+func (c *Control) GetEmailConfig() *EmailConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.EmailConfig
+}
+
 // Flush 重新加载配置文件
 // @description 从配置文件重新加载配置
 // @return error 重新加载过程中的错误

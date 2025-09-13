@@ -5,36 +5,39 @@ go 1.22.0
 toolchain go1.22.10
 
 replace (
+	github.com/Jeffail/gabs/v2 => github.com/Jeffail/gabs/v2 v2.7.0
+	github.com/araddon/dateparse => github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/docker/docker => github.com/docker/docker v28.0.1+incompatible
 	github.com/gin-contrib/cors => github.com/gin-contrib/cors v1.7.3
 	github.com/gin-contrib/gzip => github.com/gin-contrib/gzip v1.2.2
 	github.com/gin-contrib/requestid => github.com/gin-contrib/requestid v1.0.4
 	github.com/gin-contrib/sse => github.com/gin-contrib/sse v1.0.0
+	github.com/go-ozzo/ozzo-validation/v4 => github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/golang-jwt/jwt/v5 => github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.3
 	github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
+	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
+	github.com/mitchellh/mapstructure v1.4.2 => github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
+	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
+	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
 	google.golang.org/genproto/googleapis/api => google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9
 	gorm.io/gorm => gorm.io/gorm v1.30.0
 
 )
 
 require (
+	github.com/Jeffail/gabs/v2 v2.7.0
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/docker/docker v20.10.26+incompatible
 	//github.com/docker/docker v28.0.1+incompatible
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-contrib/gzip v1.2.2
 	github.com/gin-contrib/requestid v1.0.4
-	// github.com/gin-contrib/cache v1.3.1
-	// github.com/gin-contrib/sessions v1.0.2
-	// github.com/gin-contrib/secure v1.1.1
-	// github.com/gin-contrib/location v1.0.2
-	// github.com/gin-contrib/authz v1.0.3
-	// github.com/gin-contrib/i18n v1.2.2
-	// github.com/gin-contrib/timeout v1.0.2
 	github.com/gin-contrib/sse v1.0.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/glebarez/sqlite v1.11.0
+	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
@@ -46,21 +49,69 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-libp2p v0.40.0
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0
+	github.com/mingrammer/commonregex v1.0.1
+	github.com/mitchellh/mapstructure v1.4.2
 	github.com/mojocn/base64Captcha v1.3.8
 	github.com/multiformats/go-multiaddr v0.14.0
+	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/shirou/gopsutil/v4 v4.24.10
 	github.com/spf13/viper v1.9.0
 	github.com/stretchr/testify v1.10.0
+	github.com/valyala/bytebufferpool v1.0.0
+	github.com/valyala/fasttemplate v1.2.2
+	github.com/valyala/quicktemplate v1.8.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.36.5
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/postgres v1.4.5
+	// github.com/gin-contrib/cache v1.3.1
+	// github.com/gin-contrib/sessions v1.0.2
+	// github.com/gin-contrib/secure v1.1.1
+	// github.com/gin-contrib/location v1.0.2
+	// github.com/gin-contrib/authz v1.0.3
+	// github.com/gin-contrib/i18n v1.2.2
+	// github.com/gin-contrib/timeout v1.0.2
+	// github.com/rsms/gotalk v1.3.7
 	// gorm.io/driver/sqlite v1.6.0
 	// gorm.io/driver/gaussdb v0.1.0 // toolchain go1.23.4 github.com/HuaweiCloudDeveloper/gaussdb-go
 	// gorm.io/driver/sqlserver v1.6.1
 	// gorm.io/driver/clickhouse v0.7.0
+	// github.com/RoaringBitmap/roaring/v2 v2.10.0 // bitmap
+	// github.com/gorilla/schema v1.4.1 // schema 表单处理
+	// github.com/gorilla/securecookie v1.1.2 // 加密cookie
+	// github.com/gorilla/sessions v1.3.0 // session
+	// github.com/markbates/goth v1.81.0 // 第三方认证
+	// github.com/charmbracelet/bubbletea v1.3.4 // 控制台输出  spinner包 只显示文字
+	// github.com/Jeffail/tunny v0.1.4 // tunny 同步方式线程池
+	// github.com/panjf2000/ants/v2 v2.11.3 // ants 异步方式线程池
+	// github.com/reactivex/rxgo/v2 v2.5.0
+	// github.com/PuerkitoBio/goquery v1.9.3 //类似于jquery
+	// github.com/bamzi/jobrunner v1.0.0 // 运行job
+	// github.com/robfig/cron/v3 v3.0.1 // cron 定时运行
+	// github.com/urfave/negroni/v3 v3.1.1 // http中间件
+	// github.com/casbin/casbin/v2 v2.122.0 // 权限控制
+	// github.com/smallnest/rpcx v1.8.32 // rpc库 toolchain go1.22.1
+	// net/rpc/jsonrpc // jsonrpc 1.0 标准库
+	// github.com/nutsdb/nutsdb v1.0.4 // 单机数据库
+	// github.com/rs/zerolog v1.34.0 // 日志库
+	// gonum.org/v1/plot v0.15.2 // plot 画图库
+	// gopkg.in/h2non/gentleman.v2 // http库 https://github.com/h2non/gentleman
+	// https://github.com/Knetic/govaluate // eval功能
+	// github.com/jinzhu/copier v0.4.0 // copy的功能 结构体 等值拷贝
+	// github.com/dave/jennifer v1.7.1 // 代码生成 链式调用
+	// github.com/google/go-cmp v0.7.0 // 比较方法
+	// github.com/golang-module/carbon/v2 v2.5.9 // 时间格式化
+	// github.com/jordan-wright/email v4.0.0
+	// github.com/vardius/message-bus v1.1.5 // 消息通信
+	// github.com/ThreeDotsLabs/watermill v1.4.7 // 异步消息通信
+	// github.com/joho/godotenv v1.5.1 // 读取.env 文件
+	// github.com/spf13/cast v1.10.0 // cast方法
+	// github.com/fsnotify/fsnotify v1.9.0 // 监听文件变化
+	// github.com/mitchellh/go-homedir v1.1.0 // 获取home目录 为什么不适用os/user(需要cgo交叉编译)
+	// github.com/gocolly/colly/v2 v2.1.0 // 爬虫
+	// github.com/jessevdk/go-flags v1.6.1 // flags增强 `short:"-v" long:"--version"  required:"true" default:"default"`
 	gorm.io/gorm v1.30.0
 )
 
@@ -173,12 +224,12 @@ require (
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-runewidth v0.0.10 // indirect
 	github.com/miekg/dns v1.1.63 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/mitchellh/mapstructure v1.4.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -236,6 +287,7 @@ require (
 	github.com/quic-go/webtransport-go v0.8.1-0.20241018022711-4ac2c9250e66 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
+	github.com/rivo/uniseg v0.1.0 // indirect
 	github.com/rs/cors v1.10.1 // indirect
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect

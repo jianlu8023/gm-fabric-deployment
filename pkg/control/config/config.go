@@ -352,6 +352,26 @@ func (i IpfsConfig) String() string {
 	return string(bytes)
 }
 
+// EmailConfig 邮件配置
+type EmailConfig struct {
+	Enabled       bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用
+	SmtpHost      string `json:"smtp_host,omitempty" yaml:"smtp_host,omitempty" mapstructure:"smtp_host"`                // SMTP服务器地址
+	SmtpPort      int    `json:"smtp_port,omitempty" yaml:"smtp_port,omitempty" mapstructure:"smtp_port"`                // SMTP服务器端口
+	Username      string `json:"username,omitempty" yaml:"username,omitempty" mapstructure:"username"`                   // SMTP用户名
+	Password      string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"`                   // SMTP密码
+	SenderAddress string `json:"sender_address,omitempty" yaml:"sender_address,omitempty" mapstructure:"sender_address"` // 发件人地址
+	SenderName    string `json:"sender_name,omitempty" yaml:"sender_name,omitempty" mapstructure:"sender_name"`          // 发件人名称
+	TlsEnabled    bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`          // 是否启用TLS
+	Debug         bool   `json:"debug,omitempty" yaml:"debug,omitempty" mapstructure:"debug"`                            // 是否开启调试模式
+}
+
+// String EmailConfig的字符串表示
+// @return string EmailConfig的字符串表示
+func (e EmailConfig) String() string {
+	bytes, _ := json.MarshalIndent(e, "", " ")
+	return string(bytes)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig       *GrpcConfig       `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -362,6 +382,7 @@ type Config struct {
 	DockerConfig     *DockerConfig     `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`             // docker配置
 	IpfsConfig       *IpfsConfig       `json:"ipfs_config,omitempty" yaml:"ipfs_config,omitempty" mapstructure:"ipfs"`                   // IPFS配置
 	CaptchaConfig    *CaptchaConfig    `json:"captcha_config,omitempty" yaml:"captcha_config,omitempty" mapstructure:"captcha"`          // 验证码配置
+	EmailConfig      *EmailConfig      `json:"email_config,omitempty" yaml:"email_config,omitempty" mapstructure:"email"`                // 邮件配置
 }
 
 // String 返回配置的字符串表示
