@@ -158,6 +158,7 @@ type HttpServerConfig struct {
 	TlsCertFile    string `yaml:"tls_cert_file,omitempty" json:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `            // TLS证书文件
 	TlsKeyFile     string `yaml:"tls_key_file,omitempty" json:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
 	TlsRCACertFile string `yaml:"tls_rca_cert_file,omitempty" json:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
+	Pprof          bool   `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                     // 是否启用pprof
 }
 
 // String 返回配置的字符串表示

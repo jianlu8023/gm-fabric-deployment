@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"strings"
 	"sync"
@@ -228,6 +229,28 @@ func (c *Control) registerDefaultRouter() {
 			})
 		})
 	}
+
+	// 如果启用了pprof，则注册pprof路由
+	if c.serverConfig.Pprof {
+		c.logger.Infof("[control] pprof enabled, registering pprof routes")
+		pprofUri := fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, "debug/pprof")
+		pprofRouter := c.ginRouter.Group(pprofUri)
+		{
+			pprofRouter.GET("/", gin.WrapF(pprof.Index))
+			pprofRouter.GET("/cmdline", gin.WrapF(pprof.Cmdline))
+			pprofRouter.GET("/profile", gin.WrapF(pprof.Profile))
+			pprofRouter.POST("/symbol", gin.WrapF(pprof.Symbol))
+			pprofRouter.GET("/symbol", gin.WrapF(pprof.Symbol))
+			pprofRouter.GET("/trace", gin.WrapF(pprof.Trace))
+			pprofRouter.GET("/allocs", gin.WrapF(pprof.Handler("allocs").ServeHTTP))
+			pprofRouter.GET("/block", gin.WrapF(pprof.Handler("block").ServeHTTP))
+			pprofRouter.GET("/goroutine", gin.WrapF(pprof.Handler("goroutine").ServeHTTP))
+			pprofRouter.GET("/heap", gin.WrapF(pprof.Handler("heap").ServeHTTP))
+			pprofRouter.GET("/mutex", gin.WrapF(pprof.Handler("mutex").ServeHTTP))
+			pprofRouter.GET("/threadcreate", gin.WrapF(pprof.Handler("threadcreate").ServeHTTP))
+		}
+	}
+
 	c.logger.Debugf("[control] default router registered successfully")
 }
 
