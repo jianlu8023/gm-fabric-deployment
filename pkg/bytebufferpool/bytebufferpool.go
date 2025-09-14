@@ -11,7 +11,10 @@ func ByteBufferPoolExample() {
 	b.WriteByte(',')
 	b.WriteString(" world!")
 
-	fmt.Println(b.String())
+	fmt.Println("b: ", b.String())
 
 	bytebufferpool.Put(b)
+
+	b1 := bytebufferpool.Get()
+	fmt.Println("b1: ", b1.String())
 }
