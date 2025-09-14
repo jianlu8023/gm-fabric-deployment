@@ -10,7 +10,7 @@ datasource:
   max_open_conn: 50
   log_in_console: false
 docker:
-  enabled: true
+  enabled: false
   host: tcp://192.168.58.110:2375
   default_timeout: 5
 grpc:
