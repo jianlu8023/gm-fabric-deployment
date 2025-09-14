@@ -1,11 +1,10 @@
 package handler
 
 import (
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http/binding"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/http/binding"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
@@ -18,19 +17,19 @@ import (
 type UserHandler struct {
 	// Handler 基础处理器，提供日志功能
 	*Handler
-	// userService 用户服务，处理用户相关的业务逻辑
-	userService *service.UserService
+	// service 用户服务，处理用户相关的业务逻辑
+	service *service.UserService
 }
 
 // NewUserHandler 创建用户处理器
 //
 // @param baseHandler *Handler 基础处理器
-// @param userService *service.UserService 用户服务
+// @param service *service.UserService 用户服务
 // @return *UserHandler 用户处理器实例
 func NewUserHandler(baseHandler *Handler, userService *service.UserService) *UserHandler {
 	return &UserHandler{
-		Handler:     baseHandler,
-		userService: userService,
+		Handler: baseHandler,
+		service: userService,
 	}
 }
 
@@ -46,16 +45,16 @@ func NewUserHandler(baseHandler *Handler, userService *service.UserService) *Use
 // @param phone string 手机号 (可选)
 // @return JSON 注册结果
 func (h *UserHandler) RegisterUserHandler(ctx *gin.Context) {
-	h.logger.Debugf("register user handler...")
-	req := new(request.UserRegisterRequest)
+	h.logger.Debugf("received register user handler...")
 
+	req := new(request.UserRegisterRequest)
 	if err := binding.BindMultiPartForm(ctx, req); err != nil {
 		h.logger.Errorf("bind user register request failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.InvalidParameter, "绑定请求参数失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定请求参数失败")
 		return
 	}
 
-	h.userService.RegisterUser(ctx, req)
+	h.service.RegisterUser(ctx, req)
 }
 
 // LoginUserHandler 用户登录处理函数
@@ -69,16 +68,16 @@ func (h *UserHandler) RegisterUserHandler(ctx *gin.Context) {
 // @param code string 验证码 (必需)
 // @return JSON 登录结果和JWT令牌
 func (h *UserHandler) LoginUserHandler(ctx *gin.Context) {
-	h.logger.Debugf("login user handler...")
+	h.logger.Debugf("received login user handler...")
 	req := new(request.UserLoginRequest)
 
 	if err := binding.BindJSON(ctx, req); err != nil {
 		h.logger.Errorf("bind user login request failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.InvalidParameter, "绑定请求参数失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定请求参数失败")
 		return
 	}
 
-	h.userService.LoginUser(ctx, req)
+	h.service.LoginUser(ctx, req)
 }
 
 // Routers 获取用户相关路由列表
@@ -92,7 +91,7 @@ func (h *UserHandler) Routers() []commonhttp.RouterHandler {
 			Method:          http.MethodPost,
 			HandlerFunc:     h.RegisterUserHandler,
 			Enabled:         true,
-			Desc:            "register a user",
+			Desc:            "注册新用户",
 			EnableJWtVerify: false,
 		},
 		&commonhttp.MyRouter{
@@ -101,7 +100,7 @@ func (h *UserHandler) Routers() []commonhttp.RouterHandler {
 			Method:          http.MethodPost,
 			HandlerFunc:     h.LoginUserHandler,
 			Enabled:         true,
-			Desc:            "user login",
+			Desc:            "用户登录",
 			EnableJWtVerify: false,
 		},
 	}

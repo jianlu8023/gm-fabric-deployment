@@ -21,7 +21,6 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 
 	"github.com/gin-gonic/gin"
-	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"go.uber.org/zap"
@@ -163,14 +162,14 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.serverConfig.TlsEnabled {
 			c.logger.Infof("[control] start https server on %v", c.serverConfig.Address)
 			go func() {
-				if err := c.server.ListenAndServeTLS(c.serverConfig.TlsCertFile, c.serverConfig.TlsKeyFile); err != nil && !webhttp.IsHttpErrServerClosed(err) {
+				if err := c.server.ListenAndServeTLS(c.serverConfig.TlsCertFile, c.serverConfig.TlsKeyFile); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
 					failedFunc(err)
 				}
 			}()
 		} else {
 			c.logger.Infof("[control] start http server on %v", c.serverConfig.Address)
 			go func() {
-				if err := c.server.ListenAndServe(); err != nil && !webhttp.IsHttpErrServerClosed(err) {
+				if err := c.server.ListenAndServe(); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
 					failedFunc(err)
 				}
 			}()
@@ -224,7 +223,7 @@ func (c *Control) registerDefaultRouter() {
 		allRouterUri := fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, "routers")
 
 		c.ginRouter.GET(allRouterUri, func(ctx *gin.Context) {
-			webhttp.SuccessResponse(ctx, gin.H{
+			commonhttp.SuccessResponse(ctx, gin.H{
 				"routers": c.routers,
 			})
 		})

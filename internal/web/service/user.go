@@ -1,12 +1,12 @@
 package service
 
 import (
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/google/uuid"
-	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
@@ -53,11 +53,11 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 	}); err != nil {
 		if datasource.IsAlreadyExists(err) {
 			// 用户已存在，返回错误
-			webhttp.FailedResponseWithMessage(ctx, webhttp.EmailAlreadyExists, webhttp.ErrMsgEmailAlreadyExists)
+			http.FailedResponseWithMessage(ctx, http.EmailAlreadyExists, http.ErrMsgEmailAlreadyExists)
 			return
 		} else {
 			// 数据库查询错误，返回错误
-			webhttp.FailedResponseWithMessage(ctx, webhttp.DatabaseError, webhttp.ErrMsgDatabaseError)
+			http.FailedResponseWithMessage(ctx, http.DatabaseError, http.ErrMsgDatabaseError)
 			return
 		}
 	}
@@ -69,11 +69,11 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 
 	if err := s.userMapper.InsertOneUser(user); err != nil {
 		s.logger.Errorf("register user failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.BusinessLogicError, webhttp.ErrMsgBusinessLogicError)
+		http.FailedResponseWithMessage(ctx, http.BusinessLogicError, http.ErrMsgBusinessLogicError)
 		return
 	}
 
-	webhttp.SuccessResponse(ctx, user)
+	http.SuccessResponse(ctx, user)
 }
 
 // LoginUser 处理用户登录请求
@@ -86,7 +86,7 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 	// 验证请求参数
 	if !req.IsLegal() {
 		s.logger.Errorf("login request is illegal: %v", req)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.InvalidParameter, "输入参数不合法")
+		http.FailedResponseWithMessage(ctx, http.InvalidParameter, "输入参数不合法")
 		return
 	}
 
@@ -99,7 +99,7 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 		//	 return
 		// }
 		s.logger.Errorf("query user failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.DatabaseError, webhttp.ErrMsgDatabaseError)
+		http.FailedResponseWithMessage(ctx, http.DatabaseError, http.ErrMsgDatabaseError)
 		return
 	}
 
@@ -115,18 +115,18 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 	)
 	if err != nil {
 		s.logger.Errorf("generate token failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.BusinessLogicError, "生成认证令牌失败")
+		http.FailedResponseWithMessage(ctx, http.BusinessLogicError, "生成认证令牌失败")
 		return
 	}
 
 	if err = s.sessionManager.SetSession(sessionID, claims); err != nil {
 		s.logger.Errorf("set session failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.BusinessLogicError, "设置会话失败")
+		http.FailedResponseWithMessage(ctx, http.BusinessLogicError, "设置会话失败")
 		return
 	}
 
 	// 返回登录成功响应，包含JWT令牌
-	webhttp.SuccessResponse(ctx, map[string]string{
+	http.SuccessResponse(ctx, map[string]string{
 		"token":    token,
 		"user_id":  strconv.Itoa(int(user.AutoUid)),
 		"username": user.Username,

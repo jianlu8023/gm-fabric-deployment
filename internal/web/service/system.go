@@ -2,8 +2,8 @@ package service
 
 import (
 	"github.com/gin-gonic/gin"
-	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 	systeminfo "github.com/jianlu8023/gm-fabric-deployment/pkg/system/info"
 )
 
@@ -27,24 +27,24 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context) {
 	cpu, err := systeminfo.InitCPU()
 	if err != nil {
 		s.logger.Errorf("get cpu info failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.NormalFailed, "获取系统cpu信息失败")
+		http.FailedResponseWithMessage(ctx, http.NormalFailed, "获取系统cpu信息失败")
 		return
 	}
 
 	disk, err := systeminfo.InitDisk()
 	if err != nil {
 		s.logger.Errorf("get disk info failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.NormalFailed, "获取系统disk信息失败")
+		http.FailedResponseWithMessage(ctx, http.NormalFailed, "获取系统disk信息失败")
 		return
 	}
 	ram, err := systeminfo.InitRAM()
 	if err != nil {
 		s.logger.Errorf("get ram info failed: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.NormalFailed, "获取系统ram信息失败")
+		http.FailedResponseWithMessage(ctx, http.NormalFailed, "获取系统ram信息失败")
 		return
 	}
 
-	webhttp.SuccessResponse(ctx, gin.H{
+	http.SuccessResponse(ctx, gin.H{
 		"version": "1.0.0",
 		"os":      os,
 		"cpu":     cpu,

@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http/binding"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/http/binding"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
@@ -41,7 +41,7 @@ func NewWebSocketHandler(handler *Handler, service *service.WebSocketService) *W
 // @param nodeID string 目标节点ID (必需)
 // @return WebSocket连接 成功后建立WebSocket双向通信通道
 func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
-	h.logger.Infof("received websocket upgrade request...")
+	h.logger.Infof("received websocket upgrade handler...")
 
 	// 验证JWT和Session信息
 	userID, exists := ctx.Get("user_id")

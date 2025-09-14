@@ -41,10 +41,11 @@ func NewRouter(loggerControl *logger.Control,
 	baseService := service.NewService(webLogger)
 	baseMapper := mapper.NewMapper(webLogger, datasourceControl.GetConn())
 
-	nodeHandler := handler.NewNodeHandler(
+	libp2pNodeHandler := handler.NewLibp2pNodeHandler(
 		baseHandler,
 		service.NeeNodeService(baseService,
-			mapper.NewNodeMapper(baseMapper),
+			mapper.NewLibp2pNodeMapper(baseMapper),
+			libp2pControl,
 		),
 	)
 	userHandler := handler.NewUserHandler(
@@ -87,14 +88,43 @@ func NewRouter(loggerControl *logger.Control,
 			captchaControl),
 	)
 
+	dockerImageHandler := handler.NewDockerImageHandler(
+		baseHandler,
+		service.NewDockerImageService(
+			baseService,
+			mapper.NewDockerImageMapper(baseMapper),
+			dockerControl,
+		),
+	)
+	dockerNetworkHandler := handler.NewDockerNetworkHandler(
+		baseHandler,
+		service.NewDockerNetworkService(
+			baseService,
+			mapper.NewDockerNetworkMapper(baseMapper),
+			dockerControl,
+		),
+	)
+
+	grpcHandler := handler.NewGrpcHandler(
+		baseHandler,
+		service.NewGrpcService(
+			baseService,
+			mapper.NewGrpcMapper(baseMapper),
+			grpcControl,
+		),
+	)
+
 	result := make([]commonhttp.RouterHandler, 0, 64)
 	result = append(result, baseHandler.Routers()...)
 	result = append(result, userHandler.Routers()...)
 	result = append(result, captchaHandler.Routers()...)
-	result = append(result, nodeHandler.Routers()...)
+	result = append(result, libp2pNodeHandler.Routers()...)
 	result = append(result, sseHandler.Routers()...)
 	result = append(result, systemHandler.Routers()...)
 	result = append(result, websocketHandler.Routers()...)
+	result = append(result, dockerImageHandler.Routers()...)
+	result = append(result, dockerNetworkHandler.Routers()...)
+	result = append(result, grpcHandler.Routers()...)
 
 	return result
 }

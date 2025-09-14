@@ -76,3 +76,8 @@ func (g *GenerateCaptchaRequest) IsLegal() bool {
 	// }
 	return true
 }
+
+func (g *GenerateCaptchaRequest) String() string {
+	bytes, _ := json.Marshal(g)
+	return string(bytes)
+}

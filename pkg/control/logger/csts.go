@@ -10,4 +10,5 @@ const (
 	ModuleWebSocket  = "Websocket"
 	ModuleIpfs       = "Ipfs"
 	ModuleServer     = "Control"
+	ModuleCaptcha    = "Captcha"
 )

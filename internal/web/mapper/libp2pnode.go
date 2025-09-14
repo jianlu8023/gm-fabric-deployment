@@ -2,27 +2,28 @@ package mapper
 
 import (
 	"errors"
+	"math"
 
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/node"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/dbpage"
 	"gorm.io/gorm"
 )
 
-// NodeMapper 节点数据访问层结构体
+// Libp2pNodeMapper 节点数据访问层结构体
 //
 // @description 提供节点相关的数据访问操作
 // @struct
-type NodeMapper struct {
+type Libp2pNodeMapper struct {
 	*Mapper
 }
 
-// NewNodeMapper 创建一个新的NodeMapper实例
+// NewLibp2pNodeMapper 创建一个新的NodeMapper实例
 //
 // @param mapper *Mapper 基础Mapper
-// @return *NodeMapper NodeMapper实例
-func NewNodeMapper(mapper *Mapper) *NodeMapper {
-	return &NodeMapper{
+// @return *Libp2pNodeMapper NodeMapper实例
+func NewLibp2pNodeMapper(mapper *Mapper) *Libp2pNodeMapper {
+	return &Libp2pNodeMapper{
 		Mapper: mapper,
 	}
 }
@@ -35,19 +36,21 @@ func NewNodeMapper(mapper *Mapper) *NodeMapper {
 // @param pageSize int64 每页大小
 // @return dbpage.Info[node.Info] 节点列表
 // @return error 错误信息
-func (m *NodeMapper) NodeList(query node.Info, isPage bool, pageNo int64, pageSize int64) (dbpage.Info[node.Info], error) {
-	page := dbpage.Info[node.Info]{}
+func (m *Libp2pNodeMapper) NodeList(query model.Libp2pNode,
+	isPage bool, pageNo int, pageSize int,
+) (dbpage.Info[model.Libp2pNode], error) {
+	page := dbpage.Info[model.Libp2pNode]{}
 	if m.db == nil {
 		return page, datasource.ErrNoDataSourceConn
 	}
-	page.PageNo = pageNo
-	page.PageSize = pageSize
+	page.PageNo = int64(pageNo)
+	page.PageSize = int64(pageSize)
 
 	// 计算偏移量
 	offset := (pageNo - 1) * pageSize
 
 	// 构建查询
-	db := m.db.Model(&node.Info{}).Where(&query)
+	db := m.db.Model(&model.Libp2pNode{}).Where(&query)
 
 	// 查询总记录数
 	if err := db.Count(&page.Count).Error; err != nil {
@@ -56,14 +59,16 @@ func (m *NodeMapper) NodeList(query node.Info, isPage bool, pageNo int64, pageSi
 
 	// 计算最大页码
 	if page.Count > 0 {
-		page.MaxPage = (page.Count + pageSize - 1) / pageSize
+		page.MaxPage = int64(math.Ceil(float64(page.Count) / float64(page.PageSize)))
 	}
 
 	// 查询记录
-	records := make([]node.Info, 0)
+	records := make([]model.Libp2pNode, 0)
 	if isPage {
 		// 分页查询
-		if err := db.Offset(int(offset)).Limit(int(pageSize)).Find(&records).Error; err != nil {
+		if err := db.Offset(int(offset)).
+			Limit(int(pageSize)).
+			Find(&records).Error; err != nil {
 			return page, err
 		}
 	} else {
@@ -81,13 +86,13 @@ func (m *NodeMapper) NodeList(query node.Info, isPage bool, pageNo int64, pageSi
 //
 // @param record *node.Info 节点信息
 // @return error 错误信息，如果节点已存在返回ErrAlreadyExists
-func (m *NodeMapper) InsertOneWithCheck(record *node.Info) error {
+func (m *Libp2pNodeMapper) InsertOneWithCheck(record *model.Libp2pNode) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
 	return m.db.Transaction(func(tx *gorm.DB) error {
 		var count int64
-		if err := tx.Model(&node.Info{}).Where(&node.Info{
+		if err := tx.Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
 			NodeId: record.NodeId,
 		}).Count(&count).Error; err != nil {
 			return err
@@ -97,7 +102,8 @@ func (m *NodeMapper) InsertOneWithCheck(record *node.Info) error {
 			return datasource.ErrAlreadyExists
 		}
 		// 节点不存在，插入
-		if err := tx.Model(&node.Info{}).Create(record).Error; err != nil {
+		if err := tx.Model(&model.Libp2pNode{}).Create(record).
+			Error; err != nil {
 			return err
 		}
 		return nil
@@ -108,18 +114,19 @@ func (m *NodeMapper) InsertOneWithCheck(record *node.Info) error {
 //
 // @param record *node.Info 节点信息
 // @return error 错误信息
-func (m *NodeMapper) InsertOrUpdate(record *node.Info) error {
+func (m *Libp2pNodeMapper) InsertOrUpdate(record *model.Libp2pNode) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
 	return m.db.Transaction(func(tx *gorm.DB) error {
-		var existInfo node.Info
-		if err := tx.Model(&node.Info{}).Where(&node.Info{
+		var existInfo model.Libp2pNode
+		if err := tx.Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
 			NodeId: record.NodeId,
 		}).First(&existInfo).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 记录不存在
-				if err := tx.Model(&node.Info{}).Create(record).Error; err != nil {
+				if err := tx.Model(&model.Libp2pNode{}).
+					Create(record).Error; err != nil {
 					return err
 				}
 			} else {
@@ -128,7 +135,11 @@ func (m *NodeMapper) InsertOrUpdate(record *node.Info) error {
 		} else {
 			// 记录存在，更新
 			record.AutoUid = existInfo.AutoUid
-			if err := tx.Model(&node.Info{}).Where(&node.Info{AutoUid: record.AutoUid}).Updates(record).Error; err != nil {
+			if err := tx.Model(&model.Libp2pNode{}).
+				Where(&model.Libp2pNode{
+					AutoUid: record.AutoUid,
+				}).
+				Updates(record).Error; err != nil {
 				return err
 			}
 		}

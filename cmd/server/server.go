@@ -11,16 +11,10 @@ import (
 
 	dockerimage "github.com/docker/docker/api/types/image"
 	dockernetwork "github.com/docker/docker/api/types/network"
+	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/router"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/image"
-	modelnetwork "github.com/jianlu8023/gm-fabric-deployment/internal/web/model/docker/network"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model/node"
-
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
@@ -36,6 +30,8 @@ var (
 )
 
 func main() {
+	// 初始化自定义验证器
+	// binding.InitValidators()
 
 	serverControl, err := server.NewServerControlFromFile()
 	if err != nil {
@@ -80,18 +76,14 @@ func main() {
 
 	if serverControl.GetDatasourceControl() != nil {
 		serverControl.GetDatasourceControl().RegisterAutoMigrateTable(
-			&image.Info{},
-			&node.Info{},
-			&modelnetwork.Info{},
+			&model.DockerImage{},
+			&model.Libp2pNode{},
+			&model.DockerNetwork{},
 			&model.UserInfo{},
 		)
 	}
 
 	if serverControl.GetHttpControl() != nil {
-		serverControl.GetHttpControl().RegisterRouter(func() []commonhttp.RouterHandler {
-			return []commonhttp.RouterHandler{}
-		}())
-
 		serverControl.GetHttpControl().RegisterRouter(router.NewRouter(
 			serverControl.GetLoggerControl(),
 			serverControl.GetLibp2pControl(),
@@ -105,7 +97,7 @@ func main() {
 	}
 
 	serverControl.StartUp(func(err error) {
-		if err != nil && !http.IsHttpErrServerClosed(err) {
+		if err != nil && !commonhttp.IsHttpErrServerClosed(err) {
 			mainLogger.Errorf("start up failed: %v", err)
 			quit <- os.Interrupt
 		}
@@ -118,22 +110,23 @@ func main() {
 
 	// datasource
 	var (
-		imageMapper   *image.Mapper
-		nodeMapper    *mapper.NodeMapper
-		networkMapper *modelnetwork.Mapper
+		imageMapper   *mapper.DockerImageMapper
+		nodeMapper    *mapper.Libp2pNodeMapper
+		networkMapper *mapper.DockerNetworkMapper
 	)
 	{
-		imageMapper = image.NewImageMapper(serverControl.GetDatasourceControl().GetConn())
-		nodeMapper = mapper.NewNodeMapper(mapper.NewMapper(
+		baseMapper := mapper.NewMapper(
 			serverControl.GetLoggerControl().GenLogger(logger.ModuleDataSource),
-			serverControl.GetDatasourceControl().GetConn()),
-		)
-		networkMapper = modelnetwork.NewNetworkMapper(serverControl.GetDatasourceControl().GetConn())
+			serverControl.GetDatasourceControl().GetConn())
+		imageMapper = mapper.NewDockerImageMapper(baseMapper)
+		nodeMapper = mapper.NewLibp2pNodeMapper(baseMapper)
+
+		networkMapper = mapper.NewDockerNetworkMapper(baseMapper)
 	}
 
 	// libp2p
 	{
-		myself := node.NewNodeInfo()
+		myself := model.NewLibp2pNode()
 		myself.NodeId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
 		myself.IsAlive = sql.NullBool{Bool: true, Valid: true}
 		myself.IsMySelf = sql.NullBool{Bool: true, Valid: true}
@@ -149,7 +142,7 @@ func main() {
 			mainLogger.Debugf("received %v protocol node info message from %s content %v", protocolID, msg.From, string(msg.Content))
 			mainLogger.Infof("starting insert or update node info...")
 			// 返回节点信息
-			info := node.NewNodeInfo()
+			info := model.NewLibp2pNode()
 			info.NodeId = msg.From.String()
 			info.IsAlive = sql.NullBool{Bool: true, Valid: true}
 			info.LastAliveMessageTime = time.Now()
@@ -162,7 +155,7 @@ func main() {
 			mainLogger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
 			serverControl.GetLibp2pControl().DisconnectFromPeer(msg.From)
 			mainLogger.Infof("from connect peer list remove peer %v", msg.From)
-			info := node.NewNodeInfo()
+			info := model.NewLibp2pNode()
 			info.NodeId = msg.From.String()
 			info.IsAlive = sql.NullBool{Bool: false, Valid: true}
 			info.LastAliveMessageTime = time.Now()
@@ -182,7 +175,7 @@ func main() {
 			}
 
 			for _, net := range networks {
-				info := modelnetwork.NewNetworkInfo()
+				info := model.NewDockerNetwork()
 				info.NetworkName = net.Name
 				info.NetworkID = net.ID
 				info.NetworkCreateTime = net.Created
@@ -217,7 +210,7 @@ func main() {
 			}
 
 			for _, img := range imageList {
-				info := image.NewImageInfo()
+				info := model.NewDockerImage()
 				info.ImageName = img.RepoTags[0]
 				info.ImageId = img.ID
 				info.ImageCreated = img.Created
@@ -304,7 +297,7 @@ func main() {
 			mainLogger.Errorf("list docker images failed: %v", err)
 		} else {
 			for _, img := range imageList {
-				info := image.NewImageInfo()
+				info := model.NewDockerImage()
 				info.ImageName = img.RepoTags[0]
 				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
 				info.ImageId = img.ID
@@ -327,7 +320,7 @@ func main() {
 			mainLogger.Errorf("list docker networks failed: %v", err)
 		} else {
 			for _, net := range networkList {
-				info := modelnetwork.NewNetworkInfo()
+				info := model.NewDockerNetwork()
 				info.NetworkName = net.Name
 				info.NetworkID = net.ID
 				info.NetworkCreateTime = net.Created
@@ -358,7 +351,7 @@ func main() {
 
 	mainLogger.Infof("starting http server agagin...")
 	serverControl.GetHttpControl().StartUp(func(err error) {
-		if !http.IsHttpErrServerClosed(err) {
+		if !commonhttp.IsHttpErrServerClosed(err) {
 			mainLogger.Errorf("start http server err: %v", err)
 		}
 		quit <- os.Interrupt

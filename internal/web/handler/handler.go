@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
-	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 	"go.uber.org/zap"
 )
@@ -39,25 +38,25 @@ func (h *Handler) Routers() []commonhttp.RouterHandler {
 			Uri:    "/ping",
 			Method: http.MethodGet,
 			HandlerFunc: func(ctx *gin.Context) {
-				h.logger.Debugf("ping handler...")
-				webhttp.SuccessResponse(ctx, gin.H{
+				h.logger.Debugf("received ping handler...")
+				commonhttp.SuccessResponse(ctx, gin.H{
 					"request_id": requestid.Get(ctx),
 					"message":    "pong",
 				})
 			},
 			Enabled: true,
-			Desc:    "ping",
+			Desc:    "ping的请求",
 		},
 		&commonhttp.MyRouter{
 			Name:   "health",
 			Uri:    "/health",
 			Method: http.MethodGet,
 			HandlerFunc: func(ctx *gin.Context) {
-				h.logger.Debugf("health handler...")
-				webhttp.SuccessResponse(ctx, "ok")
+				h.logger.Debugf("received health handler...")
+				commonhttp.SuccessResponse(ctx, "ok")
 			},
 			Enabled: true,
-			Desc:    "health check",
+			Desc:    "检查系统是否正常对外服务",
 		},
 	}
 

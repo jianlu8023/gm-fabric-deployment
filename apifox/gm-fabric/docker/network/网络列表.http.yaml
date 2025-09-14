@@ -1,0 +1,13 @@
+method: get
+url: "{{addr}}/{{contextpath}}/docker/network/list?isPage=true&pageNo=1&pageSiz\
+  e=2&peerId=12D3KooWEeXfZpxfqwxFLJ2JYH21x85DnTMnCnmfUs4yQnCngM5T"
+parameters:
+  query:
+    - name: isPage
+      value: "true"
+    - name: pageNo
+      value: "1"
+    - name: pageSize
+      value: "2"
+    - name: peerId
+      value: 12D3KooWEeXfZpxfqwxFLJ2JYH21x85DnTMnCnmfUs4yQnCngM5T

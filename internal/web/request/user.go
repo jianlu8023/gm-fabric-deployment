@@ -19,12 +19,12 @@ type UserRegisterRequest struct {
 // 	return err
 // }
 
-func (u UserRegisterRequest) String() string {
+func (u *UserRegisterRequest) String() string {
 	bytes, _ := json.Marshal(u)
 	return string(bytes)
 }
 
-func (u UserRegisterRequest) IsLegal() bool {
+func (u *UserRegisterRequest) IsLegal() bool {
 	if str.IsBlank(u.Username) ||
 		str.IsBlank(u.Password) ||
 		str.IsBlank(u.Email) {
@@ -39,12 +39,12 @@ type UserLoginRequest struct {
 	Password string `json:"password,omitempty" yaml:"password,omitempty" form:"password" binding:"required"`
 }
 
-func (u UserLoginRequest) String() string {
+func (u *UserLoginRequest) String() string {
 	bytes, _ := json.Marshal(u)
 	return string(bytes)
 }
 
-func (u UserLoginRequest) IsLegal() bool {
+func (u *UserLoginRequest) IsLegal() bool {
 	if str.IsBlank(u.Username) ||
 		str.IsBlank(u.Password) {
 		return false

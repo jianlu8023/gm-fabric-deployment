@@ -4,7 +4,6 @@ package mapper
 //
 // @description 提供Server-Sent Events相关的数据访问操作
 // @struct
-//
 type SSEMapper struct {
 	*Mapper
 }
@@ -13,7 +12,6 @@ type SSEMapper struct {
 //
 // @param baseMapper *Mapper 基础Mapper
 // @return *SSEMapper SSEMapper实例
-//
 func NewSSEMapper(baseMapper *Mapper) *SSEMapper {
 	return &SSEMapper{
 		Mapper: baseMapper,

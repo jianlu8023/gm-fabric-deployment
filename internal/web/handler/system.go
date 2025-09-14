@@ -37,7 +37,7 @@ func NewSystemHandler(handler *Handler, service *service.SystemService) *SystemH
 // @url /api/v1/system/overview
 // @return JSON 系统概览信息，包括节点数量、容器状态、资源使用情况等
 func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
-	h.logger.Debugf("get system overview handler...")
+	h.logger.Debugf("received system overview handler...")
 	h.service.GetSystemOverview(ctx)
 }
 
@@ -51,7 +51,7 @@ func (h *SystemHandler) Routers() []commonhttp.RouterHandler {
 		Enabled:         true,
 		EnableJWtVerify: false,
 		Method:          http.MethodGet,
-		Desc:            "get system overview",
+		Desc:            "获取系统的总览",
 		HandlerFunc:     h.GetSystemOverview,
 	},
 	}

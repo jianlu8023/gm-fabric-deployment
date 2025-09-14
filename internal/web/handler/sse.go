@@ -38,7 +38,7 @@ func NewSSEHandler(baseHandler *Handler, sseService *service.SSEService) *SSEHan
 // @url /api/v1/sse
 // @return text/event-stream SSE事件流
 func (h *SSEHandler) SSE(ctx *gin.Context) {
-	h.logger.Debugf("starting sse handler...")
+	h.logger.Debugf("received sse handler...")
 	h.sseService.SSE(ctx)
 }
 

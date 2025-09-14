@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
+	"github.com/jianlu8023/gm-fabric-deployment/version"
 	"path/filepath"
 	"strings"
 
@@ -16,11 +18,7 @@ func main() {
 		return
 	}
 
-	loadConfig, err := config.NewConfigControl()
-	if err != nil {
-		fmt.Printf("load config failed: %v\n", err)
-		return
-	}
+	loadConfig := config.NewConfigControl(flags.NewFlagsControl(version.Version))
 	fmt.Println(loadConfig.GetConfig())
 }
 

@@ -4,16 +4,14 @@ import (
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/version"
 )
 
 func main() {
-
-	configControl, err := config.NewConfigControl()
-	if err != nil {
-		fmt.Printf("load config failed: %v\n", err)
-		return
-	}
+	flagsControl := flags.NewFlagsControl(version.Version)
+	configControl := config.NewConfigControl(flagsControl)
 
 	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	dockerConfig := &config.DockerConfig{

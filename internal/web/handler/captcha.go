@@ -1,11 +1,10 @@
 package handler
 
 import (
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http/binding"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/http/binding"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
@@ -46,7 +45,7 @@ func (c *CaptchaHandler) GenerateCaptchaHandler(ctx *gin.Context) {
 	req := new(request.GenerateCaptchaRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
 		c.logger.Errorf("绑定生成验证码请求参数失败: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.InvalidParameter, "绑定生成验证码参数失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定生成验证码参数失败")
 		return
 	}
 
@@ -68,7 +67,7 @@ func (c *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
 	req := new(request.CaptchaRequest)
 	if err := binding.BindMultiPartForm(ctx, req); err != nil {
 		c.logger.Errorf("绑定验证验证码请求参数失败: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.InvalidParameter, "绑定验证验证码参数失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定验证验证码参数失败")
 		return
 	}
 
@@ -91,7 +90,7 @@ func (c *CaptchaHandler) RefreshCaptchaHandler(ctx *gin.Context) {
 	req := new(request.GenerateCaptchaRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
 		c.logger.Errorf("绑定刷新验证码请求参数失败: %v", err)
-		webhttp.FailedResponseWithMessage(ctx, webhttp.InvalidParameter, "绑定刷新验证码参数失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定刷新验证码参数失败")
 		return
 	}
 

@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/gm-fabric-deployment/version"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,11 +21,7 @@ func main() {
 	// quit := make(chan os.Signal, 1)
 	// signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	configControl, err := config.NewConfigControl()
-	if err != nil {
-		fmt.Printf("load config failed: %v\n", err)
-		return
-	}
+	configControl := config.NewConfigControl(flags.NewFlagsControl(version.Version))
 
 	loggerControl := logger.NewLoggerControl(configControl.GetConfig().LoggerConfig)
 

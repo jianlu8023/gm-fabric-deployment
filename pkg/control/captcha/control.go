@@ -51,7 +51,7 @@ func NewCaptchaControl(captchaConfig *config.CaptchaConfig, loggerControl *logge
 		return nil, errors.New("captcha config cannot be nil")
 	}
 
-	captchaLogger := loggerControl.GenLogger("captcha")
+	captchaLogger := loggerControl.GenLogger(logger.ModuleCaptcha)
 	captchaLogger.Infof("[control] starting new captcha control...")
 
 	// 初始化内存存储

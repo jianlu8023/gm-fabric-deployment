@@ -3,11 +3,10 @@ package jwt
 import (
 	"context"
 	"errors"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 	"strings"
 	"sync"
 	"time"
-
-	webhttp "github.com/jianlu8023/gm-fabric-deployment/internal/web/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -62,7 +61,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		tokenString := ctx.GetHeader("Authorization")
 		if tokenString == "" {
 			logger.Errorf("JWT认证失败：未提供token...")
-			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "未提供认证信息")
+			http.FailedResponseWithMessage(ctx, http.SessionExpired, "未提供认证信息")
 			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "未提供认证信息"})
 			ctx.Abort()
 			return
@@ -72,7 +71,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		bearerToken := strings.Split(tokenString, " ")
 		if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
 			logger.Errorf("JWT认证失败：token格式错误...")
-			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "认证信息格式错误")
+			http.FailedResponseWithMessage(ctx, http.SessionExpired, "认证信息格式错误")
 			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "认证信息格式错误"})
 			ctx.Abort()
 			return
@@ -82,7 +81,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		claims, err := ParseToken(bearerToken[1])
 		if err != nil {
 			logger.Errorf("JWT认证失败：token解析错误: %v", err)
-			webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "认证信息无效或已过期")
+			http.FailedResponseWithMessage(ctx, http.SessionExpired, "认证信息无效或已过期")
 			// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "认证信息无效或已过期"})
 			ctx.Abort()
 			return
@@ -92,7 +91,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		if sessionManager != nil {
 			if !sessionManager.ValidateSession(claims.SessionID) {
 				logger.Errorf("JWT认证失败：会话已失效: %v", claims.SessionID)
-				webhttp.FailedResponseWithMessage(ctx, webhttp.SessionExpired, "会话已失效，请重新登录")
+				http.FailedResponseWithMessage(ctx, http.SessionExpired, "会话已失效，请重新登录")
 				// ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": 401, "message": "会话已失效，请重新登录"})
 				ctx.Abort()
 				return
