@@ -578,20 +578,20 @@ func (lc *Control) RegisterProtocolHandler(protocolID protocol.ID, protocolHandl
 // 该方法注册基础的ping/pong和shutdown消息处理逻辑
 func (lc *Control) defaultMessageRegister() {
 	lc.logger.Debugf("[control] register some default message...")
-	lc.RegisterMessageHandler(BasePing, func(protocolId protocol.ID, msg *Message) {
+	lc.RegisterMessageHandler(MsgBasePing, func(protocolId protocol.ID, msg *Message) {
 		lc.logger.Debugf("[control] received %v protocol ping message from %v", protocolId, msg.From)
 		pongMsg := &Message{
 			From:    msg.To,
 			To:      msg.From,
 			Content: []byte("pong"),
-			Type:    BasePong,
+			Type:    MsgBasePong,
 		}
 		_ = lc.SendMessageToPeer(pongMsg.To, pongMsg)
 	})
-	lc.RegisterMessageHandler(BasePong, func(protocolID protocol.ID, msg *Message) {
+	lc.RegisterMessageHandler(MsgBasePong, func(protocolID protocol.ID, msg *Message) {
 		lc.logger.Debugf("[control] received %v protocol pong message from %v content %v", protocolID, msg.From, string(msg.Content))
 	})
-	lc.RegisterMessageHandler(BaseShutdown, func(protocolId protocol.ID, msg *Message) {
+	lc.RegisterMessageHandler(MsgBaseShutdown, func(protocolId protocol.ID, msg *Message) {
 		lc.logger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
 		lc.DisconnectFromPeer(msg.From)
 		lc.logger.Infof("[control] from connect peer list remove peer %v", msg.From)

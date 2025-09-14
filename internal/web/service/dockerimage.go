@@ -9,8 +9,11 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/websocket"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
+	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 type DockerImageService struct {
@@ -18,18 +21,21 @@ type DockerImageService struct {
 	mapper           *mapper.DockerImageMapper
 	dockerControl    *docker.Control
 	websocketControl *websocket.Control
+	libp2pControl    *libp2p.Control
 }
 
 func NewDockerImageService(baseService *Service,
 	mapper *mapper.DockerImageMapper,
 	dockerControl *docker.Control,
 	websocketControl *websocket.Control,
+	libp2pControl *libp2p.Control,
 ) *DockerImageService {
 	return &DockerImageService{
 		Service:          baseService,
 		mapper:           mapper,
 		dockerControl:    dockerControl,
 		websocketControl: websocketControl,
+		libp2pControl:    libp2pControl,
 	}
 }
 
@@ -67,34 +73,51 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 	}
 
 	go func() {
-		if err := s.dockerControl.PullImage(req.ImageName); err != nil {
-			s.logger.Errorf("docker image pull failed: %v", err)
-			// commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, err.Error())
-			return
-		}
-		summary, err := s.dockerControl.GetImage()
-		if err != nil {
-			s.logger.Errorf("get docker image info failed: %v", err)
-			return
-		}
-		image := model.NewDockerImage()
-		image.ImageName = summary.RepoTags[0]
-		image.ImageId = summary.ID
-		image.ImageCreated = summary.Created
-		labels, err := json.Marshal(summary.Labels)
-		if err != nil {
-			s.logger.Errorf("get docker image info marshal failed: %v", err)
-			return
-		}
-		image.ImageLabels = string(labels)
-		image.IsDelete = sql.NullBool{Bool: false, Valid: true}
-		image.ImageLocationPeerId = req.PeerId
-		if err := s.mapper.InsertOneWithCheck(image); err != nil {
-			s.logger.Errorf("save docker image failed: %v", err)
+		if str.CompareIgnoreCase(req.PeerId, s.libp2pControl.GetLocalhostPeerID().String()) {
+			// 需要发送libp2p消息到指定节点
+			dockerPullMsg := &libp2p.Message{
+				Type: libp2p.MsgDockerImagePull,
+				Content: []byte(libp2p.DockerImagePullContent{
+					ImageName: req.ImageName,
+				}.String()),
+				To:   peer.ID(req.PeerId),
+				From: s.libp2pControl.GetLocalhostPeerID(),
+			}
+			if err := s.libp2pControl.SendMessageToPeer(dockerPullMsg.To, dockerPullMsg); err != nil {
+				s.logger.Errorf("send docker pull message to peer failed: %v", err)
+				return
+			}
+		} else {
+			if err := s.dockerControl.PullImage(req.ImageName); err != nil {
+				s.logger.Errorf("docker image pull failed: %v", err)
+				// commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, err.Error())
+				return
+			}
+			summary, err := s.dockerControl.GetImage()
+			if err != nil {
+				s.logger.Errorf("get docker image info failed: %v", err)
+				return
+			}
+			image := model.NewDockerImage()
+			image.ImageName = summary.RepoTags[0]
+			image.ImageId = summary.ID
+			image.ImageCreated = summary.Created
+			labels, err := json.Marshal(summary.Labels)
+			if err != nil {
+				s.logger.Errorf("get docker image info marshal failed: %v", err)
+				return
+			}
+			image.ImageLabels = string(labels)
+			image.IsDelete = sql.NullBool{Bool: false, Valid: true}
+			image.ImageLocationPeerId = req.PeerId
+			if err := s.mapper.InsertOneWithCheck(image); err != nil {
+				s.logger.Errorf("save docker image failed: %v", err)
 
+			}
+			s.websocketControl.Broadcast([]byte("pull image success"))
 		}
-		s.websocketControl.Broadcast([]byte("pull image success"))
 	}()
+
 	commonhttp.SuccessResponse(ctx, gin.H{
 		"msg": fmt.Sprintf("拉取 %v 镜像成功", req.ImageName),
 	})

@@ -79,13 +79,25 @@ type MessageWithPeer struct {
 }
 
 const (
-	BasePing                 = "base/ping"
-	BasePong                 = "base/pong"
-	BaseShutdown             = "base/shutdown"
-	DockerNetworks           = "docker/networks"
-	CollectionNode           = "collection/node"
-	CollectionDockerNetworks = "collection/docker/networks"
-	CollectionDockerImages   = "collection/docker/images"
-	DockerImages             = "docker/images"
-	Libp2pNode               = "libp2p/node"
+	MsgBasePing                 = "base/ping"
+	MsgBasePong                 = "base/pong"
+	MsgBaseShutdown             = "base/shutdown"
+	MsgDockerNetworks           = "docker/networks"
+	MsgCollectionNode           = "collection/node"
+	MsgCollectionDockerNetworks = "collection/docker/networks"
+	MsgCollectionDockerImages   = "collection/docker/images"
+	MsgDockerImages             = "docker/images"
+	MsgLibp2pNode               = "libp2p/node"
+	MsgDockerImagePull          = "docker/pull"
 )
+
+type DockerImagePullContent struct {
+	ImageName    string `json:"image_name,omitempty" yaml:"image_name,omitempty"`
+	Platform     string `json:"platform,omitempty" yaml:"platform,omitempty"`
+	RegistryAuth string `json:"registry_auth,omitempty" yaml:"registry_auth,omitempty"`
+}
+
+func (d DockerImagePullContent) String() string {
+	bytes, _ := json.Marshal(d)
+	return string(bytes)
+}

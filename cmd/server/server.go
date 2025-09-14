@@ -138,7 +138,7 @@ func main() {
 		serverControl.GetLibp2pControl().RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
 		})
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.Libp2pNode, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgLibp2pNode, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol node info message from %s content %v", protocolID, msg.From, string(msg.Content))
 			mainLogger.Infof("starting insert or update node info...")
 			// 返回节点信息
@@ -151,7 +151,7 @@ func main() {
 			}
 		})
 
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.BaseShutdown, func(protocolId protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgBaseShutdown, func(protocolId protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
 			serverControl.GetLibp2pControl().DisconnectFromPeer(msg.From)
 			mainLogger.Infof("from connect peer list remove peer %v", msg.From)
@@ -164,7 +164,7 @@ func main() {
 			}
 		})
 
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.DockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol message from %v", protocolID, msg.From)
 			// 处理消息
 			var networks []dockernetwork.Summary
@@ -200,7 +200,7 @@ func main() {
 		})
 
 		// 注册处理docker镜像的消息
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.DockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("receive %v protocol %v message from %v", protocolID, msg.Type, msg.From)
 
 			var imageList []dockerimage.Summary
@@ -240,7 +240,7 @@ func main() {
 				// 收集docker网络信息
 				dockerNetworkMsg := &libp2p.Message{
 					Content: []byte("collect all node docker network info..."),
-					Type:    libp2p.CollectionDockerNetworks,
+					Type:    libp2p.MsgCollectionDockerNetworks,
 				}
 				if err := serverControl.GetLibp2pControl().BroadcastMessage(dockerNetworkMsg); err != nil {
 					mainLogger.Errorf("broadcast collect docker network info message failed: %v", err)
@@ -253,7 +253,7 @@ func main() {
 			Task: func() {
 				// 收集docker镜像信息
 				collectDockerImageMsg := &libp2p.Message{
-					Type:    libp2p.CollectionDockerImages,
+					Type:    libp2p.MsgCollectionDockerImages,
 					Content: []byte("collect all node docker image info..."),
 				}
 				if err := serverControl.GetLibp2pControl().BroadcastMessage(collectDockerImageMsg); err != nil {
@@ -279,7 +279,7 @@ func main() {
 			Name: "collect-node-info",
 			Task: func() {
 				collectInfoMsg := &libp2p.Message{
-					Type:    libp2p.CollectionNode,
+					Type:    libp2p.MsgCollectionNode,
 					Content: []byte("collect all node info"),
 				}
 				// 广播消息

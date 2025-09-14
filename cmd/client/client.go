@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
 	"math/rand/v2"
 	"os"
 	"os/signal"
@@ -80,7 +81,7 @@ func main() {
 		Name: "grpc-ping-message",
 		Task: func() {
 			response, err := serverControl.GetGrpcControl().Call(&pb.BaseRequest{
-				MessageType: libp2p.BasePing,
+				MessageType: libp2p.MsgBasePing,
 			})
 			if err != nil {
 				mainLogger.Errorf("send ping message err: %v", err)
@@ -96,7 +97,7 @@ func main() {
 		Interval: time.Duration(rand.IntN(10-5)+5) * time.Second,
 		Task: func() {
 			pingMsg := &libp2p.Message{
-				Type:    libp2p.BasePing,
+				Type:    libp2p.MsgBasePing,
 				Content: []byte("ping"),
 				From:    serverControl.GetLibp2pControl().GetLocalhostPeerID(),
 			}
@@ -112,20 +113,20 @@ func main() {
 			mainLogger.Debugf("received %v protocol %v messageType from %s content %v", protocolID, msg.Type, msg.From, string(msg.Content))
 		})
 
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.CollectionNode, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgCollectionNode, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Infof("received %v protocol %v message from %s content %v", protocolID, msg.Type, msg.From, string(msg.Content))
 			nodeInfoMsg := &libp2p.Message{
 				From:    msg.To,
 				To:      msg.From,
 				Content: []byte("success"),
-				Type:    libp2p.Libp2pNode,
+				Type:    libp2p.MsgLibp2pNode,
 			}
 			if err := serverControl.GetLibp2pControl().SendMessageToPeer(nodeInfoMsg.To, nodeInfoMsg); err != nil {
 				mainLogger.Errorf("send node info to peer %v failed: %v", nodeInfoMsg.To, err)
 			}
 		})
 
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.CollectionDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgCollectionDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %v message from %v", protocolID, msg.Type, msg.From)
 			if serverControl.GetDockerControl() == nil {
 				return
@@ -145,14 +146,14 @@ func main() {
 				From:    msg.To,
 				To:      msg.From,
 				Content: bytes,
-				Type:    libp2p.DockerNetworks,
+				Type:    libp2p.MsgDockerNetworks,
 			}
 			if err = serverControl.GetLibp2pControl().SendMessageToPeer(dockerNetworkMsg.To, dockerNetworkMsg); err != nil {
 				mainLogger.Errorf("send docker networks to peer %v failed: %v", dockerNetworkMsg.To, err)
 			}
 		})
 
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.CollectionDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgCollectionDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
 			mainLogger.Debugf("received %v protocol %s message from %v", protocolID, msg.Type, msg.From)
 
 			if serverControl.GetDockerControl() == nil {
@@ -173,7 +174,51 @@ func main() {
 			dockerImageMsg := &libp2p.Message{
 				From:    msg.To,
 				To:      msg.From,
-				Type:    libp2p.DockerImages,
+				Type:    libp2p.MsgDockerImages,
+				Content: content,
+			}
+			if err = serverControl.GetLibp2pControl().SendMessageToPeer(dockerImageMsg.To, dockerImageMsg); err != nil {
+				mainLogger.Errorf("send docker images to peer %v failed: %v", dockerImageMsg.To, err)
+			}
+
+		})
+
+		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgDockerImagePull, func(protocolID protocol.ID, msg *libp2p.Message) {
+			mainLogger.Debugf("received %v protocol %s message from %v", protocolID, msg.Type, msg.From)
+
+			if serverControl.GetDockerControl() == nil {
+				return
+			}
+
+			var dockerPullContent libp2p.DockerImagePullContent
+			if err := json.Unmarshal(msg.Content, &dockerPullContent); err != nil {
+				mainLogger.Errorf("unmarshal docker image pull content failed: %v", err)
+				return
+			}
+
+			if err := serverControl.GetDockerControl().PullImage(dockerPullContent.ImageName,
+				docker.WithImagePullPlatform(dockerPullContent.Platform),
+				docker.WithImagePullRegistryAuth(dockerPullContent.RegistryAuth),
+			); err != nil {
+				mainLogger.Errorf("pull docker image failed: %v", err)
+				return
+			}
+
+			listImages, err := serverControl.GetDockerControl().ListImages()
+			if err != nil {
+				mainLogger.Errorf("list docker images failed: %v", err)
+				return
+			}
+			content, err := json.Marshal(listImages)
+			if err != nil {
+				mainLogger.Errorf("marshal docker images failed: %v", err)
+				return
+			}
+
+			dockerImageMsg := &libp2p.Message{
+				From:    msg.To,
+				To:      msg.From,
+				Type:    libp2p.MsgDockerImages,
 				Content: content,
 			}
 			if err = serverControl.GetLibp2pControl().SendMessageToPeer(dockerImageMsg.To, dockerImageMsg); err != nil {

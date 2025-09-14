@@ -25,6 +25,29 @@ func WithNetworkID(id string) func(args *[]filters.KeyValuePair) {
 	}
 }
 
+// WithNetworkIPAM 配置网络的IP地址管理
+func WithNetworkIPAM(ipamConfig *network.IPAM) func(options *network.CreateOptions) {
+	return func(nc *network.CreateOptions) {
+		nc.IPAM = ipamConfig
+	}
+}
+
+// WithNetworkLabels 为网络添加标签
+func WithNetworkLabels(labels map[string]string) func(options *network.CreateOptions) {
+	return func(nc *network.CreateOptions) {
+		nc.Labels = labels
+	}
+}
+
+// WithNetworkEnableIPv6 启用IPv6
+func WithNetworkEnableIPv6(enable bool) func(*network.CreateOptions) {
+	return func(nc *network.CreateOptions) {
+		nc.EnableIPv6 = &enable
+	}
+}
+
+// ------------------------------------------------------------------------------
+
 // WithImagePullPlatform 配置镜像拉取平台
 //
 // @param platform 镜像平台
@@ -51,6 +74,26 @@ func WithImagePullRegistryAuth(registryAuth string) func(options *image.PullOpti
 	}
 }
 
+// --------------------------------------------------------
+
+func WithImageListName(name string) func(args *[]filters.KeyValuePair) {
+	return func(args *[]filters.KeyValuePair) {
+		if !str.IsBlank(name) {
+			*args = append(*args, filters.Arg("name", name))
+		}
+	}
+}
+
+// func WithImageListId(id string) func(args *[]filters.KeyValuePair) {
+// 	return func(args *[]filters.KeyValuePair) {
+// 		if !str.IsBlank(id) {
+// 			*args = append(*args, filters.Arg("id", id))
+// 		}
+// 	}
+// }
+
+// --------------------------------------------------------
+
 // WithRemoveImageForce 配置镜像删除是否强制删除
 //
 // @param force 是否强制删除
@@ -70,26 +113,5 @@ func WithRemoveImageForce(force bool) func(options *image.RemoveOptions) {
 func WithRemoveImagePruneChildren(pruneChildren bool) func(options *image.RemoveOptions) {
 	return func(options *image.RemoveOptions) {
 		options.PruneChildren = pruneChildren
-	}
-}
-
-// WithNetworkIPAM 配置网络的IP地址管理
-func WithNetworkIPAM(ipamConfig *network.IPAM) func(options *network.CreateOptions) {
-	return func(nc *network.CreateOptions) {
-		nc.IPAM = ipamConfig
-	}
-}
-
-// WithNetworkLabels 为网络添加标签
-func WithNetworkLabels(labels map[string]string) func(options *network.CreateOptions) {
-	return func(nc *network.CreateOptions) {
-		nc.Labels = labels
-	}
-}
-
-// WithNetworkEnableIPv6 启用IPv6
-func WithNetworkEnableIPv6(enable bool) func(*network.CreateOptions) {
-	return func(nc *network.CreateOptions) {
-		nc.EnableIPv6 = &enable
 	}
 }
