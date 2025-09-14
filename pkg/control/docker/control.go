@@ -82,9 +82,9 @@ func (dc *Control) initClient() error {
 		dc.logger.Debugf("[control] configuring docker client with TLS...")
 		opts = append(opts,
 			client.WithTLSClientConfig(
+				dc.config.TlsCAFile,
 				dc.config.TlsCertFile,
 				dc.config.TlsKeyFile,
-				dc.config.TlsCAFile,
 			),
 		)
 	}
