@@ -10,8 +10,8 @@ datasource:
   max_open_conn: 50
   log_in_console: false
 docker:
-  enabled: false
-  host: unix:///var/run/docker.sock
+  enabled: true
+  host: tcp://192.168.58.110:2375
   default_timeout: 5
 grpc:
   enabled: true

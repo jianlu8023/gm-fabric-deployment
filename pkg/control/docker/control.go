@@ -18,6 +18,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// https://docs.docker.com/engine/security/protect-access/
+
 // Control Docker控制结构体
 type Control struct {
 	client *client.Client
@@ -350,6 +352,16 @@ func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *
 		return nil, err
 	}
 	return resp, nil
+}
+
+func (dc *Control) GetImage(imageListOpts ...func(args *[]filters.KeyValuePair)) (image.Summary, error) {
+	dc.logger.Debugf("[control] getting image...")
+	images, err := dc.ListImages(imageListOpts...)
+	if err != nil {
+		dc.logger.Errorf("[control] getting image info failed: %v", err)
+		return image.Summary{}, err
+	}
+	return images[0], nil
 }
 
 // ListImages 列出Docker镜像

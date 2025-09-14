@@ -44,6 +44,25 @@ func (h *DockerImageHandler) DockerImageList(ctx *gin.Context) {
 	h.service.DockerImageList(ctx, req)
 }
 
+func (h *DockerImageHandler) DockerImagePull(ctx *gin.Context) {
+	h.logger.Debugf("received docker image pull handler...")
+
+	req := new(request.DockerImagePullRequest)
+	if err := binding.BindMultiPartForm(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		return
+	}
+
+	h.service.DockerImagePull(ctx, req)
+}
+
 func (h *DockerImageHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
@@ -54,6 +73,15 @@ func (h *DockerImageHandler) Routers() []commonhttp.RouterHandler {
 			Enabled:         true,
 			EnableJWtVerify: false,
 			Desc:            "获取docker镜像列表",
+		},
+		&commonhttp.MyRouter{
+			Name:            "DockerImagePull",
+			Uri:             "docker/image/pull",
+			Method:          http.MethodPost,
+			HandlerFunc:     h.DockerImagePull,
+			Enabled:         true,
+			EnableJWtVerify: false,
+			Desc:            "拉取docker镜像",
 		},
 	}
 }

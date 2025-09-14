@@ -1,0 +1,11 @@
+method: post
+url: "{{addr}}/{{contextpath}}/docker/image/pull"
+requestBody:
+  type: multipart/form-data
+  parameters:
+    - name: imageName
+      value: golang:1.22
+      type: text
+    - name: peerId
+      value: 12D3KooWEeXfZpxfqwxFLJ2JYH21x85DnTMnCnmfUs4yQnCngM5T
+      type: text
