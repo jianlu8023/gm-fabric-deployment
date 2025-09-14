@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/version"
 	"os"
 	"os/signal"
 	"runtime"
@@ -20,13 +21,8 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
-)
-
-var (
-	version string
 )
 
 func main() {
@@ -40,7 +36,7 @@ func main() {
 	}
 
 	mainLogger := serverControl.GetLoggerControl().GenLogger("main")
-	mainLogger.Infof("start server version %v", version)
+	mainLogger.Infof("start server version %v", version.Version)
 
 	// pidfile
 	{
@@ -77,8 +73,8 @@ func main() {
 	if serverControl.GetDatasourceControl() != nil {
 		serverControl.GetDatasourceControl().RegisterAutoMigrateTable(
 			&model.DockerImage{},
-			&model.Libp2pNode{},
 			&model.DockerNetwork{},
+			&model.Libp2pNode{},
 			&model.UserInfo{},
 		)
 	}
@@ -98,7 +94,8 @@ func main() {
 	}
 
 	serverControl.StartUp(func(err error) {
-		if err != nil && !commonhttp.IsHttpErrServerClosed(err) {
+		// && !commonhttp.IsHttpErrServerClosed(err)
+		if err != nil {
 			mainLogger.Errorf("start up failed: %v", err)
 			quit <- os.Interrupt
 		}
@@ -121,7 +118,6 @@ func main() {
 			serverControl.GetDatasourceControl().GetConn())
 		imageMapper = mapper.NewDockerImageMapper(baseMapper)
 		nodeMapper = mapper.NewLibp2pNodeMapper(baseMapper)
-
 		networkMapper = mapper.NewDockerNetworkMapper(baseMapper)
 	}
 
@@ -292,7 +288,8 @@ func main() {
 		})
 	}
 
-	if !str.CompareIgnoreCase("windows", runtime.GOOS) {
+	// !str.CompareIgnoreCase("windows", runtime.GOOS)
+	if serverControl.GetDockerControl() != nil {
 		imageList, err := serverControl.GetDockerControl().ListImages()
 		if err != nil {
 			mainLogger.Errorf("list docker images failed: %v", err)

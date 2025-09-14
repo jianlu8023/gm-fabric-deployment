@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/ants"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"go.uber.org/zap"
 )
@@ -20,21 +21,26 @@ type Control struct {
 	jobMutex sync.RWMutex
 
 	wg sync.WaitGroup
+
+	// antsPoolControl ants线程池控制器，用于在单独的goroutine中执行任务
+	antsPoolControl *ants.Control
 }
 
 // NewJobControl 创建作业控制器
 // @param loggerControl *logger.Control 日志控制器
+// @param antsPoolControl *ants.Control 线程池控制器
 // @return *Control 作业控制器实例
-func NewJobControl(loggerControl *logger.Control) *Control {
+func NewJobControl(loggerControl *logger.Control, antsPoolControl *ants.Control) *Control {
 	jobLogger := loggerControl.GenLogger(logger.ModuleJob)
 	jobLogger.Infof("[control] starting create job control...")
 	ctx, cancel := context.WithCancel(context.Background())
 
 	control := &Control{
-		logger: jobLogger,
-		ctx:    ctx,
-		cancel: cancel,
-		jobs:   make([]*Job, 0, 8),
+		logger:          jobLogger,
+		ctx:             ctx,
+		cancel:          cancel,
+		jobs:            make([]*Job, 0, 8),
+		antsPoolControl: antsPoolControl,
 	}
 	return control
 }
@@ -62,6 +68,11 @@ func (c *Control) StopAllRegisterJobs() {
 // RegisterJob 注册一个新的作业
 // @param j *Job 要注册的作业对象
 func (c *Control) RegisterJob(j *Job) {
+	if c.antsPoolControl == nil {
+		c.logger.Warnf("[control] no runner ants pool, skip register job...")
+		return
+	}
+
 	c.logger.Debugf("[control] register job name: %s", j.Name)
 
 	c.jobMutex.Lock()
@@ -89,7 +100,10 @@ func (c *Control) runJob(job *Job) {
 			return
 		case <-ticker.C:
 			c.logger.Debugf("[control] job name: %s running...", job.Name)
-			job.Task()
+			// job.Task()
+			if err := c.antsPoolControl.Submit(job.Task); err != nil {
+				c.logger.Warnf("[control] submit job to ants pool failed: %v", err)
+			}
 		}
 	}
 }

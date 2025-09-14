@@ -65,7 +65,7 @@ func NewServerControlFromFile() (*Control, error) {
 
 	// 检查Logger配置
 	if configControl.GetLoggerConfig() == nil {
-		return nil, ErrNoLoggerConfig
+		return nil, fmt.Errorf("not found logger config")
 	}
 
 	// 创建Logger控制器
@@ -76,7 +76,7 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建GRPC控制器
 	grpcConfig := configControl.GetGrpcConfig()
 	if grpcConfig != nil && grpcConfig.Enabled {
-		grpcControl, err := grpc.NewGrpcControl(grpcConfig, loggerControl)
+		grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl())
 		if err != nil {
 			return nil, err
 		}
@@ -86,7 +86,7 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建Libp2p控制器
 	libp2pConfig := configControl.GetLibp2pConfig()
 	if libp2pConfig != nil && libp2pConfig.Enabled {
-		libp2pControl, err := libp2p.NewLibp2pControl(libp2pConfig, loggerControl)
+		libp2pControl, err := libp2p.NewLibp2pControl(libp2pConfig, control.GetLoggerControl())
 		if err != nil {
 			return nil, err
 		}
@@ -96,21 +96,33 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建DataSource控制器
 	dataSourceConfig := configControl.GetDataSourceConfig()
 	if dataSourceConfig != nil && dataSourceConfig.Enabled {
-		dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, loggerControl)
+		dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
 		if err != nil {
 			return nil, err
 		}
 		control.datasourceControl = dataSourceControl
 	}
 
-	// 创建Job控制器
-	jobControl := job.NewJobControl(loggerControl)
-	control.jobControl = jobControl
+	antsPoolConfig := configControl.GetAntsPoolConfig()
+	if antsPoolConfig != nil && antsPoolConfig.Enabled {
+		antsPoolControl := ants.NewAntsPoolControl(antsPoolConfig, control.GetLoggerControl())
+		control.antsControl = antsPoolControl
+	}
+
+	// if control.GetAntsPoolControl() == nil {
+	// 	return nil, fmt.Errorf("ants pool control is nil")
+	// }
+
+	if control.GetAntsPoolControl() != nil {
+		// 创建Job控制器
+		jobControl := job.NewJobControl(control.GetLoggerControl(), control.GetAntsPoolControl())
+		control.jobControl = jobControl
+	}
 
 	// 检查并创建Docker控制器
 	dockerConfig := configControl.GetDockerConfig()
 	if dockerConfig != nil && dockerConfig.Enabled {
-		dockerControl, err := docker.NewDockerControl(dockerConfig, loggerControl)
+		dockerControl, err := docker.NewDockerControl(dockerConfig, control.GetLoggerControl())
 		if err != nil {
 			return nil, err
 		}
@@ -120,26 +132,20 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建验证码控制器
 	captchaConfig := configControl.GetCaptchaConfig()
 	if captchaConfig != nil && captchaConfig.Enabled {
-		captchaControl, err := captcha.NewCaptchaControl(captchaConfig, loggerControl)
+		captchaControl, err := captcha.NewCaptchaControl(captchaConfig, control.GetLoggerControl())
 		if err != nil {
 			return nil, err
 		}
 		control.captchaControl = captchaControl
 	}
 
-	antsPoolConfig := configControl.GetAntsPoolConfig()
-	if antsPoolConfig != nil && antsPoolConfig.Enabled {
-		antsPoolControl := ants.NewAntsPoolControl(antsPoolConfig, loggerControl)
-		control.antsControl = antsPoolControl
-	}
-
 	// 检查并创建HTTP控制器
 	webConfig := configControl.GetWebConfig()
 	if webConfig != nil && webConfig.Enabled {
-		webServerControl := http.NewWebServerControl(webConfig, loggerControl)
+		webServerControl := http.NewWebServerControl(webConfig, control.GetLoggerControl())
 		control.httpControl = webServerControl
 
-		websocketControl := websocket.NewWebsocketControl(webConfig, loggerControl)
+		websocketControl := websocket.NewWebsocketControl(webConfig, control.GetLoggerControl())
 		control.websocketControl = websocketControl
 	}
 

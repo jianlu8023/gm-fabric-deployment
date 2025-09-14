@@ -78,7 +78,7 @@ func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.C
 		handlers:     make(map[string]MessageHandler),
 		libp2pConfig: libp2pConfig,
 		// 创建带缓冲的消息队列，大小可以根据需要调整
-		messageQueue: make(chan MessageWithPeer, 100),
+		messageQueue: make(chan MessageWithPeer, 1024),
 	}
 
 	// 初始化libp2p节点
@@ -247,7 +247,7 @@ func (lc *Control) Shutdown() error {
 
 	lc.logger.Debugf("[control] broadcast my shutdown message...")
 	_ = lc.BroadcastMessage(&Message{
-		Type:    "base/shutdown",
+		Type:    MsgBaseShutdown,
 		From:    lc.GetLocalhostPeerID(),
 		Content: []byte("bye"),
 	})
