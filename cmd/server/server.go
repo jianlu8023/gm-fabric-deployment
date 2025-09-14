@@ -93,6 +93,7 @@ func main() {
 			serverControl.GetWebsocketControl(),
 			serverControl.GetHttpControl(),
 			serverControl.GetCaptchaControl(),
+			serverControl.GetAntsPoolControl(),
 		))
 	}
 

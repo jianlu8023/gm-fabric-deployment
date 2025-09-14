@@ -5,6 +5,7 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/ants"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/captcha"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
@@ -35,6 +36,7 @@ func NewRouter(loggerControl *logger.Control,
 	websocketControl *websocket.Control,
 	httpControl *httpcontrol.Control,
 	captchaControl *captcha.Control,
+	antsPoolControl *ants.Control,
 ) []commonhttp.RouterHandler {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	baseHandler := handler.NewHandler(webLogger)
@@ -96,6 +98,7 @@ func NewRouter(loggerControl *logger.Control,
 			dockerControl,
 			websocketControl,
 			libp2pControl,
+			antsPoolControl,
 		),
 	)
 	dockerNetworkHandler := handler.NewDockerNetworkHandler(

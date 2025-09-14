@@ -31,14 +31,13 @@ require (
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/docker/docker v20.10.26+incompatible
-	//github.com/docker/docker v28.0.1+incompatible
+	// github.com/docker/docker v28.0.1+incompatible
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-contrib/gzip v1.2.2
 	github.com/gin-contrib/requestid v1.0.4
 	github.com/gin-contrib/sse v1.0.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/glebarez/sqlite v1.11.0
-	// github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-playground/validator/v10 v10.24.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
@@ -56,6 +55,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.2
 	github.com/mojocn/base64Captcha v1.3.8
 	github.com/multiformats/go-multiaddr v0.14.0
+	github.com/panjf2000/ants/v2 v2.11.3 // ants 异步方式线程池
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/shirou/gopsutil/v4 v4.24.10
 	github.com/spf13/viper v1.9.0
@@ -69,6 +69,8 @@ require (
 	google.golang.org/protobuf v1.36.5
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/postgres v1.4.5
+	// github.com/Jeffail/tunny v0.1.4 // tunny 同步方式线程池
+	// github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	// github.com/gin-contrib/cache v1.3.1
 	// github.com/gin-contrib/sessions v1.0.2
 	// github.com/gin-contrib/secure v1.1.1
@@ -87,8 +89,6 @@ require (
 	// github.com/gorilla/sessions v1.3.0 // session
 	// github.com/markbates/goth v1.81.0 // 第三方认证
 	// github.com/charmbracelet/bubbletea v1.3.4 // 控制台输出  spinner包 只显示文字
-	// github.com/Jeffail/tunny v0.1.4 // tunny 同步方式线程池
-	// github.com/panjf2000/ants/v2 v2.11.3 // ants 异步方式线程池
 	// github.com/reactivex/rxgo/v2 v2.5.0
 	// github.com/PuerkitoBio/goquery v1.9.3 //类似于jquery
 	// github.com/bamzi/jobrunner v1.0.0 // 运行job

@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/ants"
 	"github.com/jianlu8023/gm-fabric-deployment/version"
 	"os"
 	"sync"
@@ -34,6 +35,7 @@ type Control struct {
 	websocketControl  *websocket.Control
 	jobControl        *job.Control
 	captchaControl    *captcha.Control
+	antsControl       *ants.Control
 	logger            *zap.SugaredLogger
 	once              sync.Once
 	mutex             sync.RWMutex
@@ -123,6 +125,12 @@ func NewServerControlFromFile() (*Control, error) {
 			return nil, err
 		}
 		control.captchaControl = captchaControl
+	}
+
+	antsPoolConfig := configControl.GetAntsPoolConfig()
+	if antsPoolConfig != nil && antsPoolConfig.Enabled {
+		antsPoolControl := ants.NewAntsPoolControl(antsPoolConfig, loggerControl)
+		control.antsControl = antsPoolControl
 	}
 
 	// 检查并创建HTTP控制器
@@ -226,6 +234,12 @@ func (c *Control) GetFlagsControl() *flags.Control {
 	return c.flagsControl
 }
 
+func (c *Control) GetAntsPoolControl() *ants.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.antsControl
+}
+
 // NewServerControl 创建服务器控制器
 // @param dockerControl *docker.Control Docker控制器
 // @param configControl *config.Control 配置控制器
@@ -249,6 +263,7 @@ func NewServerControl(dockerControl *docker.Control,
 	websocketControl *websocket.Control,
 	flagsControl *flags.Control,
 	captchaControl *captcha.Control,
+	antsControl *ants.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -265,6 +280,7 @@ func NewServerControl(dockerControl *docker.Control,
 		websocketControl:  websocketControl,
 		flagsControl:      flagsControl,
 		captchaControl:    captchaControl,
+		antsControl:       antsControl,
 	}
 }
 
@@ -323,6 +339,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.websocketControl.StartUp(failedFunc)
 		}
 
+		if c.antsControl != nil {
+			c.logger.Debugf("[control] starting up ants pool server...")
+			c.antsControl.StartUp(failedFunc)
+		}
+
 		if c.httpControl != nil {
 			c.logger.Debugf("[control] starting up http server...")
 			// if runtime.GOOS == runtime.GOOS &&
@@ -347,6 +368,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // Shutdown 关闭所有服务器组件
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
+
+	if c.antsControl != nil {
+		c.logger.Debugf("[control] shutting down ants pool server...")
+		_ = c.antsControl.Shutdown()
+	}
 
 	if c.websocketControl != nil {
 		c.logger.Debugf("[control] shutting down websocket server...")

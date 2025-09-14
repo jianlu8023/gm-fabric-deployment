@@ -83,3 +83,15 @@ captcha:
   dot_count: 20 # 干扰点数量
   line_count: 3 # 干扰线数量
   default_type: "number" # 默认验证码类型：string, number, math, chinese
+ants_pool:
+  enabled: true
+  # 线程池大小
+  pool_size: 8
+  # 最大线程池
+  max_pool_size: 16
+  # 工作协程过期时间
+  expiry_duration: 60
+  # 是否预分配工作协程
+  pre_alloc: true
+  # 是否非阻塞模式
+  nonblocking: true

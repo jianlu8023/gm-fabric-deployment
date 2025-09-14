@@ -11,4 +11,5 @@ const (
 	ModuleIpfs       = "Ipfs"
 	ModuleServer     = "Control"
 	ModuleCaptcha    = "Captcha"
+	ModuleAnts       = "Ants"
 )

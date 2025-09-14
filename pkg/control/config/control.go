@@ -100,6 +100,22 @@ func (c *Control) GetEmailConfig() *EmailConfig {
 	return c.config.EmailConfig
 }
 
+// GetAntsPoolConfig 获取Ants线程池配置
+// @return *AntsPoolConfig Ants线程池配置
+func (c *Control) GetAntsPoolConfig() *AntsPoolConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.AntsPoolConfig
+}
+
+// GetTunnyPoolConfig 获取Tunny线程池配置
+// @return *TunnyPoolConfig Tunny线程池配置
+// func (c *Control) GetTunnyPoolConfig() *TunnyPoolConfig {
+// 	c.mutex.RLock()
+// 	defer c.mutex.RUnlock()
+// 	return c.config.TunnyPoolConfig
+// }
+
 // Flush 重新加载配置文件
 // @description 从配置文件重新加载配置
 // @return error 重新加载过程中的错误

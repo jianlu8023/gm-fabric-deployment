@@ -76,3 +76,15 @@ logger:
     grpc: debug
     libp2p: info
     main: info
+ants_pool:
+  enabled: true
+  # 线程池大小
+  pool_size: 8
+  # 最大线程池
+  max_pool_size: 16
+  # 工作协程过期时间
+  expiry_duration: 60
+  # 是否预分配工作协程
+  pre_alloc: true
+  # 是否非阻塞模式
+  nonblocking: true

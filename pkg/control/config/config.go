@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/wd"
@@ -28,7 +29,7 @@ type DockerConfig struct {
 
 // String 返回DockerConfig的字符串表示
 // @return string DockerConfig的字符串表示
-func (d DockerConfig) String() string {
+func (d *DockerConfig) String() string {
 	bytes, _ := json.MarshalIndent(d, "", " ")
 	return string(bytes)
 }
@@ -50,7 +51,7 @@ type DataSourceConfig struct {
 
 // GenMysqlDSN 生成mysql的dsn
 // @return string dsn
-func (d DataSourceConfig) GenMysqlDSN() string {
+func (d *DataSourceConfig) GenMysqlDSN() string {
 	// 参考 https://github.com/go-sql-driver/mysql#dsn-data-source-name 获取详情
 	// 如果需要正确处理time.Time 需要携带parseTime参数
 	// 需要支持完整utf-8 需要设置charset=utf8mb4
@@ -61,14 +62,14 @@ func (d DataSourceConfig) GenMysqlDSN() string {
 
 // GenTiDBDSN 生成tidb的dsn
 // @return string dsn
-func (d DataSourceConfig) GenTiDBDSN() string {
+func (d *DataSourceConfig) GenTiDBDSN() string {
 	// 格式可用mysql
 	return d.GenMysqlDSN()
 }
 
 // GenPostgresDSN 生成postgres的dsn
 // @return string dsn
-func (d DataSourceConfig) GenPostgresDSN() string {
+func (d *DataSourceConfig) GenPostgresDSN() string {
 	// 格式 "host=localhost user=gorm password=gorm dbname=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"
 	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%v sslmode=disable TimeZone=Asia/Shanghai",
 		d.Host, d.UserName, d.Password, d.DataBaseName, d.Port)
@@ -76,7 +77,7 @@ func (d DataSourceConfig) GenPostgresDSN() string {
 
 // GenSqlite3DSN 生成sqlite3的dsn
 // @return string dsn
-func (d DataSourceConfig) GenSqlite3DSN() string {
+func (d *DataSourceConfig) GenSqlite3DSN() string {
 	// 格式 test.db?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL
 	// test.db 数据库名称
 	// _pragma=journal_mode=WAL 设置wal模式
@@ -101,7 +102,7 @@ func (d DataSourceConfig) GenSqlite3DSN() string {
 
 // GenGaussDBDSN 生成GaussDB的dsn
 // @return string dsn
-func (d DataSourceConfig) GenGaussDBDSN() string {
+func (d *DataSourceConfig) GenGaussDBDSN() string {
 	// 格式 "host=localhost user=gorm password=gorm dbname=gorm port=8000 sslmode=disable TimeZone=Asia/Shanghai"
 	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%v sslmode=disable TimeZone=Asia/Shanghai",
 		d.Host, d.UserName, d.Password, d.DataBaseName, d.Port)
@@ -109,7 +110,7 @@ func (d DataSourceConfig) GenGaussDBDSN() string {
 
 // GenSqlServerDSN 生成sqlserver的dsn
 // @return string dsn
-func (d DataSourceConfig) GenSqlServerDSN() string {
+func (d *DataSourceConfig) GenSqlServerDSN() string {
 	// "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
 	return fmt.Sprintf("sqlserver://%s:%s@%s:%v?database=%s",
 		d.UserName, d.Password, d.Host, d.Port, d.DataBaseName)
@@ -117,7 +118,7 @@ func (d DataSourceConfig) GenSqlServerDSN() string {
 
 // GenClickhouseDSN 生成clickhouse的dsn
 // @return string dsn
-func (d DataSourceConfig) GenClickhouseDSN() string {
+func (d *DataSourceConfig) GenClickhouseDSN() string {
 	// 格式 "clickhouse://gorm:gorm@localhost:9942/gorm?dial_timeout=10s&read_timeout=20s"
 	return fmt.Sprintf("clickhouse://%s:%s@%s:%v/%s?dial_timeout=10s&read_timeout=20s",
 		d.UserName, d.Password, d.Host, d.Port, d.DataBaseName)
@@ -125,7 +126,7 @@ func (d DataSourceConfig) GenClickhouseDSN() string {
 
 // String 返回DataSourceConfig的字符串表示
 // @return string 字符串表示
-func (d DataSourceConfig) String() string {
+func (d *DataSourceConfig) String() string {
 	bytes, _ := json.MarshalIndent(d, "", " ")
 	return string(bytes)
 }
@@ -143,7 +144,7 @@ type LoggerConfig struct {
 
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
-func (l LoggerConfig) String() string {
+func (l *LoggerConfig) String() string {
 	bytes, _ := json.MarshalIndent(l, "", " ")
 	return string(bytes)
 }
@@ -163,7 +164,7 @@ type HttpServerConfig struct {
 
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
-func (h HttpServerConfig) String() string {
+func (h *HttpServerConfig) String() string {
 	bytes, _ := json.MarshalIndent(h, "", " ")
 	return string(bytes)
 }
@@ -182,7 +183,7 @@ type GrpcServerConfig struct {
 
 // String 返回GrpcServerConfig的JSON格式字符串
 // @return string 返回GrpcServerConfig的JSON格式字符串
-func (g GrpcServerConfig) String() string {
+func (g *GrpcServerConfig) String() string {
 	bytes, _ := json.MarshalIndent(g, "", " ")
 	return string(bytes)
 }
@@ -202,7 +203,7 @@ type GrpcClientConfig struct {
 
 // String GrpcClientConfig的字符串表示
 // @return string GrpcClientConfig的字符串表示
-func (g GrpcClientConfig) String() string {
+func (g *GrpcClientConfig) String() string {
 	bytes, _ := json.MarshalIndent(g, "", " ")
 	return string(bytes)
 }
@@ -216,7 +217,7 @@ type GrpcConfig struct {
 
 // String GrpcConfig的字符串表示
 // @return string GrpcConfig的字符串表示
-func (g GrpcConfig) String() string {
+func (g *GrpcConfig) String() string {
 	bytes, _ := json.MarshalIndent(g, "", " ")
 	return string(bytes)
 }
@@ -294,6 +295,8 @@ func (i *Identity) String() string {
 // @param passphrase string 私钥密码（当前版本未使用）
 // @return crypto.PrivKey 解码后的私钥对象
 // @return error 解码过程中可能产生的错误
+//
+// nolint: unused
 func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
 	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
 	if err != nil {
@@ -315,7 +318,7 @@ type Libp2pConfig struct {
 
 // String Libp2pConfig的字符串表示
 // @return string Libp2pConfig的字符串表示
-func (l Libp2pConfig) String() string {
+func (l *Libp2pConfig) String() string {
 	bytes, _ := json.MarshalIndent(l, "", " ")
 	return string(bytes)
 }
@@ -334,7 +337,7 @@ type CaptchaConfig struct {
 
 // String CaptchConfig的字符串表示
 // @return CaptchConfig的字符串表示
-func (c CaptchaConfig) String() string {
+func (c *CaptchaConfig) String() string {
 	bytes, _ := json.MarshalIndent(c, "", " ")
 	return string(bytes)
 }
@@ -348,7 +351,7 @@ type IpfsConfig struct {
 
 // String IpfsConfig的字符串表示
 // @return string IpfsConfig的字符串表示
-func (i IpfsConfig) String() string {
+func (i *IpfsConfig) String() string {
 	bytes, _ := json.MarshalIndent(i, "", " ")
 	return string(bytes)
 }
@@ -368,10 +371,86 @@ type EmailConfig struct {
 
 // String EmailConfig的字符串表示
 // @return string EmailConfig的字符串表示
-func (e EmailConfig) String() string {
+func (e *EmailConfig) String() string {
 	bytes, _ := json.MarshalIndent(e, "", " ")
 	return string(bytes)
 }
+
+// AntsPoolConfig Ants线程池配置
+type AntsPoolConfig struct {
+	Enabled        bool `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                         // 是否启用
+	PoolSize       int  `json:"pool_size,omitempty" yaml:"pool_size,omitempty" mapstructure:"pool_size"`                   // 线程池大小
+	MaxPoolSize    int  `json:"max_pool_size,omitempty" yaml:"max_pool_size,omitempty" mapstructure:"max_pool_size"`       // 最大线程池大小
+	ExpiryDuration int  `json:"expiry_duration,omitempty" yaml:"expiry_duration,omitempty" mapstructure:"expiry_duration"` // 工作协程过期时间（秒）
+	PreAlloc       bool `json:"pre_alloc,omitempty" yaml:"pre_alloc,omitempty" mapstructure:"pre_alloc"`                   // 是否预分配工作协程
+	Nonblocking    bool `json:"nonblocking,omitempty" yaml:"nonblocking,omitempty" mapstructure:"nonblocking"`             // 是否非阻塞模式
+}
+
+// String 返回AntsPoolConfig的字符串表示
+func (a *AntsPoolConfig) String() string {
+	bytes, _ := json.MarshalIndent(a, "", " ")
+	return string(bytes)
+}
+
+// GetPoolSize 获取线程池大小
+func (a *AntsPoolConfig) GetPoolSize() int {
+	return a.PoolSize
+}
+
+// GetMaxPoolSize 获取最大线程池大小
+func (a *AntsPoolConfig) GetMaxPoolSize() int {
+	return a.MaxPoolSize
+}
+
+// GetExpiryDuration 获取工作协程过期时间
+func (a *AntsPoolConfig) GetExpiryDuration() time.Duration {
+	return time.Duration(a.ExpiryDuration) * time.Second
+}
+
+// IsPreAlloc 是否预分配工作协程
+func (a *AntsPoolConfig) IsPreAlloc() bool {
+	return a.PreAlloc
+}
+
+// IsNonblocking 是否非阻塞模式
+func (a *AntsPoolConfig) IsNonblocking() bool {
+	return a.Nonblocking
+}
+
+// TunnyPoolConfig Tunny线程池配置
+// type TunnyPoolConfig struct {
+// 	Enabled          bool `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                          // 是否启用
+// 	WorkerCount      int  `json:"worker_count,omitempty" yaml:"worker_count,omitempty" mapstructure:"worker_count"`          // 工作协程数量
+// 	QueueSize        int  `json:"queue_size,omitempty" yaml:"queue_size,omitempty" mapstructure:"queue_size"`                // 任务队列大小，0表示无限制
+// 	CleanupInterval  int  `json:"cleanup_interval,omitempty" yaml:"cleanup_interval,omitempty" mapstructure:"cleanup_interval"` // 清理间隔（秒）
+// 	PanicHandlerEnabled bool `json:"panic_handler_enabled,omitempty" yaml:"panic_handler_enabled,omitempty" mapstructure:"panic_handler_enabled"` // 是否启用panic处理
+// }
+
+// String 返回TunnyPoolConfig的字符串表示
+// func (t *TunnyPoolConfig) String() string {
+// 	bytes, _ := json.MarshalIndent(t, "", " ")
+// 	return string(bytes)
+// }
+
+// GetWorkerCount 获取工作协程数量
+// func (t *TunnyPoolConfig) GetWorkerCount() int {
+// 	return t.WorkerCount
+// }
+
+// GetQueueSize 获取任务队列大小
+// func (t *TunnyPoolConfig) GetQueueSize() int {
+// 	return t.QueueSize
+// }
+
+// GetCleanupInterval 获取清理间隔
+// func (t *TunnyPoolConfig) GetCleanupInterval() time.Duration {
+// 	return time.Duration(t.CleanupInterval) * time.Second
+// }
+
+// IsPanicHandlerEnabled 是否启用panic处理
+// func (t *TunnyPoolConfig) IsPanicHandlerEnabled() bool {
+// 	return t.PanicHandlerEnabled
+// }
 
 // Config 配置
 type Config struct {
@@ -384,11 +463,13 @@ type Config struct {
 	IpfsConfig       *IpfsConfig       `json:"ipfs_config,omitempty" yaml:"ipfs_config,omitempty" mapstructure:"ipfs"`                   // IPFS配置
 	CaptchaConfig    *CaptchaConfig    `json:"captcha_config,omitempty" yaml:"captcha_config,omitempty" mapstructure:"captcha"`          // 验证码配置
 	EmailConfig      *EmailConfig      `json:"email_config,omitempty" yaml:"email_config,omitempty" mapstructure:"email"`                // 邮件配置
+	AntsPoolConfig   *AntsPoolConfig   `json:"ants_pool_config,omitempty" yaml:"ants_pool_config,omitempty" mapstructure:"ants_pool"`    // Ants线程池配置
+	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
-func (c Config) String() string {
+func (c *Config) String() string {
 	bytes, _ := json.MarshalIndent(c, "", " ")
 	return string(bytes)
 }

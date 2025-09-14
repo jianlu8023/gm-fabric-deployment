@@ -8,6 +8,7 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/ants"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/websocket"
@@ -22,6 +23,7 @@ type DockerImageService struct {
 	dockerControl    *docker.Control
 	websocketControl *websocket.Control
 	libp2pControl    *libp2p.Control
+	antsPoolControl  *ants.Control
 }
 
 func NewDockerImageService(baseService *Service,
@@ -29,6 +31,7 @@ func NewDockerImageService(baseService *Service,
 	dockerControl *docker.Control,
 	websocketControl *websocket.Control,
 	libp2pControl *libp2p.Control,
+	antsPoolControl *ants.Control,
 ) *DockerImageService {
 	return &DockerImageService{
 		Service:          baseService,
@@ -36,6 +39,7 @@ func NewDockerImageService(baseService *Service,
 		dockerControl:    dockerControl,
 		websocketControl: websocketControl,
 		libp2pControl:    libp2pControl,
+		antsPoolControl:  antsPoolControl,
 	}
 }
 
@@ -72,7 +76,7 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 		return
 	}
 
-	go func() {
+	if err := s.antsPoolControl.Submit(func() {
 		if str.CompareIgnoreCase(req.PeerId, s.libp2pControl.GetLocalhostPeerID().String()) {
 			// 需要发送libp2p消息到指定节点
 			dockerPullMsg := &libp2p.Message{
@@ -116,7 +120,11 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			}
 			s.websocketControl.Broadcast([]byte("pull image success"))
 		}
-	}()
+	}); err != nil {
+		s.logger.Errorf("submit docker image pull task failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, commonhttp.ErrMsgInternalServerError)
+		return
+	}
 
 	commonhttp.SuccessResponse(ctx, gin.H{
 		"msg": fmt.Sprintf("拉取 %v 镜像成功", req.ImageName),
