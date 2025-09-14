@@ -99,7 +99,7 @@ func (c *Control) runJob(job *Job) {
 			c.logger.Infof("[control] job name: %s closed", job.Name)
 			return
 		case <-ticker.C:
-			c.logger.Debugf("[control] job name: %s running...", job.Name)
+			c.logger.Debugf("[control] job name: %s running on ants pool...", job.Name)
 			// job.Task()
 			if err := c.antsPoolControl.Submit(job.Task); err != nil {
 				c.logger.Warnf("[control] submit job to ants pool failed: %v", err)
