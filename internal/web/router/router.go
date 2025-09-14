@@ -95,6 +95,7 @@ func NewRouter(loggerControl *logger.Control,
 			mapper.NewDockerImageMapper(baseMapper),
 			dockerControl,
 			websocketControl,
+			libp2pControl,
 		),
 	)
 	dockerNetworkHandler := handler.NewDockerNetworkHandler(
