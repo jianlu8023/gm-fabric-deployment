@@ -74,6 +74,17 @@ func WithImagePullRegistryAuth(registryAuth string) func(options *image.PullOpti
 	}
 }
 
+// WithImagePullAll 配置镜像拉取是否拉取所有镜像
+// @param all bool 是否拉取所有镜像
+// @return func(options *image.PullOptions) 配置函数
+func WithImagePullAll(all bool) func(options *image.PullOptions) {
+	return func(options *image.PullOptions) {
+		if all {
+			options.All = true
+		}
+	}
+}
+
 // --------------------------------------------------------
 
 func WithImageListName(name string) func(args *[]filters.KeyValuePair) {

@@ -77,7 +77,8 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 	}
 
 	if err := s.antsPoolControl.Submit(func() {
-		if str.CompareIgnoreCase(req.PeerId, s.libp2pControl.GetLocalhostPeerID().String()) {
+		s.logger.Debugf("starting to pull doker image: %v", req.ImageName)
+		if !str.CompareIgnoreCase(req.PeerId, s.libp2pControl.GetLocalhostPeerID().String()) {
 			// 需要发送libp2p消息到指定节点
 			dockerPullMsg := &libp2p.Message{
 				Type: libp2p.MsgDockerImagePull,

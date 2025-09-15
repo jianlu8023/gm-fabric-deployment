@@ -270,7 +270,7 @@ func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *im
 
 	// 创建拉取选项
 	options := image.PullOptions{
-		All: true,
+		All: false,
 	}
 	for _, opt := range pullImageOpts {
 		opt(&options)
