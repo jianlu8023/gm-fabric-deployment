@@ -7,8 +7,8 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 )
 
-// WithNetworkName 查看网络 filter name
-func WithNetworkName(name string) func(args *[]filters.KeyValuePair) {
+// WithNetworkQueryName 查看网络 filter name
+func WithNetworkQueryName(name string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
 		if !str.IsBlank(name) {
 			*args = append(*args, filters.Arg("name", name))
@@ -16,8 +16,8 @@ func WithNetworkName(name string) func(args *[]filters.KeyValuePair) {
 	}
 }
 
-// WithNetworkID 查看网络 filter id
-func WithNetworkID(id string) func(args *[]filters.KeyValuePair) {
+// WithNetworkQueryID 查看网络 filter id
+func WithNetworkQueryID(id string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
 		if !str.IsBlank(id) {
 			*args = append(*args, filters.Arg("id", id))
@@ -25,24 +25,30 @@ func WithNetworkID(id string) func(args *[]filters.KeyValuePair) {
 	}
 }
 
-// WithNetworkIPAM 配置网络的IP地址管理
-func WithNetworkIPAM(ipamConfig *network.IPAM) func(options *network.CreateOptions) {
+// WithNetworkCreateIPAM 配置网络的IP地址管理
+func WithNetworkCreateIPAM(ipamConfig *network.IPAM) func(options *network.CreateOptions) {
 	return func(nc *network.CreateOptions) {
 		nc.IPAM = ipamConfig
 	}
 }
 
-// WithNetworkLabels 为网络添加标签
-func WithNetworkLabels(labels map[string]string) func(options *network.CreateOptions) {
+// WithNetworkCreateLabels 为网络添加标签
+func WithNetworkCreateLabels(labels map[string]string) func(options *network.CreateOptions) {
 	return func(nc *network.CreateOptions) {
 		nc.Labels = labels
 	}
 }
 
-// WithNetworkEnableIPv6 启用IPv6
-func WithNetworkEnableIPv6(enable bool) func(*network.CreateOptions) {
+// WithNetworkCreateEnableIPv6 启用IPv6
+func WithNetworkCreateEnableIPv6(enable bool) func(*network.CreateOptions) {
 	return func(nc *network.CreateOptions) {
 		nc.EnableIPv6 = &enable
+	}
+}
+
+func WithNetworkCreateAttachable(enable bool) func(*network.CreateOptions) {
+	return func(nc *network.CreateOptions) {
+		nc.Attachable = enable
 	}
 }
 
@@ -87,21 +93,13 @@ func WithImagePullAll(all bool) func(options *image.PullOptions) {
 
 // --------------------------------------------------------
 
-func WithImageListName(name string) func(args *[]filters.KeyValuePair) {
+func WithImageQueryName(name string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
 		if !str.IsBlank(name) {
-			*args = append(*args, filters.Arg("name", name))
+			*args = append(*args, filters.Arg("reference", name))
 		}
 	}
 }
-
-// func WithImageListId(id string) func(args *[]filters.KeyValuePair) {
-// 	return func(args *[]filters.KeyValuePair) {
-// 		if !str.IsBlank(id) {
-// 			*args = append(*args, filters.Arg("id", id))
-// 		}
-// 	}
-// }
 
 // --------------------------------------------------------
 

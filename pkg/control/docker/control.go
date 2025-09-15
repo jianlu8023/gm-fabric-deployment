@@ -3,6 +3,7 @@ package docker
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -188,6 +189,9 @@ func (dc *Control) GetNetwork(networkListOpts ...func(args *[]filters.KeyValuePa
 		dc.logger.Errorf("[control] get network failed: %v", err)
 		return network.Summary{}, err
 	}
+	if len(listNetworks) == 0 {
+		return network.Summary{}, fmt.Errorf("no network found")
+	}
 	return listNetworks[0], nil
 }
 
@@ -206,7 +210,7 @@ func (dc *Control) CreateNetwork(networkName string, driver string, opts ...func
 	}
 
 	dc.logger.Debugf("[control] check net %s exists...", networkName)
-	if net, err := dc.GetNetwork(WithNetworkName(networkName)); err == nil {
+	if net, err := dc.GetNetwork(WithNetworkQueryName(networkName)); err == nil {
 		// net exists
 		dc.logger.Debugf("[control] net %s exists", networkName)
 		return net, err
@@ -234,7 +238,7 @@ func (dc *Control) CreateNetwork(networkName string, driver string, opts ...func
 	}
 	dc.logger.Infof("[control] net %v created sucesfully, ID %s", networkName, resp.ID)
 
-	return dc.GetNetwork(WithNetworkName(networkName), WithNetworkID(resp.ID))
+	return dc.GetNetwork(WithNetworkQueryName(networkName), WithNetworkQueryID(resp.ID))
 }
 
 // RemoveNetwork 删除网络
@@ -255,6 +259,23 @@ func (dc *Control) RemoveNetwork(networkId string) error {
 	}
 	dc.logger.Infof("[control] network %s removed sucesfully", networkId)
 	return nil
+}
+
+func (dc *Control) InspectNetwork(networkId string) (network.Inspect, error) {
+	// InspectNetwork 和 GetNetwork 结果一样
+	dc.logger.Infof("[control] inspecting network...")
+	if dc.client == nil {
+		return network.Inspect{}, ErrNoAliveDockerClient
+	}
+
+	opts := network.InspectOptions{}
+
+	inspect, err := dc.client.NetworkInspect(dc.ctx, networkId, opts)
+	if err != nil {
+		dc.logger.Errorf("[control] failed to inspect network: %v", err)
+		return network.Inspect{}, err
+	}
+	return inspect, nil
 }
 
 // PullImage 拉取Docker镜像
@@ -361,6 +382,9 @@ func (dc *Control) GetImage(imageListOpts ...func(args *[]filters.KeyValuePair))
 		dc.logger.Errorf("[control] getting image info failed: %v", err)
 		return image.Summary{}, err
 	}
+	if len(images) == 0 {
+		return image.Summary{}, fmt.Errorf("no image found")
+	}
 	return images[0], nil
 }
 
@@ -401,7 +425,10 @@ func (dc *Control) ListImages(imageListOpts ...func(args *[]filters.KeyValuePair
 // @param hostConfig *container.HostConfig 主机配置
 // @return string 容器ID
 // @return error 创建过程中的错误
-func (dc *Control) CreateContainer(containerName string, imageName string, config *container.Config, hostConfig *container.HostConfig) (string, error) {
+func (dc *Control) CreateContainer(containerName string, imageName string,
+	config *container.Config, hostConfig *container.HostConfig,
+	networkingConfig *network.NetworkingConfig,
+) (string, error) {
 	dc.logger.Infof("[control] creating container: %s with image: %s", containerName, imageName)
 	if dc.client == nil {
 		return "", ErrNoAliveDockerClient
@@ -413,7 +440,7 @@ func (dc *Control) CreateContainer(containerName string, imageName string, confi
 	// }
 
 	// 创建容器
-	resp, err := dc.client.ContainerCreate(dc.ctx, config, hostConfig, nil, nil, containerName)
+	resp, err := dc.client.ContainerCreate(dc.ctx, config, hostConfig, networkingConfig, nil, containerName)
 	if err != nil {
 		dc.logger.Errorf("[control] failed to create container %s: %v", containerName, err)
 		return "", err

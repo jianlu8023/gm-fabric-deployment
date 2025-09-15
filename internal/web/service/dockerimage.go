@@ -93,6 +93,19 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 				return
 			}
 		} else {
+			// 本机拉取镜像
+
+			// 1. 先判断数据库中是否存在镜像
+			imageExist, err := s.dockerControl.GetImage(docker.WithImageQueryName(req.ImageName))
+			if err != nil {
+				s.logger.Errorf("get docker image failed: %v", err)
+				return
+			}
+			if str.IsBlank(imageExist.ID) {
+				s.logger.Debugf("docker image %v already exist", req.ImageName)
+				return
+			}
+
 			if err := s.dockerControl.PullImage(req.ImageName); err != nil {
 				s.logger.Errorf("docker image pull failed: %v", err)
 				// commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, err.Error())

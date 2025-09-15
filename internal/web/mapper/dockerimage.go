@@ -168,3 +168,21 @@ func (m *DockerImageMapper) BatchLogicalDelete(query model.DockerImage) error {
 		return nil
 	})
 }
+
+// QueryOneExists 查询是否存在符合条件的Docker镜像记录
+// @description 根据查询条件检查Docker镜像是否存在（包括已逻辑删除的）
+// @param query model.DockerImage 查询条件
+// @return bool 是否存在记录
+// @return error 操作结果错误信息
+func (m *DockerImageMapper) QueryOneExists(query model.DockerImage) (bool, error) {
+	if m.db == nil {
+		return false, datasource.ErrNoDataSourceConn
+	}
+
+	var count int64
+	if err := m.db.Model(&model.DockerImage{}).Where(&query).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("查询Docker镜像存在性失败: %w", err)
+	}
+
+	return count > 0, nil
+}
