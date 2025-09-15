@@ -18,7 +18,7 @@ replace (
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.3
 	github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
-	github.com/mitchellh/mapstructure v1.4.2 => github.com/mitchellh/mapstructure v1.5.0
+	// github.com/mitchellh/mapstructure v1.4.2 => github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
@@ -27,10 +27,21 @@ replace (
 
 )
 
+replace (
+	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
+	github.com/mitchellh/mapstructure => github.com/mitchellh/mapstructure v1.3.3
+	// github.com/spf13/viper => github.com/spf13/viper v0.0.0-20150908122457-1967d93db724
+	// go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20181228115726-23731bf9ba55
+	github.com/zmap/zcrypto => github.com/zmap/zcrypto v0.0.0-20190729165852-9051775e6a2e
+	github.com/zmap/zlint => github.com/zmap/zlint v0.0.0-20190806154020-fd021b4cfbeb
+
+)
+
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/docker/docker v20.10.26+incompatible
+	// github.com/docker/go-connections v0.4.0 // indirect
 	// github.com/docker/docker v28.0.1+incompatible
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-contrib/gzip v1.2.2
@@ -42,6 +53,8 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
+	// github.com/hxx258456/fabric-ca-gm v0.0.2
+	github.com/hxx258456/fabric-sdk-go-gm v0.0.7
 	github.com/ipfs/boxo v0.27.2
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-ipfs-api v0.7.0
@@ -52,13 +65,14 @@ require (
 	github.com/libp2p/go-libp2p v0.40.0
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0
 	github.com/mingrammer/commonregex v1.0.1
-	github.com/mitchellh/mapstructure v1.4.2
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha v1.3.8
 	github.com/multiformats/go-multiaddr v0.14.0
 	github.com/panjf2000/ants/v2 v2.11.3 // ants 异步方式线程池
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/shirou/gopsutil/v4 v4.24.10
-	github.com/spf13/viper v1.9.0
+	github.com/sony/sonyflake v1.1.0
+	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.10.0
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/fasttemplate v1.2.2
@@ -90,6 +104,8 @@ require (
 	// github.com/markbates/goth v1.81.0 // 第三方认证
 	// github.com/charmbracelet/bubbletea v1.3.4 // 控制台输出  spinner包 只显示文字
 	// github.com/reactivex/rxgo/v2 v2.5.0
+	// github.com/gin-contrib/pprof v1.4.0
+	// github.com/unrolled/secure v1.14.0
 	// github.com/PuerkitoBio/goquery v1.9.3 //类似于jquery
 	// github.com/bamzi/jobrunner v1.0.0 // 运行job
 	// github.com/robfig/cron/v3 v3.0.1 // cron 定时运行
@@ -118,7 +134,10 @@ require (
 )
 
 require (
+	gitee.com/zhaochuninhefei/zcgolog v0.0.14 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
+	github.com/DataDog/zstd v1.5.0 // indirect
+	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
@@ -139,6 +158,9 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
+	github.com/eapache/go-resiliency v1.2.0 // indirect
+	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
+	github.com/eapache/queue v1.1.0 // indirect
 	github.com/ebitengine/purego v0.8.1 // indirect
 	github.com/elastic/gosigar v0.14.3 // indirect
 	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
@@ -149,6 +171,8 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/gammazero/deque v1.0.0 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
+	github.com/go-kit/kit v0.12.0 // indirect
+	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -160,14 +184,25 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
+	github.com/golang/mock v1.6.0 // indirect
+	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/certificate-transparency-go v1.1.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
+	github.com/hxx258456/ccgo v0.0.3 // indirect
+	github.com/hxx258456/cfssl-gm v0.0.3 // indirect
+	github.com/hxx258456/fabric-config-gm v0.0.2 // indirect
+	github.com/hxx258456/fabric-gm v0.0.2 // indirect
+	github.com/hxx258456/fabric-protos-go-gm v0.0.2 // indirect
+	github.com/hxx258456/saramagm v0.0.2 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
@@ -225,7 +260,8 @@ require (
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.10 // indirect
+	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/miekg/dns v1.1.63 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
@@ -256,6 +292,7 @@ require (
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 // indirect
+	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/dtls/v3 v3.0.4 // indirect
@@ -287,8 +324,9 @@ require (
 	github.com/quic-go/quic-go v0.49.0 // indirect
 	github.com/quic-go/webtransport-go v0.8.1-0.20241018022711-4ac2c9250e66 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
+	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/rivo/uniseg v0.1.0 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rs/cors v1.10.1 // indirect
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -302,12 +340,15 @@ require (
 	github.com/tklauser/numcpus v0.6.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/weppos/publicsuffix-go v0.15.1-0.20220329081811-9a40b608a236 // indirect
 	github.com/whyrusleeping/base32 v0.0.0-20170828182744-c30ac30633cc // indirect
 	github.com/whyrusleeping/cbor v0.0.0-20171005072247-63513f603b11 // indirect
 	github.com/whyrusleeping/cbor-gen v0.1.2 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	github.com/zmap/zcrypto v0.0.0-20220402174210-599ec18ecbac // indirect
+	github.com/zmap/zlint v1.1.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0 // indirect
@@ -332,7 +373,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gonum.org/v1/gonum v0.15.1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241007155032-5fefd90f89a9 // indirect
-	gopkg.in/ini.v1 v1.63.2 // indirect
+	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

@@ -5,11 +5,11 @@ import (
 	"github.com/docker/docker/api/types/container"
 	dockermount "github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
-	"github.com/docker/go-connections/nat"
+	dockernetwork "github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/strslice"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"time"
 )
 
 func main() {
@@ -25,7 +25,7 @@ func main() {
 			"grpc": "debug",
 		},
 	}
-
+	
 	loggerControl := logger.NewLoggerControl(loggerConfig)
 	dockerConfig := &config.DockerConfig{
 		Host:           "unix:///var/run/docker.sock",
@@ -36,7 +36,7 @@ func main() {
 		TlsCAFile:      "",
 		DefaultTimeout: 5,
 	}
-
+	
 	dockerControl, err := docker.NewDockerControl(dockerConfig, loggerControl)
 	if err != nil {
 		fmt.Printf("load docker failed: %v\n", err)
@@ -45,9 +45,9 @@ func main() {
 	dockerControl.StartUp(func(err error) {
 		fmt.Printf("docker start failed: %v\n", err)
 	})
-
+	
 	defer dockerControl.Shutdown()
-
+	
 	//
 	// imageList, err := dockerControl.ListImages()
 	// if err != nil {
@@ -74,7 +74,7 @@ func main() {
 	// 	return
 	// }
 	// fmt.Printf("network: %v\n", network)
-
+	
 	// if err = dockerControl.RemoveNetwork("net_test"); err != nil {
 	// 	fmt.Printf("remove docker network failed: %v\n", err)
 	// 	return
@@ -105,7 +105,7 @@ func main() {
 	// 	return
 	// }
 	// fmt.Printf("create network: %v\n", createNetwork)
-
+	
 	// inspect, err := dockerControl.InspectNetwork("aee00a60d88e")
 	// if err != nil {
 	// 	fmt.Printf("inspect network failed: %v\n", err)
@@ -119,90 +119,161 @@ func main() {
 	// }
 	// fmt.Printf("inspect network: %v\n", inspect)
 	// fmt.Printf("get network: %v\n", network)
-
-	createContainer, err := dockerControl.CreateContainer("mynginx", "nginx:latest",
+	
+	// createContainer, err := dockerControl.CreateContainer("mynginx", "nginx:latest",
+	// 	&container.Config{
+	// 		Hostname:   "test",
+	// 		Domainname: "test",
+	// 		User:       "root",
+	// 		Image:      "nginx:latest",
+	// 		ExposedPorts: map[nat.Port]struct{}{
+	// 			"80/tcp": {},
+	// 		},
+	// 	},
+	// 	&container.HostConfig{
+	// 		PortBindings: map[nat.Port][]nat.PortBinding{
+	// 			"80/tcp": {
+	// 				{HostIP: "0.0.0.0", HostPort: "8000"},
+	// 			},
+	// 		},
+	// 		NetworkMode: network.NetworkBridge,
+	// 		RestartPolicy: container.RestartPolicy{
+	// 			Name: container.RestartPolicyUnlessStopped,
+	// 		},
+	// 		LogConfig: container.LogConfig{
+	// 			Type: "json-file",
+	// 			Config: map[string]string{
+	// 				"max-size": "10m",
+	// 				"max-file": "3",
+	// 			},
+	// 		},
+	// 		VolumeDriver: "overlay2",
+	// 		Mounts: []dockermount.Mount{
+	// 			{
+	// 				Type:     "bind",
+	// 				Source:   "/etc/timezone",
+	// 				Target:   "/etc/timezone",
+	// 				ReadOnly: true,
+	// 			},
+	// 			{
+	// 				Type:     "bind",
+	// 				Source:   "/etc/localtime",
+	// 				Target:   "/etc/localtime",
+	// 				ReadOnly: true,
+	// 			},
+	// 		},
+	// 	},
+	// 	&network.NetworkingConfig{
+	// 		EndpointsConfig: map[string]*network.EndpointSettings{
+	// 			"net_test": {
+	// 				IPAMConfig: &network.EndpointIPAMConfig{
+	// 					IPv4Address: "99.99.97.100",
+	// 				},
+	// 				Aliases:   []string{"nginx"},
+	// 				NetworkID: "aee00a60d88e",
+	// 				// IPAddress: "99.99.97.100",
+	// 			},
+	// 		},
+	// 	},
+	// )
+	// if err != nil {
+	// 	fmt.Printf("create container failed: %v\n", err)
+	// 	return
+	// }
+	// fmt.Printf("create container: %v\n", createContainer)
+	//
+	// if err = dockerControl.StartContainer(createContainer); err != nil {
+	// 	fmt.Printf("start container failed: %v\n", err)
+	// 	return
+	// }
+	//
+	// containers, err := dockerControl.ListContainers(true)
+	// if err != nil {
+	// 	fmt.Printf("list containers failed: %v\n", err)
+	// 	return
+	// }
+	// fmt.Printf("list containers: %v\n", containers)
+	//
+	// time.Sleep(5 * time.Second)
+	// if err = dockerControl.StopContainer(createContainer, 50); err != nil {
+	// 	fmt.Printf("stop container failed: %v\n", err)
+	// 	return
+	// }
+	//
+	// if err = dockerControl.RemoveContainer(createContainer, true); err != nil {
+	// 	fmt.Printf("remove container failed: %v\n", err)
+	// 	return
+	// }
+	
+	network, err := dockerControl.CreateNetwork("fabric_test_net", "bridge",
+		docker.WithNetworkCreateEnableIPv6(false),
+		docker.WithNetworkCreateAttachable(true),
+		docker.WithNetworkCreateLabels(map[string]string{
+			"name": "fabric_test_net",
+			"desc": "deploy fabric blockchain",
+		}),
+		docker.WithNetworkCreateIPAM(&network.IPAM{
+			Driver: "default",
+			Config: []network.IPAMConfig{
+				{
+					Subnet:  "99.99.99.0/24",
+					Gateway: "99.99.99.254",
+				},
+			},
+		}),
+	)
+	if err != nil {
+		fmt.Printf("create network failed: %v\n", err)
+		return
+	}
+	
+	createContainer, err := dockerControl.CreateContainer("inner_gm_fabric_ca", "gcbaas-gm/fabric-ca:1.5.2",
 		&container.Config{
-			Hostname:   "test",
-			Domainname: "test",
-			User:       "root",
-			Image:      "nginx:latest",
-			ExposedPorts: map[nat.Port]struct{}{
-				"80/tcp": {},
+			Image: "gcbaas-gm/fabric-ca:1.5.2",
+			Env: []string{
+				"FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
+				"FABRIC_CA_SERVER_CA_NAME=ca-org1",
+				"FABRIC_CA_SERVER_TLS_ENABLED=true",
+				"FABRIC_CA_SERVER_PORT=7054",
+				"BOOTSTRAP_USER_PASS=ca_bootstrap_ac:bootstrappw",
+			},
+			Cmd: strslice.StrSlice{
+				"sh", "-c", "/usr/local/bin/start_ca.sh",
 			},
 		},
 		&container.HostConfig{
-			PortBindings: map[nat.Port][]nat.PortBinding{
-				"80/tcp": {
-					{HostIP: "0.0.0.0", HostPort: "8000"},
-				},
-			},
-			NetworkMode: network.NetworkBridge,
-			RestartPolicy: container.RestartPolicy{
-				Name: container.RestartPolicyUnlessStopped,
-			},
-			LogConfig: container.LogConfig{
-				Type: "json-file",
-				Config: map[string]string{
-					"max-size": "10m",
-					"max-file": "3",
-				},
-			},
-			VolumeDriver: "overlay2",
 			Mounts: []dockermount.Mount{
 				{
-					Type:     "bind",
-					Source:   "/etc/timezone",
-					Target:   "/etc/timezone",
-					ReadOnly: true,
+					Type:   "bind",
+					Source: "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/gm-fabric-docx/org1",
+					Target: "/etc/hyperledger/fabric-ca-server",
 				},
 				{
-					Type:     "bind",
-					Source:   "/etc/localtime",
-					Target:   "/etc/localtime",
-					ReadOnly: true,
+					Type:   "bind",
+					Source: "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/gm-fabric-docx/org1/logs",
+					Target: "/logs",
 				},
 			},
 		},
-		&network.NetworkingConfig{
-			EndpointsConfig: map[string]*network.EndpointSettings{
-				"net_test": {
-					IPAMConfig: &network.EndpointIPAMConfig{
-						IPv4Address: "99.99.97.100",
+		&dockernetwork.NetworkingConfig{
+			EndpointsConfig: map[string]*dockernetwork.EndpointSettings{
+				network.Name: {
+					NetworkID: network.ID,
+					IPAMConfig: &dockernetwork.EndpointIPAMConfig{
+						IPv4Address: "99.99.99.1",
 					},
-					Aliases:   []string{"nginx"},
-					NetworkID: "aee00a60d88e",
-					// IPAddress: "99.99.97.100",
 				},
 			},
 		},
 	)
 	if err != nil {
-		fmt.Printf("create container failed: %v\n", err)
+		fmt.Printf("create container error: %v\n", err)
 		return
 	}
-	fmt.Printf("create container: %v\n", createContainer)
-
+	
 	if err = dockerControl.StartContainer(createContainer); err != nil {
-		fmt.Printf("start container failed: %v\n", err)
+		fmt.Printf("start container error: %v\n", err)
 		return
 	}
-
-	containers, err := dockerControl.ListContainers(true)
-	if err != nil {
-		fmt.Printf("list containers failed: %v\n", err)
-		return
-	}
-	fmt.Printf("list containers: %v\n", containers)
-
-	time.Sleep(5 * time.Second)
-	if err = dockerControl.StopContainer(createContainer, 50); err != nil {
-		fmt.Printf("stop container failed: %v\n", err)
-		return
-	}
-
-	if err = dockerControl.RemoveContainer(createContainer, true); err != nil {
-		fmt.Printf("remove container failed: %v\n", err)
-		return
-	}
-
+	
 }

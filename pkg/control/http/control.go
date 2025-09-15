@@ -58,6 +58,13 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	engine.Use(cors.EnableCors())
 	engine.Use(gzip.EnableGzip())
 
+	// 调试模式，开启 pprof 包，便于开发阶段分析程序性能
+	// gin.DefaultWriter = io.MultiWriter(os.Stdout, io.Discard)
+	// gin.DefaultErrorWriter = io.MultiWriter(os.Stderr, io.Discard)
+	// engine = gin.Default()
+	// 调试模式下开启pprof
+	// pprof.Register(engine)
+
 	// 创建会话管理器
 	webLogger.Debugf("[control] create session manager...")
 	sessionManager := jwt.NewMemorySessionManager(webLogger, ctx)

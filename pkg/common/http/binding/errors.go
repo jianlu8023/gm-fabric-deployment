@@ -2,7 +2,9 @@ package binding
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"strings"
 )
 
 // InvalidValidationError 定义参数验证错误类型
@@ -175,4 +177,21 @@ func getValidationRuleDescription(tag string) string {
 	default:
 		return tag + "验证策略"
 	}
+}
+
+// ValidatorError 翻译表单参数验证器出现的校验错误
+func ValidatorError(c *gin.Context, err error) {
+	if _, ok := err.(validator.ValidationErrors); ok {
+		// wrongParam := validator_translation.RemoveTopStruct(errs.Translate(validator_translation.Trans))
+		// ReturnJson(c, http.StatusBadRequest, 2001, " consts.ValidatorParamsCheckFailMsg", nil)
+	} else {
+		errStr := err.Error()
+		// multipart:nextpart:eof 错误表示验证器需要一些参数，但是调用者没有提交任何参数
+		if strings.ReplaceAll(strings.ToLower(errStr), " ", "") == "multipart:nextpart:eof" {
+			// ReturnJson(c, http.StatusBadRequest, 2002, "consts.ValidatorParamsCheckFailMsg", gin.H{"tips": "my_errors.ErrorNotAllParamsIsBlank"})
+		} else {
+			// ReturnJson(c, http.StatusBadRequest, 2003, "consts.ValidatorParamsCheckFailMsg", gin.H{"tips": errStr})
+		}
+	}
+	c.Abort()
 }
