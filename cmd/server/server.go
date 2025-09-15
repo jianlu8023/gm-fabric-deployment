@@ -171,6 +171,13 @@ func main() {
 				return
 			}
 
+			if err := networkMapper.BatchLogicalDelete(model.DockerNetwork{
+				NetworkLocationPeerId: msg.From.String(),
+			}); err != nil {
+				mainLogger.Errorf("logical delete docker networks failed: %v", err)
+				return
+			}
+
 			for _, net := range networks {
 				info := model.NewDockerNetwork()
 				info.NetworkName = net.Name
@@ -206,6 +213,14 @@ func main() {
 				return
 			}
 
+			// 先将节点的镜像全部逻辑删除 然后有的则恢复
+			if err := imageMapper.BatchLogicalDelete(model.DockerImage{
+				ImageLocationPeerId: msg.From.String(),
+			}); err != nil {
+				mainLogger.Errorf("batch logical delete docker images failed: %v", err)
+				return
+			}
+
 			for _, img := range imageList {
 				info := model.NewDockerImage()
 				info.ImageName = img.RepoTags[0]
@@ -233,7 +248,7 @@ func main() {
 		if serverControl.GetJobControl() != nil {
 			serverControl.GetJobControl().RegisterJob(&job.Job{
 				Name:     "collect-docker-network",
-				Interval: time.Second * 10,
+				Interval: time.Minute * 10,
 				Task: func() {
 					// 收集docker网络信息
 					dockerNetworkMsg := &libp2p.Message{
@@ -247,7 +262,7 @@ func main() {
 			})
 			serverControl.GetJobControl().RegisterJob(&job.Job{
 				Name:     "collect-docker-images",
-				Interval: time.Second * 15,
+				Interval: time.Minute * 15,
 				Task: func() {
 					// 收集docker镜像信息
 					collectDockerImageMsg := &libp2p.Message{
@@ -296,50 +311,66 @@ func main() {
 		if err != nil {
 			mainLogger.Errorf("list docker images failed: %v", err)
 		} else {
-			for _, img := range imageList {
-				info := model.NewDockerImage()
-				info.ImageName = img.RepoTags[0]
-				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-				info.ImageId = img.ID
-				info.ImageCreated = img.Created
-				labels, err := json.Marshal(img.Labels)
-				if err != nil {
-					mainLogger.Errorf("marshal image labels failed: %v", err)
-					continue
-				}
-				info.ImageLabels = string(labels)
-				info.ImageLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
-				if err := imageMapper.InsertOrUpdateOne(info); err != nil {
-					mainLogger.Errorf("insert or update image info failed: %v", err)
-					continue
+
+			if err := imageMapper.BatchLogicalDelete(model.DockerImage{
+				ImageLocationPeerId: serverControl.GetLibp2pControl().GetLocalhostPeerID().String(),
+			}); err != nil {
+				mainLogger.Errorf("batch delete docker image failed: %v", err)
+
+			} else {
+				for _, img := range imageList {
+					info := model.NewDockerImage()
+					info.ImageName = img.RepoTags[0]
+					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					info.ImageId = img.ID
+					info.ImageCreated = img.Created
+					labels, err := json.Marshal(img.Labels)
+					if err != nil {
+						mainLogger.Errorf("marshal image labels failed: %v", err)
+						continue
+					}
+					info.ImageLabels = string(labels)
+					info.ImageLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
+					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+						mainLogger.Errorf("insert or update image info failed: %v", err)
+						continue
+					}
 				}
 			}
+
 		}
 		networkList, err := serverControl.GetDockerControl().ListNetworks()
 		if err != nil {
 			mainLogger.Errorf("list docker networks failed: %v", err)
 		} else {
-			for _, net := range networkList {
-				info := model.NewDockerNetwork()
-				info.NetworkName = net.Name
-				info.NetworkID = net.ID
-				info.NetworkCreateTime = net.Created
-				info.NetworkScope = net.Scope
-				info.NetworkDriver = net.Driver
-				info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
-				ipamBytes, err := json.Marshal(net.IPAM)
-				if err != nil {
-					mainLogger.Errorf("marshal network ipam failed: %v", err)
-					continue
-				}
-				info.NetworkIpam = string(ipamBytes)
-				info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
-				info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
-				info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
-				info.NetworkLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
-				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-				if err := networkMapper.InsertOrUpdateOne(info); err != nil {
-					mainLogger.Errorf("insert or update network info failed: %v", err)
+
+			if err := networkMapper.BatchLogicalDelete(model.DockerNetwork{
+				NetworkLocationPeerId: serverControl.GetLibp2pControl().GetLocalhostPeerID().String(),
+			}); err != nil {
+				mainLogger.Errorf("batch logical delete docker network failed: %v", err)
+			} else {
+				for _, net := range networkList {
+					info := model.NewDockerNetwork()
+					info.NetworkName = net.Name
+					info.NetworkID = net.ID
+					info.NetworkCreateTime = net.Created
+					info.NetworkScope = net.Scope
+					info.NetworkDriver = net.Driver
+					info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
+					ipamBytes, err := json.Marshal(net.IPAM)
+					if err != nil {
+						mainLogger.Errorf("marshal network ipam failed: %v", err)
+						continue
+					}
+					info.NetworkIpam = string(ipamBytes)
+					info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
+					info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
+					info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
+					info.NetworkLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
+					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					if err := networkMapper.InsertOrUpdateOne(info); err != nil {
+						mainLogger.Errorf("insert or update network info failed: %v", err)
+					}
 				}
 			}
 		}
