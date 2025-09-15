@@ -215,14 +215,18 @@ func (lc *Control) StartUp(failedFunc func(err error)) {
 		// 启动发现服务
 		if err := lc.discoveryService.Start(); err != nil {
 			lc.logger.Errorf("[control] failed to start discovery service: %v", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
 		}
 
 		// 启动DHT引导
 		lc.logger.Infof("[control] bootstrapping DHT...")
 		if err := lc.discoveryService.BootstrapDHT(); err != nil {
 			lc.logger.Errorf("[control] failed to bootstrap DHT: %v", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
 		}
 
 		// 连接bootstrap节点

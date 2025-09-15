@@ -104,18 +104,24 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		c.logger.Debugf("[control] starting to auto migrate tables...")
 		if err := c.autoMigrate(); err != nil {
 			c.logger.Errorf("[control] auto migrate table failed: %v", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
 		}
 
 		c.logger.Debugf("[control] call db ping instead startup...")
 		sqlDB, err := c.dbConn.DB()
 		if err != nil {
 			c.logger.Errorf("[control] failed from gorm.DB get sql.DB: %v", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
 		}
 		if err = sqlDB.Ping(); err != nil {
 			c.logger.Errorf("[control] failed from sqlDB.Ping: %v", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
 		}
 	})
 }

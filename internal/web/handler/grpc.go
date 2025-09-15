@@ -28,7 +28,7 @@ func (h *GrpcHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
 			Name:            "SendGrpcPingMessage",
-			Uri:             "/grpc/sned/message/ping",
+			Uri:             "/grpc/send/message/ping",
 			Method:          http.MethodGet,
 			HandlerFunc:     h.SendGrpcPingMessage,
 			Enabled:         true,

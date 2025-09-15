@@ -45,14 +45,15 @@ func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
 //
 // @return []commonhttp.RouterHandler 系统路由处理器列表
 func (h *SystemHandler) Routers() []commonhttp.RouterHandler {
-	return []commonhttp.RouterHandler{&commonhttp.MyRouter{
-		Name:            "systemOverview",
-		Uri:             "system/overview",
-		Enabled:         true,
-		EnableJWtVerify: false,
-		Method:          http.MethodGet,
-		Desc:            "获取系统的总览",
-		HandlerFunc:     h.GetSystemOverview,
-	},
+	return []commonhttp.RouterHandler{
+		&commonhttp.MyRouter{
+			Name:            "systemOverview",
+			Uri:             "system/overview",
+			Enabled:         true,
+			EnableJWtVerify: false,
+			Method:          http.MethodGet,
+			Desc:            "获取系统的总览",
+			HandlerFunc:     h.GetSystemOverview,
+		},
 	}
 }

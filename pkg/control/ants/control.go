@@ -146,6 +146,13 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 
 		// 启动监控协程
 		// go c.monitor()
+		if err = c.Submit(c.monitor); err != nil {
+			c.logger.Errorf("[control] submit ants pool monitor task failed: %v", err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
+			return
+		}
 	})
 }
 
@@ -249,53 +256,51 @@ func (c *Control) SubmitWithTimeout(task func(), timeout time.Duration) error {
 // GetPoolStats 获取线程池统计信息
 // @return map[string]interface{} 线程池统计信息
 // @since v1.0.0
-// func (c *Control) GetPoolStats() map[string]interface{} {
-// 	c.mutex.RLock()
-// 	defer c.mutex.RUnlock()
-//
-// 	stats := make(map[string]interface{})
-// 	stats["isRunning"] = c.isRunning
-// 	stats["taskCount"] = c.taskCount
-// 	stats["completedCount"] = c.completedCount
-// 	stats["failedCount"] = c.failedCount
-//
-// 	if c.isRunning && c.pool != nil {
-// 		poolStats := c.pool.Stat()
-// 		stats["runningWorkers"] = poolStats.RunningWorkers
-// 		stats["idleWorkers"] = poolStats.IdleWorkers
-// 		stats["pendingTasks"] = poolStats.PendingTasks
-// 		stats["totalWorkers"] = poolStats.TotalWorkers
-// 	}
-//
-// 	return stats
-// }
+func (c *Control) GetPoolStats() map[string]interface{} {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	stats := make(map[string]interface{})
+	stats["isRunning"] = c.isRunning
+	stats["taskCount"] = c.taskCount
+	stats["completedCount"] = c.completedCount
+	stats["failedCount"] = c.failedCount
+
+	if c.isRunning && c.pool != nil {
+		stats["runningWorkers"] = c.pool.Running()
+		stats["waitingWorkers"] = c.pool.Waiting()
+		stats["capTasks"] = c.pool.Cap()
+		stats["freeWorkers"] = c.pool.Free()
+	}
+
+	return stats
+}
 
 // monitor 监控线程池状态
 // @private
 // @since v1.0.0
-// func (c *Control) monitor() {
-// 	每分钟打印一次线程池状态
-// ticker := time.NewTicker(1 * time.Minute)
-// defer ticker.Stop()
-//
-// for {
-// 	select {
-// 	case <-ticker.C:
-// 		c.mu.RLock()
-// 		if c.isRunning && c.pool != nil {
-// 			stats := c.pool.Stats()
-// 			c.logger.Debugf("[control] ants pool stats - Running: %d, Idle: %d, Pending: %d, Total: %d, Tasks: %d, Completed: %d, Failed: %d",
-// 				stats.RunningWorkers, stats.IdleWorkers, stats.PendingTasks, stats.TotalWorkers,
-// 				c.taskCount, c.completedCount, c.failedCount)
-// 		}
-// 		c.mu.RUnlock()
-//
-// 	case <-c.ctx.Done():
-// 		c.logger.Debugf("[control] ants pool monitor stopped")
-// 		return
-// 	}
-// }
-// }
+func (c *Control) monitor() {
+	// 	每分钟打印一次线程池状态
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.mutex.RLock()
+			if c.isRunning && c.pool != nil {
+				c.logger.Debugf("[control] ants pool stats - Running: %d, Waiting: %d, Cap: %d, Free: %d, Tasks: %d, Completed: %d, Failed: %d",
+					c.pool.Running(), c.pool.Waiting(), c.pool.Cap(), c.pool.Free(),
+					c.taskCount, c.completedCount, c.failedCount)
+			}
+			c.mutex.RUnlock()
+
+		case <-c.ctx.Done():
+			c.logger.Debugf("[control] ants pool monitor stopped")
+			return
+		}
+	}
+}
 
 // Resize 调整线程池大小
 // @param size int 新的线程池大小

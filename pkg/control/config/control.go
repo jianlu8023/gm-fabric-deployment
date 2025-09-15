@@ -154,7 +154,9 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		config, err := c.loadConfig()
 		if err != nil {
 			fmt.Printf("[control] load config failed: %s\n", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
 			return
 		}
 		c.config = &config

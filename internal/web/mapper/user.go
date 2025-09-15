@@ -70,8 +70,10 @@ func (m *UserMapper) InsertOneUser(user *model.UserInfo) error {
 // @param password string 密码
 // @return *model.UserInfo 用户信息
 // @return error 错误信息，如果用户不存在或密码错误返回自定义错误
-func (m *UserMapper) QueryUserByUsernameAndPassword(username,
-	password string) (*model.UserInfo, error) {
+func (m *UserMapper) QueryUserByUsernameAndPassword(
+	username,
+	password string,
+) (*model.UserInfo, error) {
 	if m.db == nil {
 		return nil, datasource.ErrNoDataSourceConn
 	}

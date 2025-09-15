@@ -116,7 +116,9 @@ func (dc *Control) StartUp(failedFunc func(err error)) {
 		version, err := dc.client.ServerVersion(dc.ctx)
 		if err != nil {
 			dc.logger.Errorf("[control] failed to connect to docker daemon: %v", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
 			return
 		}
 

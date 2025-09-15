@@ -26,7 +26,7 @@ type DockerNetwork struct {
 	IsDelete              sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:bool;default:false"`                                         // 删除标记（默认false）
 }
 
-func (i DockerNetwork) MarshalJSON() ([]byte, error) {
+func (i *DockerNetwork) MarshalJSON() ([]byte, error) {
 	type Alias DockerNetwork
 	aux := struct {
 		*Alias
@@ -36,7 +36,7 @@ func (i DockerNetwork) MarshalJSON() ([]byte, error) {
 		NetworkIngress    bool `json:"network_ingress,omitempty" yaml:"network_ingress,omitempty"`
 		IsDelete          bool `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
 	}{
-		Alias:             (*Alias)(&i),
+		Alias:             (*Alias)(i),
 		NetworkEnableIPv6: i.NetworkEnableIPv6.Bool,
 		NetworkInternal:   i.NetworkInternal.Bool,
 		NetworkAttachable: i.NetworkAttachable.Bool,
@@ -49,14 +49,14 @@ func (i DockerNetwork) MarshalJSON() ([]byte, error) {
 // TableName 返回数据库表名
 // @description 实现gorm接口，指定Info结构体对应的数据库表名
 // @return string 数据库表名
-func (i DockerNetwork) TableName() string {
+func (i *DockerNetwork) TableName() string {
 	return networkInfoTableName
 }
 
 // String 将网络信息转换为JSON字符串
 // @description 将Info结构体转换为JSON格式的字符串表示
 // @return string 网络信息的JSON格式字符串
-func (i DockerNetwork) String() string {
+func (i *DockerNetwork) String() string {
 	bytes, _ := json.Marshal(i)
 	return string(bytes)
 }

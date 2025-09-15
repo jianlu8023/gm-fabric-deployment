@@ -42,7 +42,9 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if parseErr != nil {
 			c.PrintHelp()
 			// fmt.Printf("parse error: %v\n", parseErr)
-			failedFunc(parseErr)
+			if failedFunc != nil {
+				failedFunc(parseErr)
+			}
 			return
 		}
 		// fmt.Printf("flags parsed successfully...\n")

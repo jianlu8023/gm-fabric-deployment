@@ -27,13 +27,13 @@ type UserInfo struct {
 // @description 自定义UserInfo结构体的JSON序列化逻辑，将sql.NullBool类型的IsDelete字段转换为普通bool类型
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
-func (u UserInfo) MarshalJSON() ([]byte, error) {
+func (u *UserInfo) MarshalJSON() ([]byte, error) {
 	type Alias UserInfo
 	aux := struct {
 		*Alias
 		IsDelete bool `json:"is_delete" yaml:"is_delete"`
 	}{
-		Alias:    (*Alias)(&u),
+		Alias:    (*Alias)(u),
 		IsDelete: u.IsDelete.Bool,
 	}
 	return json.Marshal(aux)
@@ -42,7 +42,7 @@ func (u UserInfo) MarshalJSON() ([]byte, error) {
 // String 将用户信息转换为字符串表示
 // @description 将UserInfo结构体转换为JSON格式的字符串
 // @return string 用户信息的JSON格式字符串
-func (u UserInfo) String() string {
+func (u *UserInfo) String() string {
 	bytes, _ := json.Marshal(u)
 	return string(bytes)
 }
@@ -50,7 +50,7 @@ func (u UserInfo) String() string {
 // TableName 返回数据库表名
 // @description 实现gorm接口，指定UserInfo结构体对应的数据库表名
 // @return string 数据库表名
-func (u UserInfo) TableName() string {
+func (u *UserInfo) TableName() string {
 	return userInfoTableName
 }
 

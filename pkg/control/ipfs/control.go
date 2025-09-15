@@ -109,7 +109,9 @@ func (ipfs *Control) StartUp(failedFunc func(err error)) {
 		// 测试连接
 		if err := ipfs.testConnection(); err != nil {
 			ipfs.logger.Errorf("[control] failed to connect to IPFS daemon: %v", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
 			return
 		}
 

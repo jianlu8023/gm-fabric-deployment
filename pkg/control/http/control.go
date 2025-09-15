@@ -170,14 +170,18 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.logger.Infof("[control] start https server on %v", c.serverConfig.Address)
 			go func() {
 				if err := c.server.ListenAndServeTLS(c.serverConfig.TlsCertFile, c.serverConfig.TlsKeyFile); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
-					failedFunc(err)
+					if failedFunc != nil {
+						failedFunc(err)
+					}
 				}
 			}()
 		} else {
 			c.logger.Infof("[control] start http server on %v", c.serverConfig.Address)
 			go func() {
 				if err := c.server.ListenAndServe(); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
-					failedFunc(err)
+					if failedFunc != nil {
+						failedFunc(err)
+					}
 				}
 			}()
 		}

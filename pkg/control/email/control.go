@@ -193,25 +193,33 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.emailConfig.Enabled {
 			if c.emailConfig.SmtpHost == "" {
 				c.logger.Errorf("[control] email service enabled but smtp host is empty")
-				failedFunc(ErrMissingSmtpHost)
+				if failedFunc != nil {
+					failedFunc(ErrMissingSmtpHost)
+				}
 				return
 			}
 
 			if c.emailConfig.SmtpPort <= 0 {
 				c.logger.Errorf("[control] email service enabled but smtp port is invalid")
-				failedFunc(ErrInvalidSmtpPort)
+				if failedFunc != nil {
+					failedFunc(ErrInvalidSmtpPort)
+				}
 				return
 			}
 
 			if c.emailConfig.Username == "" || c.emailConfig.Password == "" {
 				c.logger.Errorf("[control] email service enabled but username or password is empty")
-				failedFunc(ErrMissingCredentials)
+				if failedFunc != nil {
+					failedFunc(ErrMissingCredentials)
+				}
 				return
 			}
 
 			if c.emailConfig.SenderAddress == "" {
 				c.logger.Errorf("[control] email service enabled but sender address is empty")
-				failedFunc(ErrMissingSenderAddress)
+				if failedFunc != nil {
+					failedFunc(ErrMissingSenderAddress)
+				}
 				return
 			}
 
