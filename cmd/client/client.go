@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
 	"math/rand/v2"
 	"os"
 	"os/signal"
@@ -10,8 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
@@ -77,35 +77,40 @@ func main() {
 		}
 	}(serverControl)
 
-	serverControl.GetJobControl().RegisterJob(&job.Job{
-		Name: "grpc-ping-message",
-		Task: func() {
-			response, err := serverControl.GetGrpcControl().Call(&pb.BaseRequest{
-				MessageType: libp2p.MsgBasePing,
-			})
-			if err != nil {
-				mainLogger.Errorf("send ping message err: %v", err)
-			} else {
-				mainLogger.Debugf("send ping message success %v", response)
-			}
-		},
-		Interval: time.Second * time.Duration(rand.IntN(5-3)+3),
-	})
+	{
 
-	serverControl.GetJobControl().RegisterJob(&job.Job{
-		Name:     "libp2p-ping-message",
-		Interval: time.Duration(rand.IntN(10-5)+5) * time.Second,
-		Task: func() {
-			pingMsg := &libp2p.Message{
-				Type:    libp2p.MsgBasePing,
-				Content: []byte("ping"),
-				From:    serverControl.GetLibp2pControl().GetLocalhostPeerID(),
-			}
-			if err := serverControl.GetLibp2pControl().BroadcastMessage(pingMsg); err != nil {
-				mainLogger.Errorf("broadcast ping message failed: %v", err)
-			}
-		},
-	})
+		if serverControl.GetJobControl() != nil {
+			serverControl.GetJobControl().RegisterJob(&job.Job{
+				Name: "grpc-ping-message",
+				Task: func() {
+					response, err := serverControl.GetGrpcControl().Call(&pb.BaseRequest{
+						MessageType: libp2p.MsgBasePing,
+					})
+					if err != nil {
+						mainLogger.Errorf("send ping message err: %v", err)
+					} else {
+						mainLogger.Debugf("send ping message success %v", response)
+					}
+				},
+				Interval: time.Second * time.Duration(rand.IntN(5-3)+3),
+			})
+
+			serverControl.GetJobControl().RegisterJob(&job.Job{
+				Name:     "libp2p-ping-message",
+				Interval: time.Duration(rand.IntN(10-5)+5) * time.Second,
+				Task: func() {
+					pingMsg := &libp2p.Message{
+						Type:    libp2p.MsgBasePing,
+						Content: []byte("ping"),
+						From:    serverControl.GetLibp2pControl().GetLocalhostPeerID(),
+					}
+					if err := serverControl.GetLibp2pControl().BroadcastMessage(pingMsg); err != nil {
+						mainLogger.Errorf("broadcast ping message failed: %v", err)
+					}
+				},
+			})
+		}
+	}
 
 	// libp2p
 	{

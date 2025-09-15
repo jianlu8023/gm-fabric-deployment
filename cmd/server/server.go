@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
 	"github.com/jianlu8023/gm-fabric-deployment/version"
 	"os"
 	"os/signal"
@@ -16,7 +17,6 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
 	"github.com/jianlu8023/gm-fabric-deployment/internal/web/router"
 	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
@@ -230,62 +230,64 @@ func main() {
 	}
 
 	{
-		serverControl.GetJobControl().RegisterJob(&job.Job{
-			Name:     "collect-docker-network",
-			Interval: time.Second * 10,
-			Task: func() {
-				// 收集docker网络信息
-				dockerNetworkMsg := &libp2p.Message{
-					Content: []byte("collect all node docker network info..."),
-					Type:    libp2p.MsgCollectionDockerNetworks,
-				}
-				if err := serverControl.GetLibp2pControl().BroadcastMessage(dockerNetworkMsg); err != nil {
-					mainLogger.Errorf("broadcast collect docker network info message failed: %v", err)
-				}
-			},
-		})
-		serverControl.GetJobControl().RegisterJob(&job.Job{
-			Name:     "collect-docker-images",
-			Interval: time.Second * 15,
-			Task: func() {
-				// 收集docker镜像信息
-				collectDockerImageMsg := &libp2p.Message{
-					Type:    libp2p.MsgCollectionDockerImages,
-					Content: []byte("collect all node docker image info..."),
-				}
-				if err := serverControl.GetLibp2pControl().BroadcastMessage(collectDockerImageMsg); err != nil {
-					mainLogger.Errorf("broadcast collect docker image info message failed: %v", err)
-				}
-			},
-		})
-		serverControl.GetJobControl().RegisterJob(&job.Job{
-			Name: "chat-message",
-			Task: func() {
-				chatMsg := &libp2p.Message{
-					Type:    "chat_message",
-					Content: []byte("hello libp2p"),
-				}
-				if err := serverControl.GetLibp2pControl().BroadcastMessage(chatMsg); err != nil {
-					mainLogger.Errorf("broadcast chat message failed: %v", err)
-				}
+		if serverControl.GetJobControl() != nil {
+			serverControl.GetJobControl().RegisterJob(&job.Job{
+				Name:     "collect-docker-network",
+				Interval: time.Second * 10,
+				Task: func() {
+					// 收集docker网络信息
+					dockerNetworkMsg := &libp2p.Message{
+						Content: []byte("collect all node docker network info..."),
+						Type:    libp2p.MsgCollectionDockerNetworks,
+					}
+					if err := serverControl.GetLibp2pControl().BroadcastMessage(dockerNetworkMsg); err != nil {
+						mainLogger.Errorf("broadcast collect docker network info message failed: %v", err)
+					}
+				},
+			})
+			serverControl.GetJobControl().RegisterJob(&job.Job{
+				Name:     "collect-docker-images",
+				Interval: time.Second * 15,
+				Task: func() {
+					// 收集docker镜像信息
+					collectDockerImageMsg := &libp2p.Message{
+						Type:    libp2p.MsgCollectionDockerImages,
+						Content: []byte("collect all node docker image info..."),
+					}
+					if err := serverControl.GetLibp2pControl().BroadcastMessage(collectDockerImageMsg); err != nil {
+						mainLogger.Errorf("broadcast collect docker image info message failed: %v", err)
+					}
+				},
+			})
+			serverControl.GetJobControl().RegisterJob(&job.Job{
+				Name: "chat-message",
+				Task: func() {
+					chatMsg := &libp2p.Message{
+						Type:    "chat_message",
+						Content: []byte("hello libp2p"),
+					}
+					if err := serverControl.GetLibp2pControl().BroadcastMessage(chatMsg); err != nil {
+						mainLogger.Errorf("broadcast chat message failed: %v", err)
+					}
 
-			},
-			Interval: time.Second * 5,
-		})
-		serverControl.GetJobControl().RegisterJob(&job.Job{
-			Name: "collect-node-info",
-			Task: func() {
-				collectInfoMsg := &libp2p.Message{
-					Type:    libp2p.MsgCollectionNode,
-					Content: []byte("collect all node info"),
-				}
-				// 广播消息
-				if err := serverControl.GetLibp2pControl().BroadcastMessage(collectInfoMsg); err != nil {
-					mainLogger.Errorf("broadcast collect info message failed: %v", err)
-				}
-			},
-			Interval: time.Second * 7,
-		})
+				},
+				Interval: time.Second * 5,
+			})
+			serverControl.GetJobControl().RegisterJob(&job.Job{
+				Name: "collect-node-info",
+				Task: func() {
+					collectInfoMsg := &libp2p.Message{
+						Type:    libp2p.MsgCollectionNode,
+						Content: []byte("collect all node info"),
+					}
+					// 广播消息
+					if err := serverControl.GetLibp2pControl().BroadcastMessage(collectInfoMsg); err != nil {
+						mainLogger.Errorf("broadcast collect info message failed: %v", err)
+					}
+				},
+				Interval: time.Second * 7,
+			})
+		}
 	}
 
 	// !str.CompareIgnoreCase("windows", runtime.GOOS)

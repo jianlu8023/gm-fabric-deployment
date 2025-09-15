@@ -73,7 +73,7 @@ logger:
     main: debug
     docker: debug
 ants_pool:
-  enabled: false
+  enabled: true
   # 线程池大小
   pool_size: 8
   # 最大线程池
