@@ -375,6 +375,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 
+	if c.jobControl != nil {
+		c.logger.Debugf("[control] shutting down job server...")
+		_ = c.jobControl.Shutdown()
+	}
+
 	if c.antsControl != nil {
 		c.logger.Debugf("[control] shutting down ants pool server...")
 		_ = c.antsControl.Shutdown()
@@ -396,11 +401,6 @@ func (c *Control) Shutdown() error {
 			c.logger.Errorf("[control] shutdown http server err: %v", err)
 			return err
 		}
-	}
-
-	if c.jobControl != nil {
-		c.logger.Debugf("[control] shutting down job server...")
-		_ = c.jobControl.Shutdown()
 	}
 
 	if c.libp2pControl != nil {
