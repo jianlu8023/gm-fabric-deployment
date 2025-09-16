@@ -1,0 +1,36 @@
+{
+  "name": "gm-fabric-baas-ca",
+  "version": "1.0.0",
+  "client": {
+    "organization": "baasorg",
+    "logging": {
+      "level": "debug"
+    }
+  },
+  "organizations": {
+    "baasorg": {
+      "mspid": "BaasOrgMSP",
+      "cryptoPath": "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca/msp",
+      "certificateAuthorities": [
+        "baasorg"
+      ]
+    }
+  },
+  "certificateAuthorities": {
+    "baasorg": {
+      "url": "https:https://localhost:7054",
+      "grpcOptions": {
+      },
+      "tlsCACerts": {
+        "pem": [
+          "-----BEGIN CERTIFICATE-----\nMIICkzCCAjigAwIBAgIUH+ZnxG5CyUg7wrGLaBeC1IXVGugwCgYIKoEcz1UBg3Uw\najELMAkGA1UEBhMCQ04xDjAMBgNVBAgTBUFuaHVpMQ4wDAYDVQQHEwVIZWZlaTEP\nMA0GA1UEChMGZ2Nzb2Z0MQ8wDQYDVQQLEwZnY2JhYXMxGTAXBgNVBAMTEGZhYnJp\nYy1jYS1zZXJ2ZXIwIBcNMjUwOTE2MDQyNjAwWhgPMjA3NTA5MDQwNDI2MDBaMGYx\nCzAJBgNVBAYTAkNOMQ4wDAYDVQQIEwVBbmh1aTEOMAwGA1UEBxMFSGVmZWkxDzAN\nBgNVBAoTBmdjc29mdDEPMA0GA1UECxMGZ2NiYWFzMRUwEwYDVQQDEwwwYThjYzk5\nMjcyMWUwWjAUBggqgRzPVQGCLQYIKoEcz1UBgi0DQgAELyVTCpTV9Tgk9Ofl2xHA\nX0TJ9CU4fmvF8GYHs4z57weki1q5T993Ft5HhpaH9zwS2nXZLWs9dD9+8/WiaERH\n2qOBvDCBuTAOBgNVHQ8BAf8EBAMCA6gwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsG\nAQUFBwMCMAwGA1UdEwEB/wQCMAAwKQYDVR0OBCIEIJjHKHX3IyklUaDNmEVwfdmm\n+Qd6725WToHxPGLAdEJWMCsGA1UdIwQkMCKAIGkNib60+wQaKBfNMlgOJgvzW6UH\nr89aLmirvmz+8fadMCIGA1UdEQQbMBmCDDBhOGNjOTkyNzIxZYIJbG9jYWxob3N0\nMAoGCCqBHM9VAYN1A0kAMEYCIQCKHcGzGetyPuJiq7yQQtDynVA0m1I1sKZ0UxgB\nYMkbagIhAOJjPtFa2JAmPb4HquKPwNxZwoNOftfimLqL5mLE9ytA\n-----END CERTIFICATE-----"
+        ]
+      },
+      "caName": "baasorg",
+      "registrar": {
+        "enrollId": "ca_bootstrap_ac",
+        "enrollSecret": "bootstrappw"
+      }
+    }
+  }
+}

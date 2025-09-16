@@ -29,20 +29,27 @@ replace (
 
 replace (
 	github.com/go-kit/kit => github.com/go-kit/kit v0.8.0
+	github.com/hxx258456/ccgo => github.com/hxx258456/ccgo v0.0.4
 	github.com/mitchellh/mapstructure => github.com/mitchellh/mapstructure v1.3.3
 	// github.com/spf13/viper => github.com/spf13/viper v0.0.0-20150908122457-1967d93db724
 	// go.etcd.io/etcd => go.etcd.io/etcd v0.5.0-alpha.5.0.20181228115726-23731bf9ba55
 	github.com/zmap/zcrypto => github.com/zmap/zcrypto v0.0.0-20190729165852-9051775e6a2e
 	github.com/zmap/zlint => github.com/zmap/zlint v0.0.0-20190806154020-fd021b4cfbeb
-
+	// google.golang.org/grpc v1.64.0
+	// google.golang.org/grpc v1.44.0
+	google.golang.org/grpc => google.golang.org/grpc v1.44.0
+	// google.golang.org/protobuf v1.28.1
+	// google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf => google.golang.org/protobuf v1.34.2
 )
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/docker/docker v20.10.26+incompatible
-	// github.com/docker/go-connections v0.4.0 // indirect
 	// github.com/docker/docker v28.0.1+incompatible
+	github.com/docker/go-connections v0.4.0 // create docker container 需要这个库
+	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // 原子创建文件
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-contrib/gzip v1.2.2
 	github.com/gin-contrib/requestid v1.0.4
@@ -55,6 +62,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	// github.com/hxx258456/fabric-ca-gm v0.0.2
 	github.com/hxx258456/fabric-sdk-go-gm v0.0.7
+	// github.com/hyperledger/fabric-sdk-go v1.0.0
 	github.com/ipfs/boxo v0.27.2
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-ipfs-api v0.7.0
@@ -133,8 +141,10 @@ require (
 	gorm.io/gorm v1.30.0
 )
 
+require github.com/hxx258456/ccgo v0.0.3
+
 require (
-	gitee.com/zhaochuninhefei/zcgolog v0.0.14 // indirect
+	gitee.com/zhaochuninhefei/zcgolog v0.0.16 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/DataDog/zstd v1.5.0 // indirect
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
@@ -155,7 +165,6 @@ require (
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
-	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/eapache/go-resiliency v1.2.0 // indirect
@@ -163,7 +172,6 @@ require (
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/ebitengine/purego v0.8.1 // indirect
 	github.com/elastic/gosigar v0.14.3 // indirect
-	github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/flynn/noise v1.1.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
@@ -185,7 +193,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/mock v1.6.0 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
@@ -197,7 +205,6 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
-	github.com/hxx258456/ccgo v0.0.3 // indirect
 	github.com/hxx258456/cfssl-gm v0.0.3 // indirect
 	github.com/hxx258456/fabric-config-gm v0.0.2 // indirect
 	github.com/hxx258456/fabric-gm v0.0.2 // indirect
@@ -330,7 +337,7 @@ require (
 	github.com/rs/cors v1.10.1 // indirect
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
-	github.com/spf13/afero v1.6.0 // indirect
+	github.com/spf13/afero v1.10.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect

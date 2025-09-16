@@ -95,3 +95,13 @@ ants_pool:
   pre_alloc: true
   # 是否非阻塞模式
   nonblocking: true
+fabric_ca:
+  image_name: gcbaas-gm/fabric-ca:1.5.2
+  ca_name: baasCA
+  enabled_tls: true
+  ca_admin_user: gmadmin
+  ca_admin_password: gmadminpw
+  ca_server_port: 7054
+  join_docker_network: "fabric_test_net"
+  docker_network_ip_addr: "99.99.99.1"
+  local_abs_path: "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/ceshi"

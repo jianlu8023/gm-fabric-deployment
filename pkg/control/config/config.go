@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
+	
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/wd"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -234,10 +234,10 @@ const (
 // @return error 错误信息
 func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
 	ident := Identity{}
-
+	
 	var sk crypto.PrivKey
 	var pk crypto.PubKey
-
+	
 	switch algorithm {
 	case Rsa:
 		fmt.Printf("generate rsa key pair with key length: %d\n", rsaKeyLen)
@@ -261,13 +261,13 @@ func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
 		fmt.Println("algorithm no support...")
 		return ident, errors.New("algorithm no support")
 	}
-
+	
 	skBytes, err := crypto.MarshalPrivateKey(sk)
 	if err != nil {
 		fmt.Printf("marshal private key failed: %v\n", err)
 		return ident, err
 	}
-
+	
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skBytes)
 	peerId, err := peer.IDFromPublicKey(pk)
 	if err != nil {
@@ -302,7 +302,7 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	return crypto.UnmarshalPrivateKey(pkb)
 }
 
@@ -452,6 +452,23 @@ func (a *AntsPoolConfig) IsNonblocking() bool {
 // 	return t.PanicHandlerEnabled
 // }
 
+type FabricCAConfig struct {
+	ImageName           string `json:"image_name,omitempty" yaml:"image_name,omitempty" mapstructure:"image_name"`                                     // 镜像名称
+	CAName              string `json:"ca_name,omitempty" yaml:"ca_name,omitempty" mapstructure:"ca_name"`                                              // CA名称
+	EnabledTls          bool   `json:"enabled_tls,omitempty" yaml:"enabled_tls,omitempty" mapstructure:"enabled_tls"`                                  // 是否启用TLS
+	CAAdminUser         string `json:"ca_admin_user,omitempty" yaml:"ca_admin_user,omitempty" mapstructure:"ca_admin_user"`                            // CA管理员用户
+	CAAdminPassword     string `json:"ca_admin_password,omitempty" yaml:"ca_admin_password,omitempty" mapstructure:"ca_admin_password"`                // CA管理员密码
+	CAServerPort        int    `json:"ca_server_port,omitempty" yaml:"ca_server_port,omitempty" mapstructure:"ca_server_port"`                         // CA服务器端口
+	JoinDockerNetwork   string `json:"join_docker_network,omitempty" yaml:"join_docker_network,omitempty" mapstructure:"join_docker_network"`          // 加入docker网络
+	DockerNetworkIpAddr string `json:"docker_network_ip_addr,omitempty" yaml:"docker_network_ip_addr,omitempty" mapstructure:"docker_network_ip_addr"` // docker网络ip地址
+	LocalAbsPath        string `json:"local_abs_path,omitempty" yaml:"local_abs_path,omitempty" mapstructure:"local_abs_path"`                         // 本地绝对路径
+}
+
+func (f *FabricCAConfig) String() string {
+	bytes, _ := json.Marshal(f)
+	return string(bytes)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig       *GrpcConfig       `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -464,6 +481,7 @@ type Config struct {
 	CaptchaConfig    *CaptchaConfig    `json:"captcha_config,omitempty" yaml:"captcha_config,omitempty" mapstructure:"captcha"`          // 验证码配置
 	EmailConfig      *EmailConfig      `json:"email_config,omitempty" yaml:"email_config,omitempty" mapstructure:"email"`                // 邮件配置
 	AntsPoolConfig   *AntsPoolConfig   `json:"ants_pool_config,omitempty" yaml:"ants_pool_config,omitempty" mapstructure:"ants_pool"`    // Ants线程池配置
+	FabricCAConfig   *FabricCAConfig   `json:"fabric_ca_config,omitempty" yaml:"fabric_ca_config,omitempty" mapstructure:"fabric_ca"`    // Fabric CA配置
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 

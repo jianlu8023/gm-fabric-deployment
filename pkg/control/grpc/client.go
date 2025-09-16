@@ -14,10 +14,14 @@ import (
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/peer"
+	// "google.golang.org/grpc"
+	"github.com/hxx258456/ccgo/grpc"
+	// "google.golang.org/grpc/credentials"
+	"github.com/hxx258456/ccgo/grpc/credentials"
+	// "google.golang.org/grpc/credentials/insecure"
+	"github.com/hxx258456/ccgo/grpc/credentials/insecure"
+	// "google.golang.org/grpc/peer"
+	"github.com/hxx258456/ccgo/grpc/peer"
 )
 
 type ClientControl struct {
@@ -108,7 +112,8 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 		// transportCredentials := credentials.NewTLS(clientTlsConfig)
 		// opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 
-		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
+		// gClient, err = grpc.NewClient(clientConfig.Host, opts...)
+		gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
 			logger.Errorf("[client] generate tls client err: %v", err)
 			return nil, err
@@ -116,7 +121,8 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 	} else {
 		logger.Debugf("[client] generate no tls client server...")
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
+		// gClient, err = grpc.NewClient(clientConfig.Host, opts...)
+		gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
 			logger.Errorf("[client] generate no tls client server err: %v", err)
 			return nil, err

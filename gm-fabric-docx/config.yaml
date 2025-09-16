@@ -1,0 +1,32 @@
+version: 1.0.0
+
+client:
+  organization: baasorg
+  logging:
+    level: debug
+  # cryptoconfig:
+  #   path: /tmp/crypto
+  # credentialStore:
+  #   path: /tmp/state-store
+  #   cryptoStore:
+  #     path: /tmp/msp
+
+  # tlsCerts:
+  #   systemCertPool: false
+organizations:
+  baasorg:  # 修改：你的组织名称
+    mspid: BaasOrgMSP  # 修改：你的组织 MSP ID
+    cryptoPath: /home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca/msp # 修改：根据你的实际情况
+    certificateAuthorities:
+      - baasorg  # 修改：你的 CA 名称
+certificateAuthorities:
+  baasorg:  # 修改：你的 CA 名称
+    url: https://localhost:7054  # 修改：你的 CA 地址
+    httpOptions:
+      verify: false
+    tlsCACerts:
+      path: /home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca/tls-cert.pem  # 修改：CA 服务器的 TLS 证书路径
+    registrar:
+      enrollId: ca_bootstrap_ac  # 修改：bootstrap 用户名
+      enrollSecret: bootstrappw  # 修改：bootstrap 密码
+    caName: baasorg  # 修改：CA 名称

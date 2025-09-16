@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "name": "gm-fabric-baas-ca",
+  "client": {
+    "organization": "baasorg",
+    "logging": {
+      "level": "debug"
+    }
+  },
+  "organizations": {
+    "baasorg": {
+      "mspid": "baasorgMSP",
+      "cryptoPath": "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca/msp",
+      "certificateAuthorities": [
+        "baasorg"
+      ]
+    }
+  },
+  "certificateAuthorities": {
+    "baasorg": {
+      "url": "https://https://localhost:7054",
+      "tlsCACerts": {
+        "path": "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca/tls-cert.pem"
+      },
+      "caName": "baasorg",
+      "registrar": {
+        "enrollId": "ca_bootstrap_ac",
+        "enrollSecret": "bootstrappw"
+      }
+    }
+  }
+}

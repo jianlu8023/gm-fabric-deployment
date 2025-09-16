@@ -2,6 +2,12 @@ package main
 
 import (
 	"fmt"
+	configcontrol "github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	
+	// "github.com/hyperledger/fabric-sdk-go/pkg/client/msp"
+	// "github.com/hyperledger/fabric-sdk-go/pkg/core/config"
+	// "github.com/hyperledger/fabric-sdk-go/pkg/fabsdk"
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/client/msp"
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/core/config"
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/fabsdk"
@@ -11,26 +17,26 @@ import (
 // https://www.cnblogs.com/liuhui5599/p/14195513.html
 func main() {
 	
-	// caclient, err := msp.NewCAClient("ca-ogr1", nil)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// register, err := caclient.Register(&api.RegistrationRequest{
-	// 	Name:           "user1",
-	// 	Type:           "client",
-	// 	MaxEnrollments: -1,
-	// 	Secret:         "123456",
-	// })
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Printf("register: %+v\n", register)
+	loggerConfig := &configcontrol.LoggerConfig{
+		DefaultLogLevel: "debug",
+		StackLogLevel:   "error",
+		PrintFormat:     "console",
+		FilePath:        "./logs/fabric.log",
+		MaxAge:          7,
+		RotationTime:    1,
+		LoggerLevel: map[string]string{
+			"main": "debug",
+			"grpc": "debug",
+		},
+	}
 	
+	loggerControl := logger.NewLoggerControl(loggerConfig)
 	// 加载配置文件
-	configProvider := config.FromFile("config.yaml")
-	
+	configProvider := config.FromFile("config.json")
 	// 创建 Fabric SDK 实例
-	sdk, err := fabsdk.New(configProvider)
+	sdk, err := fabsdk.New(configProvider,
+		fabsdk.WithLoggerPkg(newFabricLogger(loggerControl.GenLogger("basic"))),
+	)
 	if err != nil {
 		fmt.Printf("Failed to create new SDK: %s\n", err)
 		os.Exit(1)
@@ -38,15 +44,15 @@ func main() {
 	defer sdk.Close()
 	
 	// 设置上下文，指定组织
-	ctxProvider := sdk.Context(fabsdk.WithOrg("Org1"))
+	ctxProvider := sdk.Context(fabsdk.WithOrg("baasorg"))
 	mspClient, err := msp.New(ctxProvider)
 	if err != nil {
 		fmt.Printf("Failed to create MSP client: %s\n", err)
 		os.Exit(1)
 	}
 	// 定义要注册的新用户
-	username := "newuser1"
-	secret := "newuser1_secret"
+	username := "newuser4"
+	secret := "newuser4_secret"
 	
 	// 注册新用户
 	enrollmentSecret, err := mspClient.Register(
@@ -60,6 +66,7 @@ func main() {
 			},
 		},
 	)
+	
 	if err != nil {
 		fmt.Printf("Failed to register new user: %s\n", err)
 		os.Exit(1)
