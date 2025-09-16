@@ -11,9 +11,9 @@ import (
 func (c *Control) genFabricSdkConfig() (string, error) {
 	var url string
 	if c.config.EnabledTls {
-		url = fmt.Sprintf("https://https://%s:%d", c.config.DockerNetworkIpAddr, c.config.CAServerPort)
+		url = fmt.Sprintf("https://https://%s:%d", c.config.CAName, c.config.CAServerPort)
 	} else {
-		url = fmt.Sprintf("http://%s:%d", c.config.DockerNetworkIpAddr, c.config.CAServerPort)
+		url = fmt.Sprintf("http://%s:%d", c.config.CAName, c.config.CAServerPort)
 	}
 
 	m := map[string]interface{}{

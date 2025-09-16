@@ -111,10 +111,14 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 
 		container, err := c.dockerControl.CreateContainer(c.config.CAName, c.config.ImageName,
 			&dockercontainer.Config{
-				Image: c.config.ImageName,
-				User:  "1000",
+				Image:    c.config.ImageName,
+				User:     "1000",
+				Hostname: c.config.CAName,
 				Env: []string{
+					"FABRIC_CA_SERVER_DEBUG=true",
+					"FABRIC_CA_SERVER_AFFILIATIONS=baas",
 					"FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
+					fmt.Sprintf("FABRIC_CA_SERVER_CSR_HOSTS=localhost,%v", c.config.CAName),
 					fmt.Sprintf("FABRIC_CA_SERVER_CA_NAME=%v", c.config.CAName),
 					fmt.Sprintf("FABRIC_CA_SERVER_TLS_ENABLED=%v", c.config.EnabledTls),
 					fmt.Sprintf("FABRIC_CA_SERVER_PORT=%v", c.config.CAServerPort),
@@ -152,6 +156,9 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 						NetworkID: network.ID,
 						IPAMConfig: &dockernetwork.EndpointIPAMConfig{
 							IPv4Address: c.config.DockerNetworkIpAddr,
+						},
+						Aliases: []string{
+							c.config.CAName,
 						},
 					},
 				},
