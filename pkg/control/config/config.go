@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	
+
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
 	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/wd"
 	"github.com/libp2p/go-libp2p/core/crypto"
@@ -234,10 +234,10 @@ const (
 // @return error 错误信息
 func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
 	ident := Identity{}
-	
+
 	var sk crypto.PrivKey
 	var pk crypto.PubKey
-	
+
 	switch algorithm {
 	case Rsa:
 		fmt.Printf("generate rsa key pair with key length: %d\n", rsaKeyLen)
@@ -261,13 +261,13 @@ func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
 		fmt.Println("algorithm no support...")
 		return ident, errors.New("algorithm no support")
 	}
-	
+
 	skBytes, err := crypto.MarshalPrivateKey(sk)
 	if err != nil {
 		fmt.Printf("marshal private key failed: %v\n", err)
 		return ident, err
 	}
-	
+
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skBytes)
 	peerId, err := peer.IDFromPublicKey(pk)
 	if err != nil {
@@ -302,7 +302,7 @@ func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return crypto.UnmarshalPrivateKey(pkb)
 }
 
@@ -462,6 +462,7 @@ type FabricCAConfig struct {
 	JoinDockerNetwork   string `json:"join_docker_network,omitempty" yaml:"join_docker_network,omitempty" mapstructure:"join_docker_network"`          // 加入docker网络
 	DockerNetworkIpAddr string `json:"docker_network_ip_addr,omitempty" yaml:"docker_network_ip_addr,omitempty" mapstructure:"docker_network_ip_addr"` // docker网络ip地址
 	LocalAbsPath        string `json:"local_abs_path,omitempty" yaml:"local_abs_path,omitempty" mapstructure:"local_abs_path"`                         // 本地绝对路径
+	LogInConsole        bool   `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`                         // 是否在控制台打印日志
 }
 
 func (f *FabricCAConfig) String() string {

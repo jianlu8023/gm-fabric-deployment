@@ -94,8 +94,10 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 
 		logsPath := filepath.Clean(filepath.Join(c.config.LocalAbsPath, "logs"))
 		if _, err := os.Stat(logsPath); err != nil {
+			c.logger.Errorf("[control] checkup logs dir failed: %v", err)
 			if os.IsNotExist(err) {
 				if err := os.MkdirAll(logsPath, os.FileMode(0o755)); err != nil {
+					c.logger.Errorf("[control] create logs dir failed: %v", err)
 					if failedFunc != nil {
 						failedFunc(err)
 						return
@@ -108,6 +110,8 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 				return
 			}
 		}
+
+		// TODO 缺少移除 container 的调用 需要先查看container是否存在
 
 		container, err := c.dockerControl.CreateContainer(c.config.CAName, c.config.ImageName,
 			&dockercontainer.Config{
@@ -182,8 +186,8 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 			return
 		}
-		time.Sleep(3 * time.Second)
-
+		time.Sleep(10 * time.Second)
+		c.logger.Debugf("[control] start generate config.json...")
 		configPath, err := c.genFabricSdkConfig()
 		if err != nil {
 			c.logger.Errorf("[control] generate fabric sdk config failed: %s", err)
@@ -194,7 +198,13 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		}
 		configProvider := fabconfig.FromFile(configPath)
 		sdk, err := fabsdk.New(configProvider,
-			fabsdk.WithLoggerPkg(newFabricSDKLogger(c.loggerControl.GetConfig(), true)))
+			fabsdk.WithLoggerPkg(
+				newFabricSDKLogger(
+					c.loggerControl.GetConfig(),
+					c.config.LogInConsole,
+				),
+			),
+		)
 		if err != nil {
 			c.logger.Errorf("[control] generate fabric sdk failed: %v", err)
 			if failedFunc != nil {

@@ -9,7 +9,7 @@ networks:
 
 services:
   app-server:
-    image: gm-fabric:v202509101502
+    image: gm-fabric:v202509162311
     ports:
       - "8080:8080"
       - "65534:65534"
@@ -18,11 +18,12 @@ services:
       - ./certs:/myapp/certs
       - ./configs:/myapp/configs
       - ./db:/myapp/db
+      - /home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca:/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - myapp
     container_name: app-server
-    command: server -config configs/server.yaml -type dev
+    command: server --config configs/server.yaml --type dev --debug --version
     restart: unless-stopped
   app-client:
     image: gm-fabric:v202509101502
@@ -33,6 +34,7 @@ services:
       - ./certs:/myapp/certs
       - ./configs:/myapp/configs
       - ./db:/myapp/db
+      - /home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca:/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - myapp

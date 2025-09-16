@@ -1,6 +1,6 @@
 datasource:
   enabled: true
-  data_source_type: mysql
+  data_source_type: sqlite3
   db_username: myself
   db_password: myself_pw
   db_host: localhost
@@ -102,6 +102,7 @@ fabric_ca:
   ca_admin_user: gmadmin
   ca_admin_password: gmadminpw
   ca_server_port: 7054
-  join_docker_network: "fabric_test_net"
-  docker_network_ip_addr: "99.99.99.1"
-  local_abs_path: "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/ceshi"
+  join_docker_network: "net_myapp"
+  docker_network_ip_addr: "99.99.97.100"
+  local_abs_path: "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca"
+  log_in_console: true

@@ -106,18 +106,18 @@ func (f *fabricLogger) GetLogger(module string) api.Logger {
 }
 
 func newFabricSDKLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *fabricLogger {
-	fileName := "fabric-sdk.log"
+	fileName := "sdk.log"
 	fileDir := filepath.Dir(loggerConfig.FilePath)
 	fileName = filepath.Clean(filepath.Join(fileDir, fileName))
 	opts := []glog.Option{
-		glog.WithModuleName("Sdk"),
+		// glog.WithModuleName("Sdk"),
 		glog.WithCaller(),
 		glog.WithCallerSkip(0),
 		glog.WithConsoleConfig(zapcore.EncoderConfig{
 			MessageKey:       "msg",
 			LevelKey:         "level",
 			TimeKey:          "time",
-			NameKey:          "logger",
+			NameKey:          "",
 			CallerKey:        "",
 			StacktraceKey:    "stacktrace",
 			ConsoleSeparator: "  ",
@@ -134,7 +134,7 @@ func newFabricSDKLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *f
 			LevelKey:         "level",
 			TimeKey:          "time",
 			NameKey:          "logger",
-			CallerKey:        "",
+			CallerKey:        "caller",
 			StacktraceKey:    "stacktrace",
 			ConsoleSeparator: "  ",
 			// FunctionKey:    "func",
@@ -157,16 +157,16 @@ func newFabricSDKLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *f
 		glog.WithFileLogLevel("debug"),
 		glog.WithDefaultLogLevel(loggerConfig.DefaultLogLevel),
 	}
-	
+
 	if logInConsole {
 		opts = append(opts, glog.WithConsoleOutPut())
 	} else {
 		opts = append(opts, glog.WithOutConsoleOutPut())
 	}
-	
+
 	logger := glog.NewSugaredLogger(opts...)
 	// logger.Debug("testing logger...")
-	
+
 	return &fabricLogger{
 		logger: logger,
 	}
