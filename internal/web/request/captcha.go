@@ -1,7 +1,7 @@
 package request
 
 import (
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/json"
 )
 
 // CaptchaRequest 验证码请求参数

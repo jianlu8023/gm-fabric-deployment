@@ -2,9 +2,9 @@ package service
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	systeminfo "github.com/jianlu8023/gm-fabric-deployment/pkg/system/info"
+	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	systeminfo "github.com/jianlu8023/golang-example/pkg/system/info"
 )
 
 // SystemService 系统服务
@@ -27,29 +27,43 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context) {
 	cpu, err := systeminfo.InitCPU()
 	if err != nil {
 		s.logger.Errorf("get cpu info failed: %v", err)
-		http.FailedResponseWithMessage(ctx, http.NormalFailed, "获取系统cpu信息失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取系统cpu信息失败")
 		return
 	}
 
 	disk, err := systeminfo.InitDisk()
 	if err != nil {
 		s.logger.Errorf("get disk info failed: %v", err)
-		http.FailedResponseWithMessage(ctx, http.NormalFailed, "获取系统disk信息失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取系统disk信息失败")
 		return
 	}
 	ram, err := systeminfo.InitRAM()
 	if err != nil {
 		s.logger.Errorf("get ram info failed: %v", err)
-		http.FailedResponseWithMessage(ctx, http.NormalFailed, "获取系统ram信息失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取系统ram信息失败")
 		return
 	}
 
-	http.SuccessResponse(ctx, gin.H{
+	commonhttp.SuccessResponse(ctx, gin.H{
 		"version": "1.0.0",
 		"os":      os,
 		"cpu":     cpu,
 		"disk":    disk,
 		"ram":     ram,
+	})
+}
+
+func (s *SystemService) GetSystemInitStatus(ctx *gin.Context) {
+	s.logger.Debugf("received get system init status request...")
+
+	init, err := s.mapper.GetSystemInit()
+	if err != nil {
+		s.logger.Errorf("get system init status failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取系统初始化状态失败")
+		return
+	}
+	commonhttp.SuccessResponse(ctx, gin.H{
+		"init": init,
 	})
 }
 

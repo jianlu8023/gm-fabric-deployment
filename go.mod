@@ -1,4 +1,4 @@
-module github.com/jianlu8023/gm-fabric-deployment
+module github.com/jianlu8023/golang-example
 
 go 1.22.0
 
@@ -22,6 +22,7 @@ replace (
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
+	golang.org/x/crypto => golang.org/x/crypto v0.33.0
 	google.golang.org/genproto/googleapis/api => google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9
 	gorm.io/gorm => gorm.io/gorm v1.30.0
 
@@ -60,9 +61,11 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
+	github.com/hxx258456/ccgo v0.0.3 // grpc v1.44.0 protoc-gen-go-grpc 版本v1.2.0 没有grpc.NewClient 需要使用 grpc.Dial
 	// github.com/hxx258456/fabric-ca-gm v0.0.2
 	github.com/hxx258456/fabric-sdk-go-gm v0.0.7
 	// github.com/hyperledger/fabric-sdk-go v1.0.0
+	// gitee.com/zhaochuninhefei/gmgo v0.1.1 // grpc升级到v1.63.2 protoc-gen-go-grpc 应该是v1.3.0
 	github.com/ipfs/boxo v0.27.2
 	github.com/ipfs/go-cid v0.5.0
 	github.com/ipfs/go-ipfs-api v0.7.0
@@ -86,6 +89,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/valyala/quicktemplate v1.8.0
 	go.uber.org/zap v1.27.0
+	golang.org/x/crypto v0.33.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.36.5
@@ -141,10 +145,8 @@ require (
 	gorm.io/gorm v1.30.0
 )
 
-require github.com/hxx258456/ccgo v0.0.3
-
 require (
-	gitee.com/zhaochuninhefei/zcgolog v0.0.16 // indirect
+	gitee.com/zhaochuninhefei/zcgolog v0.0.23 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/DataDog/zstd v1.5.0 // indirect
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
@@ -268,7 +270,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
-	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
+	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/miekg/dns v1.1.63 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
@@ -368,7 +370,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/arch v0.13.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/image v0.23.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect

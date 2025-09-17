@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
+	"github.com/jianlu8023/golang-example/pkg/control/docker"
+	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
+	"github.com/jianlu8023/golang-example/pkg/control/job"
 	"math/rand/v2"
 	"os"
 	"os/signal"
@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
+	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
+	"github.com/jianlu8023/golang-example/pkg/control/server"
+	"github.com/jianlu8023/golang-example/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 

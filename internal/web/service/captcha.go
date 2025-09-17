@@ -2,10 +2,10 @@ package service
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/response"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/captcha"
+	"github.com/jianlu8023/golang-example/internal/web/request"
+	"github.com/jianlu8023/golang-example/internal/web/response"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/captcha"
 )
 
 // CaptchaService 验证码服务
@@ -46,14 +46,14 @@ func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.Generate
 	// 验证请求参数
 	if !req.IsLegal() {
 		s.logger.Errorf("生成验证码请求参数不合法: %v", req)
-		http.FailedResponseWithMessage(ctx, http.InvalidParameter, "生成验证码参数不合法")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "生成验证码参数不合法")
 		return
 	}
 
 	id, b64s, answer, err := s.captchaControl.GenerateCaptcha()
 	if err != nil {
 		s.logger.Errorf("生成验证码失败: %v", err)
-		http.FailedResponseWithMessage(ctx, http.CaptchaGenerationFailed, http.ErrMsgCaptchaGenerationFailed)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.CaptchaGenerationFailed, commonhttp.ErrMsgCaptchaGenerationFailed)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.Generate
 
 	// 返回响应
 	resp := response.NewCaptchaResponse(id, b64s, "", "success", "验证码生成成功")
-	http.SuccessResponse(ctx, resp)
+	commonhttp.SuccessResponse(ctx, resp)
 }
 
 // ValidateCaptcha 验证验证码
@@ -80,14 +80,14 @@ func (s *CaptchaService) ValidateCaptcha(ctx *gin.Context, req *request.CaptchaR
 	// 验证请求参数
 	if !req.IsLegal() {
 		s.logger.Errorf("验证码验证请求参数不合法: %v", req)
-		http.FailedResponseWithMessage(ctx, http.InvalidParameter, "验证码验证参数不合法")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "验证码验证参数不合法")
 		return
 	}
 
 	// 验证验证码ID是否为空
 	if req.CaptchaId == "" {
 		s.logger.Errorf("验证码ID不能为空")
-		http.FailedResponseWithMessage(ctx, http.InvalidParameter, "验证码ID不能为空")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "验证码ID不能为空")
 		return
 	}
 
@@ -95,20 +95,20 @@ func (s *CaptchaService) ValidateCaptcha(ctx *gin.Context, req *request.CaptchaR
 	if ok, err := s.captchaControl.ValidateCaptcha(req.CaptchaId, req.Code); err == nil {
 		if !ok {
 			s.logger.Errorf("验证码验证失败: %s", req.CaptchaId)
-			http.FailedResponseWithMessage(ctx, http.InvalidCaptcha, "验证码不正确或已过期")
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidCaptcha, "验证码不正确或已过期")
 			return
 		}
 	} else {
 		// 发生错误
 		s.logger.Errorf("验证码验证过程中发生错误: %v", err)
-		http.FailedResponseWithMessage(ctx, http.InvalidCaptcha, http.ErrMsgInvalidCaptcha)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidCaptcha, commonhttp.ErrMsgInvalidCaptcha)
 		return
 	}
 
 	// 验证成功
 	s.logger.Debugf("验证码验证成功: %s", req.CaptchaId)
 	resp := response.NewValidateCaptchaResponse(true, "验证码验证成功", req.CaptchaId)
-	http.SuccessResponse(ctx, resp)
+	commonhttp.SuccessResponse(ctx, resp)
 }
 
 // GetCaptchaImageByType 根据类型获取验证码图片

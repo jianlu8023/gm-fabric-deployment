@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
 	glog "github.com/jianlu8023/go-logger/v2"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/str"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

@@ -2,10 +2,10 @@ package service
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/websocket"
+	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/internal/web/request"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/websocket"
 )
 
 // WebSocketServiceInterface 定义WebSocket服务的接口
@@ -66,7 +66,7 @@ func (s *WebSocketService) ConnectService(ctx *gin.Context, req *request.WSConne
 	// 验证请求参数
 	if !req.IsLegal() {
 		s.logger.Errorf("websocket connect request is illegal: %v", req)
-		http.FailedResponseWithMessage(ctx, http.InvalidParameter, "输入参数不合法")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
 		return
 	}
 
@@ -74,7 +74,7 @@ func (s *WebSocketService) ConnectService(ctx *gin.Context, req *request.WSConne
 	userID, exists := ctx.Get("user_id")
 	if !exists {
 		s.logger.Errorf("userID not found in context")
-		http.FailedResponseWithMessage(ctx, http.Unauthorized, "认证失败，请先登录")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
 		return
 	}
 
@@ -86,12 +86,12 @@ func (s *WebSocketService) ConnectService(ctx *gin.Context, req *request.WSConne
 	_, _, err := s.wsControl.UpgradeConnection(ctx.Writer, ctx.Request)
 	if err != nil {
 		s.logger.Errorf("websocket connection upgrade failed: %v", err)
-		http.FailedResponseWithMessage(ctx, http.InternalServerError, "WebSocket连接升级失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, "WebSocket连接升级失败")
 		return
 	}
 
 	// 返回成功响应
-	http.SuccessResponse(ctx, map[string]string{
+	commonhttp.SuccessResponse(ctx, map[string]string{
 		"message": "websocket connection request processed successfully",
 	})
 }
@@ -107,7 +107,7 @@ func (s *WebSocketService) DisconnectService(ctx *gin.Context, connID string) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
 		s.logger.Errorf("userID not found in context")
-		http.FailedResponseWithMessage(ctx, http.Unauthorized, "认证失败，请先登录")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
 		return
 	}
 
@@ -117,13 +117,13 @@ func (s *WebSocketService) DisconnectService(ctx *gin.Context, connID string) {
 	conn, err := s.wsMapper.GetConnectionByID(connID)
 	if err != nil {
 		s.logger.Errorf("get connection by id err: %v", err)
-		http.FailedResponse(ctx, http.NewError(http.NormalFailed, http.ErrMsgNormalFailed))
+		commonhttp.FailedResponse(ctx, commonhttp.NewError(commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed))
 		return
 	}
 
 	if conn.UserID != userIDStr {
 		s.logger.Errorf("connection %s does not belong to user %s", connID, userIDStr)
-		http.FailedResponseWithMessage(ctx, http.Forbidden, "无权操作该连接")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Forbidden, "无权操作该连接")
 		return
 	}
 
@@ -131,14 +131,14 @@ func (s *WebSocketService) DisconnectService(ctx *gin.Context, connID string) {
 	err = s.wsMapper.UpdateConnectionStatus(connID, "disconnected")
 	if err != nil {
 		s.logger.Errorf("update connection status err: %v", err)
-		http.FailedResponse(ctx, http.NewError(http.NormalFailed, http.ErrMsgNormalFailed))
+		commonhttp.FailedResponse(ctx, commonhttp.NewError(commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed))
 		return
 	}
 
 	// 从控制器中移除连接
 	s.wsControl.RemoveConnection(connID)
 
-	http.SuccessResponse(ctx, map[string]string{
+	commonhttp.SuccessResponse(ctx, map[string]string{
 		"message": "websocket disconnected successfully",
 	})
 }
@@ -155,7 +155,7 @@ func (s *WebSocketService) SendMessageService(ctx *gin.Context, req *request.WSM
 	_, exists := ctx.Get("user_id")
 	if !exists {
 		s.logger.Errorf("userID not found in context")
-		http.FailedResponseWithMessage(ctx, http.Unauthorized, "认证失败，请先登录")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
 		return
 	}
 
@@ -174,7 +174,7 @@ func (s *WebSocketService) SendMessageService(ctx *gin.Context, req *request.WSM
 		// 这里可以实现广播消息的逻辑
 	}
 
-	http.SuccessResponse(ctx, map[string]string{
+	commonhttp.SuccessResponse(ctx, map[string]string{
 		"message": "websocket message sent successfully",
 	})
 }
@@ -193,9 +193,9 @@ func (s *WebSocketService) GetConnectionListService(ctx *gin.Context, userID str
 	page, err := s.wsMapper.GetConnectionsByUserID(userID, isPage, pageNo, pageSize)
 	if err != nil {
 		s.logger.Errorf("get connection list err: %v", err)
-		http.FailedResponse(ctx, http.NewError(http.NormalFailed, http.ErrMsgNormalFailed))
+		commonhttp.FailedResponse(ctx, commonhttp.NewError(commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed))
 		return
 	}
 
-	http.SuccessResponse(ctx, page)
+	commonhttp.SuccessResponse(ctx, page)
 }

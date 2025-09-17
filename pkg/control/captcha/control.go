@@ -6,8 +6,8 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/mojocn/base64Captcha"
 	"go.uber.org/zap"
 )

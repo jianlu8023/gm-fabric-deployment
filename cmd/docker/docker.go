@@ -8,10 +8,9 @@ import (
 	dockernetwork "github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/strslice"
 	"github.com/docker/go-connections/nat"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"time"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/docker"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
 )
 
 func main() {
@@ -27,7 +26,7 @@ func main() {
 			"grpc": "debug",
 		},
 	}
-	
+
 	loggerControl := logger.NewLoggerControl(loggerConfig)
 	dockerConfig := &config.DockerConfig{
 		Host:           "unix:///var/run/docker.sock",
@@ -38,7 +37,7 @@ func main() {
 		TlsCAFile:      "",
 		DefaultTimeout: 5,
 	}
-	
+
 	dockerControl, err := docker.NewDockerControl(dockerConfig, loggerControl)
 	if err != nil {
 		fmt.Printf("load docker failed: %v\n", err)
@@ -47,9 +46,9 @@ func main() {
 	dockerControl.StartUp(func(err error) {
 		fmt.Printf("docker start failed: %v\n", err)
 	})
-	
+
 	defer dockerControl.Shutdown()
-	
+
 	//
 	// imageList, err := dockerControl.ListImages()
 	// if err != nil {
@@ -76,7 +75,7 @@ func main() {
 	// 	return
 	// }
 	// fmt.Printf("network: %v\n", network)
-	
+
 	// if err = dockerControl.RemoveNetwork("net_test"); err != nil {
 	// 	fmt.Printf("remove docker network failed: %v\n", err)
 	// 	return
@@ -107,7 +106,7 @@ func main() {
 	// 	return
 	// }
 	// fmt.Printf("create network: %v\n", createNetwork)
-	
+
 	// inspect, err := dockerControl.InspectNetwork("aee00a60d88e")
 	// if err != nil {
 	// 	fmt.Printf("inspect network failed: %v\n", err)
@@ -121,7 +120,7 @@ func main() {
 	// }
 	// fmt.Printf("inspect network: %v\n", inspect)
 	// fmt.Printf("get network: %v\n", network)
-	
+
 	// createContainer, err := dockerControl.CreateContainer("mynginx", "nginx:latest",
 	// 	&container.Config{
 	// 		Hostname:   "test",
@@ -206,7 +205,7 @@ func main() {
 	// 	fmt.Printf("remove container failed: %v\n", err)
 	// 	return
 	// }
-	
+
 	network, err := dockerControl.CreateNetwork("fabric_test_net", "bridge",
 		docker.WithNetworkCreateEnableIPv6(false),
 		docker.WithNetworkCreateAttachable(true),
@@ -228,16 +227,18 @@ func main() {
 		fmt.Printf("create network failed: %v\n", err)
 		return
 	}
-	
+
 	createContainer, err := dockerControl.CreateContainer("baasCA", "gcbaas-gm/fabric-ca:1.5.2",
 		&container.Config{
 			Image: "gcbaas-gm/fabric-ca:1.5.2",
 			Env: []string{
+				"TZ=Asia/Shanghai",
+				"FABRIC_CA_SERVER_DEBUG=true",
 				"FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
-				"FABRIC_CA_SERVER_CA_NAME=baasorg",
+				"FABRIC_CA_SERVER_CA_NAME=baasCA",
 				"FABRIC_CA_SERVER_TLS_ENABLED=true",
 				"FABRIC_CA_SERVER_PORT=7054",
-				"BOOTSTRAP_USER_PASS=ca_bootstrap_ac:bootstrappw",
+				"BOOTSTRAP_USER_PASS=gmadmin:gmadminpw",
 			},
 			User: "1000",
 			ExposedPorts: map[nat.Port]struct{}{
@@ -256,12 +257,12 @@ func main() {
 			Mounts: []dockermount.Mount{
 				{
 					Type:   "bind",
-					Source: "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca",
+					Source: "/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca",
 					Target: "/etc/hyperledger/fabric-ca-server",
 				},
 				{
 					Type:   "bind",
-					Source: "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca/logs",
+					Source: "/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca/logs",
 					Target: "/logs",
 				},
 			},
@@ -281,22 +282,22 @@ func main() {
 		fmt.Printf("create container error: %v\n", err)
 		return
 	}
-	
+
 	if err = dockerControl.StartContainer(createContainer); err != nil {
 		fmt.Printf("start container error: %v\n", err)
 		return
 	}
-	
-	time.Sleep(30 * time.Second)
-	if err = dockerControl.StopContainer(createContainer, 50); err != nil {
-		fmt.Printf("stop container error: %v\n", err)
-		return
-	}
-	if err = dockerControl.RemoveContainer(createContainer, true); err != nil {
-		fmt.Printf("remove container error: %v\n", err)
-		return
-	}
-	
-	fmt.Printf("success...")
-	
+
+	// time.Sleep(30 * time.Second)
+	// if err = dockerControl.StopContainer(createContainer, 50); err != nil {
+	// 	fmt.Printf("stop container error: %v\n", err)
+	// 	return
+	// }
+	// if err = dockerControl.RemoveContainer(createContainer, true); err != nil {
+	// 	fmt.Printf("remove container error: %v\n", err)
+	// 	return
+	// }
+	//
+	// fmt.Printf("success...")
+
 }

@@ -1,6 +1,7 @@
 package fabricca
 
 import (
+	"errors"
 	"fmt"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockermount "github.com/docker/docker/api/types/mount"
@@ -10,10 +11,11 @@ import (
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/client/msp"
 	fabconfig "github.com/hxx258456/fabric-sdk-go-gm/pkg/core/config"
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/fabsdk"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
+	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/docker"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/str"
 	"go.uber.org/zap"
 	"os"
 	"path/filepath"
@@ -28,7 +30,6 @@ type Control struct {
 	logger        *zap.SugaredLogger
 	fabsdk        *fabsdk.FabricSDK
 	mspClient     *msp.Client
-	containerId   string
 	once          sync.Once
 	mutex         sync.RWMutex
 }
@@ -94,7 +95,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 
 		logsPath := filepath.Clean(filepath.Join(c.config.LocalAbsPath, "logs"))
 		if _, err := os.Stat(logsPath); err != nil {
-			c.logger.Errorf("[control] checkup logs dir failed: %v", err)
+			c.logger.Debugf("[control] checkup logs dir failed: %v", err)
 			if os.IsNotExist(err) {
 				if err := os.MkdirAll(logsPath, os.FileMode(0o755)); err != nil {
 					c.logger.Errorf("[control] create logs dir failed: %v", err)
@@ -111,14 +112,33 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 		}
 
-		// TODO 缺少移除 container 的调用 需要先查看container是否存在
+		containerExist, err := c.dockerControl.GetContainer(c.config.CAName)
+		if err != nil {
+			c.logger.Errorf("[control] get docker container failed: %s", err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
+			return
+		}
 
-		container, err := c.dockerControl.CreateContainer(c.config.CAName, c.config.ImageName,
+		if !str.IsBlank(containerExist.ID) {
+			c.logger.Debugf("[control] %v container already exist, remove it...", c.config.CAName)
+			if err := c.dockerControl.RemoveContainer(containerExist.ID, true); err != nil {
+				c.logger.Errorf("[control] remove docker container failed: %s", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
+			}
+		}
+
+		containerId, err := c.dockerControl.CreateContainer(c.config.CAName, c.config.ImageName,
 			&dockercontainer.Config{
 				Image:    c.config.ImageName,
 				User:     "1000",
 				Hostname: c.config.CAName,
 				Env: []string{
+					"TZ=Asia/Shanghai",
 					"FABRIC_CA_SERVER_DEBUG=true",
 					"FABRIC_CA_SERVER_AFFILIATIONS=baas",
 					"FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server",
@@ -175,11 +195,10 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 			return
 		}
-		c.containerId = container
 
 		c.logger.Debugf("[control] start docker container...")
 
-		if err = c.dockerControl.StartContainer(c.containerId); err != nil {
+		if err = c.dockerControl.StartContainer(containerId); err != nil {
 			c.logger.Errorf("[control] start docker container failed: %s", err)
 			if failedFunc != nil {
 				failedFunc(err)
@@ -226,13 +245,22 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 
 func (c *Control) Shutdown() error {
 	c.logger.Debugf("[control] shutting down fabric ca server...")
-	if err := c.dockerControl.StopContainer(c.containerId, 50); err != nil {
-		c.logger.Errorf("[control] stop docker container failed: %s", err)
+
+	container, err := c.dockerControl.GetContainer(c.config.CAName)
+	if err != nil {
+		c.logger.Errorf("[control] get docker container failed: %s", err)
 		return err
 	}
-	if err := c.dockerControl.RemoveContainer(c.containerId, true); err != nil {
-		c.logger.Errorf("[control] remove docker container failed: %s", err)
-		return err
+
+	if !str.IsBlank(container.ID) {
+		if err := c.dockerControl.StopContainer(container.ID, 50); err != nil {
+			c.logger.Errorf("[control] stop docker container failed: %s", err)
+			return err
+		}
+		if err := c.dockerControl.RemoveContainer(container.ID, true); err != nil {
+			c.logger.Errorf("[control] remove docker container failed: %s", err)
+			return err
+		}
 	}
 	c.fabsdk.Close()
 	return nil
@@ -255,6 +283,66 @@ func (c *Control) checkup() error {
 		return err
 	}
 	c.logger.Infof("[control] checkup fabric ca server success...")
+	return nil
+
+}
+
+func (c *Control) RegisterUserAndGetCert(user *model.UserInfo) error {
+	c.logger.Debugf("[control] starting register a user from fabric ca server...")
+
+	if c.mspClient == nil {
+		return errors.New("msp client is nil")
+	}
+	c.logger.Debugf("[control] register user: %s", user.Username)
+	_, err := c.mspClient.Register(&msp.RegistrationRequest{
+		Name:           user.Username,
+		Type:           "client",
+		MaxEnrollments: -1,
+		// affiliations
+		Attributes: []msp.Attribute{
+			{
+				Name: "user.email", Value: user.Email, ECert: true,
+			},
+			{
+				Name: "user.type", Value: user.UserType, ECert: true,
+			},
+		},
+		Secret: user.Password,
+		CAName: c.config.CAName,
+	})
+	if err != nil {
+		c.logger.Errorf("[control] register user failed: %s", err)
+		return err
+	}
+
+	if err = c.EnrollUser(user); err != nil {
+		c.logger.Errorf("[control] enroll user failed: %s", err)
+		return err
+	}
+
+	c.logger.Debugf("[control] get user %s certificate...", user.Username)
+	userIdentity, err := c.mspClient.GetSigningIdentity(user.Username)
+	if err != nil {
+		c.logger.Errorf("[control] get signing identity failed: %s", err)
+		return err
+	}
+
+	c.logger.Debugf("[control] setting user certificate...")
+	user.Certificate = string(userIdentity.EnrollmentCertificate())
+
+	return nil
+}
+
+func (c *Control) EnrollUser(user *model.UserInfo) error {
+	c.logger.Debugf("[control] enroll user: %s", user.Username)
+	if c.mspClient == nil {
+		return errors.New("msp client is nil")
+	}
+
+	if err := c.mspClient.Enroll(user.Username, msp.WithSecret(user.Password)); err != nil {
+		c.logger.Errorf("[control] enroll user failed: %s", err)
+		return err
+	}
 	return nil
 
 }

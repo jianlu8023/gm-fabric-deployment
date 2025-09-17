@@ -2,7 +2,7 @@ package mapstructure
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/json"
 	"github.com/mitchellh/mapstructure"
 	"log"
 )

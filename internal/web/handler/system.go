@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	"github.com/jianlu8023/golang-example/internal/web/service"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
 // SystemHandler 系统处理器结构体
@@ -41,6 +41,12 @@ func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
 	h.service.GetSystemOverview(ctx)
 }
 
+func (h *SystemHandler) GetSystemInitStatus(ctx *gin.Context) {
+	h.logger.Debugf("received system init status handler...")
+
+	h.service.GetSystemInitStatus(ctx)
+}
+
 // Routers 获取系统相关路由列表
 //
 // @return []commonhttp.RouterHandler 系统路由处理器列表
@@ -54,6 +60,15 @@ func (h *SystemHandler) Routers() []commonhttp.RouterHandler {
 			Method:          http.MethodGet,
 			Desc:            "获取系统的总览",
 			HandlerFunc:     h.GetSystemOverview,
+		},
+		&commonhttp.MyRouter{
+			Name:            "systemInitStatus",
+			Uri:             "system/init",
+			Enabled:         true,
+			EnableJWtVerify: false,
+			Method:          http.MethodGet,
+			Desc:            "获取baas是否进行初始化",
+			HandlerFunc:     h.GetSystemInitStatus,
 		},
 	}
 }

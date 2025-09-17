@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/internal/web/mapper"
 )
 
 // SSEService SSE服务

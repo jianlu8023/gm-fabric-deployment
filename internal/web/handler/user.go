@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	"github.com/jianlu8023/golang-example/internal/web/request"
+	"github.com/jianlu8023/golang-example/internal/web/service"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
 // UserHandler 用户处理器结构体
@@ -71,7 +71,7 @@ func (h *UserHandler) LoginUserHandler(ctx *gin.Context) {
 	h.logger.Debugf("received login user handler...")
 	req := new(request.UserLoginRequest)
 
-	if err := binding.BindJSON(ctx, req); err != nil {
+	if err := binding.BindMultiPartForm(ctx, req); err != nil {
 		h.logger.Errorf("bind user login request failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定请求参数失败")
 		return

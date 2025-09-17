@@ -2,8 +2,8 @@ package fabricca
 
 import (
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/core/logging/api"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	glog "github.com/jianlu8023/go-logger/v2"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"path/filepath"
@@ -117,7 +117,7 @@ func newFabricSDKLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *f
 			MessageKey:       "msg",
 			LevelKey:         "level",
 			TimeKey:          "time",
-			NameKey:          "",
+			NameKey:          "logger",
 			CallerKey:        "",
 			StacktraceKey:    "stacktrace",
 			ConsoleSeparator: "  ",

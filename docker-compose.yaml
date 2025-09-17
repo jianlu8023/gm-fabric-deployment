@@ -18,12 +18,12 @@ services:
       - ./certs:/myapp/certs
       - ./configs:/myapp/configs
       - ./db:/myapp/db
-      - /home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca:/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca
+      - /home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca:/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - myapp
     container_name: app-server
-    command: server --config configs/server.yaml --type dev --debug --version
+    command: server --config configs/server.yaml --type docker --debug --version
     restart: unless-stopped
   app-client:
     image: gm-fabric:v202509101502
@@ -34,7 +34,7 @@ services:
       - ./certs:/myapp/certs
       - ./configs:/myapp/configs
       - ./db:/myapp/db
-      - /home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca:/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca
+      - /home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca:/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - myapp

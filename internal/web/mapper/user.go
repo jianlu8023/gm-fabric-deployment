@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
+	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"gorm.io/gorm"
 )
 

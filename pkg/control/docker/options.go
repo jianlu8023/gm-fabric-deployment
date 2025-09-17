@@ -4,7 +4,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
+	"github.com/jianlu8023/golang-example/pkg/str"
 )
 
 // WithNetworkQueryName 查看网络 filter name
@@ -122,5 +122,15 @@ func WithRemoveImageForce(force bool) func(options *image.RemoveOptions) {
 func WithRemoveImagePruneChildren(pruneChildren bool) func(options *image.RemoveOptions) {
 	return func(options *image.RemoveOptions) {
 		options.PruneChildren = pruneChildren
+	}
+}
+
+// ----------------------------
+
+func WithContainerQueryName(name string) func(args *[]filters.KeyValuePair) {
+	return func(args *[]filters.KeyValuePair) {
+		if !str.IsBlank(name) {
+			*args = append(*args, filters.Arg("name", name))
+		}
 	}
 }

@@ -2,25 +2,25 @@ package server
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/ants"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/fabricca"
-	"github.com/jianlu8023/gm-fabric-deployment/version"
+	"github.com/jianlu8023/golang-example/pkg/control/ants"
+	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
+	"github.com/jianlu8023/golang-example/version"
 	"os"
 	"sync"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
+	"github.com/jianlu8023/golang-example/pkg/control/flags"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/websocket"
+	"github.com/jianlu8023/golang-example/pkg/control/websocket"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/captcha"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/captcha"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/datasource"
+	"github.com/jianlu8023/golang-example/pkg/control/docker"
+	"github.com/jianlu8023/golang-example/pkg/control/grpc"
+	"github.com/jianlu8023/golang-example/pkg/control/http"
+	"github.com/jianlu8023/golang-example/pkg/control/job"
+	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"go.uber.org/zap"
 )
 
@@ -356,6 +356,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.fabricCAControl.StartUp(failedFunc)
 		}
 
+		if c.antsControl != nil {
+			c.logger.Debugf("[control] starting up ants pool server...")
+			c.antsControl.StartUp(failedFunc)
+		}
+
 		if c.jobControl != nil {
 			c.logger.Debugf("[control] starting up job server...")
 			c.jobControl.StartUp(failedFunc)
@@ -369,11 +374,6 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.websocketControl != nil {
 			c.logger.Debugf("[control] starting up websocket server...")
 			c.websocketControl.StartUp(failedFunc)
-		}
-
-		if c.antsControl != nil {
-			c.logger.Debugf("[control] starting up ants pool server...")
-			c.antsControl.StartUp(failedFunc)
 		}
 
 		if c.httpControl != nil {

@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/json"
 )
 
 const (
@@ -19,6 +19,8 @@ type UserInfo struct {
 	Username      string       `json:"username,omitempty" yaml:"username,omitempty" gorm:"column:username;type:varchar(255);not null;unique"`                            // 用户名（唯一）
 	Password      string       `json:"-" yaml:"password,omitempty" gorm:"column:password;type:varchar(255);not null"`                                                    // 密码（JSON序列化时忽略）
 	Email         string       `json:"email,omitempty" yaml:"email,omitempty" gorm:"column:email;type:varchar(255);not null;unique"`                                     // 邮箱（唯一）
+	UserType      string       `json:"user_type,omitempty" yaml:"user_type,omitempty" gorm:"column:user_type;type:varchar(255);"`                                        // 用户类型
+	Certificate   string       `json:"-" yaml:"certificate,omitempty" gorm:"column:certificate;type:text"`                                                               // 证书（JSON序列化时忽略）
 	IsDelete      sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0"`                                 // 是否删除标记（默认为0）
 	LastLoginTime time.Time    `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty" gorm:"column:last_login_time;type:datetime;default:CURRENT_TIMESTAMP"` // 最后登录时间（默认为当前时间戳）
 }

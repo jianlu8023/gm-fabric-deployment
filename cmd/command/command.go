@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/mycommand"
+	"github.com/jianlu8023/golang-example/pkg/mycommand"
 	"os/exec"
 )
 

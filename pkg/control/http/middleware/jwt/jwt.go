@@ -3,7 +3,7 @@ package jwt
 import (
 	"context"
 	"errors"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/common/http"
 	"strings"
 	"sync"
 	"time"

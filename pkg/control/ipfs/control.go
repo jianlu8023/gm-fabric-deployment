@@ -14,8 +14,8 @@ import (
 	shell "github.com/ipfs/go-ipfs-api"
 	ipfsrpc "github.com/ipfs/kubo/client/rpc"
 	"github.com/ipfs/kubo/core/coreiface/options"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/multiformats/go-multiaddr"
 	"go.uber.org/zap"
 )

@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/random/uuid"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/random/uuid"
 	"go.uber.org/zap"
 )
 

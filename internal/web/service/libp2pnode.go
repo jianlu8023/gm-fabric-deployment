@@ -2,11 +2,11 @@ package service
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
+	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/internal/web/request"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 )
 
 // NodeServiceInterface 节点服务接口
@@ -56,8 +56,8 @@ func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2p
 	page, err := s.nodeMapper.NodeList(model.Libp2pNode{}, req.IsPage, req.PageNo, req.PageSize)
 	if err != nil {
 		s.logger.Errorf("query node list err: %v", err)
-		http.FailedResponse(ctx, http.NewError(http.NormalFailed, http.ErrMsgNormalFailed))
+		commonhttp.FailedResponse(ctx, commonhttp.NewError(commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed))
 		return
 	}
-	http.SuccessResponse(ctx, page)
+	commonhttp.SuccessResponse(ctx, page)
 }

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/json"
 )
 
 type PaginationRequest struct {

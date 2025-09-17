@@ -12,17 +12,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
+	"github.com/jianlu8023/golang-example/pkg/str"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/cors"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/gzip"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/jwt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/requestid"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
 
 	"github.com/gin-gonic/gin"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"go.uber.org/zap"
 )
 

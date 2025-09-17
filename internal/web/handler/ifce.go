@@ -1,7 +1,7 @@
 package handler
 
 import (
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
 // RoutersInterface 路由接口

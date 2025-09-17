@@ -4,9 +4,9 @@ import (
 	"errors"
 	"math"
 
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/dbpage"
+	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/pkg/control/datasource"
+	"github.com/jianlu8023/golang-example/pkg/dbpage"
 	"gorm.io/gorm"
 )
 

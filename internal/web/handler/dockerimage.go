@@ -2,10 +2,10 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/internal/web/request"
+	"github.com/jianlu8023/golang-example/internal/web/service"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 	"net/http"
 	"strings"
 )

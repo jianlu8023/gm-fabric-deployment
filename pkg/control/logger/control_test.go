@@ -3,7 +3,7 @@ package logger
 import (
 	"testing"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
 )
 
 func Test_NewLoggerControl(t *testing.T) {

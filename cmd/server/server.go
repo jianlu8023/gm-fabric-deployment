@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/job"
-	"github.com/jianlu8023/gm-fabric-deployment/version"
+	"github.com/jianlu8023/golang-example/pkg/control/job"
+	"github.com/jianlu8023/golang-example/version"
 	"os"
 	"os/signal"
 	"runtime"
@@ -13,15 +13,15 @@ import (
 
 	dockerimage "github.com/docker/docker/api/types/image"
 	dockernetwork "github.com/docker/docker/api/types/network"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/router"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/system/pidfile"
+	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/internal/web/router"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/server"
+	"github.com/jianlu8023/golang-example/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
@@ -76,6 +76,7 @@ func main() {
 			&model.DockerNetwork{},
 			&model.Libp2pNode{},
 			&model.UserInfo{},
+			&model.SystemInit{},
 		)
 	}
 
@@ -90,6 +91,7 @@ func main() {
 			serverControl.GetHttpControl(),
 			serverControl.GetCaptchaControl(),
 			serverControl.GetAntsPoolControl(),
+			serverControl.GetFabricCAControl(),
 		))
 	}
 
@@ -100,6 +102,7 @@ func main() {
 			quit <- os.Interrupt
 		}
 	})
+
 	defer func(serverControl *server.Control) {
 		if err := serverControl.Shutdown(); err != nil {
 			mainLogger.Errorf("shutdown server err: %v", err)

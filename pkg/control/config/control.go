@@ -3,12 +3,12 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
+	"github.com/jianlu8023/golang-example/pkg/control/flags"
 	"path/filepath"
 	"strings"
 	"sync"
-	
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
+
+	"github.com/jianlu8023/golang-example/pkg/str"
 	"github.com/spf13/viper"
 )
 
@@ -150,12 +150,12 @@ func (c *Control) WatchDog() {
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		fmt.Printf("starting up config server...\n")
-		
+
 		// 检查是否请求显示版本信息
 		if c.flagsControl != nil && c.flagsControl.IsVersionRequested() {
 			c.flagsControl.PrintVersion()
 		}
-		
+
 		// 到这里 说明不是请求显示版本信息
 		config, err := c.loadConfig()
 		if err != nil {
@@ -166,7 +166,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			return
 		}
 		c.config = &config
-		
+
 		if c.flagsControl.IsDebugMode() {
 			c.printConfig()
 		}
@@ -187,22 +187,22 @@ func (c *Control) Shutdown() error {
 // @return error 加载配置过程中的错误
 func (c *Control) loadConfig() (Config, error) {
 	var cfg Config
-	
+
 	// 获取配置文件名（不包含扩展名）
 	fileName := filepath.Base(c.flagsControl.GetConfigPath())
 	fileExt := filepath.Ext(c.flagsControl.GetConfigPath())
 	fileNameWithoutExt := strings.TrimSuffix(fileName, fileExt)
 	filePath := filepath.Dir(c.flagsControl.GetConfigPath())
-	
+
 	viper.SetConfigName(fileNameWithoutExt)               // 设置配置文件名
 	viper.SetConfigType(strings.TrimPrefix(fileExt, ".")) // 设置配置文件类型 (yaml, json, toml 等)
 	viper.AddConfigPath(filePath)                         // 设置配置文件路径
-	
+
 	// 如果指定了 configType, 尝试读取特定环境的配置文件
 	if !str.IsBlank(c.flagsControl.GetConfigType()) {
 		envSpecificFileName := fmt.Sprintf("%s-%s", fileNameWithoutExt, c.flagsControl.GetConfigType())
 		viper.SetConfigName(envSpecificFileName) // 尝试读取特定环境的配置文件
-		
+
 		// viper.AddConfigPath(".") // 放在这里是为了优先查找当前目录下的特定环境配置文件
 		// 尝试读取特定环境的配置文件. 不报错, 如果不存在就继续尝试读取默认配置文件
 		err := viper.ReadInConfig()
@@ -218,7 +218,7 @@ func (c *Control) loadConfig() (Config, error) {
 			// 不需要 return,  继续尝试读取默认配置文件
 		}
 	}
-	
+
 	// 读取默认配置文件
 	viper.SetConfigName(fileNameWithoutExt) // 恢复默认文件名
 	viper.AddConfigPath(filePath)
@@ -230,13 +230,13 @@ func (c *Control) loadConfig() (Config, error) {
 			return cfg, fmt.Errorf("未找到配置文件: %s", c.flagsControl.GetConfigPath())
 		}
 	}
-	
+
 	fmt.Printf("使用配置文件: %s\n", viper.ConfigFileUsed())
-	
+
 	if err := viper.Unmarshal(&cfg); err != nil {
 		return cfg, fmt.Errorf("解析配置文件失败: %w", err)
 	}
-	
+
 	// 判断libp2p是否有配置 没有配置不检查identity
 	if cfg.Libp2pConfig != nil {
 		// 判断libp2p 是否设置了privKey peerId
@@ -248,14 +248,14 @@ func (c *Control) loadConfig() (Config, error) {
 				return cfg, fmt.Errorf("生成libp2p身份失败: %w", err)
 			}
 			cfg.Libp2pConfig.Identity = &ident
-			
+
 			viper.Set("libp2p.identity", cfg.Libp2pConfig.Identity)
 			if err = viper.WriteConfig(); err != nil {
 				return cfg, fmt.Errorf("更新libp2p的identity失败: %w", err)
 			}
 		}
 	}
-	
+
 	return cfg, nil
 }
 

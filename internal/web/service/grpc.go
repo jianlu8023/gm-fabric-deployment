@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
+	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/pkg/control/grpc"
 )
 
 type GrpcService struct {

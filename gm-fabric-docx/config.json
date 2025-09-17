@@ -10,7 +10,7 @@
   "organizations": {
     "baasorg": {
       "mspid": "baasorgMSP",
-      "cryptoPath": "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca/msp",
+      "cryptoPath": "/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca/msp",
       "certificateAuthorities": [
         "baasorg"
       ]
@@ -20,7 +20,7 @@
     "baasorg": {
       "url": "https://https://localhost:7054",
       "tlsCACerts": {
-        "path": "/home/user/codes/go/src/github.com/jianlu8023/gm-fabric-deployment/test/baasca/tls-cert.pem"
+        "path": "/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca/tls-cert.pem"
       },
       "caName": "baasorg",
       "registrar": {

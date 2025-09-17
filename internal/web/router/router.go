@@ -1,19 +1,20 @@
 package router
 
 import (
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/handler"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/ants"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/captcha"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/docker"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc"
-	httpcontrol "github.com/jianlu8023/gm-fabric-deployment/pkg/control/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/libp2p"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/websocket"
+	"github.com/jianlu8023/golang-example/internal/web/handler"
+	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/internal/web/service"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/ants"
+	"github.com/jianlu8023/golang-example/pkg/control/captcha"
+	"github.com/jianlu8023/golang-example/pkg/control/datasource"
+	"github.com/jianlu8023/golang-example/pkg/control/docker"
+	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
+	"github.com/jianlu8023/golang-example/pkg/control/grpc"
+	controlhttp "github.com/jianlu8023/golang-example/pkg/control/http"
+	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/websocket"
 )
 
 // NewRouter 创建新的路由列表
@@ -34,9 +35,10 @@ func NewRouter(loggerControl *logger.Control,
 	dockerControl *docker.Control,
 	datasourceControl *datasource.Control,
 	websocketControl *websocket.Control,
-	httpControl *httpcontrol.Control,
+	httpControl *controlhttp.Control,
 	captchaControl *captcha.Control,
 	antsPoolControl *ants.Control,
+	fabriccaControl *fabricca.Control,
 ) []commonhttp.RouterHandler {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	baseHandler := handler.NewHandler(webLogger)
@@ -55,6 +57,7 @@ func NewRouter(loggerControl *logger.Control,
 		service.NewUserService(baseService,
 			mapper.NewUserMapper(baseMapper),
 			httpControl.GetSessionManager(),
+			fabriccaControl,
 		),
 	)
 

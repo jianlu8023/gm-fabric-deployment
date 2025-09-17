@@ -2,7 +2,7 @@ package quicktemplate
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/templates/quicktemplate/templates"
+	"github.com/jianlu8023/golang-example/pkg/templates/quicktemplate/templates"
 )
 
 // go install github.com/valyala/quicktemplate/qtc@latest

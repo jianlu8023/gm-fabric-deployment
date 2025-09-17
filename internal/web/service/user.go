@@ -1,17 +1,18 @@
 package service
 
 import (
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/google/uuid"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/mapper"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/model"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/request"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/datasource"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/http/middleware/jwt"
+	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/internal/web/request"
+	"github.com/jianlu8023/golang-example/pkg/control/datasource"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 )
 
 // UserService 用户服务
@@ -22,8 +23,9 @@ import (
 // @property sessionManager jwt.SessionManager 会话管理器
 type UserService struct {
 	*Service
-	userMapper     *mapper.UserMapper
-	sessionManager jwt.SessionManager
+	userMapper      *mapper.UserMapper
+	sessionManager  jwt.SessionManager
+	fabriccaControl *fabricca.Control
 }
 
 // NewUserService 创建用户服务实例
@@ -32,11 +34,15 @@ type UserService struct {
 // @param userMapper *mapper.UserMapper 用户映射器
 // @param sessionManager jwt.SessionManager 会话管理器
 // @return *UserService 用户服务实例
-func NewUserService(baseService *Service, userMapper *mapper.UserMapper, sessionManager jwt.SessionManager) *UserService {
+func NewUserService(baseService *Service, userMapper *mapper.UserMapper,
+	sessionManager jwt.SessionManager,
+	fabriccaControl *fabricca.Control,
+) *UserService {
 	return &UserService{
-		Service:        baseService,
-		userMapper:     userMapper,
-		sessionManager: sessionManager,
+		Service:         baseService,
+		userMapper:      userMapper,
+		sessionManager:  sessionManager,
+		fabriccaControl: fabriccaControl,
 	}
 }
 
@@ -47,17 +53,22 @@ func NewUserService(baseService *Service, userMapper *mapper.UserMapper, session
 func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRequest) {
 	s.logger.Debugf("received register user request: %v", req)
 
+	if s.fabriccaControl == nil {
+		s.logger.Errorf("fabricca is nil, register user disabled...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, "no available fabric ca server")
+		return
+	}
 	// 验证用户是否存在
 	if err := s.userMapper.QueryExistUser(model.UserInfo{
 		Email: req.Email,
 	}); err != nil {
 		if datasource.IsAlreadyExists(err) {
 			// 用户已存在，返回错误
-			http.FailedResponseWithMessage(ctx, http.EmailAlreadyExists, http.ErrMsgEmailAlreadyExists)
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.EmailAlreadyExists, commonhttp.ErrMsgEmailAlreadyExists)
 			return
 		} else {
 			// 数据库查询错误，返回错误
-			http.FailedResponseWithMessage(ctx, http.DatabaseError, http.ErrMsgDatabaseError)
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, commonhttp.ErrMsgDatabaseError)
 			return
 		}
 	}
@@ -66,14 +77,20 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 	user.Username = req.Username
 	user.Password = req.Password
 	user.Email = req.Email
+	user.UserType = "normal"
 
-	if err := s.userMapper.InsertOneUser(user); err != nil {
-		s.logger.Errorf("register user failed: %v", err)
-		http.FailedResponseWithMessage(ctx, http.BusinessLogicError, http.ErrMsgBusinessLogicError)
+	if err := s.fabriccaControl.RegisterUserAndGetCert(user); err != nil {
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "register user failed")
 		return
 	}
 
-	http.SuccessResponse(ctx, user)
+	if err := s.userMapper.InsertOneUser(user); err != nil {
+		s.logger.Errorf("register user failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, commonhttp.ErrMsgBusinessLogicError)
+		return
+	}
+
+	commonhttp.SuccessResponse(ctx, user)
 }
 
 // LoginUser 处理用户登录请求
@@ -83,10 +100,16 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest) {
 	s.logger.Debugf("received login user request: %v", req)
 
+	if s.fabriccaControl == nil {
+		s.logger.Errorf("fabricca is nil, login user disabled...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, "no available fabric ca server")
+		return
+	}
+
 	// 验证请求参数
 	if !req.IsLegal() {
 		s.logger.Errorf("login request is illegal: %v", req)
-		http.FailedResponseWithMessage(ctx, http.InvalidParameter, "输入参数不合法")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
 		return
 	}
 
@@ -99,7 +122,13 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 		//	 return
 		// }
 		s.logger.Errorf("query user failed: %v", err)
-		http.FailedResponseWithMessage(ctx, http.DatabaseError, http.ErrMsgDatabaseError)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, commonhttp.ErrMsgDatabaseError)
+		return
+	}
+
+	if err = s.fabriccaControl.EnrollUser(user); err != nil {
+		s.logger.Errorf("from fabric ca enroll user failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "fabric ca verify failed")
 		return
 	}
 
@@ -115,18 +144,18 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 	)
 	if err != nil {
 		s.logger.Errorf("generate token failed: %v", err)
-		http.FailedResponseWithMessage(ctx, http.BusinessLogicError, "生成认证令牌失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "生成认证令牌失败")
 		return
 	}
 
 	if err = s.sessionManager.SetSession(sessionID, claims); err != nil {
 		s.logger.Errorf("set session failed: %v", err)
-		http.FailedResponseWithMessage(ctx, http.BusinessLogicError, "设置会话失败")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "设置会话失败")
 		return
 	}
 
 	// 返回登录成功响应，包含JWT令牌
-	http.SuccessResponse(ctx, map[string]string{
+	commonhttp.SuccessResponse(ctx, map[string]string{
 		"token":    token,
 		"user_id":  strconv.Itoa(int(user.AutoUid)),
 		"username": user.Username,

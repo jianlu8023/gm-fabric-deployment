@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/gm-fabric-deployment/internal/web/service"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	"github.com/jianlu8023/golang-example/internal/web/service"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
 // SSEHandler SSE处理器结构体

@@ -1,7 +1,7 @@
 package request
 
 import (
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
 type DockerNetworkListRequest struct {

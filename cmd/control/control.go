@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/server"
+	"github.com/jianlu8023/golang-example/pkg/control/server"
 )
 
 func main() {

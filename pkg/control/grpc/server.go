@@ -11,13 +11,15 @@ import (
 	"net"
 	"os"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/grpc/pb"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"go.uber.org/zap"
 	// "google.golang.org/grpc"
-	"github.com/hxx258456/ccgo/grpc"
 	// "google.golang.org/grpc/credentials"
+	"github.com/hxx258456/ccgo/grpc"
 	"github.com/hxx258456/ccgo/grpc/credentials"
+	// "gitee.com/zhaochuninhefei/gmgo/grpc"
+	// "gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 )
 
 type MessageHandler struct {

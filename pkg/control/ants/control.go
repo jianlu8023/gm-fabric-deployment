@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/panjf2000/ants/v2"
 	"go.uber.org/zap"
 )

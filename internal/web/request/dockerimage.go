@@ -1,9 +1,9 @@
 package request
 
 import (
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/str"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/str"
 )
 
 type DockerImageListRequest struct {

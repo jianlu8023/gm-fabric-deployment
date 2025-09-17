@@ -3,7 +3,7 @@ package fabricca
 import (
 	"fmt"
 	"github.com/facebookgo/atomicfile"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/json"
 	"os"
 	"path/filepath"
 )

@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/ants"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/ants"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"go.uber.org/zap"
 )
 
@@ -53,12 +53,12 @@ func (c *Control) StartAllRegisterJobs() {
 	for _, job := range c.jobs {
 		c.logger.Debugf("[control] starting job name: %s", job.Name)
 		c.wg.Add(1)
-		if err := c.antsPoolControl.Submit(func() {
-			c.runJob(job)
-		}); err != nil {
-			c.logger.Warnf("[control] failed to start job name: %s", job.Name)
-		}
-		// go c.runJob(job)
+		// if err := c.antsPoolControl.Submit(func() {
+		// 	c.runJob(job)
+		// }); err != nil {
+		// 	c.logger.Warnf("[control] failed to start job name: %s", job.Name)
+		// }
+		go c.runJob(job)
 	}
 }
 
@@ -87,12 +87,12 @@ func (c *Control) RegisterJob(j *Job) {
 	c.jobs = append(c.jobs, j)
 
 	c.wg.Add(1)
-	if err := c.antsPoolControl.Submit(func() {
-		c.runJob(j)
-	}); err != nil {
-		c.logger.Warnf("[control] failed to register job name: %s", j.Name)
-	}
-	// go c.runJob(j)
+	// if err := c.antsPoolControl.Submit(func() {
+	// 	c.runJob(j)
+	// }); err != nil {
+	// 	c.logger.Warnf("[control] failed to register job name: %s", j.Name)
+	// }
+	go c.runJob(j)
 
 	c.logger.Infof("[control] register job name: %s successfully...", j.Name)
 }

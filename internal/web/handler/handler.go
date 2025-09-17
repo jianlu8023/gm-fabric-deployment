@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
-	commonhttp "github.com/jianlu8023/gm-fabric-deployment/pkg/common/http"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"go.uber.org/zap"
 )
 

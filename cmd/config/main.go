@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
-	"github.com/jianlu8023/gm-fabric-deployment/version"
+	"github.com/jianlu8023/golang-example/pkg/control/flags"
+	"github.com/jianlu8023/golang-example/version"
 	"path/filepath"
 	"strings"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/spf13/viper"
 )
 

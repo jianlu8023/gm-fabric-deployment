@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/flags"
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/logger"
-	"github.com/jianlu8023/gm-fabric-deployment/version"
+	"github.com/jianlu8023/golang-example/pkg/control/flags"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/version"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/libp2p/go-libp2p"
 	peerstore "github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/p2p/protocol/ping"

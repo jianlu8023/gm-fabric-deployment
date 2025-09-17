@@ -4,9 +4,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jianlu8023/gm-fabric-deployment/pkg/control/config"
 	glog "github.com/jianlu8023/go-logger/v2"
 	"github.com/jianlu8023/go-logger/v2/dblogger"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"go.uber.org/zap/zapcore"
 )
 
