@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package demo;
+
+option go_package = "cmd/rpc/grpc/mid/demo";
+
+message DemoRequest{
+  string username = 1;
+  string password = 2;
+}
+
+message DemoResponse{
+  int64 code = 1;
+  string message = 2;
+}
+
+service DemoService {
+  rpc Login(DemoRequest) returns (DemoResponse){};
+}

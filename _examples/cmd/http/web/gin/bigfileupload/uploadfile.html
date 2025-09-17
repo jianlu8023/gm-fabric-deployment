@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>大文件分片上传</title>
+</head>
+<body>
+<h1>大文件分片上传</h1>
+<input type="file" id="fileInput">
+<button onclick="uploadFile()">上传</button>
+<div id="progress"></div>
+
+<script>
+    const chunkSize = 1024 * 1024*64; // 1MB 分片大小
+    const uploadURL = 'http://localhost:8080/upload';
+    const checkURL = 'http://localhost:8080/check';
+    const mergeURL = 'http://localhost:8080/merge';
+
+    async function uploadFile() {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        const filename = file.name;
+        const fileSize = file.size;
+        const totalChunks = Math.ceil(fileSize / chunkSize);
+        const progressDiv = document.getElementById('progress');
+        progressDiv.innerHTML = ''; // 清空进度
+
+        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+            const start = chunkIndex * chunkSize;
+            const end = Math.min(fileSize, start + chunkSize);
+            const chunk = file.slice(start, end);
+
+            // 检查分片是否已存在
+            const checkResponse = await fetch(`${checkURL}?filename=${filename}&chunkIndex=${chunkIndex}`);
+            const checkData = await checkResponse.json();
+
+            if (checkData.exists) {
+                console.log(`Chunk ${chunkIndex + 1} already uploaded, skipping.`);
+                updateProgress(chunkIndex + 1, totalChunks);
+                continue;
+            }
+
+            // 上传分片
+            const formData = new FormData();
+            formData.append('chunk', chunk);
+            formData.append('filename', filename);
+            formData.append('chunkIndex', chunkIndex);
+            formData.append('totalChunks', totalChunks);
+
+            try {
+                const response = await fetch(uploadURL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log(data.message);
+                updateProgress(chunkIndex + 1, totalChunks);
+
+            } catch (error) {
+                console.error('Error uploading chunk:', error);
+                alert(`Error uploading chunk ${chunkIndex + 1}: ${error}`);
+                return; // 停止上传
+            }
+        }
+
+        // 合并分片
+        try {
+            const mergeFormData = new FormData();
+            mergeFormData.append('filename', filename);
+            const mergeResponse = await fetch(mergeURL, {
+                method: 'POST',
+                body: mergeFormData
+            });
+
+            if (!mergeResponse.ok) {
+                throw new Error(`HTTP error! status: ${mergeResponse.status}`);
+            }
+
+            const mergeData = await mergeResponse.json();
+            console.log(mergeData.message);
+            alert('File uploaded successfully!');
+
+        } catch (error) {
+            console.error('Error merging chunks:', error);
+            alert(`Error merging chunks: ${error}`);
+        }
+    }
+
+    function updateProgress(chunkIndex, totalChunks) {
+        const progressDiv = document.getElementById('progress');
+        const progress = Math.round((chunkIndex / totalChunks) * 100);
+        progressDiv.innerHTML += `Chunk ${chunkIndex} of ${totalChunks} uploaded (${progress}%)<br>`;
+    }
+</script>
+</body>
+</html>

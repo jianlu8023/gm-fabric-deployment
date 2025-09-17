@@ -166,6 +166,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
+	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -189,6 +190,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
+	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
@@ -196,7 +198,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
