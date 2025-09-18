@@ -25,7 +25,7 @@ func (i *DockerImage) MarshalJSON() ([]byte, error) {
 	type Alias DockerImage
 	aux := struct {
 		*Alias
-		IsDelete bool `json:"is_delete"`
+		IsDelete bool `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
 	}{
 		Alias:    (*Alias)(i),
 		IsDelete: i.IsDelete.Bool,

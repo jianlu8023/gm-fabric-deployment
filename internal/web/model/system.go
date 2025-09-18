@@ -10,15 +10,15 @@ const (
 )
 
 type SystemInit struct {
-	Id     uint         `json:"uid" gorm:"primaryKey;check:id=1"` // 主键 确保id 始终是1
-	IsInit sql.NullBool `yaml:"is_init,omitempty" yaml:"is_init,omitempty" gorm:"column:is_init;not null;default:false;"`
+	Id     uint         `json:"uid,omitempty" yaml:"uid,omitempty" gorm:"primaryKey;check:id=1"`                          // 主键 确保id 始终是1
+	IsInit sql.NullBool `json:"is_init,omitempty" yaml:"is_init,omitempty" gorm:"column:is_init;not null;default:false;"` // 是否已经初始化
 }
 
 func (s *SystemInit) MarshalJSON() ([]byte, error) {
 	type Alias SystemInit
 	aux := &struct {
 		*Alias
-		IsInit bool `yaml:"is_init,omitempty"`
+		IsInit bool `json:"is_init,omitempty" yaml:"is_init,omitempty"`
 	}{
 		Alias:  (*Alias)(s),
 		IsInit: s.IsInit.Bool,

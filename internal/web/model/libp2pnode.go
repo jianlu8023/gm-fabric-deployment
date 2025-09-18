@@ -27,7 +27,7 @@ func (i *Libp2pNode) MarshalJSON() ([]byte, error) {
 		*Alias
 		IsAlive              bool   `json:"is_alive,omitempty" yaml:"is_alive,omitempty"`
 		IsMySelf             bool   `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty"`
-		LastAliveMessageTime string `yaml:"last_alive_message_time,omitempty" yaml:"last_alive_message_time,omitempty"`
+		LastAliveMessageTime string `json:"last_alive_message_time,omitempty" yaml:"last_alive_message_time,omitempty"`
 	}{
 		Alias:                (*Alias)(i),
 		IsAlive:              i.IsAlive.Bool,

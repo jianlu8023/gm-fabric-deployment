@@ -34,7 +34,7 @@ func (u *UserInfo) MarshalJSON() ([]byte, error) {
 	type Alias UserInfo
 	aux := struct {
 		*Alias
-		IsDelete      bool   `json:"is_delete" yaml:"is_delete"`
+		IsDelete      bool   `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
 		LastLoginTime string `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty"`
 	}{
 		Alias:         (*Alias)(u),
