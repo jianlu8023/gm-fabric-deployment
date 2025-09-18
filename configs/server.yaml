@@ -5,7 +5,7 @@ datasource:
   db_password: password
   db_host: localhost
   db_port: 3306
-  db_path: ./db/gm-fabric.db
+  db_path: ./db/golang-example.db
   max_idle_conn: 10
   max_open_conn: 50
   log_in_console: false

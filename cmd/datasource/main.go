@@ -7,6 +7,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/json"
 	"github.com/jianlu8023/golang-example/version"
 	"gorm.io/gorm"
 )
@@ -17,6 +18,15 @@ type Product struct {
 	Price uint
 }
 
+func (p Product) TableName() string {
+	return "t_product"
+}
+
+func (p Product) String() string {
+	bytes, _ := json.Marshal(p)
+	return string(bytes)
+}
+
 func main() {
 
 	flagsControl := flags.NewFlagsControl(version.Version)
@@ -24,17 +34,23 @@ func main() {
 		fmt.Printf("start up flags control failed: %v\n", err)
 		return
 	})
+
+	defer flagsControl.Shutdown()
+
 	configControl := config.NewConfigControl(flagsControl)
 	configControl.StartUp(func(err error) {
 		fmt.Printf("start up config control failed: %v\n", err)
 		return
 	})
 
+	defer configControl.Shutdown()
+
 	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	loggerControl.StartUp(func(err error) {
 		fmt.Printf("start up logger control failed: %v\n", err)
 		return
 	})
+	defer loggerControl.Shutdown()
 
 	datasourceConfig := &config.DataSourceConfig{
 		Host:           "localhost",
@@ -43,7 +59,7 @@ func main() {
 		UserName:       "root",
 		Password:       "123456",
 		DataBaseName:   "basic",
-		DataBasePath:   "./db/example.db",
+		DataBasePath:   "./db/golang-example.db",
 		MaxIdleConn:    10,
 		MaxOpenConn:    50,
 	}
@@ -57,6 +73,7 @@ func main() {
 		fmt.Printf("start up datasource failed: %v\n", err)
 		return
 	})
+	defer dataSourceControl.Shutdown()
 
 	conn := dataSourceControl.GetConn()
 
