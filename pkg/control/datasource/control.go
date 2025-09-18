@@ -60,9 +60,9 @@ func (c *Control) ReAutoMigrate() error {
 
 // Close 关闭数据库连接
 // @return error 关闭过程中可能产生的错误
-func (c *Control) Close() error {
-	return nil
-}
+// func (c *Control) Close() error {
+// 	return nil
+// }
 
 // GetConn 获取数据库连接
 // @return *gorm.DB 数据库连接实例

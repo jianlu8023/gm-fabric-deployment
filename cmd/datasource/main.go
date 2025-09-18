@@ -20,9 +20,21 @@ type Product struct {
 func main() {
 
 	flagsControl := flags.NewFlagsControl(version.Version)
+	flagsControl.StartUp(func(err error) {
+		fmt.Printf("start up flags control failed: %v\n", err)
+		return
+	})
 	configControl := config.NewConfigControl(flagsControl)
+	configControl.StartUp(func(err error) {
+		fmt.Printf("start up config control failed: %v\n", err)
+		return
+	})
 
 	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
+	loggerControl.StartUp(func(err error) {
+		fmt.Printf("start up logger control failed: %v\n", err)
+		return
+	})
 
 	datasourceConfig := &config.DataSourceConfig{
 		Host:           "localhost",
@@ -41,7 +53,11 @@ func main() {
 		fmt.Printf("init datasource failed: %v\n", err)
 		return
 	}
-	dataSourceControl.Close()
+	dataSourceControl.StartUp(func(err error) {
+		fmt.Printf("start up datasource failed: %v\n", err)
+		return
+	})
+
 	conn := dataSourceControl.GetConn()
 
 	// var version string
