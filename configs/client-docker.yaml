@@ -1,10 +1,9 @@
 datasource:
-  enabled: true
+  enabled: false
   data_source_type: sqlite3
-  db_username: myself
-  db_password: myself_pw
+  db_username: username
+  db_password: password
   db_host: localhost
-  db_name: myself_example
   db_port: 3306
   db_path: ./db/gm-fabric.db
   max_idle_conn: 10
@@ -17,7 +16,7 @@ docker:
 grpc:
   enabled: true
   server:
-    host: 0.0.0.0:65534
+    host: 0.0.0.0:65533
     max_recv_msg_size: 5242880
     max_send_msg_size: 5242880
     chunk_size: 4194304
@@ -26,7 +25,7 @@ grpc:
     tls_key_file: ./certs/gserver.key
     tls_rca_cert_file: ./certs/root-ca.crt
   client:
-    host: app-client:65533
+    host: app-server:65534
     max_call_recv_msg_size: 5242880
     max_call_send_msg_size: 5242880
     chunk_size: 4194304
@@ -36,29 +35,27 @@ grpc:
     tls_key_file: ./certs/gclient.key
     tls_rca_cert_file: ./certs/root-ca.crt
 http:
-  enabled: true
+  enabled: false
   address: :8080
   context_path: example
-  # 可选 debug release
-  run_mode: debug
+  run_mode: release
   tls_enabled: true
   tls_cert_file: ./certs/hserver.crt
   tls_key_file: ./certs/hserver.key
   tls_rca_cert_file: ./certs/root-ca.crt
-  pprof: true
 libp2p:
   enabled: true
   listen_addr:
-    - /ip4/0.0.0.0/tcp/2000
-    - /ip6/::1/tcp/2000
-    - /ip4/0.0.0.0/udp/2000/quic-v1
-    - /ip4/127.0.0.1/udp/2000/quic-v1
-    - /ip4/0.0.0.0/udp/2000/quic-v1/webtransport
-    - /ip4/0.0.0.0/udp/2000/webrtc-direct
-    - /dns4/localhost/udp/2000/ws
+    - /ip4/0.0.0.0/tcp/2001
+    - /ip6/::1/tcp/2001
+    - /ip4/0.0.0.0/udp/2001/quic-v1
+    - /ip4/127.0.0.1/udp/2001/quic-v1
+    - /ip4/0.0.0.0/udp/2001/quic-v1/webtransport
+    - /ip4/0.0.0.0/udp/2001/webrtc-direct
+    - /dns4/localhost/udp/2001/ws
   identity:
-    peer_id: 12D3KooWEeXfZpxfqwxFLJ2JYH21x85DnTMnCnmfUs4yQnCngM5T
-    privkey: CAESQJY27DDSC9bEnAfcOE+rCLV6OVm/AETqUCt1swmR7HD9R8VdYQoGM7931nd+BX/URL1JLEGRvXX8IkGCK+boblo=
+    peer_id: 12D3KooWB9vcdUVqj3doZb2mQtmrXfwRF4ZcrNtquA77PQqZGZci
+    privkey: CAESQAi11XdBy0ogf7CgJNNicEk0mKM/2A9k7QtA1jmQW1RfE95o0U/gmG1RraWA38kdmHXExAkKFr0UgvowIYQ4Qa8=
   protocol_id: /gm-fabric/chat/1.0.0
   service_tag: gm-fabric-deployment
   bootstrap_list:
@@ -72,17 +69,9 @@ logger:
   rotation_time: 1
   logger_level:
     grpc: debug
-    libp2p: info
-    main: info
-captcha:
-  enabled: true
-  max_age: 300  # 验证码有效期5分钟
-  width: 240    # 验证码图片宽度
-  height: 80    # 验证码图片高度
-  max_skew: 0.7 # 最大倾斜度
-  dot_count: 20 # 干扰点数量
-  line_count: 3 # 干扰线数量
-  default_type: "number" # 默认验证码类型：string, number, math, chinese
+    libp2p: debug
+    main: debug
+    docker: debug
 ants_pool:
   enabled: true
   # 线程池大小
@@ -95,15 +84,3 @@ ants_pool:
   pre_alloc: true
   # 是否非阻塞模式
   nonblocking: true
-fabric_ca:
-  image_name: gcbaas-gm/fabric-ca:1.5.2
-  ca_name: baasCA
-  enabled_tls: true
-  ca_admin_user: gmadmin
-  ca_admin_password: gmadminpw
-  ca_server_port: 7054
-  join_docker_network: "net_myapp"
-  docker_network_ip_addr: "99.99.97.100"
-  local_abs_path: "/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca"
-  log_in_console: true
-  test_mode: false

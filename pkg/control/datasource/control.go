@@ -107,6 +107,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			if failedFunc != nil {
 				failedFunc(err)
 			}
+			return
 		}
 
 		c.logger.Debugf("[control] call db ping instead startup...")
@@ -116,12 +117,14 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			if failedFunc != nil {
 				failedFunc(err)
 			}
+			return
 		}
 		if err = sqlDB.Ping(); err != nil {
 			c.logger.Errorf("[control] failed from sqlDB.Ping: %v", err)
 			if failedFunc != nil {
 				failedFunc(err)
 			}
+			return
 		}
 	})
 }

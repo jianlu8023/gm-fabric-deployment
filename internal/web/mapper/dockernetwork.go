@@ -83,6 +83,16 @@ func (m *DockerNetworkMapper) BatchLogicalDelete(query model.DockerNetwork) erro
 		// 构建查询
 		db := tx.Model(&model.DockerNetwork{}).Where(&query)
 
+		var count int64
+		if err := db.Count(&count).Error; err != nil {
+			return fmt.Errorf("查询Docker镜像记录数失败: %w", err)
+		}
+
+		// 如果记录数为0，则返回nil
+		if count == 0 {
+			return nil
+		}
+
 		// 执行逻辑删除，设置IsDelete为true
 		result := db.Updates(&model.DockerNetwork{
 			IsDelete: sql.NullBool{Bool: true, Valid: true},

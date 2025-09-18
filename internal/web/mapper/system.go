@@ -19,6 +19,7 @@ func (m *SystemMapper) GetSystemInit() (bool, error) {
 	if m.db == nil {
 		return false, datasource.ErrNoDataSourceConn
 	}
+	m.init()
 	var systemInit model.SystemInit
 	if err := m.db.Model(&model.SystemInit{}).Where(&model.SystemInit{
 		Id: 1,
@@ -67,7 +68,7 @@ func NewSystemMapper(mapper *Mapper) *SystemMapper {
 	m := &SystemMapper{Mapper: mapper}
 
 	// 调用init方法
-	m.init()
+	// m.init()
 
 	return m
 }

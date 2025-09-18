@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
 	"github.com/jianlu8023/golang-example/pkg/json"
 	"time"
 )
@@ -13,6 +14,7 @@ const (
 type Libp2pNode struct {
 	AutoUid              int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                 // 自增ID
 	NodeId               string       `json:"node_id,omitempty" yaml:"node_id,omitempty" gorm:"column:node_id;type:varchar(256);unique;"`                                      // 节点ID（唯一标识）
+	NodeIp               string       `json:"node_ip,omitempty" yaml:"node_ip,omitempty" gorm:"column:node_ip;type:varchar(256);"`                                             // 节点ip
 	LastAliveMessageTime time.Time    `json:"last_alive_message_time,omitempty" yaml:"last_alive_message_time,omitempty" gorm:"column:last_alive_message_time;type:datetime;"` // 最后一次收到心跳时间
 	IsAlive              sql.NullBool `json:"is_alive,omitempty" yaml:"is_alive,omitempty" gorm:"column:is_alive;type:bool;"`                                                  // 是否存活状态
 	IsMySelf             sql.NullBool `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty" gorm:"column:is_my_self;type:bool;default:false"`                               // 是否是本机节点
@@ -23,12 +25,14 @@ func (i *Libp2pNode) MarshalJSON() ([]byte, error) {
 
 	aux := struct {
 		*Alias
-		IsAlive  bool `json:"is_alive"`
-		IsMySelf bool `json:"is_my_self"`
+		IsAlive              bool   `json:"is_alive,omitempty" yaml:"is_alive,omitempty"`
+		IsMySelf             bool   `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty"`
+		LastAliveMessageTime string `yaml:"last_alive_message_time,omitempty" yaml:"last_alive_message_time,omitempty"`
 	}{
-		Alias:    (*Alias)(i),
-		IsAlive:  i.IsAlive.Bool,
-		IsMySelf: i.IsMySelf.Bool,
+		Alias:                (*Alias)(i),
+		IsAlive:              i.IsAlive.Bool,
+		IsMySelf:             i.IsMySelf.Bool,
+		LastAliveMessageTime: humantime.HumanTimeLower(i.LastAliveMessageTime, "unknown"),
 	}
 	return json.Marshal(aux)
 }

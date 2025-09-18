@@ -714,6 +714,79 @@ func (lc *Control) FindProviders(key string, count int) ([]peer.AddrInfo, error)
 	return lc.discoveryService.FindProviders(key, count)
 }
 
+// GetFirstNonLocalPeerAddress 获取指定节点的第一个非127.0.0.1的IP地址
+//
+// @param peerId peer.ID peer.ID 目标节点的ID
+// @return string 第一个非127.0.0.1的IP地址字符串，如果没有找到则返回空字符串
+func (lc *Control) GetFirstNonLocalPeerAddress(peerId peer.ID) string {
+	lc.logger.Debugf("[control] getting first non-local peer address for peer: %s...", peerId.String())
+
+	// 获取指定节点的信息
+	peerInfo := lc.GetPeerInfo(peerId)
+	if peerInfo == nil {
+		lc.logger.Errorf("[control] peer not found: %s", peerId.String())
+		return ""
+	}
+
+	// 遍历节点的所有地址
+	for _, addr := range peerInfo.Addrs {
+		addrStr := addr.String()
+		// 跳过包含127.0.0.1和::1的地址
+		if !strings.Contains(addrStr, "127.0.0.1") &&
+			!strings.Contains(addrStr, "::1") {
+			lc.logger.Debugf("[control] found non-local peer address for %s: %s", peerId.String(), addrStr)
+
+			// // 解析multiaddr，提取IP地址部分
+			// // 格式通常为 /ip4/1.1.1.1/tcp/xxx 或 /ip6/::1/tcp/xxx
+			// parts := strings.Split(addrStr, "/")
+			// for i, part := range parts {
+			// 	if (part == "ip4" || part == "ip6") && i+1 < len(parts) {
+			// 		// 提取IP地址部分
+			// 		ipAddr := parts[i+1]
+			// 		// 再次检查确保不是本地地址
+			// 		if !strings.Contains(ipAddr, "127.0.0.1") && !strings.Contains(ipAddr, "::1") {
+			// 			lc.logger.Debugf("[control] extracted IP address: %s", ipAddr)
+			// 			return ipAddr
+			// 		}
+			// 	}
+			// }
+			//
+			// for _, addr := range peerInfo.Addrs {
+			// 	addrStr := addr.String()
+			// 	// 跳过包含127.0.0.1和::1的地址
+			// 	if !strings.Contains(addrStr, "127.0.0.1") &&
+			// 		!strings.Contains(addrStr, "::1") {
+			// 		lc.logger.Debugf("[control] found non-local peer address for %s: %s", peerId.String(), addrStr)
+			// 		return addrStr
+			// 	}
+			// }
+
+			// 尝试获取IPv4地址 (ValueForProtocol(4))
+			ipAddr, err := addr.ValueForProtocol(4)
+			if err == nil {
+				// 检查是否为本地地址
+				if !strings.Contains(ipAddr, "127.0.0.1") {
+					lc.logger.Debugf("[control] extracted IPv4 address: %s", ipAddr)
+					return ipAddr
+				}
+			} else {
+				// 如果IPv4获取失败，尝试获取IPv6地址
+				ip6Addr, ip6Err := addr.ValueForProtocol(41) // IPv6的协议代码是41
+				if ip6Err == nil {
+					// 检查是否为本地地址
+					if !strings.Contains(ip6Addr, "::1") {
+						lc.logger.Debugf("[control] extracted IPv6 address: %s", ip6Addr)
+						return ip6Addr
+					}
+				}
+			}
+		}
+	}
+
+	lc.logger.Debugf("[control] no non-local peer address found for %s", peerId.String())
+	return ""
+}
+
 // GetPeerInfo 获取指定节点的完整信息
 //
 // @param peerID peer.ID 目标节点的ID

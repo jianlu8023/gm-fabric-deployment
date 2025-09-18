@@ -14,7 +14,7 @@ services:
       - "8080:8080"
       #- "65534:65534"
     volumes:
-      - ./logs:/myapp/logs
+      #- ./logs:/myapp/logs
       - ./certs:/myapp/certs
       - ./configs:/myapp/configs
       - ./db:/myapp/db
@@ -23,6 +23,7 @@ services:
     networks:
       - myapp
     container_name: app-server
+    stop_grace_period: 120s # 设置容器停止的宽限期为60秒
     command: server --config configs/server.yaml --type docker --debug --version
     restart: unless-stopped
   app-client:
@@ -30,7 +31,7 @@ services:
     # ports:
       #- "65533:65533"
     volumes:
-      - ./logs:/myapp/logs
+      #- ./logs:/myapp/logs
       - ./certs:/myapp/certs
       - ./configs:/myapp/configs
       - ./db:/myapp/db
@@ -39,7 +40,7 @@ services:
     networks:
       - myapp
     container_name: app-client
-    command: client --config configs/client.yaml --type dev --debug --version
+    command: client --config configs/client.yaml --type docker --debug --version
     restart: unless-stopped
     depends_on:
       app-server:
