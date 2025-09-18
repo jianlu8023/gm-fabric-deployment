@@ -9,7 +9,7 @@ networks:
 
 services:
   app-server:
-    image: gm-fabric:v202509162311
+    image: golang-example/ubuntu2204/app:v202509181134
     ports:
       - "8080:8080"
       - "65534:65534"

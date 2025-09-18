@@ -463,6 +463,7 @@ type FabricCAConfig struct {
 	DockerNetworkIpAddr string `json:"docker_network_ip_addr,omitempty" yaml:"docker_network_ip_addr,omitempty" mapstructure:"docker_network_ip_addr"` // docker网络ip地址
 	LocalAbsPath        string `json:"local_abs_path,omitempty" yaml:"local_abs_path,omitempty" mapstructure:"local_abs_path"`                         // 本地绝对路径
 	LogInConsole        bool   `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`                         // 是否在控制台打印日志
+	TestMode            bool   `json:"test_mode,omitempty" yaml:"test_mode,omitempty" mapstructure:"test_mode"`                                        // 是否是开发模式
 }
 
 func (f *FabricCAConfig) String() string {

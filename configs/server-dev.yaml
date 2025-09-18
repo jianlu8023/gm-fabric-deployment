@@ -106,3 +106,4 @@ fabric_ca:
   docker_network_ip_addr: "99.99.99.100"
   local_abs_path: "/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca"
   log_in_console: true
+  test_mode: true

@@ -6,6 +6,8 @@ import (
 	"reflect"
 )
 
+// https://segmentfault.com/a/1190000023725115 validator 使用 还可以加上i18n
+
 // InitValidators 初始化自定义验证器
 // 注册所有自定义的验证标签，确保在应用启动时被调用
 func InitValidators() {

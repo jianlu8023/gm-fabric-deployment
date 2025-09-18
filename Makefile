@@ -23,7 +23,7 @@ clean:
 
 IMAGE_VERSION:=v$(shell date +"%Y%m%d%H%M")
 DOCKER_FILE:= Dockerfile
-IMAGE_NAME:=gm-fabric:$(IMAGE_VERSION)
+IMAGE_NAME:=golang-example/ubuntu2204/app:$(IMAGE_VERSION)
 
 docker:
 	@docker pull golang:1.22

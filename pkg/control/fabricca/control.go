@@ -132,6 +132,32 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 		}
 
+		// 默认 不开放fabric ca 的 server 端口
+		hostConfig := &dockercontainer.HostConfig{
+			Mounts: []dockermount.Mount{
+				{
+					Type:   "bind",
+					Source: logsPath,
+					Target: "/logs",
+				},
+				{
+					Type:   "bind",
+					Source: filepath.Clean(filepath.Join(c.config.LocalAbsPath)),
+					Target: "/etc/hyperledger/fabric-ca-server",
+				},
+			},
+		}
+
+		if c.config.TestMode {
+			c.logger.Warnf("[control] test mode, open fabric ca server port...")
+			// 测试模式，开放 fabric ca 的 server 端口
+			hostConfig.PortBindings = map[nat.Port][]nat.PortBinding{
+				nat.Port(fmt.Sprintf("%v/tcp", c.config.CAServerPort)): {
+					{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%v", c.config.CAServerPort)},
+				},
+			}
+		}
+
 		containerId, err := c.dockerControl.CreateContainer(c.config.CAName, c.config.ImageName,
 			&dockercontainer.Config{
 				Image:    c.config.ImageName,
@@ -155,25 +181,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 					nat.Port(fmt.Sprintf("%v/tcp", c.config.CAServerPort)): {},
 				},
 			},
-			&dockercontainer.HostConfig{
-				PortBindings: map[nat.Port][]nat.PortBinding{
-					nat.Port(fmt.Sprintf("%v/tcp", c.config.CAServerPort)): {
-						{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%v", c.config.CAServerPort)},
-					},
-				},
-				Mounts: []dockermount.Mount{
-					{
-						Type:   "bind",
-						Source: logsPath,
-						Target: "/logs",
-					},
-					{
-						Type:   "bind",
-						Source: filepath.Clean(filepath.Join(c.config.LocalAbsPath)),
-						Target: "/etc/hyperledger/fabric-ca-server",
-					},
-				},
-			},
+			hostConfig,
 			&dockernetwork.NetworkingConfig{
 				EndpointsConfig: map[string]*dockernetwork.EndpointSettings{
 					network.Name: {
