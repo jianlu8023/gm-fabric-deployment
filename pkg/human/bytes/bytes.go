@@ -3,7 +3,6 @@ package bytes
 import (
 	"fmt"
 	"math"
-	"strconv"
 )
 
 const (
@@ -19,7 +18,7 @@ const (
 	GibiByte = MebiByte * 1024
 )
 
-func HumanBytes(b int64) string {
+func HumanBytes1000(b int64) string {
 	var value float64
 	var unit string
 
@@ -50,7 +49,7 @@ func HumanBytes(b int64) string {
 	}
 }
 
-func HumanBytes2(b uint64) string {
+func HumanBytes1024(b uint64) string {
 	switch {
 	case b >= GibiByte:
 		return fmt.Sprintf("%.1f GiB", float64(b)/GibiByte)
@@ -63,23 +62,23 @@ func HumanBytes2(b uint64) string {
 	}
 }
 
-func HumanNumber(b uint64) string {
-	switch {
-	case b >= GigaByte:
-		number := float64(b) / GigaByte
-		if number == math.Floor(number) {
-			return fmt.Sprintf("%.0fB", number) // no decimals if whole number
-		}
-		return fmt.Sprintf("%.1fB", number) // one decimal if not a whole number
-	case b >= MegaByte:
-		number := float64(b) / MegaByte
-		if number == math.Floor(number) {
-			return fmt.Sprintf("%.0fM", number) // no decimals if whole number
-		}
-		return fmt.Sprintf("%.2fM", number) // two decimals if not a whole number
-	case b >= KiloByte:
-		return fmt.Sprintf("%.0fK", float64(b)/KiloByte)
-	default:
-		return strconv.FormatUint(b, 10)
-	}
-}
+// func HumanNumber(b uint64) string {
+// 	switch {
+// 	case b >= GigaByte:
+// 		number := float64(b) / GigaByte
+// 		if number == math.Floor(number) {
+// 			return fmt.Sprintf("%.0fB", number) // no decimals if whole number
+// 		}
+// 		return fmt.Sprintf("%.1fB", number) // one decimal if not a whole number
+// 	case b >= MegaByte:
+// 		number := float64(b) / MegaByte
+// 		if number == math.Floor(number) {
+// 			return fmt.Sprintf("%.0fM", number) // no decimals if whole number
+// 		}
+// 		return fmt.Sprintf("%.2fM", number) // two decimals if not a whole number
+// 	case b >= KiloByte:
+// 		return fmt.Sprintf("%.0fK", float64(b)/KiloByte)
+// 	default:
+// 		return strconv.FormatUint(b, 10)
+// 	}
+// }
