@@ -17,12 +17,19 @@ FROM mod-cache AS go-build
 
 WORKDIR /buildspace
 
+ARG VERSION
+
+ENV VERSION=${VERSION}
+
+
+
+
 COPY . .
 
 RUN echo "starting build server.bin" && \
-    go build -ldflags="-X main.version=$(git describe --tags --always --dirty)" -o server.bin cmd/server/server.go && \
+    go build -tags='jsoniter' -trimpath -ldflags="-s -w -X 'github.com/jianlu8023/golang-example/version.Version=${VERSION}'" -o server.bin cmd/server/server.go && \
     echo "starting build client.bin" && \
-    go build -ldflags="-X main.version=$(git describe --tags --always --dirty)" -o client.bin cmd/client/client.go
+    go build -tags='jsoniter' -trimpath -ldflags="-s -w -X 'github.com/jianlu8023/golang-example/version.Version=${VERSION}'" -o client.bin cmd/client/client.go
 
 # 下载grpcurl tini
 FROM ubuntu:22.04 AS toolsbuilder

@@ -29,6 +29,9 @@ go.work.sum
 # env file
 .env
 
+### GIT FILES ###
+.git/
+
 ### LOG ###
 log/
 logs/
@@ -47,3 +50,6 @@ db/*.db
 db/*/*.db
 tpl/
 *.bin
+test/
+keystore/
+msp/

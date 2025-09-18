@@ -3,6 +3,7 @@ package bytes
 import (
 	"fmt"
 	"math"
+	"strconv"
 )
 
 const (
@@ -59,5 +60,26 @@ func HumanBytes2(b uint64) string {
 		return fmt.Sprintf("%.1f KiB", float64(b)/KibiByte)
 	default:
 		return fmt.Sprintf("%d B", b)
+	}
+}
+
+func HumanNumber(b uint64) string {
+	switch {
+	case b >= GigaByte:
+		number := float64(b) / GigaByte
+		if number == math.Floor(number) {
+			return fmt.Sprintf("%.0fB", number) // no decimals if whole number
+		}
+		return fmt.Sprintf("%.1fB", number) // one decimal if not a whole number
+	case b >= MegaByte:
+		number := float64(b) / MegaByte
+		if number == math.Floor(number) {
+			return fmt.Sprintf("%.0fM", number) // no decimals if whole number
+		}
+		return fmt.Sprintf("%.2fM", number) // two decimals if not a whole number
+	case b >= KiloByte:
+		return fmt.Sprintf("%.0fK", float64(b)/KiloByte)
+	default:
+		return strconv.FormatUint(b, 10)
 	}
 }

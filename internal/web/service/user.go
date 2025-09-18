@@ -3,6 +3,7 @@ package service
 import (
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
+	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -19,11 +20,11 @@ import (
 // @description 提供用户相关的服务功能，如用户注册、登录等
 // @struct
 // @property *Service 基础服务
-// @property userMapper *mapper.UserMapper 用户映射器
+// @property mapper *mapper.UserMapper 用户映射器
 // @property sessionManager jwt.SessionManager 会话管理器
 type UserService struct {
 	*Service
-	userMapper      *mapper.UserMapper
+	mapper          *mapper.UserMapper
 	sessionManager  jwt.SessionManager
 	fabriccaControl *fabricca.Control
 }
@@ -31,7 +32,7 @@ type UserService struct {
 // NewUserService 创建用户服务实例
 // @description 创建并返回一个新的用户服务实例
 // @param baseService *Service 基础服务
-// @param userMapper *mapper.UserMapper 用户映射器
+// @param mapper *mapper.UserMapper 用户映射器
 // @param sessionManager jwt.SessionManager 会话管理器
 // @return *UserService 用户服务实例
 func NewUserService(baseService *Service, userMapper *mapper.UserMapper,
@@ -40,7 +41,7 @@ func NewUserService(baseService *Service, userMapper *mapper.UserMapper,
 ) *UserService {
 	return &UserService{
 		Service:         baseService,
-		userMapper:      userMapper,
+		mapper:          userMapper,
 		sessionManager:  sessionManager,
 		fabriccaControl: fabriccaControl,
 	}
@@ -59,7 +60,7 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 		return
 	}
 	// 验证用户是否存在
-	if err := s.userMapper.QueryExistUser(model.UserInfo{
+	if err := s.mapper.QueryExistUser(model.UserInfo{
 		Email: req.Email,
 	}); err != nil {
 		if datasource.IsAlreadyExists(err) {
@@ -84,7 +85,7 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 		return
 	}
 
-	if err := s.userMapper.InsertOneUser(user); err != nil {
+	if err := s.mapper.InsertOneUser(user); err != nil {
 		s.logger.Errorf("register user failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, commonhttp.ErrMsgBusinessLogicError)
 		return
@@ -114,7 +115,7 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 	}
 
 	// 调用mapper层验证用户凭据
-	user, err := s.userMapper.QueryUserByUsernameAndPassword(req.Username, req.Password)
+	user, err := s.mapper.QueryUserByUsernameAndPassword(req.Username, req.Password)
 	if err != nil {
 		// if datasource.IsRecordNotFound(err) {
 		//	 s.logger.Errorf("user not found or password incorrect: %v", req.Username)
@@ -154,10 +155,15 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 		return
 	}
 
+	if err = s.mapper.UpdateLastLoginTime(user); err != nil {
+		s.logger.Errorf("update last login time failed: %v", err)
+	}
+
 	// 返回登录成功响应，包含JWT令牌
 	commonhttp.SuccessResponse(ctx, map[string]string{
-		"token":    token,
-		"user_id":  strconv.Itoa(int(user.AutoUid)),
-		"username": user.Username,
+		"token":           token,
+		"user_id":         strconv.Itoa(user.AutoUid),
+		"username":        user.Username,
+		"last_login_time": humantime.HumanTimeLower(user.LastLoginTime, ""),
 	})
 }

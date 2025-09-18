@@ -9,10 +9,10 @@ networks:
 
 services:
   app-server:
-    image: golang-example/ubuntu2204/app:v202509181134
+    image: golang-example/ubuntu2204/app:v202509181257
     ports:
       - "8080:8080"
-      - "65534:65534"
+      #- "65534:65534"
     volumes:
       - ./logs:/myapp/logs
       - ./certs:/myapp/certs
@@ -26,18 +26,21 @@ services:
     command: server --config configs/server.yaml --type docker --debug --version
     restart: unless-stopped
   app-client:
-    image: gm-fabric:v202509101502
-    ports:
-      - "65533:65533"
+    image: golang-example/ubuntu2204/app:v202509181257
+    # ports:
+      #- "65533:65533"
     volumes:
       - ./logs:/myapp/logs
       - ./certs:/myapp/certs
       - ./configs:/myapp/configs
       - ./db:/myapp/db
-      - /home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca:/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca
+      #- /home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca:/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - myapp
     container_name: app-client
-    command: client -config configs/client.yaml -type dev
+    command: client --config configs/client.yaml --type dev --debug --version
     restart: unless-stopped
+    depends_on:
+      app-server:
+        condition: service_healthy

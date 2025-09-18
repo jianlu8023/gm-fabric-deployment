@@ -3,6 +3,7 @@ package mapper
 import (
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
@@ -98,4 +99,24 @@ func (m *UserMapper) QueryUserByUsernameAndPassword(
 	}
 
 	return user, nil
+}
+
+func (m *UserMapper) UpdateLastLoginTime(user *model.UserInfo) error {
+	if m.db == nil {
+		return datasource.ErrNoDataSourceConn
+	}
+	return m.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.UserInfo{}).
+			Where(&model.UserInfo{
+				AutoUid:  user.AutoUid,
+				Username: user.Username,
+				Email:    user.Email,
+			}).Updates(&model.UserInfo{
+			LastLoginTime: time.Now(),
+		}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+
 }

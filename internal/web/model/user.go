@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
 	"github.com/jianlu8023/golang-example/pkg/json"
 )
 
@@ -33,10 +34,12 @@ func (u *UserInfo) MarshalJSON() ([]byte, error) {
 	type Alias UserInfo
 	aux := struct {
 		*Alias
-		IsDelete bool `json:"is_delete" yaml:"is_delete"`
+		IsDelete      bool   `json:"is_delete" yaml:"is_delete"`
+		LastLoginTime string `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty"`
 	}{
-		Alias:    (*Alias)(u),
-		IsDelete: u.IsDelete.Bool,
+		Alias:         (*Alias)(u),
+		IsDelete:      u.IsDelete.Bool,
+		LastLoginTime: humantime.HumanTimeLower(u.LastLoginTime, "unknown"),
 	}
 	return json.Marshal(aux)
 }
