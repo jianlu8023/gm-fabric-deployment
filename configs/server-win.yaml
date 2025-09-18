@@ -57,8 +57,8 @@ libp2p:
   identity:
     peer_id: 12D3KooWEeXfZpxfqwxFLJ2JYH21x85DnTMnCnmfUs4yQnCngM5T
     privkey: CAESQJY27DDSC9bEnAfcOE+rCLV6OVm/AETqUCt1swmR7HD9R8VdYQoGM7931nd+BX/URL1JLEGRvXX8IkGCK+boblo=
-  protocol_id: /gm-fabric/chat/1.0.0
-  service_tag: gm-fabric-deployment
+  protocol_id: /golang-example/msg/1.0.0
+  service_tag: golang-example_tags
   bootstrap_list:
   #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
 logger:
