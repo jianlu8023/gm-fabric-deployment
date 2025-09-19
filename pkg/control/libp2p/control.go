@@ -158,6 +158,7 @@ func (lc *Control) initNode() error {
 
 		libp2p.EnableNATService(), // NAT
 		libp2p.EnableAutoNATv2(),
+		libp2p.NATPortMap(),
 
 		libp2p.Security(securitytls.ID, securitytls.New),
 		libp2p.Security(securitynoise.ID, securitynoise.New),
