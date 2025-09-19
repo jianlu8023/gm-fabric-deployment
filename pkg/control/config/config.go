@@ -471,6 +471,26 @@ func (f *FabricCAConfig) String() string {
 	return string(bytes)
 }
 
+// WebRTCConfig WebRTC配置
+// @return string WebRTCConfig的字符串表示
+type WebRTCConfig struct {
+	Enabled        bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
+	ListenAddr     string   `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`                // 监听地址
+	ICEServers     []string `json:"ice_servers,omitempty" yaml:"ice_servers,omitempty" mapstructure:"ice_servers"`                // ICE服务器列表（可同时包含STUN和TURN服务器）
+	MaxMessageSize int      `json:"max_message_size,omitempty" yaml:"max_message_size,omitempty" mapstructure:"max_message_size"` // 最大消息大小
+	MinPort        int      `json:"min_port,omitempty" yaml:"min_port,omitempty" mapstructure:"min_port"`                         // 最小端口范围
+	MaxPort        int      `json:"max_port,omitempty" yaml:"max_port,omitempty" mapstructure:"max_port"`                         // 最大端口范围
+	TurnUsername   string   `json:"turn_username,omitempty" yaml:"turn_username,omitempty" mapstructure:"turn_username"`          // TURN服务器用户名
+	TurnPassword   string   `json:"turn_password,omitempty" yaml:"turn_password,omitempty" mapstructure:"turn_password"`          // TURN服务器密码
+	LogInConsole   bool     `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`       // 是否在控制台打印日志
+}
+
+// String WebRTCConfig的字符串表示
+func (w *WebRTCConfig) String() string {
+	bytes, _ := json.MarshalIndent(w, "", " ")
+	return string(bytes)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig       *GrpcConfig       `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -484,6 +504,7 @@ type Config struct {
 	EmailConfig      *EmailConfig      `json:"email_config,omitempty" yaml:"email_config,omitempty" mapstructure:"email"`                // 邮件配置
 	AntsPoolConfig   *AntsPoolConfig   `json:"ants_pool_config,omitempty" yaml:"ants_pool_config,omitempty" mapstructure:"ants_pool"`    // Ants线程池配置
 	FabricCAConfig   *FabricCAConfig   `json:"fabric_ca_config,omitempty" yaml:"fabric_ca_config,omitempty" mapstructure:"fabric_ca"`    // Fabric CA配置
+	WebRTCConfig     *WebRTCConfig     `json:"webrtc_config,omitempty" yaml:"webrtc_config,omitempty" mapstructure:"webrtc"`             // WebRTC配置
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 

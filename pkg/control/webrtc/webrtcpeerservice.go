@@ -1,0 +1,487 @@
+package webrtc
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/pion/interceptor"
+	"github.com/pion/interceptor/pkg/intervalpli"
+	"github.com/pion/webrtc/v4"
+	"go.uber.org/zap"
+)
+
+// PeerService 管理WebRTC对等连接的服务
+// 负责所有对等连接的创建、维护和关闭
+// 管理各种回调函数
+type PeerService struct {
+	ctx    context.Context
+	logger *zap.SugaredLogger
+	config *config.WebRTCConfig
+
+	// webrtc.API 复用
+	api *webrtc.API
+
+	// peerConfig
+	peerConfig *webrtc.Configuration
+
+	// 对等连接映射
+	// 现在这个映射同时管理WebRTC连接和客户端通信功能
+	peerConnections    map[string]*PeerConnection
+	peerConnectionsMux sync.RWMutex
+
+	// 回调函数
+	onPeerConnectionCreated     func(id string, conn *PeerConnection)
+	onPeerConnectionClosed      func(id string)
+	onPeerConnectionFailed      func(id string, err error)
+	onPeerConnectionStateChange func(id string, state PeerConnectionState)
+	onTrack                     func(id string, track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver)
+	onICECandidate              func(id string, candidate *webrtc.ICECandidate)
+	onICEConnectionStateChange  func(id string, state webrtc.ICEConnectionState)
+	onDataChannel               func(id string, dc *webrtc.DataChannel)
+}
+
+// newPeerService 创建一个新的WebRTC对等连接服务
+func newPeerService(ctx context.Context,
+	config *config.WebRTCConfig,
+	loggerControl *logger.Control,
+) (*PeerService, error) {
+	log := loggerControl.GenLogger(logger.ModuleWebRTC)
+	log.Debugf("[peerservice] starting generate peer service...")
+
+	ps := &PeerService{
+		ctx:             ctx,
+		config:          config,
+		logger:          log,
+		peerConnections: make(map[string]*PeerConnection),
+	}
+
+	// 生成 webrtc.API 实例
+	if err := ps.initWebRTCAPI(loggerControl.GetConfig()); err != nil {
+		ps.logger.Errorf("[peerservice] generate webrtc api failed: %v", err)
+		return nil, err
+	}
+
+	// 设置默认的回调函数
+	ps.setupDefaultCallbacks()
+
+	log.Infof("[peerservice] created WebRTC peer service")
+	return ps, nil
+}
+
+// setupDefaultCallbacks 设置默认的回调函数
+// 这些回调函数提供基本的日志记录和错误处理
+func (ps *PeerService) setupDefaultCallbacks() {
+	// 默认的连接创建回调
+	ps.onPeerConnectionCreated = func(id string, conn *PeerConnection) {
+		ps.logger.Debugf("[peerservice] peer connection created, id: %s", id)
+	}
+
+	// 默认的连接关闭回调
+	ps.onPeerConnectionClosed = func(id string) {
+		ps.logger.Debugf("[peerservice] peer connection closed, id: %s", id)
+	}
+
+	// 默认的连接失败回调
+	ps.onPeerConnectionFailed = func(id string, err error) {
+		ps.logger.Errorf("[peerservice] peer connection failed, id: %s, error: %v", id, err)
+	}
+}
+
+// createWebRTCConfiguration 统一创建WebRTC配置
+// 这个方法整合了之前分离的配置创建逻辑，避免重复代码
+// 并使用正确的WebRTCConfig字段名称
+func (ps *PeerService) createWebRTCConfiguration() {
+	peerConfiguration := webrtc.Configuration{}
+	var iceServers []webrtc.ICEServer
+
+	// 仅使用ICEServers字段，它可以包含STUN和TURN服务器
+	if len(ps.config.ICEServers) > 0 {
+		iceServer := webrtc.ICEServer{
+			URLs: ps.config.ICEServers,
+		}
+
+		// 添加TURN凭证（如果有）
+		if ps.config.TurnUsername != "" {
+			iceServer.Username = ps.config.TurnUsername
+			iceServer.Credential = ps.config.TurnPassword
+			iceServer.CredentialType = webrtc.ICECredentialTypePassword
+		}
+
+		iceServers = append(iceServers, iceServer)
+	}
+
+	peerConfiguration.ICEServers = iceServers
+	peerConfiguration.ICETransportPolicy = webrtc.ICETransportPolicyAll
+	peerConfiguration.BundlePolicy = webrtc.BundlePolicyMaxBundle
+	peerConfiguration.RTCPMuxPolicy = webrtc.RTCPMuxPolicyRequire
+	ps.peerConfig = &peerConfiguration
+}
+
+func (ps *PeerService) initWebRTCAPI(loggerConfig *config.LoggerConfig) error {
+	// 使用统一的配置创建方法
+	ps.createWebRTCConfiguration()
+
+	settingEngine := webrtc.SettingEngine{
+		LoggerFactory: newWebRTCLogger(loggerConfig, ps.config.LogInConsole),
+	}
+
+	if err := settingEngine.SetEphemeralUDPPortRange(uint16(ps.config.MinPort), uint16(ps.config.MaxPort)); err != nil {
+		ps.logger.Errorf("[peerservice] set ephemeral udp port range failed: %v", err)
+		return err
+	}
+
+	mediaEngine := &webrtc.MediaEngine{}
+	if err := mediaEngine.RegisterDefaultCodecs(); err != nil {
+		ps.logger.Errorf("[peerservice] register default codecs failed: %v", err)
+		return err
+	}
+
+	// Create a InterceptorRegistry. This is the user configurable RTP/RTCP Pipeline.
+	// This provides NACKs, RTCP Reports and other features. If you use `webrtc.NewPeerConnection`
+	// this is enabled by default. If you are manually managing You MUST create a InterceptorRegistry
+	// for each PeerConnection.
+	interceptorRegistry := &interceptor.Registry{}
+
+	// Use the default set of Interceptors
+	if err := webrtc.RegisterDefaultInterceptors(mediaEngine, interceptorRegistry); err != nil {
+		ps.logger.Errorf("[peerservice] register default interceptors failed: %v", err)
+		return err
+	}
+
+	// Register a intervalpli factory
+	// This interceptor sends a PLI every 3 seconds. A PLI causes a video keyframe to be generated by the sender.
+	// This makes our video seekable and more error resilent, but at a cost of lower picture quality and higher bitrates
+	// A real world application should process incoming RTCP packets from viewers and forward them to senders
+	intervalPliFactory, err := intervalpli.NewReceiverInterceptor()
+	if err != nil {
+		return err
+	}
+	interceptorRegistry.Add(intervalPliFactory)
+
+	ps.api = webrtc.NewAPI(
+		webrtc.WithSettingEngine(settingEngine),
+		webrtc.WithMediaEngine(mediaEngine),
+		webrtc.WithInterceptorRegistry(interceptorRegistry),
+	)
+
+	return nil
+}
+
+// CreatePeerConnection 创建一个新的WebRTC对等连接
+func (ps *PeerService) CreatePeerConnection(connConfig *webrtc.Configuration, id string) (*PeerConnection, error) {
+	ps.logger.Debugf("[webrtcpeerservice] creating new peer connection, id: %s", id)
+
+	// 如果没有提供配置，使用默认配置
+	if connConfig == nil {
+		connConfig = ps.peerConfig
+	}
+
+	// 使用WebRTC API创建对等连接
+	// 现在直接在WebRTCPeerConnection中初始化所有需要的字段，包括Send通道和closeMux互斥锁
+	wpc := &PeerConnection{
+		Connection:  nil,
+		ID:          id,
+		PeerID:      id, // 设置PeerID与连接ID相同
+		MediaTracks: make(map[string]*MediaTrack),
+		Send:        make(chan []byte, 100), // 初始化发送通道
+		closeMux:    sync.Mutex{},           // 初始化互斥锁
+	}
+
+	var err error
+	wpc.Connection, err = ps.api.NewPeerConnection(*connConfig)
+	if err != nil {
+		ps.logger.Errorf("[webrtcpeerservice] failed to create peer connection: %v", err)
+		return nil, err
+	}
+
+	// 设置各种回调函数
+	wpc.OnStateChange = func(state PeerConnectionState) {
+		ps.handleConnectionStateChange(wpc, state)
+	}
+
+	wpc.OnTrack = func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+		ps.handleTrack(wpc, track, receiver)
+	}
+
+	wpc.OnICECandidate = func(candidate *webrtc.ICECandidate) {
+		ps.handleICECandidate(wpc, candidate)
+	}
+
+	wpc.OnICEConnectionStateChange = func(state webrtc.ICEConnectionState) {
+		ps.handleICEConnectionStateChange(wpc, state)
+	}
+
+	wpc.OnDataChannel = func(dc *webrtc.DataChannel) {
+		ps.handleDataChannel(wpc, dc)
+	}
+
+	// 添加到对等连接映射
+	ps.peerConnectionsMux.Lock()
+	ps.peerConnections[id] = wpc
+	ps.peerConnectionsMux.Unlock()
+
+	// 调用创建回调
+	if ps.onPeerConnectionCreated != nil {
+		go ps.onPeerConnectionCreated(id, wpc)
+	}
+
+	return wpc, nil
+}
+
+// 内部方法：移除连接
+// 现在直接操作peerConnections，不再需要单独的connections映射
+func (ps *PeerService) removeConnection(id string) {
+	ps.peerConnectionsMux.Lock()
+	conn, exists := ps.peerConnections[id]
+	if exists {
+		delete(ps.peerConnections, id)
+	}
+	ps.peerConnectionsMux.Unlock()
+
+	if exists {
+		// 关闭发送通道
+		conn.closeMux.Lock()
+		close(conn.Send)
+		conn.closeMux.Unlock()
+	}
+}
+
+// GetPeerConnection 获取指定ID的对等连接
+func (ps *PeerService) GetPeerConnection(id string) *PeerConnection {
+	ps.peerConnectionsMux.RLock()
+	defer ps.peerConnectionsMux.RUnlock()
+	return ps.peerConnections[id]
+}
+
+// GetAllPeerConnections 获取所有对等连接
+func (ps *PeerService) GetAllPeerConnections() []*PeerConnection {
+	ps.peerConnectionsMux.RLock()
+	connections := make([]*PeerConnection, 0, len(ps.peerConnections))
+	for _, conn := range ps.peerConnections {
+		connections = append(connections, conn)
+	}
+	ps.peerConnectionsMux.RUnlock()
+	return connections
+}
+
+// ClosePeerConnection 关闭指定ID的对等连接
+func (ps *PeerService) ClosePeerConnection(id string) error {
+	ps.logger.Debugf("[webrtcpeerservice] closing peer connection, id: %s", id)
+
+	ps.peerConnectionsMux.Lock()
+	conn, exists := ps.peerConnections[id]
+	if exists {
+		delete(ps.peerConnections, id)
+	}
+	ps.peerConnectionsMux.Unlock()
+
+	// 移除客户端连接
+	ps.removeConnection(id)
+
+	if !exists {
+		ps.logger.Warnf("[webrtcpeerservice] peer connection not found, id: %s", id)
+		return ErrConnectionNotFound
+	}
+
+	// 关闭对等连接
+	if err := conn.Close(); err != nil {
+		ps.logger.Errorf("[webrtcpeerservice] failed to close peer connection: %v", err)
+		if ps.onPeerConnectionFailed != nil {
+			go ps.onPeerConnectionFailed(id, err)
+		}
+		return err
+	}
+
+	// 调用关闭回调
+	if ps.onPeerConnectionClosed != nil {
+		go ps.onPeerConnectionClosed(id)
+	}
+
+	return nil
+}
+
+// CloseAllPeerConnections 关闭所有对等连接
+func (ps *PeerService) CloseAllPeerConnections() {
+	ps.logger.Info("[webrtcpeerservice] closing all peer connections")
+
+	// 获取所有连接ID
+	ids := make([]string, 0)
+	ps.peerConnectionsMux.RLock()
+	for id := range ps.peerConnections {
+		ids = append(ids, id)
+	}
+	ps.peerConnectionsMux.RUnlock()
+
+	// 关闭每个连接
+	for _, id := range ids {
+		ps.ClosePeerConnection(id)
+	}
+}
+
+// Broadcast 向所有连接的客户端广播消息
+// 现在直接操作peerConnections，不再需要单独的connections映射
+func (ps *PeerService) Broadcast(message []byte) error {
+	// 复制所有连接，避免在遍历过程中修改映射
+	ps.peerConnectionsMux.RLock()
+	connections := make([]*PeerConnection, 0, len(ps.peerConnections))
+	for _, conn := range ps.peerConnections {
+		connections = append(connections, conn)
+	}
+	ps.peerConnectionsMux.RUnlock()
+
+	// 向每个连接发送消息
+	errors := []error{}
+	for _, conn := range connections {
+		// 使用select处理可能的阻塞情况
+		select {
+		case conn.Send <- message:
+			// 消息成功发送
+		case <-time.After(100 * time.Millisecond):
+			// 发送超时，记录错误但继续尝试其他连接
+			errors = append(errors, fmt.Errorf("[webrtcpeerservice] send message to %s timeout", conn.ID))
+		case <-ps.ctx.Done():
+			// 上下文已取消
+			errors = append(errors, fmt.Errorf("[webrtcpeerservice] context canceled"))
+		}
+	}
+
+	// 如果有错误，返回一个包含所有错误的综合错误
+	if len(errors) > 0 {
+		return fmt.Errorf("[webrtcpeerservice] broadcast errors: %v", errors)
+	}
+
+	return nil
+}
+
+// SendTo 向指定ID的客户端发送消息
+// 现在直接操作peerConnections，不再需要单独的connections映射
+func (ps *PeerService) SendTo(id string, message []byte) error {
+	ps.peerConnectionsMux.RLock()
+	conn, exists := ps.peerConnections[id]
+	ps.peerConnectionsMux.RUnlock()
+
+	if !exists {
+		return fmt.Errorf("[webrtcpeerservice] connection not found: %s", id)
+	}
+
+	// 发送消息到连接的Send通道
+	// 使用select处理可能的阻塞情况
+	select {
+	case conn.Send <- message:
+		// 消息成功发送
+		return nil
+	case <-time.After(1 * time.Second):
+		// 发送超时
+		return fmt.Errorf("[webrtcpeerservice] send message to %s timeout", id)
+	case <-ps.ctx.Done():
+		// 上下文已取消
+		return fmt.Errorf("[webrtcpeerservice] context canceled")
+	}
+}
+
+// 设置回调函数
+
+// OnPeerConnectionCreated 设置对等连接创建时的回调
+func (ps *PeerService) OnPeerConnectionCreated(callback func(id string, conn *PeerConnection)) {
+	ps.onPeerConnectionCreated = callback
+}
+
+// OnPeerConnectionClosed 设置对等连接关闭时的回调
+func (ps *PeerService) OnPeerConnectionClosed(callback func(id string)) {
+	ps.onPeerConnectionClosed = callback
+}
+
+// OnPeerConnectionFailed 设置对等连接失败时的回调
+func (ps *PeerService) OnPeerConnectionFailed(callback func(id string, err error)) {
+	ps.onPeerConnectionFailed = callback
+}
+
+// OnPeerConnectionStateChange 设置对等连接状态变化时的回调
+func (ps *PeerService) OnPeerConnectionStateChange(callback func(id string, state PeerConnectionState)) {
+	ps.onPeerConnectionStateChange = callback
+}
+
+// OnTrack 设置收到媒体轨道时的回调
+func (ps *PeerService) OnTrack(callback func(id string, track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver)) {
+	ps.onTrack = callback
+}
+
+// OnICECandidate 设置收到ICE候选时的回调
+func (ps *PeerService) OnICECandidate(callback func(id string, candidate *webrtc.ICECandidate)) {
+	ps.onICECandidate = callback
+}
+
+// OnICEConnectionStateChange 设置ICE连接状态变化时的回调
+func (ps *PeerService) OnICEConnectionStateChange(callback func(id string, state webrtc.ICEConnectionState)) {
+	ps.onICEConnectionStateChange = callback
+}
+
+// OnDataChannel 设置数据通道创建时的回调
+func (ps *PeerService) OnDataChannel(callback func(id string, dc *webrtc.DataChannel)) {
+	ps.onDataChannel = callback
+}
+
+// 内部处理方法
+
+func (ps *PeerService) handleConnectionStateChange(conn *PeerConnection, state PeerConnectionState) {
+	ps.logger.Debugf("[webrtcpeerservice] peer connection state changed, id: %s, state: %s", conn.ID, state)
+
+	// 调用状态变化回调
+	if ps.onPeerConnectionStateChange != nil {
+		ps.onPeerConnectionStateChange(conn.ID, state)
+	}
+
+	// 处理特殊状态
+	switch state {
+	case PeerConnectionStateFailed:
+		// 连接失败，自动关闭
+		ps.logger.Warnf("[webrtcpeerservice] peer connection failed, closing automatically, id: %s", conn.ID)
+		go ps.ClosePeerConnection(conn.ID)
+		if ps.onPeerConnectionFailed != nil {
+			ps.onPeerConnectionFailed(conn.ID, ErrConnectionClosed)
+		}
+	case PeerConnectionStateClosed:
+		// 连接已关闭，调用removeConnection方法统一处理
+		ps.removeConnection(conn.ID)
+	}
+}
+
+func (ps *PeerService) handleTrack(conn *PeerConnection, track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
+	ps.logger.Debugf("[webrtcpeerservice] received track, peer connection id: %s, track id: %s", conn.ID, track.ID())
+
+	// 调用轨道回调
+	if ps.onTrack != nil {
+		ps.onTrack(conn.ID, track, receiver)
+	}
+}
+
+func (ps *PeerService) handleICECandidate(conn *PeerConnection, candidate *webrtc.ICECandidate) {
+	ps.logger.Debugf("[webrtcpeerservice] received ICE candidate, peer connection id: %s", conn.ID)
+
+	// 调用ICE候选回调
+	if ps.onICECandidate != nil && candidate != nil {
+		ps.onICECandidate(conn.ID, candidate)
+	}
+}
+
+func (ps *PeerService) handleICEConnectionStateChange(conn *PeerConnection, state webrtc.ICEConnectionState) {
+	ps.logger.Debugf("[webrtcpeerservice] ICE connection state changed, peer connection id: %s, state: %s", conn.ID, state.String())
+
+	// 调用ICE连接状态变化回调
+	if ps.onICEConnectionStateChange != nil {
+		ps.onICEConnectionStateChange(conn.ID, state)
+	}
+}
+
+func (ps *PeerService) handleDataChannel(conn *PeerConnection, dc *webrtc.DataChannel) {
+	ps.logger.Debugf("[webrtcpeerservice] data channel created, peer connection id: %s, channel label: %s", conn.ID, dc.Label())
+
+	// 调用数据通道回调
+	if ps.onDataChannel != nil {
+		ps.onDataChannel(conn.ID, dc)
+	}
+}
