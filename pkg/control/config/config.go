@@ -152,13 +152,13 @@ func (l *LoggerConfig) String() string {
 // HttpServerConfig http服务配置
 type HttpServerConfig struct {
 	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                               // 是否启用
-	Address        string `yaml:"address,omitempty" json:"address,omitempty" mapstructure:"address"`                               // 服务地址
-	ContextPath    string `yaml:"context_path,omitempty" json:"context_path,omitempty" mapstructure:"context_path"`                // 服务上下文路径
-	RunMode        string `yaml:"run_mode,omitempty" json:"run_mode,omitempty" mapstructure:"run_mode" `                           // 服务运行模式
-	TlsEnabled     bool   `yaml:"tls_enabled,omitempty" json:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                  // 是否启用TLS
-	TlsCertFile    string `yaml:"tls_cert_file,omitempty" json:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `            // TLS证书文件
-	TlsKeyFile     string `yaml:"tls_key_file,omitempty" json:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
-	TlsRCACertFile string `yaml:"tls_rca_cert_file,omitempty" json:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
+	Address        string `json:"address,omitempty" yaml:"address,omitempty" mapstructure:"address"`                               // 服务地址
+	ContextPath    string `json:"context_path,omitempty" yaml:"context_path,omitempty" mapstructure:"context_path"`                // 服务上下文路径
+	RunMode        string `json:"run_mode,omitempty" yaml:"run_mode,omitempty" mapstructure:"run_mode" `                           // 服务运行模式
+	TlsEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                  // 是否启用TLS
+	TlsCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `            // TLS证书文件
+	TlsKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
+	TlsRCACertFile string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
 	Pprof          bool   `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                     // 是否启用pprof
 }
 
@@ -171,14 +171,14 @@ func (h *HttpServerConfig) String() string {
 
 // GrpcServerConfig grpc服务配置
 type GrpcServerConfig struct {
-	Host           string `yaml:"host,omitempty" json:"host,omitempty" mapstructure:"host"`                                        // 服务地址
-	MaxRecvMsgSize int    `yaml:"max_recv_msg_size,omitempty" json:"max_recv_msg_size,omitempty" mapstructure:"max_recv_msg_size"` // 最大接收消息大小
-	MaxSendMsgSize int    `yaml:"max_send_msg_size,omitempty" json:"max_send_msg_size,omitempty" mapstructure:"max_send_msg_size"` // 最大发送消息大小
-	ChunkSize      int    `yaml:"chunk_size,omitempty" json:"chunk_size,omitempty" mapstructure:"chunk_size"`                      // 分块大小
-	TlsEnabled     bool   `yaml:"tls_enabled,omitempty" json:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                   // 是否启用TLS
-	TlsCertFile    string `yaml:"tls_cert_file,omitempty" json:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`             // TLS证书文件
-	TlsKeyFile     string `yaml:"tls_key_file,omitempty" json:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
-	TlsRCACertFile string `yaml:"tls_rca_cert_file,omitempty" json:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
+	Host           string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                        // 服务地址
+	MaxRecvMsgSize int    `json:"max_recv_msg_size,omitempty" yaml:"max_recv_msg_size,omitempty" mapstructure:"max_recv_msg_size"` // 最大接收消息大小
+	MaxSendMsgSize int    `json:"max_send_msg_size,omitempty" yaml:"max_send_msg_size,omitempty" mapstructure:"max_send_msg_size"` // 最大发送消息大小
+	ChunkSize      int    `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" mapstructure:"chunk_size"`                      // 分块大小
+	TlsEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                   // 是否启用TLS
+	TlsCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`             // TLS证书文件
+	TlsKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
+	TlsRCACertFile string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
 }
 
 // String 返回GrpcServerConfig的JSON格式字符串
@@ -190,15 +190,15 @@ func (g *GrpcServerConfig) String() string {
 
 // GrpcClientConfig 配置GrpcClient
 type GrpcClientConfig struct {
-	Host               string `yaml:"host,omitempty" json:"host,omitempty" mapstructure:"host"`                                                        // Grpc服务地址
-	MaxCallRecvMsgSize int    `yaml:"max_call_recv_msg_size,omitempty" json:"max_call_recv_msg_size,omitempty" mapstructure:"max_call_recv_msg_size"`  // 最大接收消息大小
-	MaxCallSendMsgSize int    `yaml:"max_call_send_msg_size,omitempty" json:"max_call_send_msg_size,omitempty" mapstructure:"max_call_send_msg_size" ` // 最大发送消息大小
-	ChunkSize          int    `yaml:"chunk_size,omitempty" json:"chunk_size,omitempty" mapstructure:"chunk_size"`                                      // 分块大小
-	CallTimeout        int    `yaml:"call_timeout,omitempty" json:"call_timeout,omitempty" mapstructure:"call_timeout" `                               // 调用超时时间
-	TlsEnabled         bool   `yaml:"tls_enabled,omitempty" json:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                                   // 是否启用TLS
-	TlsCertFile        string `yaml:"tls_cert_file,omitempty" json:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`                             // TLS证书文件
-	TlsKeyFile         string `yaml:"tls_key_file,omitempty" json:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                                // TLS私钥文件
-	TlsRCACertFile     string `yaml:"tls_rca_cert_file,omitempty" json:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`                 // TLS根证书文件
+	Host               string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                                        // Grpc服务地址
+	MaxCallRecvMsgSize int    `json:"max_call_recv_msg_size,omitempty" yaml:"max_call_recv_msg_size,omitempty" mapstructure:"max_call_recv_msg_size"`  // 最大接收消息大小
+	MaxCallSendMsgSize int    `json:"max_call_send_msg_size,omitempty" yaml:"max_call_send_msg_size,omitempty" mapstructure:"max_call_send_msg_size" ` // 最大发送消息大小
+	ChunkSize          int    `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" mapstructure:"chunk_size"`                                      // 分块大小
+	CallTimeout        int    `json:"call_timeout,omitempty" yaml:"call_timeout,omitempty" mapstructure:"call_timeout" `                               // 调用超时时间
+	TlsEnabled         bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                                   // 是否启用TLS
+	TlsCertFile        string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`                             // TLS证书文件
+	TlsKeyFile         string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                                // TLS私钥文件
+	TlsRCACertFile     string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`                 // TLS根证书文件
 }
 
 // String GrpcClientConfig的字符串表示
@@ -211,8 +211,8 @@ func (g *GrpcClientConfig) String() string {
 // GrpcConfig 配置Grpc
 type GrpcConfig struct {
 	Enabled bool              `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用
-	Server  *GrpcServerConfig `yaml:"server,omitempty" json:"server,omitempty" mapstructure:"server"`    // 服务端配置
-	Client  *GrpcClientConfig `yaml:"client,omitempty" json:"client,omitempty" mapstructure:"client"`    // 客户端配置
+	Server  *GrpcServerConfig `json:"server,omitempty" yaml:"server,omitempty" mapstructure:"server"`    // 服务端配置
+	Client  *GrpcClientConfig `json:"client,omitempty" yaml:"client,omitempty" mapstructure:"client"`    // 客户端配置
 }
 
 // String GrpcConfig的字符串表示

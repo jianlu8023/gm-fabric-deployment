@@ -5,13 +5,13 @@ import (
 )
 
 type MyRouter struct {
-	Name            string                 `yaml:"name" json:"router_name"`
-	Uri             string                 `yaml:"uri" json:"router_uri"`
-	Method          string                 `yaml:"method" json:"router_method"`
-	HandlerFunc     func(ctx *gin.Context) `yaml:"-" json:"-"`
-	Enabled         bool                   `yaml:"enabled" json:"router_enabled"`
-	Desc            string                 `yaml:"desc" json:"router_desc"`
-	EnableJWtVerify bool                   `yaml:"enable_jwt_verify" json:"router_enable_jwt_verify"`
+	Name            string                 `json:"name,omitempty" yaml:"router_name,omitempty"`
+	Uri             string                 `json:"uri,omitempty" yaml:"router_uri,omitempty"`
+	Method          string                 `json:"method,omitempty" yaml:"router_method,omitempty"`
+	HandlerFunc     func(ctx *gin.Context) `json:"-" yaml:"-"`
+	Enabled         bool                   `json:"enabled,omitempty" yaml:"router_enabled,omitempty"`
+	Desc            string                 `json:"desc,omitempty" yaml:"router_desc,omitempty"`
+	EnableJWtVerify bool                   `json:"enable_jwt_verify,omitempty" yaml:"router_enable_jwt_verify,omitempty"`
 }
 
 // GetName 获取路由名称

@@ -79,7 +79,7 @@ func InitCPU() (c Cpu, err error) {
 
 type Ram struct {
 	Free           string  `json:"free,omitempty" yaml:"free,omitempty"`
-	Available      string  `yaml:"available,omitempty" yaml:"available,omitempty"`
+	Available      string  `json:"available,omitempty" yaml:"available,omitempty"`
 	Used           string  `json:"used,omitempty" yaml:"used,omitempty"`
 	Total          string  `json:"total,omitempty" yaml:"total,omitempty"`
 	UsedPercentage float64 `json:"used_percentage,omitempty" yaml:"used_percentage,omitempty"`
@@ -109,7 +109,7 @@ func InitRAM() (r Ram, err error) {
 
 type Disk struct {
 	MountPoint        string  `json:"mount_point,omitempty" yaml:"mount_point,omitempty"`
-	Free              string  `yaml:"free,omitempty" yaml:"free,omitempty"`
+	Free              string  `json:"free,omitempty" yaml:"free,omitempty"`
 	Used              string  `json:"used,omitempty" yaml:"used,omitempty"`
 	Total             string  `json:"total,omitempty" yaml:"total,omitempty"`
 	UsedPercentage    float64 `json:"used_percentage,omitempty" yaml:"used_percentage,omitempty"`
