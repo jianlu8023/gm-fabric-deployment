@@ -84,7 +84,7 @@ func (d *DataSourceConfig) GenSqlite3DSN() string {
 	// _pragma=synchronous=NORMAL 设置同步模式 NORMAL 性能和数据安全之间平衡 FULL 最安全但最慢 OFF 最快但数据丢失风险最高
 	// _pragma=busy_timeout=5000 设置超时时间
 	if filepath.IsAbs(d.DataBasePath) {
-		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL",
+		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL&charset=utf8mb4&parseTime=True&loc=Local",
 			d.DataBasePath)
 	} else {
 		dsn := filepath.Clean(filepath.Join(wd.GetWorkDir(), d.DataBasePath))
@@ -95,7 +95,7 @@ func (d *DataSourceConfig) GenSqlite3DSN() string {
 				panic(err)
 			}
 		}
-		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL",
+		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL&charset=utf8mb4&parseTime=True&loc=Local",
 			dsn)
 	}
 }
