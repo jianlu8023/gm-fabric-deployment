@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"time"
 
-	humanbytes "github.com/jianlu8023/golang-example/pkg/human/bytes"
+	humanbytes "github.com/jianlu8023/golang-example/pkg/human/bytehelper"
 	"github.com/jianlu8023/golang-example/pkg/json"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"

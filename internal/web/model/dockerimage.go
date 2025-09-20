@@ -2,7 +2,9 @@ package model
 
 import (
 	"database/sql"
+	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
 	"github.com/jianlu8023/golang-example/pkg/json"
+	"time"
 )
 
 const (
@@ -12,7 +14,7 @@ const (
 type DockerImage struct {
 	AutoUid             int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                  // 自增id
 	ImageName           string       `json:"image_name,omitempty" yaml:"image_name,omitempty" gorm:"column:image_name;type:varchar(255);"`                                     // 镜像名称
-	ImageCreated        int64        `json:"image_created,omitempty" yaml:"image_created,omitempty" gorm:"column:image_created;type:bigint(20);"`                              // 镜像创建时间
+	ImageCreated        time.Time    `json:"image_created,omitempty" yaml:"image_created,omitempty" gorm:"column:image_created;type:bigint(20);"`                              // 镜像创建时间
 	ImageLabels         string       `json:"image_labels,omitempty" yaml:"image_labels,omitempty" gorm:"column:image_labels;type:varchar(255);"`                               // 镜像标签
 	ImageId             string       `json:"image_id,omitempty" yaml:"image_id,omitempty" gorm:"column:image_id;type:varchar(255);"`                                           // 镜像id
 	ImageLocationPeerId string       `json:"image_location_peer_id,omitempty" yaml:"image_location_peer_id,omitempty" gorm:"column:image_location_peer_id;type:varchar(255);"` // 镜像所在peer
@@ -25,10 +27,12 @@ func (i *DockerImage) MarshalJSON() ([]byte, error) {
 	type Alias DockerImage
 	aux := struct {
 		*Alias
-		IsDelete bool `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
+		IsDelete     bool   `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
+		ImageCreated string `json:"image_created,omitempty" yaml:"image_created,omitempty"`
 	}{
-		Alias:    (*Alias)(i),
-		IsDelete: i.IsDelete.Bool,
+		Alias:        (*Alias)(i),
+		IsDelete:     i.IsDelete.Bool,
+		ImageCreated: humantime.HumanTime(i.ImageCreated, "unknown"),
 	}
 	return json.Marshal(aux)
 }

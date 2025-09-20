@@ -2,6 +2,7 @@ package time
 
 import (
 	"fmt"
+	"github.com/araddon/dateparse"
 	"math"
 	"strconv"
 	"strings"
@@ -74,6 +75,7 @@ func humanTime(t time.Time, zeroValue string) string {
 // @param d: 字符串
 // @return time.Duration: 时间
 // @return error: 错误
+// @example ParseDuration("0d5h15m40s") => 5h15m40s
 func ParseDuration(d string) (time.Duration, error) {
 	d = strings.TrimSpace(d)
 	dr, err := time.ParseDuration(d)
@@ -94,4 +96,12 @@ func ParseDuration(d string) (time.Duration, error) {
 
 	dv, err := strconv.ParseInt(d, 10, 64)
 	return time.Duration(dv), err
+}
+
+func ParseTimeLocal(datetime string) (time.Time, error) {
+	return dateparse.ParseLocal(datetime)
+}
+
+func ParseTimeIn(datetime string, in *time.Location) (time.Time, error) {
+	return dateparse.ParseIn(datetime, in)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/websocket"
+	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
 	"github.com/jianlu8023/golang-example/pkg/json"
 	"github.com/jianlu8023/golang-example/pkg/str"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -119,7 +120,12 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			image := model.NewDockerImage()
 			image.ImageName = summary.RepoTags[0]
 			image.ImageId = summary.ID
-			image.ImageCreated = summary.Created
+			datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", summary.Created))
+			if err != nil {
+				s.logger.Errorf("parse time on local failed: %v", err)
+				return
+			}
+			image.ImageCreated = datetime
 			labels, err := json.Marshal(summary.Labels)
 			if err != nil {
 				s.logger.Errorf("get docker image info marshal failed: %v", err)

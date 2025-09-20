@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/jianlu8023/golang-example/pkg/control/job"
+	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
 	"github.com/jianlu8023/golang-example/version"
 	"os"
 	"os/signal"
@@ -231,7 +232,12 @@ func main() {
 				info := model.NewDockerImage()
 				info.ImageName = img.RepoTags[0]
 				info.ImageId = img.ID
-				info.ImageCreated = img.Created
+				datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", img.Created))
+				if err != nil {
+					mainLogger.Errorf("parse time on local failed: %v", err)
+					continue
+				}
+				info.ImageCreated = datetime
 				labels, err := json.Marshal(img.Labels)
 				if err != nil {
 					mainLogger.Errorf("marshal image labels failed: %v", err)
@@ -329,7 +335,12 @@ func main() {
 					info.ImageName = img.RepoTags[0]
 					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
 					info.ImageId = img.ID
-					info.ImageCreated = img.Created
+					datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", img.Created))
+					if err != nil {
+						mainLogger.Errorf("parse time on local failed: %v", err)
+						continue
+					}
+					info.ImageCreated = datetime
 					labels, err := json.Marshal(img.Labels)
 					if err != nil {
 						mainLogger.Errorf("marshal image labels failed: %v", err)

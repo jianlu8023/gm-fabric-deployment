@@ -11,7 +11,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
 	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc"
-	controlhttp "github.com/jianlu8023/golang-example/pkg/control/http"
+	"github.com/jianlu8023/golang-example/pkg/control/http"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/jianlu8023/golang-example/pkg/control/websocket"
@@ -35,7 +35,7 @@ func NewRouter(loggerControl *logger.Control,
 	dockerControl *docker.Control,
 	datasourceControl *datasource.Control,
 	websocketControl *websocket.Control,
-	httpControl *controlhttp.Control,
+	httpControl *http.Control,
 	captchaControl *captcha.Control,
 	antsPoolControl *ants.Control,
 	fabriccaControl *fabricca.Control,

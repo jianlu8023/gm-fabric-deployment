@@ -7,7 +7,7 @@ import (
 
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
-	mylogger "github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"go.uber.org/zap"
 )
 
@@ -33,8 +33,8 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
-func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *mylogger.Control) (*Control, error) {
-	grpcLogger := loggerControl.GenLogger(mylogger.ModuleGrpc)
+func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control) (*Control, error) {
+	grpcLogger := loggerControl.GenLogger(logger.ModuleGrpc)
 	grpcLogger.Infof("[control] starting new grpc control...")
 	serverControl, err := NewServerControl(grpcConfig.Server, grpcLogger)
 	if err != nil {
