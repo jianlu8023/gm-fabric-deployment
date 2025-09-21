@@ -7,8 +7,8 @@ import (
 	"time"
 
 	glog "github.com/jianlu8023/go-logger/v2"
+	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
-	"github.com/jianlu8023/golang-example/pkg/str"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

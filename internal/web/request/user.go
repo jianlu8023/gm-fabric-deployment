@@ -2,8 +2,8 @@ package request
 
 import (
 	// validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/jianlu8023/golang-example/pkg/json"
-	"github.com/jianlu8023/golang-example/pkg/str"
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
 )
 
 type UserRegisterRequest struct {

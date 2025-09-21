@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/golang-example/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
 )
 
 // BaseResponse HTTP基础响应结构体

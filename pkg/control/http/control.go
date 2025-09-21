@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jianlu8023/golang-example/pkg/str"
+	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
 
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"

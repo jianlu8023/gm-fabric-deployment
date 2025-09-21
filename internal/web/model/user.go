@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
-	"github.com/jianlu8023/golang-example/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/helper/time"
 )
 
 const (

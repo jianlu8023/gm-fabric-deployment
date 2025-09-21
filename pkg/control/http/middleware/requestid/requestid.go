@@ -3,7 +3,7 @@ package requestid
 import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/golang-example/pkg/random/uuid"
+	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
 	"go.uber.org/zap"
 )
 

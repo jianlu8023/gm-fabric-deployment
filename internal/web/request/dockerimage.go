@@ -1,9 +1,9 @@
 package request
 
 import (
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	"github.com/jianlu8023/golang-example/pkg/json"
-	"github.com/jianlu8023/golang-example/pkg/str"
 )
 
 type DockerImageListRequest struct {

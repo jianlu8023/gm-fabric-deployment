@@ -4,7 +4,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
-	"github.com/jianlu8023/golang-example/pkg/str"
+	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
 )
 
 // WithNetworkQueryName 查看网络 filter name

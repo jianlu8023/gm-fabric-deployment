@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/jianlu8023/golang-example/pkg/control/docker"
-	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
-	"github.com/jianlu8023/golang-example/pkg/control/job"
 	"math/rand/v2"
 	"os"
 	"os/signal"
@@ -12,15 +9,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jianlu8023/golang-example/pkg/control/docker"
+	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
+	"github.com/jianlu8023/golang-example/pkg/control/job"
+	"github.com/jianlu8023/golang-example/version"
+
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/system/pidfile"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/server"
-	"github.com/jianlu8023/golang-example/pkg/json"
-	"github.com/jianlu8023/golang-example/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
-)
-
-var (
-	version string
 )
 
 func main() {
@@ -33,7 +31,7 @@ func main() {
 
 	mainLogger := serverControl.GetLoggerControl().GenLogger("main")
 
-	mainLogger.Infof("start server version %v", version)
+	mainLogger.Infof("start server version %v", version.Version)
 
 	// pidfile
 	{

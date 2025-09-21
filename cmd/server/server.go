@@ -3,17 +3,20 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/jianlu8023/golang-example/pkg/control/job"
-	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
-	"github.com/jianlu8023/golang-example/version"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
 
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/helper/time"
+	"github.com/jianlu8023/golang-example/pkg/control/job"
+	"github.com/jianlu8023/golang-example/version"
+
 	dockerimage "github.com/docker/docker/api/types/image"
 	dockernetwork "github.com/docker/docker/api/types/network"
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/system/pidfile"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/internal/web/router"
@@ -21,8 +24,6 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/jianlu8023/golang-example/pkg/control/server"
-	"github.com/jianlu8023/golang-example/pkg/json"
-	"github.com/jianlu8023/golang-example/pkg/system/pidfile"
 	"github.com/libp2p/go-libp2p/core/protocol"
 )
 

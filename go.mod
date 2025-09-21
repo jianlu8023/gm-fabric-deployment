@@ -47,7 +47,7 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/docker/docker v20.10.26+incompatible
 	// github.com/docker/docker v28.0.1+incompatible
 	github.com/docker/go-connections v0.4.0 // create docker container 需要这个库
@@ -73,7 +73,8 @@ require (
 	github.com/ipfs/kubo v0.28.0
 	github.com/jessevdk/go-flags v1.6.1 // flags增强 `short:"-v" long:"--version"  required:"true" default:"default"`
 	github.com/jianlu8023/go-logger/v2 v2.0.0
-	github.com/json-iterator/go v1.1.12
+	github.com/jianlu8023/go-tools/v2 v2.0.0-20250921142734-6afed502d952
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/libp2p/go-libp2p v0.40.0
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0
 	github.com/mingrammer/commonregex v1.0.1
@@ -85,7 +86,7 @@ require (
 	github.com/pion/logging v0.2.3
 	github.com/pion/webrtc/v4 v4.0.9
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
-	github.com/shirou/gopsutil/v4 v4.24.10
+	github.com/shirou/gopsutil/v4 v4.24.10 // indirect
 	github.com/sony/sonyflake v1.1.0
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.10.0
@@ -93,7 +94,7 @@ require (
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/valyala/quicktemplate v1.8.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.33.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.36.5

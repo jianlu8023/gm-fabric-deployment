@@ -1,8 +1,8 @@
 package request
 
 import (
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	"github.com/jianlu8023/golang-example/pkg/json"
 )
 
 type Libp2pNodeListRequest struct {

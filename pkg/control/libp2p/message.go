@@ -3,7 +3,7 @@ package libp2p
 import (
 	"fmt"
 
-	"github.com/jianlu8023/golang-example/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"

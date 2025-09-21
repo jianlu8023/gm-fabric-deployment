@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
-	"github.com/jianlu8023/golang-example/pkg/json"
 	"github.com/jianlu8023/golang-example/version"
 	"gorm.io/gorm"
 )

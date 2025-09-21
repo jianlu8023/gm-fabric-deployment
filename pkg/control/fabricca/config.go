@@ -2,10 +2,11 @@ package fabricca
 
 import (
 	"fmt"
-	"github.com/facebookgo/atomicfile"
-	"github.com/jianlu8023/golang-example/pkg/json"
 	"os"
 	"path/filepath"
+
+	"github.com/facebookgo/atomicfile"
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
 )
 
 func (c *Control) genFabricSdkConfig() (string, error) {

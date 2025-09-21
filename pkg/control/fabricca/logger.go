@@ -1,13 +1,14 @@
 package fabricca
 
 import (
+	"path/filepath"
+	"time"
+
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/core/logging/api"
 	glog "github.com/jianlu8023/go-logger/v2"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"path/filepath"
-	"time"
 )
 
 type fabricLogger struct {

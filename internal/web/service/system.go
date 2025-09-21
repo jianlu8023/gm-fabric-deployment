@@ -2,9 +2,9 @@ package service
 
 import (
 	"github.com/gin-gonic/gin"
+	systeminfo "github.com/jianlu8023/go-tools/v2/pkg/system/info"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	systeminfo "github.com/jianlu8023/golang-example/pkg/system/info"
 )
 
 // SystemService 系统服务

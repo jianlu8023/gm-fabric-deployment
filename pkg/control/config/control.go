@@ -3,12 +3,13 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/jianlu8023/golang-example/pkg/control/flags"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/jianlu8023/golang-example/pkg/str"
+	"github.com/jianlu8023/golang-example/pkg/control/flags"
+
+	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
 	"github.com/spf13/viper"
 )
 

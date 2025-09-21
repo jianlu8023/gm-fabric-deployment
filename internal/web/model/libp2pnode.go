@@ -2,9 +2,10 @@ package model
 
 import (
 	"database/sql"
-	humantime "github.com/jianlu8023/golang-example/pkg/human/time"
-	"github.com/jianlu8023/golang-example/pkg/json"
 	"time"
+
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/helper/time"
 )
 
 const (

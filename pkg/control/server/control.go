@@ -2,11 +2,12 @@ package server
 
 import (
 	"fmt"
+	"os"
+	"sync"
+
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
 	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 	"github.com/jianlu8023/golang-example/version"
-	"os"
-	"sync"
 
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
 

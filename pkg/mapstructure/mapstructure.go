@@ -2,9 +2,10 @@ package mapstructure
 
 import (
 	"fmt"
-	"github.com/jianlu8023/golang-example/pkg/json"
-	"github.com/mitchellh/mapstructure"
 	"log"
+
+	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/mitchellh/mapstructure"
 )
 
 type Person struct {

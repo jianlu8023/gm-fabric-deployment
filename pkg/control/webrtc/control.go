@@ -4,9 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
-	"github.com/jianlu8023/golang-example/pkg/random/uuid"
 	"github.com/pion/webrtc/v4"
 	"go.uber.org/zap"
 )
