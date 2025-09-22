@@ -6,7 +6,6 @@ toolchain go1.22.10
 
 replace (
 	github.com/Jeffail/gabs/v2 => github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/araddon/dateparse => github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/docker/docker => github.com/docker/docker v28.0.1+incompatible
 	github.com/gin-contrib/cors => github.com/gin-contrib/cors v1.7.3
 	github.com/gin-contrib/gzip => github.com/gin-contrib/gzip v1.2.2
@@ -17,7 +16,8 @@ replace (
 	github.com/golang-jwt/jwt/v5 => github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.3
 	github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
-	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.1
+	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
+	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20250922065348-bf246d920433
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
 	// github.com/mitchellh/mapstructure v1.4.2 => github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
@@ -47,7 +47,6 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0
-	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/docker/docker v20.10.26+incompatible
 	// github.com/docker/docker v28.0.1+incompatible
 	github.com/docker/go-connections v0.4.0 // create docker container 需要这个库
@@ -63,7 +62,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/hxx258456/ccgo v0.0.3 // grpc v1.44.0 protoc-gen-go-grpc 版本v1.2.0 没有grpc.NewClient 需要使用 grpc.Dial
-	// github.com/hxx258456/fabric-ca-gm v0.0.2
 	github.com/hxx258456/fabric-sdk-go-gm v0.0.7
 	// github.com/hyperledger/fabric-sdk-go v1.0.0
 	// gitee.com/zhaochuninhefei/gmgo v0.1.1 // grpc升级到v1.63.2 protoc-gen-go-grpc 应该是v1.3.0
@@ -86,7 +84,6 @@ require (
 	github.com/pion/logging v0.2.3
 	github.com/pion/webrtc/v4 v4.0.9
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
-	github.com/shirou/gopsutil/v4 v4.24.10 // indirect
 	github.com/sony/sonyflake v1.1.0
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.10.0
@@ -94,7 +91,6 @@ require (
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/valyala/quicktemplate v1.8.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/crypto v0.33.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.36.5
@@ -157,6 +153,7 @@ require (
 	github.com/Knetic/govaluate v3.0.1-0.20171022003610-9aa49832a739+incompatible // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
@@ -251,7 +248,6 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/koron/go-ssdp v0.0.5 // indirect
-	github.com/labstack/gommon v0.4.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible // indirect
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
@@ -339,6 +335,7 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rs/cors v1.10.1 // indirect
 	github.com/samber/lo v1.47.0 // indirect
+	github.com/shirou/gopsutil/v4 v4.24.10 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.10.0 // indirect
 	github.com/spf13/cast v1.4.1 // indirect
@@ -371,6 +368,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/arch v0.13.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/image v0.23.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect

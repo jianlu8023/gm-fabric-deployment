@@ -9,14 +9,14 @@ import (
 	"syscall"
 	"time"
 
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/helper/time"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/pkg/control/job"
 	"github.com/jianlu8023/golang-example/version"
 
 	dockerimage "github.com/docker/docker/api/types/image"
 	dockernetwork "github.com/docker/docker/api/types/network"
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	"github.com/jianlu8023/go-tools/v2/pkg/system/pidfile"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/pidfile"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/internal/web/router"
@@ -194,12 +194,12 @@ func main() {
 				info.NetworkScope = net.Scope
 				info.NetworkDriver = net.Driver
 				info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
-				ipamBytes, err := json.Marshal(net.IPAM)
+				ipamBytes, err := json.MarshalString(net.IPAM)
 				if err != nil {
 					mainLogger.Errorf("marshal network ipam failed: %v", err)
 					continue
 				}
-				info.NetworkIpam = string(ipamBytes)
+				info.NetworkIpam = ipamBytes
 				info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
 				info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
 				info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
@@ -239,12 +239,12 @@ func main() {
 					continue
 				}
 				info.ImageCreated = datetime
-				labels, err := json.Marshal(img.Labels)
+				labels, err := json.MarshalString(img.Labels)
 				if err != nil {
 					mainLogger.Errorf("marshal image labels failed: %v", err)
 					continue
 				}
-				info.ImageLabels = string(labels)
+				info.ImageLabels = labels
 				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
 				info.ImageLocationPeerId = msg.From.String()
 				if err := imageMapper.InsertOrUpdateOne(info); err != nil {
@@ -342,12 +342,12 @@ func main() {
 						continue
 					}
 					info.ImageCreated = datetime
-					labels, err := json.Marshal(img.Labels)
+					labels, err := json.MarshalString(img.Labels)
 					if err != nil {
 						mainLogger.Errorf("marshal image labels failed: %v", err)
 						continue
 					}
-					info.ImageLabels = string(labels)
+					info.ImageLabels = labels
 					info.ImageLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
 					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
 						mainLogger.Errorf("insert or update image info failed: %v", err)
@@ -375,7 +375,7 @@ func main() {
 					info.NetworkScope = net.Scope
 					info.NetworkDriver = net.Driver
 					info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
-					ipamBytes, err := json.Marshal(net.IPAM)
+					ipamBytes, err := json.MarshalString(net.IPAM)
 					if err != nil {
 						mainLogger.Errorf("marshal network ipam failed: %v", err)
 						continue

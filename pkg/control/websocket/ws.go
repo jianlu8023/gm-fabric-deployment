@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 
 	"github.com/gorilla/websocket"
 )

@@ -4,13 +4,13 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
-	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 )
 
 // WithNetworkQueryName 查看网络 filter name
 func WithNetworkQueryName(name string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
-		if !str.IsBlank(name) {
+		if !stringer.IsBlank(name) {
 			*args = append(*args, filters.Arg("name", name))
 		}
 	}
@@ -19,7 +19,7 @@ func WithNetworkQueryName(name string) func(args *[]filters.KeyValuePair) {
 // WithNetworkQueryID 查看网络 filter id
 func WithNetworkQueryID(id string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
-		if !str.IsBlank(id) {
+		if !stringer.IsBlank(id) {
 			*args = append(*args, filters.Arg("id", id))
 		}
 	}
@@ -61,7 +61,7 @@ func WithNetworkCreateAttachable(enable bool) func(*network.CreateOptions) {
 // @return func(options *image.PullOptions) 配置函数
 func WithImagePullPlatform(platform string) func(options *image.PullOptions) {
 	return func(options *image.PullOptions) {
-		if !str.IsBlank(platform) {
+		if !stringer.IsBlank(platform) {
 			options.Platform = platform
 		}
 	}
@@ -74,7 +74,7 @@ func WithImagePullPlatform(platform string) func(options *image.PullOptions) {
 // @return func(options *image.PullOptions) 配置函数
 func WithImagePullRegistryAuth(registryAuth string) func(options *image.PullOptions) {
 	return func(options *image.PullOptions) {
-		if !str.IsBlank(registryAuth) {
+		if !stringer.IsBlank(registryAuth) {
 			options.RegistryAuth = registryAuth
 		}
 	}
@@ -95,7 +95,7 @@ func WithImagePullAll(all bool) func(options *image.PullOptions) {
 
 func WithImageQueryName(name string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
-		if !str.IsBlank(name) {
+		if !stringer.IsBlank(name) {
 			*args = append(*args, filters.Arg("reference", name))
 		}
 	}
@@ -129,7 +129,7 @@ func WithRemoveImagePruneChildren(pruneChildren bool) func(options *image.Remove
 
 func WithContainerQueryName(name string) func(args *[]filters.KeyValuePair) {
 	return func(args *[]filters.KeyValuePair) {
-		if !str.IsBlank(name) {
+		if !stringer.IsBlank(name) {
 			*args = append(*args, filters.Arg("name", name))
 		}
 	}

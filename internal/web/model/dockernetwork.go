@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 )
 
 const (
@@ -58,8 +58,8 @@ func (i *DockerNetwork) TableName() string {
 // @description 将Info结构体转换为JSON格式的字符串表示
 // @return string 网络信息的JSON格式字符串
 func (i *DockerNetwork) String() string {
-	bytes, _ := json.Marshal(i)
-	return string(bytes)
+	str, _ := json.MarshalString(i)
+	return str
 }
 
 // NewDockerNetwork 创建新的网络信息实例

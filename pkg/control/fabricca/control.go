@@ -16,7 +16,7 @@ import (
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/client/msp"
 	fabconfig "github.com/hxx258456/fabric-sdk-go-gm/pkg/core/config"
 	"github.com/hxx258456/fabric-sdk-go-gm/pkg/fabsdk"
-	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
@@ -67,7 +67,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 			return
 		}
-		if str.IsBlank(network.Name) {
+		if stringer.IsBlank(network.Name) {
 			c.logger.Errorf("[control] docker network name is blank")
 			if failedFunc != nil {
 				failedFunc(fmt.Errorf("fabric ca must join exist network"))
@@ -84,7 +84,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			return
 		}
 
-		if str.IsBlank(image.ID) {
+		if stringer.IsBlank(image.ID) {
 			c.logger.Errorf("[control] docker image id is blank")
 			if failedFunc != nil {
 				failedFunc(fmt.Errorf("fabric ca must use exist image"))
@@ -122,7 +122,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			return
 		}
 
-		if !str.IsBlank(containerExist.ID) {
+		if !stringer.IsBlank(containerExist.ID) {
 			c.logger.Debugf("[control] %v container already exist, remove it...", c.config.CAName)
 			if err := c.dockerControl.RemoveContainer(containerExist.ID, true); err != nil {
 				c.logger.Errorf("[control] remove docker container failed: %s", err)
@@ -261,7 +261,7 @@ func (c *Control) Shutdown() error {
 		return err
 	}
 
-	if !str.IsBlank(container.ID) {
+	if !stringer.IsBlank(container.ID) {
 		if err := c.dockerControl.StopContainer(container.ID, 50); err != nil {
 			c.logger.Errorf("[control] stop docker container failed: %s", err)
 			return err

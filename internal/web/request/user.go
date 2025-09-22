@@ -2,8 +2,8 @@ package request
 
 import (
 	// validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 )
 
 type UserRegisterRequest struct {
@@ -20,14 +20,14 @@ type UserRegisterRequest struct {
 // }
 
 func (u *UserRegisterRequest) String() string {
-	bytes, _ := json.Marshal(u)
-	return string(bytes)
+	str, _ := json.MarshalString(u)
+	return str
 }
 
 func (u *UserRegisterRequest) IsLegal() bool {
-	if str.IsBlank(u.Username) ||
-		str.IsBlank(u.Password) ||
-		str.IsBlank(u.Email) {
+	if stringer.IsBlank(u.Username) ||
+		stringer.IsBlank(u.Password) ||
+		stringer.IsBlank(u.Email) {
 		return false
 	}
 	return true
@@ -40,13 +40,13 @@ type UserLoginRequest struct {
 }
 
 func (u *UserLoginRequest) String() string {
-	bytes, _ := json.Marshal(u)
-	return string(bytes)
+	str, _ := json.MarshalString(u)
+	return str
 }
 
 func (u *UserLoginRequest) IsLegal() bool {
-	if str.IsBlank(u.Username) ||
-		str.IsBlank(u.Password) {
+	if stringer.IsBlank(u.Username) ||
+		stringer.IsBlank(u.Password) {
 		return false
 	}
 	return true

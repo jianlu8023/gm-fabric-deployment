@@ -11,15 +11,15 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
-
+	
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
+	
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
-
+	
 	"github.com/gin-gonic/gin"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
@@ -115,7 +115,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	// 如果配置了根证书，则启用客户端证书验证
 	rootCaCertFile := serverConfig.TlsRCACertFile
-	if str.IsBlank(rootCaCertFile) {
+	if stringer.IsBlank(rootCaCertFile) {
 		caCertPool := x509.NewCertPool()
 		caCert, err := os.ReadFile(rootCaCertFile)
 		if err == nil {

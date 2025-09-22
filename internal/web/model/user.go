@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/helper/time"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 )
 
 const (
@@ -48,8 +48,8 @@ func (u *UserInfo) MarshalJSON() ([]byte, error) {
 // @description 将UserInfo结构体转换为JSON格式的字符串
 // @return string 用户信息的JSON格式字符串
 func (u *UserInfo) String() string {
-	bytes, _ := json.Marshal(u)
-	return string(bytes)
+	str, _ := json.MarshalString(u)
+	return str
 }
 
 // TableName 返回数据库表名

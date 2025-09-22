@@ -14,8 +14,8 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/job"
 	"github.com/jianlu8023/golang-example/version"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	"github.com/jianlu8023/go-tools/v2/pkg/system/pidfile"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/pidfile"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/server"
 	"github.com/libp2p/go-libp2p/core/protocol"

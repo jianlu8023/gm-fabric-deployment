@@ -3,11 +3,11 @@ package service
 import (
 	"database/sql"
 	"fmt"
-
+	
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/helper/time"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -80,7 +80,7 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 
 	if err := s.antsPoolControl.Submit(func() {
 		s.logger.Debugf("starting to pull doker image: %v", req.ImageName)
-		if !str.CompareIgnoreCase(req.PeerId, s.libp2pControl.GetLocalhostPeerID().String()) {
+		if !stringer.CompareIgnoreCase(req.PeerId, s.libp2pControl.GetLocalhostPeerID().String()) {
 			// 需要发送libp2p消息到指定节点
 			dockerPullMsg := &libp2p.Message{
 				Type: libp2p.MsgDockerImagePull,
@@ -103,7 +103,7 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 				s.logger.Errorf("get docker image failed: %v", err)
 				return
 			}
-			if str.IsBlank(imageExist.ID) {
+			if stringer.IsBlank(imageExist.ID) {
 				s.logger.Debugf("docker image %v already exist", req.ImageName)
 				return
 			}

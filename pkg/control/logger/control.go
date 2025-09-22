@@ -5,9 +5,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+	
 	glog "github.com/jianlu8023/go-logger/v2"
-	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -100,7 +100,7 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 	}
 
 	// 设置stack 日志界别 当日志级别高于stack日志级别时，才会打印stack信息
-	if !str.IsBlank(c.loggerConfig.StackLogLevel) {
+	if !stringer.IsBlank(c.loggerConfig.StackLogLevel) {
 		opts = append(opts, glog.WithStackLogLevel(c.loggerConfig.StackLogLevel))
 	}
 
@@ -115,9 +115,9 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 	}
 
 	// 日志输出格式
-	if str.CompareIgnoreCase("console", c.loggerConfig.PrintFormat) {
+	if stringer.CompareIgnoreCase("console", c.loggerConfig.PrintFormat) {
 		opts = append(opts, glog.WithConsoleFormat())
-	} else if str.CompareIgnoreCase("json", c.loggerConfig.PrintFormat) {
+	} else if stringer.CompareIgnoreCase("json", c.loggerConfig.PrintFormat) {
 		opts = append(opts, glog.WithJSONFormat())
 	}
 

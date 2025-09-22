@@ -1,8 +1,8 @@
 package request
 
 import (
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
@@ -18,8 +18,8 @@ func (n *DockerImageListRequest) IsLegal() bool {
 	return true
 }
 func (n *DockerImageListRequest) String() string {
-	bytes, _ := json.Marshal(n)
-	return string(bytes)
+	str, _ := json.MarshalString(n)
+	return str
 }
 
 type DockerImagePullRequest struct {
@@ -28,14 +28,14 @@ type DockerImagePullRequest struct {
 }
 
 func (n *DockerImagePullRequest) IsLegal() bool {
-	if str.IsBlank(n.ImageName) ||
-		str.IsBlank(n.PeerId) {
+	if stringer.IsBlank(n.ImageName) ||
+		stringer.IsBlank(n.PeerId) {
 		return false
 	}
 	return true
 }
 
 func (n *DockerImagePullRequest) String() string {
-	bytes, _ := json.Marshal(n)
-	return string(bytes)
+	str, _ := json.MarshalString(n)
+	return str
 }

@@ -3,7 +3,7 @@ package model
 import (
 	"database/sql"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 )
 
 const (
@@ -28,8 +28,8 @@ func (s *SystemInit) MarshalJSON() ([]byte, error) {
 }
 
 func (s *SystemInit) String() string {
-	bytes, _ := json.Marshal(s)
-	return string(bytes)
+	str, _ := json.MarshalString(s)
+	return str
 }
 
 func (*SystemInit) TableName() string {

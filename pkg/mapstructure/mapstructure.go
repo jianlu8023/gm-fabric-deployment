@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/mitchellh/mapstructure"
 )
 

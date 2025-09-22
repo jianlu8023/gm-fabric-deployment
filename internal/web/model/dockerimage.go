@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/helper/time"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 )
 
 const (
@@ -47,8 +47,8 @@ func (i *DockerImage) TableName() string {
 // String 返回json字符串
 // @return string json字符串
 func (i *DockerImage) String() string {
-	bytes, _ := json.Marshal(i)
-	return string(bytes)
+	str, _ := json.MarshalString(i)
+	return str
 }
 
 // NewDockerImage 返回一个新的镜像信息

@@ -1,7 +1,7 @@
 package request
 
 import (
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
@@ -10,8 +10,8 @@ type Libp2pNodeListRequest struct {
 }
 
 func (p *Libp2pNodeListRequest) String() string {
-	bytes, _ := json.Marshal(p)
-	return string(bytes)
+	str, _ := json.MarshalString(p)
+	return str
 }
 
 func (p *Libp2pNodeListRequest) IsLegal() bool {

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/facebookgo/atomicfile"
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 )
 
 func (c *Control) genFabricSdkConfig() (string, error) {

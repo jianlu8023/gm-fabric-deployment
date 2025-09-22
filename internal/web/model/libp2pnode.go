@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/helper/time"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 )
 
 const (
@@ -49,8 +49,8 @@ func (i *Libp2pNode) TableName() string {
 // @description 将节点信息转换为JSON格式字符串
 // @return string 节点信息的JSON格式字符串
 func (i *Libp2pNode) String() string {
-	bytes, _ := json.Marshal(i)
-	return string(bytes)
+	str, _ := json.MarshalString(i)
+	return str
 }
 
 // NewLibp2pNode 创建新的节点信息实例

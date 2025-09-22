@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 )
 
 type PaginationRequest struct {
@@ -11,6 +11,6 @@ type PaginationRequest struct {
 }
 
 func (p PaginationRequest) String() string {
-	bytes, _ := json.Marshal(p)
-	return string(bytes)
+	str, _ := json.MarshalString(p)
+	return str
 }

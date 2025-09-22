@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 )
 
 // BaseResponse HTTP基础响应结构体
@@ -30,8 +30,8 @@ type BaseResponse struct {
 // @description 将BaseResponse结构体转换为JSON字符串
 // @return string 格式化的JSON字符串
 func (b BaseResponse) String() string {
-	bytes, _ := json.Marshal(b)
-	return string(bytes)
+	str, _ := json.MarshalString(b)
+	return str
 }
 
 // SuccessResponse 发送成功响应

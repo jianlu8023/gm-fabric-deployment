@@ -1,7 +1,7 @@
 package request
 
 import (
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 )
 
 // CaptchaRequest 验证码请求参数
@@ -20,8 +20,8 @@ type CaptchaRequest struct {
 }
 
 func (c *CaptchaRequest) String() string {
-	bytes, _ := json.Marshal(c)
-	return string(bytes)
+	str, _ := json.MarshalString(c)
+	return str
 }
 
 // IsLegal 验证请求参数是否合法
@@ -78,6 +78,6 @@ func (g *GenerateCaptchaRequest) IsLegal() bool {
 }
 
 func (g *GenerateCaptchaRequest) String() string {
-	bytes, _ := json.Marshal(g)
-	return string(bytes)
+	str, _ := json.MarshalString(g)
+	return str
 }

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
@@ -24,8 +24,8 @@ func (p Product) TableName() string {
 }
 
 func (p Product) String() string {
-	bytes, _ := json.Marshal(p)
-	return string(bytes)
+	bytes, _ := json.MarshalString(p)
+	return bytes
 }
 
 func main() {

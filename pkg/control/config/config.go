@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
-	wd "github.com/jianlu8023/go-tools/v2/pkg/helper/path"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -30,8 +30,8 @@ type DockerConfig struct {
 // String 返回DockerConfig的字符串表示
 // @return string DockerConfig的字符串表示
 func (d *DockerConfig) String() string {
-	bytes, _ := json.MarshalIndent(d, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(d)
+	return string(pretty)
 }
 
 // DataSourceConfig 数据源配置结构体
@@ -87,7 +87,8 @@ func (d *DataSourceConfig) GenSqlite3DSN() string {
 		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL&charset=utf8mb4&parseTime=True&loc=Local",
 			d.DataBasePath)
 	} else {
-		dsn := filepath.Clean(filepath.Join(wd.GetWorkDir(), d.DataBasePath))
+		wd, _ := path.GetWorkDir()
+		dsn := filepath.Clean(filepath.Join(wd, d.DataBasePath))
 		dsnDir := filepath.Dir(dsn)
 		if _, err := os.Stat(dsnDir); os.IsNotExist(err) {
 			// 文件不存在
@@ -127,8 +128,8 @@ func (d *DataSourceConfig) GenClickhouseDSN() string {
 // String 返回DataSourceConfig的字符串表示
 // @return string 字符串表示
 func (d *DataSourceConfig) String() string {
-	bytes, _ := json.MarshalIndent(d, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(d)
+	return string(pretty)
 }
 
 // LoggerConfig 日志配置
@@ -145,8 +146,8 @@ type LoggerConfig struct {
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
 func (l *LoggerConfig) String() string {
-	bytes, _ := json.MarshalIndent(l, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(l)
+	return string(pretty)
 }
 
 // HttpServerConfig http服务配置
@@ -165,8 +166,8 @@ type HttpServerConfig struct {
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
 func (h *HttpServerConfig) String() string {
-	bytes, _ := json.MarshalIndent(h, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(h)
+	return string(pretty)
 }
 
 // GrpcServerConfig grpc服务配置
@@ -184,8 +185,8 @@ type GrpcServerConfig struct {
 // String 返回GrpcServerConfig的JSON格式字符串
 // @return string 返回GrpcServerConfig的JSON格式字符串
 func (g *GrpcServerConfig) String() string {
-	bytes, _ := json.MarshalIndent(g, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(g)
+	return string(pretty)
 }
 
 // GrpcClientConfig 配置GrpcClient
@@ -204,8 +205,8 @@ type GrpcClientConfig struct {
 // String GrpcClientConfig的字符串表示
 // @return string GrpcClientConfig的字符串表示
 func (g *GrpcClientConfig) String() string {
-	bytes, _ := json.MarshalIndent(g, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(g)
+	return string(pretty)
 }
 
 // GrpcConfig 配置Grpc
@@ -218,8 +219,8 @@ type GrpcConfig struct {
 // String GrpcConfig的字符串表示
 // @return string GrpcConfig的字符串表示
 func (g *GrpcConfig) String() string {
-	bytes, _ := json.MarshalIndent(g, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(g)
+	return string(pretty)
 }
 
 const (
@@ -287,8 +288,8 @@ type Identity struct {
 // String 返回Identity的字符串表示
 // @return string Identity的字符串表示
 func (i *Identity) String() string {
-	bytes, _ := json.Marshal(i)
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(i)
+	return string(pretty)
 }
 
 // DecodePrivateKey 解码用户的私钥
@@ -319,8 +320,8 @@ type Libp2pConfig struct {
 // String Libp2pConfig的字符串表示
 // @return string Libp2pConfig的字符串表示
 func (l *Libp2pConfig) String() string {
-	bytes, _ := json.MarshalIndent(l, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(l)
+	return string(pretty)
 }
 
 // CaptchaConfig 验证码配置结构体
@@ -338,8 +339,8 @@ type CaptchaConfig struct {
 // String CaptchConfig的字符串表示
 // @return CaptchConfig的字符串表示
 func (c *CaptchaConfig) String() string {
-	bytes, _ := json.MarshalIndent(c, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(c)
+	return string(pretty)
 }
 
 // IpfsConfig IPFS配置
@@ -352,8 +353,8 @@ type IpfsConfig struct {
 // String IpfsConfig的字符串表示
 // @return string IpfsConfig的字符串表示
 func (i *IpfsConfig) String() string {
-	bytes, _ := json.MarshalIndent(i, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(i)
+	return string(pretty)
 }
 
 // EmailConfig 邮件配置
@@ -372,8 +373,8 @@ type EmailConfig struct {
 // String EmailConfig的字符串表示
 // @return string EmailConfig的字符串表示
 func (e *EmailConfig) String() string {
-	bytes, _ := json.MarshalIndent(e, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(e)
+	return string(pretty)
 }
 
 // AntsPoolConfig Ants线程池配置
@@ -388,8 +389,8 @@ type AntsPoolConfig struct {
 
 // String 返回AntsPoolConfig的字符串表示
 func (a *AntsPoolConfig) String() string {
-	bytes, _ := json.MarshalIndent(a, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(a)
+	return string(pretty)
 }
 
 // GetPoolSize 获取线程池大小
@@ -467,8 +468,8 @@ type FabricCAConfig struct {
 }
 
 func (f *FabricCAConfig) String() string {
-	bytes, _ := json.Marshal(f)
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(f)
+	return string(pretty)
 }
 
 // WebRTCConfig WebRTC配置
@@ -487,8 +488,8 @@ type WebRTCConfig struct {
 
 // String WebRTCConfig的字符串表示
 func (w *WebRTCConfig) String() string {
-	bytes, _ := json.MarshalIndent(w, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(w)
+	return string(pretty)
 }
 
 // Config 配置
@@ -511,6 +512,6 @@ type Config struct {
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
 func (c *Config) String() string {
-	bytes, _ := json.MarshalIndent(c, "", " ")
-	return string(bytes)
+	pretty, _ := json.MarshalPretty(c)
+	return string(pretty)
 }

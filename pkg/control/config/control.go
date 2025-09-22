@@ -6,10 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-
+	
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
-
-	str "github.com/jianlu8023/go-tools/v2/pkg/helper/stringer"
+	
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/spf13/viper"
 )
 
@@ -200,7 +200,7 @@ func (c *Control) loadConfig() (Config, error) {
 	viper.AddConfigPath(filePath)                         // 设置配置文件路径
 
 	// 如果指定了 configType, 尝试读取特定环境的配置文件
-	if !str.IsBlank(c.flagsControl.GetConfigType()) {
+	if !stringer.IsBlank(c.flagsControl.GetConfigType()) {
 		envSpecificFileName := fmt.Sprintf("%s-%s", fileNameWithoutExt, c.flagsControl.GetConfigType())
 		viper.SetConfigName(envSpecificFileName) // 尝试读取特定环境的配置文件
 
@@ -242,8 +242,8 @@ func (c *Control) loadConfig() (Config, error) {
 	if cfg.Libp2pConfig != nil {
 		// 判断libp2p 是否设置了privKey peerId
 		if cfg.Libp2pConfig.Identity == nil ||
-			str.IsBlank(cfg.Libp2pConfig.Identity.PrivKey) ||
-			str.IsBlank(cfg.Libp2pConfig.Identity.PeerID) {
+			stringer.IsBlank(cfg.Libp2pConfig.Identity.PrivKey) ||
+			stringer.IsBlank(cfg.Libp2pConfig.Identity.PeerID) {
 			ident, err := CreateIdentity(Ed25519, -1)
 			if err != nil {
 				return cfg, fmt.Errorf("生成libp2p身份失败: %w", err)

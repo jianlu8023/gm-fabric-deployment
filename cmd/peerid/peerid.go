@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/helper/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
 )
@@ -76,11 +76,11 @@ func main() {
 	}
 	ident.PeerID = peerId.String()
 	fmt.Printf("peer identity: %s\n", ident.PeerID)
-	bytes, err := json.Marshal(ident)
+	bytes, err := json.MarshalString(ident)
 	if err != nil {
 		fmt.Printf("marshal identity failed: %v\n", err)
 		return
 	}
-	fmt.Printf("peer identity: %s\n", string(bytes))
+	fmt.Printf("peer identity: %s\n", bytes)
 
 }
