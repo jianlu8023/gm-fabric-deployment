@@ -15,7 +15,7 @@ func tjfocgmsm() {
 	// 报错 x509: unknown format
 	privKeyPebBytes, err := os.ReadFile("./certs/gmhserver.key")
 	if err != nil {
-		fmt.Printf("read private key err:%v\n", err)
+		fmt.Printf("read private key err: %v\n", err)
 		return
 	}
 
@@ -23,13 +23,13 @@ func tjfocgmsm() {
 
 	privateKey, err := gmx509.ParsePKCS8EcryptedPrivateKey(privKeyPem.Bytes, []byte("gmhttp"))
 	if err != nil {
-		fmt.Printf("parse private key err:%v\n", err)
+		fmt.Printf("parse private key err: %v\n", err)
 		return
 	}
 
 	unEncryptedPrivateKeyBytes, err := gmx509.MarshalSm2UnecryptedPrivateKey(privateKey)
 	if err != nil {
-		fmt.Printf("unecrypted private key err:%v\n", err)
+		fmt.Printf("unecrypted private key err: %v\n", err)
 		return
 	}
 
@@ -39,17 +39,18 @@ func tjfocgmsm() {
 	}
 
 	unEncryptedContent := string(pem.EncodeToMemory(unEncryptedPem))
-	fmt.Printf("unencrypted private key:%s\n", unEncryptedContent)
+	fmt.Printf("unencrypted private key: %s\n", unEncryptedContent)
 }
 
 func main() {
 	emmansungmsm()
+	tjfocgmsm()
 
 }
 func emmansungmsm() {
 	// bytesPem, err := os.ReadFile("./certs/gmhserver.key")
 	// if err != nil {
-	// 	fmt.Printf("read file err:%v\n", err)
+	// 	fmt.Printf("read file err: %v\n", err)
 	// 	return
 	// }
 	//
@@ -82,7 +83,7 @@ func emmansungmsm() {
 	// fmt.Printf("%v\n", pemContent)
 	//
 	// if err = os.WriteFile("./certs/gmhserver.unencrypted.key", unEncryptedPrivKeyBytes, os.FileMode(0o644)); err != nil {
-	// 	fmt.Printf("write file err:%v\n", err)
+	// 	fmt.Printf("write file err: %v\n", err)
 	// }
 	// fmt.Printf("success write to file...")
 }

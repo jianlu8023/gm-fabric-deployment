@@ -42,7 +42,7 @@ http:
   tls_enabled: true
   tls_gm: true
   tls_cert_file: ./certs/gmhserver.crt
-  tls_key_file: ./certs/gmhserver.key
+  tls_key_file: ./certs/gmhserver.unencrypted.key
   tls_rca_cert_file: ./certs/gmroot.crt
   pprof: true
 libp2p:

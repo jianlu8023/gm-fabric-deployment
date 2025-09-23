@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
+	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/tjfoc/gmsm/gmtls"
 	gmx509 "github.com/tjfoc/gmsm/x509"

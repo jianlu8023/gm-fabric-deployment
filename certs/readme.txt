@@ -8,6 +8,7 @@
 ###### gmssl
 0. 安装
 	git clone https://github.com/guanzhi/GmSSL.git gmssl
+	https://github.com/guanzhi/GmSSL/archive/master.zip
 	这里 v3.1.1 貌似不是最新的代码 使用master分支执行
 	cd gmssl && git checkout v3.1.1
     mkdir build && cd build
