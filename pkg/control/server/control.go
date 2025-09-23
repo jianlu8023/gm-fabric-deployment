@@ -81,6 +81,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if grpcConfig != nil && grpcConfig.Enabled {
 		grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl())
 		if err != nil {
+			control.logger.Errorf("[control] create grpc control failed: %v", err)
 			return nil, err
 		}
 		control.grpcControl = grpcControl
@@ -91,6 +92,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if libp2pConfig != nil && libp2pConfig.Enabled {
 		libp2pControl, err := libp2p.NewLibp2pControl(libp2pConfig, control.GetLoggerControl())
 		if err != nil {
+			control.logger.Errorf("[control] create libp2p control failed: %v", err)
 			return nil, err
 		}
 		control.libp2pControl = libp2pControl
@@ -101,6 +103,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if dataSourceConfig != nil && dataSourceConfig.Enabled {
 		dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
 		if err != nil {
+			control.logger.Errorf("[control] create datasource control failed: %v", err)
 			return nil, err
 		}
 		control.datasourceControl = dataSourceControl
@@ -127,6 +130,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if dockerConfig != nil && dockerConfig.Enabled {
 		dockerControl, err := docker.NewDockerControl(dockerConfig, control.GetLoggerControl())
 		if err != nil {
+			control.logger.Errorf("[control] create docker control failed: %v", err)
 			return nil, err
 		}
 		control.dockerControl = dockerControl
@@ -136,6 +140,7 @@ func NewServerControlFromFile() (*Control, error) {
 		if fabricCAConfig != nil {
 			fabricCAControl, err := fabricca.NewFabricCAControl(fabricCAConfig, control.GetLoggerControl(), control.GetDockerControl())
 			if err != nil {
+				control.logger.Errorf("[control] create fabricca control failed: %v", err)
 				return nil, err
 			}
 			control.fabricCAControl = fabricCAControl
@@ -148,6 +153,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if captchaConfig != nil && captchaConfig.Enabled {
 		captchaControl, err := captcha.NewCaptchaControl(captchaConfig, control.GetLoggerControl())
 		if err != nil {
+			control.logger.Errorf("[control] create captcha control failed: %v", err)
 			return nil, err
 		}
 		control.captchaControl = captchaControl
@@ -156,7 +162,11 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建HTTP控制器
 	webConfig := configControl.GetWebConfig()
 	if webConfig != nil && webConfig.Enabled {
-		webServerControl := http.NewWebServerControl(webConfig, control.GetLoggerControl())
+		webServerControl, err := http.NewWebServerControl(webConfig, control.GetLoggerControl())
+		if err != nil {
+			control.logger.Errorf("[control] create http control failed: %v", err)
+			return nil, err
+		}
 		control.httpControl = webServerControl
 
 		websocketControl := websocket.NewWebsocketControl(webConfig, control.GetLoggerControl())

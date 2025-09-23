@@ -157,6 +157,7 @@ type HttpServerConfig struct {
 	ContextPath    string `json:"context_path,omitempty" yaml:"context_path,omitempty" mapstructure:"context_path"`                // 服务上下文路径
 	RunMode        string `json:"run_mode,omitempty" yaml:"run_mode,omitempty" mapstructure:"run_mode" `                           // 服务运行模式
 	TlsEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                  // 是否启用TLS
+	TlsGM          bool   `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                  // 是否启用国密TLS
 	TlsCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `            // TLS证书文件
 	TlsKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
 	TlsRCACertFile string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件

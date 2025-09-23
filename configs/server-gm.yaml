@@ -1,0 +1,96 @@
+datasource:
+  enabled: true
+  data_source_type: sqlite3
+  db_username: username
+  db_password: password
+  db_host: localhost
+  db_port: 3306
+  db_path: ./db/golang-example.db
+  max_idle_conn: 10
+  max_open_conn: 50
+  log_in_console: false
+docker:
+  enabled: false
+  host: tcp://192.168.58.110:2375
+  default_timeout: 5
+grpc:
+  enabled: true
+  server:
+    host: 0.0.0.0:65534
+    max_recv_msg_size: 5242880
+    max_send_msg_size: 5242880
+    chunk_size: 4194304
+    tls_enabled: true
+    tls_cert_file: ./certs/gserver.crt
+    tls_key_file: ./certs/gserver.key
+    tls_rca_cert_file: ./certs/root-ca.crt
+  client:
+    host: 127.0.0.1:65533
+    max_call_recv_msg_size: 5242880
+    max_call_send_msg_size: 5242880
+    chunk_size: 4194304
+    call_timeout: 99999
+    tls_enabled: true
+    tls_cert_file: ./certs/gclient.crt
+    tls_key_file: ./certs/gclient.key
+    tls_rca_cert_file: ./certs/root-ca.crt
+http:
+  enabled: true
+  address: :8080
+  context_path: example
+  run_mode: release
+  tls_enabled: true
+  tls_gm: true
+  tls_cert_file: ./certs/gmhserver.crt
+  tls_key_file: ./certs/gmhserver.key
+  tls_rca_cert_file: ./certs/gmroot.crt
+  pprof: true
+libp2p:
+  enabled: true
+  listen_addr:
+    - /ip4/0.0.0.0/tcp/2000
+    - /ip6/::1/tcp/2000
+    - /ip4/0.0.0.0/udp/2000/quic-v1
+    - /ip4/127.0.0.1/udp/2000/quic-v1
+    - /ip4/0.0.0.0/udp/2000/quic-v1/webtransport
+    - /ip4/0.0.0.0/udp/2000/webrtc-direct
+    - /dns4/localhost/udp/2000/ws
+  identity:
+    peer_id: 12D3KooWEeXfZpxfqwxFLJ2JYH21x85DnTMnCnmfUs4yQnCngM5T
+    privkey: CAESQJY27DDSC9bEnAfcOE+rCLV6OVm/AETqUCt1swmR7HD9R8VdYQoGM7931nd+BX/URL1JLEGRvXX8IkGCK+boblo=
+  protocol_id: /golang-example/msg/1.0.0
+  service_tag: golang-example_tags
+  bootstrap_list:
+  #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
+logger:
+  default_log_level: debug
+  stack_log_level: fatal
+  print_format: console
+  file_path: ./logs/app.log
+  max_age: 7
+  rotation_time: 1
+  logger_level:
+    grpc: debug
+    libp2p: info
+    main: info
+captcha:
+  enabled: true
+  max_age: 300  # 验证码有效期5分钟
+  width: 240    # 验证码图片宽度
+  height: 80    # 验证码图片高度
+  max_skew: 0.7 # 最大倾斜度
+  dot_count: 20 # 干扰点数量
+  line_count: 3 # 干扰线数量
+  default_type: "number" # 默认验证码类型：string, number, math, chinese
+ants_pool:
+  enabled: true
+  # 线程池大小
+  pool_size: 8
+  # 最大线程池
+  max_pool_size: 16
+  # 工作协程过期时间
+  expiry_duration: 60
+  # 是否预分配工作协程
+  pre_alloc: true
+  # 是否非阻塞模式
+  nonblocking: true
