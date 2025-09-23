@@ -14,12 +14,8 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"go.uber.org/zap"
-	// "google.golang.org/grpc"
-	// "google.golang.org/grpc/credentials"
-	"github.com/hxx258456/ccgo/grpc"
-	"github.com/hxx258456/ccgo/grpc/credentials"
-	// "gitee.com/zhaochuninhefei/gmgo/grpc"
-	// "gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type MessageHandler struct {

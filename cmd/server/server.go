@@ -93,7 +93,6 @@ func main() {
 			serverControl.GetHttpControl(),
 			serverControl.GetCaptchaControl(),
 			serverControl.GetAntsPoolControl(),
-			serverControl.GetFabricCAControl(),
 		))
 	}
 

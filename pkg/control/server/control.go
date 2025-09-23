@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
-	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 	"github.com/jianlu8023/golang-example/version"
 
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
@@ -38,7 +37,6 @@ type Control struct {
 	jobControl        *job.Control
 	captchaControl    *captcha.Control
 	antsControl       *ants.Control
-	fabricCAControl   *fabricca.Control
 	logger            *zap.SugaredLogger
 	once              sync.Once
 	mutex             sync.RWMutex
@@ -134,17 +132,6 @@ func NewServerControlFromFile() (*Control, error) {
 			return nil, err
 		}
 		control.dockerControl = dockerControl
-
-		// 创建fabricca控制器
-		fabricCAConfig := configControl.GetFabricCAConfig()
-		if fabricCAConfig != nil {
-			fabricCAControl, err := fabricca.NewFabricCAControl(fabricCAConfig, control.GetLoggerControl(), control.GetDockerControl())
-			if err != nil {
-				control.logger.Errorf("[control] create fabricca control failed: %v", err)
-				return nil, err
-			}
-			control.fabricCAControl = fabricCAControl
-		}
 
 	}
 
@@ -270,12 +257,6 @@ func (c *Control) GetAntsPoolControl() *ants.Control {
 	return c.antsControl
 }
 
-func (c *Control) GetFabricCAControl() *fabricca.Control {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	return c.fabricCAControl
-}
-
 // NewServerControl 创建服务器控制器
 // @param dockerControl *docker.Control Docker控制器
 // @param configControl *config.Control 配置控制器
@@ -300,7 +281,7 @@ func NewServerControl(dockerControl *docker.Control,
 	flagsControl *flags.Control,
 	captchaControl *captcha.Control,
 	antsControl *ants.Control,
-	fabricCAControl *fabricca.Control,
+
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -318,7 +299,6 @@ func NewServerControl(dockerControl *docker.Control,
 		flagsControl:      flagsControl,
 		captchaControl:    captchaControl,
 		antsControl:       antsControl,
-		fabricCAControl:   fabricCAControl,
 	}
 }
 
@@ -360,11 +340,6 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.dockerControl != nil {
 			c.logger.Debugf("[control] starting up docker server...")
 			c.dockerControl.StartUp(failedFunc)
-		}
-
-		if c.fabricCAControl != nil {
-			c.logger.Debugf("[control] starting up fabric ca server...")
-			c.fabricCAControl.StartUp(failedFunc)
 		}
 
 		if c.antsControl != nil {
@@ -451,14 +426,6 @@ func (c *Control) Shutdown() error {
 	if c.grpcControl != nil {
 		c.logger.Debugf("[control] shutting down grpc server...")
 		_ = c.grpcControl.Shutdown()
-	}
-
-	if c.fabricCAControl != nil {
-		c.logger.Debugf("[control] shutting down fabric ca server...")
-		if err := c.fabricCAControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown fabric ca server err: %v", err)
-			return err
-		}
 	}
 
 	if c.dockerControl != nil {

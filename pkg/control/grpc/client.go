@@ -14,19 +14,10 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"go.uber.org/zap"
-	// "google.golang.org/grpc"
-	// "google.golang.org/grpc/credentials"
-	// "google.golang.org/grpc/credentials/insecure"
-	// "google.golang.org/grpc/peer"
-
-	"github.com/hxx258456/ccgo/grpc"
-	"github.com/hxx258456/ccgo/grpc/credentials"
-	"github.com/hxx258456/ccgo/grpc/credentials/insecure"
-	"github.com/hxx258456/ccgo/grpc/peer"
-	// "gitee.com/zhaochuninhefei/gmgo/grpc"
-	// "gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
-	// "gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
-	// "gitee.com/zhaochuninhefei/gmgo/grpc/peer"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/peer"
 )
 
 type ClientControl struct {

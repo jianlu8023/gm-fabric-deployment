@@ -9,7 +9,6 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/captcha"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
-	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc"
 	"github.com/jianlu8023/golang-example/pkg/control/http"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
@@ -38,7 +37,6 @@ func NewRouter(loggerControl *logger.Control,
 	httpControl *http.Control,
 	captchaControl *captcha.Control,
 	antsPoolControl *ants.Control,
-	fabriccaControl *fabricca.Control,
 ) []commonhttp.RouterHandler {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	baseHandler := handler.NewHandler(webLogger)
@@ -57,7 +55,6 @@ func NewRouter(loggerControl *logger.Control,
 		service.NewUserService(baseService,
 			mapper.NewUserMapper(baseMapper),
 			httpControl.GetSessionManager(),
-			fabriccaControl,
 		),
 	)
 
