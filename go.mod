@@ -26,13 +26,15 @@ replace (
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
 	golang.org/x/crypto => golang.org/x/crypto v0.33.0
 	google.golang.org/genproto/googleapis/api => google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9
+	google.golang.org/grpc => google.golang.org/grpc v1.63.2
+	google.golang.org/protobuf => google.golang.org/protobuf v1.34.2
 	gorm.io/gorm => gorm.io/gorm v1.30.0
 )
 
 require (
+	gitee.com/zhaochuninhefei/gmgo v0.1.1 // grpc升级到v1.63.2 protoc-gen-go-grpc 应该是v1.3.0
 	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/docker/docker v20.10.26+incompatible
-	// github.com/docker/docker v28.0.1+incompatible
 	github.com/docker/go-connections v0.4.0 // create docker container 需要这个库
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-contrib/gzip v1.2.2
@@ -71,8 +73,6 @@ require (
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/valyala/quicktemplate v1.8.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
-	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.36.5
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/driver/postgres v1.4.5
@@ -129,6 +129,7 @@ require (
 )
 
 require (
+	gitee.com/zhaochuninhefei/zcgolog v0.0.23 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
@@ -171,7 +172,6 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -344,7 +344,6 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gotest.tools/v3 v3.5.1 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect

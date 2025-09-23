@@ -11,13 +11,13 @@ import (
 	"os"
 	"time"
 
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/peer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/peer"
 )
 
 type ClientControl struct {
@@ -108,8 +108,8 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 		// transportCredentials := credentials.NewTLS(clientTlsConfig)
 		// opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 
-		// gClient, err = grpc.NewClient(clientConfig.Host, opts...)
-		gClient, err = grpc.Dial(clientConfig.Host, opts...)
+		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
+		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
 			logger.Errorf("[client] generate tls client err: %v", err)
 			return nil, err
@@ -117,8 +117,8 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 	} else {
 		logger.Debugf("[client] generate no tls client server...")
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		// gClient, err = grpc.NewClient(clientConfig.Host, opts...)
-		gClient, err = grpc.Dial(clientConfig.Host, opts...)
+		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
+		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
 			logger.Errorf("[client] generate no tls client server err: %v", err)
 			return nil, err

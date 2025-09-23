@@ -24,10 +24,11 @@
 package pb
 
 import (
-	context "context"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	"context"
+
+	"gitee.com/zhaochuninhefei/gmgo/grpc"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/codes"
+	"gitee.com/zhaochuninhefei/gmgo/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file

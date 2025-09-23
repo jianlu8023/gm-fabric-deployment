@@ -13,11 +13,10 @@ import (
 	"sync"
 	"time"
 
-	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
-	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
+	"gitee.com/zhaochuninhefei/gmgo/gmtls"
+	gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
+
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
-	"github.com/tjfoc/gmsm/gmtls"
-	gmx509 "github.com/tjfoc/gmsm/x509"
 
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
@@ -120,7 +119,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		if serverConfig.TlsGM {
 			// 配置 gm tls
 			gmTLSConfig := &gmtls.Config{
-				GMSupport: &gmtls.GMSupport{},
+				// GMSupport: &gmtls.GMSupport{},
 				// MinVersion: gmtls.VersionTLS12,
 				// MaxVersion: gmtls.VersionGMSSL,
 				// CipherSuites: []uint16{
