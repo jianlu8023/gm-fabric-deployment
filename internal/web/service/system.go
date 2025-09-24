@@ -5,6 +5,7 @@ import (
 	systeminfo "github.com/jianlu8023/go-tools/v2/pkg/system/info"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/version"
 )
 
 // SystemService 系统服务
@@ -45,7 +46,7 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context) {
 	}
 
 	commonhttp.SuccessResponse(ctx, gin.H{
-		"version": "1.0.0",
+		"version": version.Version,
 		"os":      os,
 		"cpu":     cpu,
 		"disk":    disk,

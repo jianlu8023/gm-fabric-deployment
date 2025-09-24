@@ -108,7 +108,7 @@ require (
 	// github.com/gin-contrib/i18n v1.2.2
 	// github.com/gin-contrib/timeout v1.0.2
 	// github.com/rsms/gotalk v1.3.7
-	// github.com/emmansun/gmsm v0.29.8 // 解密x509证书
+	// github.com/emmansun/gmsm v0.29.8 // 解密x509证书 v0.27.3
 	// github.com/sgoby/opencc v0.0.0-20181105060730-5b3b1de2620a // 翻译
 	// gorm.io/driver/sqlite v1.6.0
 	// gorm.io/driver/gaussdb v0.1.0 // toolchain go1.23.4 github.com/HuaweiCloudDeveloper/gaussdb-go
