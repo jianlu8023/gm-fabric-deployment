@@ -76,17 +76,27 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 	}
 
 	// 调用WebSocket控制模块的UpgradeConnection方法来升级连接
-	// 注意：这里需要确保service中的wsControl已经正确初始化
-	// 这个方法会阻塞直到连接关闭
 	h.logger.Infof("upgrading connection for user: %v, node: %v", userID, req.NodeID)
 
-	// 这里是一个简化的实现，实际使用时需要确保service中的wsControl正确初始化
-	// 并调用其UpgradeConnection方法
-	// err := w.service.WSControl.UpgradeConnection(ctx.Writer, ctx.Request)
-	// 由于当前环境限制，这里只记录日志
-	h.logger.Info("websocket upgrade handler completed successfully")
+	// 升级连接
+	connID, connection, err := h.service.wsControl.UpgradeConnection(ctx.Writer, ctx.Request)
+	if err != nil {
+		h.logger.Errorf("websocket connection upgrade failed: %v", err)
+		http.Error(ctx.Writer, "WebSocket连接升级失败", http.StatusInternalServerError)
+		return
+	}
 
-	// 注意：由于WebSocket连接是长连接，这里不会立即返回响应
+	// 设置连接的用户ID和节点ID
+	h.service.wsControl.SetConnectionUserID(connID, userID.(string))
+	if req.NodeID != "" {
+		h.service.wsControl.SetConnectionNodeID(connID, req.NodeID)
+	}
+
+	h.logger.Infof("websocket connection established successfully, connection ID: %s, user: %v, node: %v", connID, userID, req.NodeID)
+
+	// 注意：由于WebSocket连接是长连接，这个函数会阻塞直到连接关闭
+	// connection对象会自动处理后续的消息读写
+	_ = connection
 }
 
 // ConnectHandler WebSocket连接请求处理函数（HTTP接口）

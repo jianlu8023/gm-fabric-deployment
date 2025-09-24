@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+	"time"
+	
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -48,11 +51,132 @@ type WebSocketService struct {
 // @param wsControl *websocket.Control WebSocket控制器
 // @return *WebSocketService WebSocket服务实例
 func NewWebSocketService(service *Service, wsMapper *mapper.WebSocketMapper, wsControl *websocket.Control) *WebSocketService {
-	return &WebSocketService{
+	ws := &WebSocketService{
 		Service:   service,
 		wsMapper:  wsMapper,
 		wsControl: wsControl,
 	}
+	
+	// 初始化消息处理功能
+	ws.initializeMessageHandling()
+	
+	return ws
+}
+
+// initializeMessageHandling 初始化消息处理功能
+func (s *WebSocketService) initializeMessageHandling() {
+	if s.wsControl == nil {
+		s.logger.Warnf("[websocket service] wsControl is nil, skipping message handling initialization")
+		return
+	}
+	
+	s.logger.Infof("[websocket service] initializing message handling...")
+	
+	// 设置连接建立回调
+	s.wsControl.SetOnConnected(s.onConnectionEstablished)
+	
+	// 设置连接断开回调
+	s.wsControl.SetOnDisconnected(s.onConnectionClosed)
+	
+	// 设置消息接收回调
+	s.wsControl.SetOnMessage(s.onMessageReceived)
+	s.wsControl.SetOnTextMessage(s.onTextMessageReceived)
+	s.wsControl.SetOnBinaryMessage(s.onBinaryMessageReceived)
+	s.wsControl.SetOnPingMessage(s.onPingMessageReceived)
+	s.wsControl.SetOnPongMessage(s.onPongMessageReceived)
+	
+	// 注册默认消息处理器
+	s.registerDefaultMessageHandlers()
+	
+	s.logger.Infof("[websocket service] message handling initialized successfully")
+}
+
+// registerDefaultMessageHandlers 注册默认消息处理器
+func (s *WebSocketService) registerDefaultMessageHandlers() {
+	// 注册文本消息处理器
+	textHandler := websocket.NewDefaultTextMessageHandler(s.logger)
+	s.wsControl.RegisterMessageHandler(1, textHandler) // websocket.TextMessage
+	
+	// 注册二进制消息处理器
+	binaryHandler := websocket.NewDefaultBinaryMessageHandler(s.logger)
+	s.wsControl.RegisterMessageHandler(2, binaryHandler) // websocket.BinaryMessage
+	
+	// 注册ping消息处理器
+	pingHandler := websocket.NewDefaultPingMessageHandler(s.logger)
+	s.wsControl.RegisterMessageHandler(9, pingHandler) // websocket.PingMessage
+	
+	s.logger.Debugf("[websocket service] default message handlers registered")
+}
+
+// onConnectionEstablished 连接建立回调
+func (s *WebSocketService) onConnectionEstablished(conn *websocket.Connection) {
+	s.logger.Infof("[websocket service] new connection established: %s", conn.ID)
+	
+	// 可以在这里添加连接建立时的业务逻辑
+	// 例如：记录连接日志、发送欢迎消息等
+	
+	// 发送欢迎消息
+	welcomeMessage := map[string]interface{}{
+		"type": "welcome",
+		"data": map[string]interface{}{
+			"connectionId": conn.ID,
+			"timestamp":   conn.CreatedAt.Unix(),
+			"message":     "Welcome to WebSocket server",
+		},
+	}
+	
+	if data, err := s.marshalMessage(welcomeMessage); err == nil {
+		s.wsControl.SendTo(conn.ID, data)
+	}
+}
+
+// onConnectionClosed 连接关闭回调
+func (s *WebSocketService) onConnectionClosed(conn *websocket.Connection) {
+	s.logger.Infof("[websocket service] connection closed: %s", conn.ID)
+	
+	// 可以在这里添加连接关闭时的业务逻辑
+	// 例如：清理资源、更新用户状态等
+}
+
+// onMessageReceived 通用消息接收回调
+func (s *WebSocketService) onMessageReceived(conn *websocket.Connection, message []byte) {
+	s.logger.Debugf("[websocket service] received message from %s: %s", conn.ID, string(message))
+	
+	// 可以在这里添加通用的消息处理逻辑
+	// 例如：消息日志记录、统计等
+}
+
+// onTextMessageReceived 文本消息接收回调
+func (s *WebSocketService) onTextMessageReceived(conn *websocket.Connection, message []byte) {
+	s.logger.Debugf("[websocket service] received text message from %s: %s", conn.ID, string(message))
+	
+	// 这里可以添加特定的文本消息处理逻辑
+	// 例如：解析命令、处理聊天消息等
+}
+
+// onBinaryMessageReceived 二进制消息接收回调
+func (s *WebSocketService) onBinaryMessageReceived(conn *websocket.Connection, message []byte) {
+	s.logger.Debugf("[websocket service] received binary message from %s: %d bytes", conn.ID, len(message))
+	
+	// 这里可以添加二进制消息处理逻辑
+	// 例如：文件上传、图片处理等
+}
+
+// onPingMessageReceived ping消息接收回调
+func (s *WebSocketService) onPingMessageReceived(conn *websocket.Connection, message []byte) {
+	s.logger.Debugf("[websocket service] received ping from %s", conn.ID)
+	// ping消息通常用于心跳检测，一般不需要特殊处理
+}
+
+// onPongMessageReceived pong消息接收回调
+func (s *WebSocketService) onPongMessageReceived(conn *websocket.Connection, message []byte) {
+	s.logger.Debugf("[websocket service] received pong from %s", conn.ID)
+	// pong消息用于响应ping，表示连接正常
+}
+
+// marshalMessage 序列化消息
+func (s *WebSocketService) marshalMessage(message interface{}) ([]byte, error) {
+	return commonhttp.Marshal(message)
 }
 
 // ConnectService 处理WebSocket连接请求
@@ -152,31 +276,78 @@ func (s *WebSocketService) SendMessageService(ctx *gin.Context, req *request.WSM
 	s.logger.Debugf("request: %v", req)
 
 	// 从上下文中获取用户信息
-	_, exists := ctx.Get("user_id")
+	currentUserID, exists := ctx.Get("user_id")
 	if !exists {
 		s.logger.Errorf("userID not found in context")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
 		return
 	}
 
-	// 根据消息类型和目标进行不同的处理
-	// 如果指定了节点ID，则发送到该节点的所有连接
-	if req.NodeID != "" {
-		s.logger.Infof("sending message to node: %s", req.NodeID)
-		// 这里可以实现向特定节点发送消息的逻辑
-	} else if req.UserID != "" {
-		// 如果指定了用户ID，则发送到该用户的所有连接
-		s.logger.Infof("sending message to user: %s", req.UserID)
-		// 这里可以实现向特定用户发送消息的逻辑
-	} else {
-		// 否则广播到所有连接
-		s.logger.Info("broadcasting message to all connections")
-		// 这里可以实现广播消息的逻辑
+	currentUserIDStr := currentUserID.(string)
+
+	// 验证请求参数
+	if req.Message == "" {
+		s.logger.Errorf("message content is empty")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "消息内容不能为空")
+		return
 	}
 
-	commonhttp.SuccessResponse(ctx, map[string]string{
-		"message": "websocket message sent successfully",
+	// 准备消息数据
+	messageData, err := s.marshalMessage(map[string]interface{}{
+		"type":      "message",
+		"from":      currentUserIDStr,
+		"content":   req.Message,
+		"timestamp": s.getCurrentTimestamp(),
 	})
+	if err != nil {
+		s.logger.Errorf("failed to marshal message: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, "消息序列化失败")
+		return
+	}
+
+	var successCount int
+	var targetInfo string
+
+	// 根据消息类型和目标进行不同的处理
+	if req.ConnID != "" {
+		// 发送到特定连接
+		s.logger.Infof("sending message to connection: %s", req.ConnID)
+		if s.wsControl.SendTo(req.ConnID, messageData) {
+			successCount = 1
+		}
+		targetInfo = fmt.Sprintf("connection %s", req.ConnID)
+	} else if req.NodeID != "" {
+		// 发送到特定节点的所有连接
+		s.logger.Infof("sending message to node: %s", req.NodeID)
+		successCount = s.wsControl.BroadcastByNodeID(req.NodeID, messageData)
+		targetInfo = fmt.Sprintf("node %s (%d connections)", req.NodeID, successCount)
+	} else if req.UserID != "" {
+		// 发送到特定用户的所有连接
+		s.logger.Infof("sending message to user: %s", req.UserID)
+		successCount = s.wsControl.BroadcastByUserID(req.UserID, messageData)
+		targetInfo = fmt.Sprintf("user %s (%d connections)", req.UserID, successCount)
+	} else {
+		// 广播到所有连接
+		s.logger.Info("broadcasting message to all connections")
+		s.wsControl.Broadcast(messageData)
+		successCount = s.wsControl.GetConnectionCount()
+		targetInfo = fmt.Sprintf("all connections (%d total)", successCount)
+	}
+
+	// 返回成功响应
+	response := map[string]interface{}{
+		"message":     "websocket message sent successfully",
+		"target":      targetInfo,
+		"successCount": successCount,
+		"timestamp":   s.getCurrentTimestamp(),
+	}
+
+	commonhttp.SuccessResponse(ctx, response)
+}
+
+// getCurrentTimestamp 获取当前时间戳
+func (s *WebSocketService) getCurrentTimestamp() int64 {
+	return time.Now().Unix()
 }
 
 // GetConnectionListService 获取连接列表
