@@ -10,7 +10,7 @@ const (
 )
 
 // func newSqlServerConn(dbControl *Control) (*gorm.DB, error) {
-// 	return gorm.Open(sqlserver.Open(dbControl.dbConfig.GenSqlServerDSN()),
+// 	return gorm.Open(sqlserver.Open(dbControl.config.GenSqlServerDSN()),
 // 		&gorm.Config{
 // 			PrepareStmt:          true,
 // 			DisableAutomaticPing: false,

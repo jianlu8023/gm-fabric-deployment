@@ -10,7 +10,7 @@ const Postgres = "postgres"
 func newPostgresConn(dbControl *Control) (*gorm.DB, error) {
 	return gorm.Open(
 		postgres.New(postgres.Config{
-			DSN:                  dbControl.dbConfig.GenPostgresDSN(),
+			DSN:                  dbControl.config.GenPostgresDSN(),
 			PreferSimpleProtocol: false, // 禁用隐式 prepared statement
 		}),
 		&gorm.Config{

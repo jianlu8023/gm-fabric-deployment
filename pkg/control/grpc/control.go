@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -21,9 +22,11 @@ type Control struct {
 
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		c.logger.Debugf("[control] starting server grpc server...")
-		c.server.StartUp(failedFunc)
-		c.logger.Debugf("[control] starting client grpc server...")
+		if c.config.Enabled {
+			c.logger.Debugf("[control] starting server grpc server...")
+			c.server.StartUp(failedFunc)
+			c.logger.Debugf("[control] starting client grpc server...")
+		}
 	})
 }
 
@@ -34,6 +37,12 @@ func (c *Control) Shutdown() error {
 }
 
 func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control) (*Control, error) {
+	if grpcConfig == nil {
+		grpcConfig = getDefaultConfig()
+	}
+	if !grpcConfig.Enabled {
+		return nil, errors.New("grpc is not enabled")
+	}
 	grpcLogger := loggerControl.GenLogger(logger.ModuleGrpc)
 	grpcLogger.Infof("[control] starting new grpc control...")
 	serverControl, err := NewServerControl(grpcConfig.Server, grpcLogger)

@@ -38,8 +38,13 @@ type Control struct {
 // @param loggerControl *logger.Control 日志控制器
 //
 // @return *Control IPFS控制器
-// @return error 新建过程中的错误
-func NewIpfsControl(ipfsConfig *config.IpfsConfig, loggerControl *logger.Control) (*Control, error) {
+func NewIpfsControl(ipfsConfig *config.IpfsConfig, loggerControl *logger.Control) *Control {
+	if ipfsConfig == nil {
+		ipfsConfig = getDefaultConfig()
+	}
+	if !ipfsConfig.Enabled {
+		return nil
+	}
 	ipfsLogger := loggerControl.GenLogger(logger.ModuleIpfs)
 	ipfsLogger.Infof("[control] starting new IPFS control...")
 
@@ -54,15 +59,8 @@ func NewIpfsControl(ipfsConfig *config.IpfsConfig, loggerControl *logger.Control
 		config: ipfsConfig,
 	}
 
-	// 初始化IPFS客户端
-	if err := ipfs.initClient(); err != nil {
-		ipfsLogger.Errorf("[control] IPFS initialization client failed: %v", err)
-		cancel()
-		return nil, err
-	}
-
 	ipfsLogger.Infof("[control] IPFS control started successfully")
-	return ipfs, nil
+	return ipfs
 }
 
 // initClient 初始化IPFS客户端
@@ -104,18 +102,32 @@ func (ipfs *Control) initClient() error {
 // @param failedFunc func(err error) 启动失败回调函数
 func (ipfs *Control) StartUp(failedFunc func(err error)) {
 	ipfs.once.Do(func() {
-		ipfs.logger.Infof("[control] starting IPFS service...")
+		if ipfs.config.Enabled {
 
-		// 测试连接
-		if err := ipfs.testConnection(); err != nil {
-			ipfs.logger.Errorf("[control] failed to connect to IPFS daemon: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+			// 初始化IPFS客户端
+			if err := ipfs.initClient(); err != nil {
+				ipfs.logger.Errorf("[control] IPFS initialization client failed: %v", err)
+				ipfs.cancel()
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
 			}
-			return
+
+			ipfs.logger.Infof("[control] starting IPFS service...")
+
+			// 测试连接
+			if err := ipfs.testConnection(); err != nil {
+				ipfs.logger.Errorf("[control] failed to connect to IPFS daemon: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
+			}
+
+			ipfs.logger.Infof("[control] IPFS service started successfully")
 		}
 
-		ipfs.logger.Infof("[control] IPFS service started successfully")
 	})
 }
 

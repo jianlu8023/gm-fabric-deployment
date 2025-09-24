@@ -40,6 +40,12 @@ type Control struct {
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control WebSocket控制器
 func NewWebsocketControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control) *Control {
+	if serverConfig == nil {
+		serverConfig = getDefaultConfig()
+	}
+	if !serverConfig.Enabled {
+		return nil
+	}
 	wsLogger := loggerControl.GenLogger(logger.ModuleWebSocket)
 	wsLogger.Infof("[control] starting new websocket control...")
 
@@ -306,7 +312,9 @@ func (wc *Control) writePump(conn *Connection) {
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (wc *Control) StartUp(failedFunc func(err error)) {
 	wc.once.Do(func() {
-		wc.logger.Infof("[control] websocket control started...")
+		if wc.config.Enabled {
+			wc.logger.Infof("[control] websocket control started...")
+		}
 	})
 }
 

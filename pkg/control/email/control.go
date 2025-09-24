@@ -12,52 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// EmailMessage 邮件消息结构
-// @description 定义邮件消息的数据结构
-// @struct EmailMessage
-// @param To []string 收件人列表
-// @param Cc []string 抄送人列表
-// @param Bcc []string 密送人列表
-// @param Subject string 邮件主题
-// @param Body string 邮件正文
-// @param IsHTML bool 是否为HTML格式
-// @param Attachments []Attachment 附件列表
-// @param ReplyTo string 回复地址
-// @param Headers map[string]string 自定义邮件头
 
-// Attachment 邮件附件结构
-// @description 定义邮件附件的数据结构
-// @struct Attachment
-// @param Filename string 文件名
-// @param ContentType string 文件类型
-// @param Content []byte 文件内容
-
-// Control 邮件控制器
-// @description 负责邮件发送功能的控制器
-// @struct Control
-// @param emailConfig *config.EmailConfig 邮件配置
-// @param logger *zap.SugaredLogger 日志记录器
-// @param once sync.Once 单例控制
-
-// NewEmailControl 创建邮件控制器
-// @description 创建并初始化邮件控制器
-// @param configControl *config.Control 配置控制器
-// @param loggerControl *logger.Control 日志控制器
-// @return *Control 邮件控制器实例
-// @return error 创建过程中的错误
-
-// SendEmail 发送邮件
-// @description 发送一封邮件
-// @param message *EmailMessage 邮件消息对象
-// @return error 发送过程中的错误
-
-// StartUp 启动邮件服务
-// @description 启动邮件服务（主要用于初始化和验证配置）
-// @param failedFunc func(err error) 启动失败回调函数
-
-// Shutdown 关闭邮件服务
-// @description 关闭邮件服务（空操作）
-// @return error 关闭过程中的错误
 
 type EmailMessage struct {
 	To          []string          // 收件人列表

@@ -2,6 +2,7 @@ package webrtc
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
@@ -50,6 +51,14 @@ type Control struct {
 func NewWebRTCControl(config *config.WebRTCConfig,
 	loggerControl *logger.Control,
 ) (*Control, error) {
+
+	if config == nil {
+		config = getDefaultConfig()
+	}
+	if !config.Enabled {
+		return nil, errors.New("webrtc is not enabled")
+	}
+
 	// 创建带取消功能的上下文
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -82,10 +91,12 @@ func NewWebRTCControl(config *config.WebRTCConfig,
 // - failedFunc: 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		c.logger.Infof("[control] starting WebRTC control...")
-		// WebRTC控制器主要在初始化时就完成了准备工作
-		// 这里主要是记录启动日志并验证服务状态
-		c.logger.Infof("[control] WebRTC control started successfully")
+		if c.webRTCConfig.Enabled {
+			c.logger.Infof("[control] starting WebRTC control...")
+			// WebRTC控制器主要在初始化时就完成了准备工作
+			// 这里主要是记录启动日志并验证服务状态
+			c.logger.Infof("[control] WebRTC control started successfully")
+		}
 	})
 }
 

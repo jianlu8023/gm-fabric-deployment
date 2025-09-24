@@ -12,7 +12,7 @@ import (
 )
 
 type Control struct {
-	dbConfig         *config.DataSourceConfig
+	config           *config.DataSourceConfig
 	dbConn           *gorm.DB
 	logger           *zap.SugaredLogger
 	dbLogger         *dblogger.Logger
@@ -90,8 +90,8 @@ func (c *Control) setConnPool() error {
 		c.logger.Errorf("[control] faild from gorm.DB get sql.DB to set pool: %v", err)
 		return err
 	}
-	sqlDB.SetMaxIdleConns(c.dbConfig.MaxIdleConn)
-	sqlDB.SetMaxOpenConns(c.dbConfig.MaxOpenConn)
+	sqlDB.SetMaxIdleConns(c.config.MaxIdleConn)
+	sqlDB.SetMaxOpenConns(c.config.MaxOpenConn)
 	sqlDB.SetConnMaxLifetime(time.Minute)
 	c.logger.Debugf("[control] success to set conn pool...")
 	return nil
@@ -101,30 +101,40 @@ func (c *Control) setConnPool() error {
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		c.logger.Debugf("[control] starting to auto migrate tables...")
-		if err := c.autoMigrate(); err != nil {
-			c.logger.Errorf("[control] auto migrate table failed: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+		if c.config.Enabled {
+			if err := c.initDBConn(); err != nil {
+				c.logger.Errorf("[control] init db conn failed: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
 			}
-			return
-		}
 
-		c.logger.Debugf("[control] call db ping instead startup...")
-		sqlDB, err := c.dbConn.DB()
-		if err != nil {
-			c.logger.Errorf("[control] failed from gorm.DB get sql.DB: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+			c.logger.Debugf("[control] call db ping instead startup...")
+			sqlDB, err := c.dbConn.DB()
+			if err != nil {
+				c.logger.Errorf("[control] failed from gorm.DB get sql.DB: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
 			}
-			return
-		}
-		if err = sqlDB.Ping(); err != nil {
-			c.logger.Errorf("[control] failed from sqlDB.Ping: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+			if err = sqlDB.Ping(); err != nil {
+				c.logger.Errorf("[control] failed from sqlDB.Ping: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
 			}
-			return
+
+			c.logger.Debugf("[control] starting to auto migrate tables...")
+			if err := c.autoMigrate(); err != nil {
+				c.logger.Errorf("[control] auto migrate table failed: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
+			}
 		}
 	})
 }
@@ -145,59 +155,70 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
+func (c *Control) initDBConn() error {
+	switch c.config.DataSourceType {
+	case Mysql:
+		c.logger.Debugf("[control] using mysql data source...")
+		conn, err := newMysqlConn(c)
+		if err != nil {
+			c.logger.Error("[control] failed to create mysql connection: %v", err)
+			return err
+		}
+		c.logger.Debugf("[control] mysql connection create success...")
+		c.dbConn = conn
+	case Postgres:
+		c.logger.Debugf("[control] using postgres data source...")
+		conn, err := newPostgresConn(c)
+		if err != nil {
+			c.logger.Error("[control] failed to create postgres connection: %v", err)
+			return err
+		}
+		c.logger.Debugf("[control] postgres connection create success...")
+		c.dbConn = conn
+	case Sqlite3:
+		c.logger.Debugf("[control] using sqlite3 data source...")
+		conn, err := newSqlite3Conn(c)
+		if err != nil {
+			c.logger.Error("[control] failed to create sqlite3 connection: %v", err)
+			return err
+		}
+		c.logger.Debugf("[control] sqlite3 connection create success...")
+		c.dbConn = conn
+	default:
+		c.logger.Warnf("[control] unknown data source type: %s", c.config.DataSourceType)
+		return ErrUnknownDataSourceType
+	}
+
+	c.logger.Debugf("[control] set db conn pool...")
+	if err := c.setConnPool(); err != nil {
+		c.logger.Errorf("[control] failed to set db conn pool: %v", err)
+		return err
+	}
+	return nil
+}
+
 // NewDataSourceControl 创建数据源控制器
-// @param dbConfig *config.DataSourceConfig 数据源配置
+// @param config *config.DataSourceConfig 数据源配置
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control 数据源控制器实例
-// @return error 创建过程中可能产生的错误
-func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control) (*Control, error) {
+
+func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control) *Control {
+	if dbConfig == nil {
+		dbConfig = getDefaultConfig()
+	}
+	if !dbConfig.Enabled {
+		return nil
+	}
+
 	dsLogger := loggerControl.GenLogger(logger.ModuleDataSource)
 	dsLogger.Infof("[control] starting new datasource control...")
 
 	ctl := &Control{
-		dbConfig:         dbConfig,
+		config:           dbConfig,
 		logger:           dsLogger,
 		dbLogger:         newDbLogger(loggerControl.GetConfig(), dbConfig.LogInConsole),
 		autoMigrateTable: make([]interface{}, 0, 8),
 	}
 
-	switch dbConfig.DataSourceType {
-	case Mysql:
-		dsLogger.Debugf("[control] using mysql data source...")
-		conn, err := newMysqlConn(ctl)
-		if err != nil {
-			dsLogger.Error("[control] failed to create mysql connection: %v", err)
-			return nil, err
-		}
-		dsLogger.Debugf("[control] mysql connection create success...")
-		ctl.dbConn = conn
-	case Postgres:
-		dsLogger.Debugf("[control] using postgres data source...")
-		conn, err := newPostgresConn(ctl)
-		if err != nil {
-			dsLogger.Error("[control] failed to create postgres connection: %v", err)
-			return nil, err
-		}
-		dsLogger.Debugf("[control] postgres connection create success...")
-		ctl.dbConn = conn
-	case Sqlite3:
-		dsLogger.Debugf("[control] using sqlite3 data source...")
-		conn, err := newSqlite3Conn(ctl)
-		if err != nil {
-			dsLogger.Error("[control] failed to create sqlite3 connection: %v", err)
-			return nil, err
-		}
-		dsLogger.Debugf("[control] sqlite3 connection create success...")
-		ctl.dbConn = conn
-	default:
-		dsLogger.Warnf("[control] unknown data source type: %s", dbConfig.DataSourceType)
-		return nil, ErrUnknownDataSourceType
-	}
-
-	dsLogger.Debugf("[control] set db conn pool...")
-	if err := ctl.setConnPool(); err != nil {
-		dsLogger.Errorf("[control] failed to set db conn pool: %v", err)
-		return nil, err
-	}
-	return ctl, nil
+	return ctl
 }

@@ -48,6 +48,7 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0
+	github.com/casbin/casbin/v2 v2.122.0 // 权限控制
 	github.com/docker/docker v20.10.26+incompatible
 	// github.com/docker/docker v28.0.1+incompatible
 	github.com/docker/go-connections v0.4.0 // create docker container 需要这个库
@@ -73,7 +74,6 @@ require (
 	github.com/jessevdk/go-flags v1.6.1 // flags增强 `short:"-v" long:"--version"  required:"true" default:"default"`
 	github.com/jianlu8023/go-logger/v2 v2.0.0
 	github.com/jianlu8023/go-tools/v2 v2.0.0-20250921142734-6afed502d952
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/libp2p/go-libp2p v0.40.0
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0
 	github.com/mingrammer/commonregex v1.0.1
@@ -82,7 +82,6 @@ require (
 	github.com/multiformats/go-multiaddr v0.14.0
 	github.com/panjf2000/ants/v2 v2.11.3 // ants 异步方式线程池
 	github.com/pion/interceptor v0.1.37
-	github.com/pion/logging v0.2.3
 	github.com/pion/webrtc/v4 v4.0.9
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/sony/sonyflake v1.1.0
@@ -127,7 +126,6 @@ require (
 	// github.com/bamzi/jobrunner v1.0.0 // 运行job
 	// github.com/robfig/cron/v3 v3.0.1 // cron 定时运行
 	// github.com/urfave/negroni/v3 v3.1.1 // http中间件
-	// github.com/casbin/casbin/v2 v2.122.0 // 权限控制
 	// github.com/smallnest/rpcx v1.8.32 // rpc库 toolchain go1.22.1
 	// net/rpc/jsonrpc // jsonrpc 1.0 标准库
 	// github.com/nutsdb/nutsdb v1.0.4 // 单机数据库
@@ -161,8 +159,10 @@ require (
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/bytedance/sonic v1.12.7 // indirect
 	github.com/bytedance/sonic/loader v0.2.2 // indirect
+	github.com/casbin/govaluate v1.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
@@ -249,6 +249,7 @@ require (
 	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/koron/go-ssdp v0.0.5 // indirect
@@ -310,6 +311,7 @@ require (
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/dtls/v3 v3.0.6 // indirect
 	github.com/pion/ice/v4 v4.0.10 // indirect
+	github.com/pion/logging v0.2.3 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
 	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.15 // indirect

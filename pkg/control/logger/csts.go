@@ -13,4 +13,5 @@ const (
 	ModuleCaptcha    = "Captcha"
 	ModuleAnts       = "Ants"
 	ModuleWebRTC     = "WebRTC"
+	ModuleAuthZ ="authz"
 )

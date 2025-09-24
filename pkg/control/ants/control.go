@@ -96,6 +96,13 @@ type Control struct {
 // @return *Control 线程池控制器实例
 // @since v1.0.0
 func NewAntsPoolControl(config *config.AntsPoolConfig, loggerControl *logger.Control) *Control {
+	if config == nil {
+		config = getDefaultConfig()
+	}
+	if !config.Enabled {
+		return nil
+	}
+
 	antsLogger := loggerControl.GenLogger(logger.ModuleAnts)
 	antsLogger.Infof("[control] start new ants pool control...")
 
@@ -118,40 +125,41 @@ func NewAntsPoolControl(config *config.AntsPoolConfig, loggerControl *logger.Con
 // @since v1.0.0
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		c.logger.Debugf("[control] starting up ants pool...")
-
-		// 配置线程池选项
-		options := []ants.Option{
-			ants.WithPreAlloc(c.config.IsPreAlloc()),
-			ants.WithNonblocking(c.config.IsNonblocking()),
-			ants.WithExpiryDuration(c.config.GetExpiryDuration()),
-			ants.WithLogger(newAntsLogger(c.logger)),
-		}
-
-		// 创建线程池
-		pool, err := ants.NewPool(c.config.GetPoolSize(), options...)
-		if err != nil {
-			c.logger.Errorf("[control] failed to create ants pool: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+		if c.config.Enabled {
+			c.logger.Debugf("[control] starting up ants pool...")
+			// 配置线程池选项
+			options := []ants.Option{
+				ants.WithPreAlloc(c.config.IsPreAlloc()),
+				ants.WithNonblocking(c.config.IsNonblocking()),
+				ants.WithExpiryDuration(c.config.GetExpiryDuration()),
+				ants.WithLogger(newAntsLogger(c.logger)),
 			}
-			return
-		}
 
-		c.pool = pool
-		c.isRunning = true
-
-		c.logger.Infof("[control] ants pool started successfully, pool size: %d, max pool size: %d",
-			c.config.GetPoolSize(), c.config.GetMaxPoolSize())
-
-		// 启动监控协程
-		// go c.monitor()
-		if err = c.Submit(c.monitor); err != nil {
-			c.logger.Errorf("[control] submit ants pool monitor task failed: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+			// 创建线程池
+			pool, err := ants.NewPool(c.config.GetPoolSize(), options...)
+			if err != nil {
+				c.logger.Errorf("[control] failed to create ants pool: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
 			}
-			return
+
+			c.pool = pool
+			c.isRunning = true
+
+			c.logger.Infof("[control] ants pool started successfully, pool size: %d, max pool size: %d",
+				c.config.GetPoolSize(), c.config.GetMaxPoolSize())
+
+			// 启动监控协程
+			// go c.monitor()
+			if err = c.Submit(c.monitor); err != nil {
+				c.logger.Errorf("[control] submit ants pool monitor task failed: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
+			}
 		}
 	})
 }

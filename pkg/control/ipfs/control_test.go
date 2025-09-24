@@ -36,8 +36,8 @@ func TestNewIpfsControl(t *testing.T) {
 	}
 
 	// 创建IPFS控制器
-	ipfsControl, err := NewIpfsControl(ipfsConfig, loggerControl)
-	assert.NoError(t, err)
+	ipfsControl := NewIpfsControl(ipfsConfig, loggerControl)
+
 	defer func() {
 		shutdownErr := ipfsControl.Shutdown()
 		assert.NoError(t, shutdownErr)
@@ -75,8 +75,7 @@ func TestIpfsUploadDownload(t *testing.T) {
 	}
 
 	// 创建IPFS控制器
-	ipfsControl, err := NewIpfsControl(ipfsConfig, loggerControl)
-	assert.NoError(t, err)
+	ipfsControl := NewIpfsControl(ipfsConfig, loggerControl)
 	defer func() {
 		shutdownErr := ipfsControl.Shutdown()
 		assert.NoError(t, shutdownErr)
@@ -154,8 +153,7 @@ func TestIpfsControl_StartUpShutdown(t *testing.T) {
 	}
 
 	// 创建IPFS控制器
-	ipfsControl, err := NewIpfsControl(ipfsConfig, loggerControl)
-	assert.NoError(t, err)
+	ipfsControl := NewIpfsControl(ipfsConfig, loggerControl)
 
 	// 启动IPFS服务
 	ipfsControl.StartUp(func(err error) {
@@ -166,6 +164,6 @@ func TestIpfsControl_StartUpShutdown(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// 关闭IPFS服务
-	err = ipfsControl.Shutdown()
+	err := ipfsControl.Shutdown()
 	assert.NoError(t, err)
 }

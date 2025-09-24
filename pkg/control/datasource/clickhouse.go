@@ -12,7 +12,7 @@ const (
 // func newClickhouseConn(dbControl *Control) (*gorm.DB, error) {
 // 	// 设置表选项
 // 	// db.Set("gorm:table_options", "ENGINE=Distributed(cluster, default, hits)").AutoMigrate(&User{})
-// 	return gorm.Open(clickhouse.Open(dbControl.dbConfig.GenClickhouseDSN()),
+// 	return gorm.Open(clickhouse.Open(dbControl.config.GenClickhouseDSN()),
 // 		&gorm.Config{
 // 			PrepareStmt:          true,
 // 			DisableAutomaticPing: false,

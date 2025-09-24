@@ -36,8 +36,13 @@ type Control struct {
 // @param dockerConfig *config.DockerConfig docker配置
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control docker控制器
-// @return error 新建过程中的错误
-func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.Control) (*Control, error) {
+func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.Control) *Control {
+	if dockerConfig == nil {
+		dockerConfig = getDefaultConfig()
+	}
+	if !dockerConfig.Enabled {
+		return nil
+	}
 	dockerLogger := loggerControl.GenLogger(logger.ModuleDocker)
 	dockerLogger.Infof("[control] starting new docker control...")
 
@@ -52,15 +57,8 @@ func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.C
 		config: dockerConfig,
 	}
 
-	// 初始化Docker客户端
-	if err := dc.initClient(); err != nil {
-		dockerLogger.Errorf("[control] docker initialization client failed: %v", err)
-		cancel()
-		return nil, err
-	}
-
 	dockerLogger.Infof("[control] docker control started successfully")
-	return dc, nil
+	return dc
 }
 
 // initClient 初始化Docker客户端
@@ -112,18 +110,30 @@ func (dc *Control) initClient() error {
 // @param failedFunc func(err error) 启动失败回调函数
 func (dc *Control) StartUp(failedFunc func(err error)) {
 	dc.once.Do(func() {
-		dc.logger.Debugf("[control] docker service is already running...")
-		// 测试连接
-		version, err := dc.client.ServerVersion(dc.ctx)
-		if err != nil {
-			dc.logger.Errorf("[control] failed to connect to docker daemon: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+		if dc.config.Enabled {
+			// 初始化Docker客户端
+			if err := dc.initClient(); err != nil {
+				dc.logger.Errorf("[control] docker initialization client failed: %v", err)
+				dc.cancel()
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
 			}
-			return
-		}
 
-		dc.logger.Infof("[control] connected to docker daemon, version: %s", version.Version)
+			dc.logger.Debugf("[control] docker service is already running...")
+			// 测试连接
+			version, err := dc.client.ServerVersion(dc.ctx)
+			if err != nil {
+				dc.logger.Errorf("[control] failed to connect to docker daemon: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
+				return
+			}
+
+			dc.logger.Infof("[control] connected to docker daemon, version: %s", version.Version)
+		}
 	})
 }
 

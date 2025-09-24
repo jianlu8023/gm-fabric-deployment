@@ -493,6 +493,22 @@ func (w *WebRTCConfig) String() string {
 	return string(pretty)
 }
 
+// AuthzConfig 权限控制配置结构体
+type AuthzConfig struct {
+	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用权限控制
+	ModelFile      string `json:"model_file,omitempty" yaml:"model_file,omitempty" mapstructure:"model_file"`                   // 模型文件路径
+	PolicyFile     string `json:"policy_file,omitempty" yaml:"policy_file,omitempty" mapstructure:"policy_file"`                // 策略文件路径
+	AutoCreateFile bool   `json:"auto_create_file,omitempty" yaml:"auto_create_file,omitempty" mapstructure:"auto_create_file"` // 是否自动创建文件
+	DefaultAllow   bool   `json:"default_allow,omitempty" yaml:"default_allow,omitempty" mapstructure:"default_allow"`          // 默认是否允许
+	LogEnabled     bool   `json:"log_enabled,omitempty" yaml:"log_enabled,omitempty" mapstructure:"log_enabled"`                // 是否启用日志
+}
+
+// String 返回AuthzConfig的字符串表示
+func (a *AuthzConfig) String() string {
+	pretty, _ := json.MarshalPretty(a)
+	return string(pretty)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig       *GrpcConfig       `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -507,6 +523,7 @@ type Config struct {
 	AntsPoolConfig   *AntsPoolConfig   `json:"ants_pool_config,omitempty" yaml:"ants_pool_config,omitempty" mapstructure:"ants_pool"`    // Ants线程池配置
 	FabricCAConfig   *FabricCAConfig   `json:"fabric_ca_config,omitempty" yaml:"fabric_ca_config,omitempty" mapstructure:"fabric_ca"`    // Fabric CA配置
 	WebRTCConfig     *WebRTCConfig     `json:"webrtc_config,omitempty" yaml:"webrtc_config,omitempty" mapstructure:"webrtc"`             // WebRTC配置
+	AuthzConfig      *AuthzConfig      `json:"authz_config,omitempty" yaml:"authz_config,omitempty" mapstructure:"authz"`                // 权限控制配置
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	
+
 	glog "github.com/jianlu8023/go-logger/v2"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
@@ -26,6 +26,9 @@ func (c *Control) GetConfig() *config.LoggerConfig {
 }
 
 func NewLoggerControl(loggerConfig *config.LoggerConfig) *Control {
+	if loggerConfig == nil {
+		loggerConfig = getDefaultConfig()
+	}
 	loggerLevel := make(map[string]string)
 	for logger, level := range loggerConfig.LoggerLevel {
 		loggerLevel[strings.ToLower(logger)] = level

@@ -14,7 +14,7 @@ const (
 )
 
 func newSqlite3Conn(dbControl *Control) (*gorm.DB, error) {
-	return gorm.Open(sqlite.Open(dbControl.dbConfig.GenSqlite3DSN()),
+	return gorm.Open(sqlite.Open(dbControl.config.GenSqlite3DSN()),
 		&gorm.Config{
 			PrepareStmt:          true,
 			DisableAutomaticPing: false,

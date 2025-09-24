@@ -11,7 +11,7 @@ const (
 
 // func newGaussDBConn(dbControl *Control) (*gorm.DB, error) {
 // 	return gorm.Open(gaussdb.New(gaussdb.Config{
-// 		DSN:                  dbControl.dbConfig.GenGaussDBDSN(),
+// 		DSN:                  dbControl.config.GenGaussDBDSN(),
 // 		PreferSimpleProtocol: false, // 禁用隐式 prepared statement
 // 	}),
 // 		&gorm.Config{

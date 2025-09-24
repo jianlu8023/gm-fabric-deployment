@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -32,7 +33,7 @@ import (
 )
 
 type Control struct {
-	serverConfig   *config.HttpServerConfig
+	config         *config.HttpServerConfig
 	server         *http.Server
 	ginRouter      *gin.Engine
 	tlsConfig      *tls.Config
@@ -46,10 +47,16 @@ type Control struct {
 }
 
 // NewWebServerControl 创建Web服务器控制器
-// @param serverConfig *config.HttpServerConfig HTTP服务器配置
+// @param config *config.HttpServerConfig HTTP服务器配置
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control Web服务器控制器实例
 func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control) (*Control, error) {
+	if serverConfig == nil {
+		serverConfig = getDefaultConfig()
+	}
+	if !serverConfig.Enabled {
+		return nil, errors.New("http is not enabled")
+	}
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	webLogger.Infof("[control] start new http server control...")
 	gin.SetMode(serverConfig.RunMode)
@@ -107,7 +114,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	webLogger.Debugf("[control] generate http control...")
 	control := &Control{
-		serverConfig:   serverConfig,
+		config:         serverConfig,
 		server:         srv,
 		ctx:            ctx,
 		logger:         webLogger,
@@ -222,61 +229,91 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		c.logger.Debugf("[control] starting up http server...")
+		if c.config.Enabled {
+			c.logger.Debugf("[control] starting up http server...")
 
-		c.logger.Debugf("[control] starting define router...")
-		c.initRouters()
-		c.registerDefaultRouter()
+			c.logger.Debugf("[control] starting define router...")
+			c.registerDefaultRouter()
+			c.initRouters()
 
-		if c.serverConfig.TlsEnabled {
-			if c.serverConfig.TlsGM {
-				c.logger.Infof("[control] start gm https server on %v", c.serverConfig.Address)
-				go func() {
-					listener, err := gmtls.Listen("tcp", c.serverConfig.Address, c.gmTlsConfig)
-					if err != nil {
-						c.logger.Errorf("[control] failed to create gm TLS listener: %v", err)
-						if failedFunc != nil {
-							failedFunc(err)
+			if c.config.TlsEnabled {
+				if c.config.TlsGM {
+					c.logger.Infof("[control] start gm https server on %v", c.config.Address)
+					go func() {
+						listener, err := gmtls.Listen("tcp", c.config.Address, c.gmTlsConfig)
+						if err != nil {
+							c.logger.Errorf("[control] failed to create gm TLS listener: %v", err)
+							if failedFunc != nil {
+								failedFunc(err)
+							}
+							return
 						}
-						return
-					}
-					defer func(listener net.Listener) {
-						if err := listener.Close(); err != nil {
-							c.logger.Errorf("[control] failed to close gm TLS listener: %v", err)
+						defer func(listener net.Listener) {
+							if err := listener.Close(); err != nil {
+								c.logger.Errorf("[control] failed to close gm TLS listener: %v", err)
+							}
+						}(listener)
+						// 使用srv.Serve启动服务器
+						if err := c.server.Serve(listener); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
+							c.logger.Errorf("[control] HTTPS server error: %v", err)
+							if failedFunc != nil {
+								failedFunc(err)
+							}
+							return
 						}
-					}(listener)
-					// 使用srv.Serve启动服务器
-					if err := c.server.Serve(listener); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
-						c.logger.Errorf("[control] HTTPS server error: %v", err)
-						if failedFunc != nil {
-							failedFunc(err)
+					}()
+				} else {
+					c.logger.Infof("[control] start https server on %v", c.config.Address)
+					go func() {
+
+						// 使用tls.Listen创建监听器
+						listener, err := tls.Listen("tcp", c.config.Address, c.tlsConfig)
+						if err != nil {
+							c.logger.Errorf("[control] failed to create TLS listener: %v", err)
+							if failedFunc != nil {
+								failedFunc(err)
+							}
+							return
 						}
-						return
-					}
-				}()
+
+						defer func(listener net.Listener) {
+							if err := listener.Close(); err != nil {
+								c.logger.Errorf("[control] failed to close TLS listener: %v", err)
+							}
+						}(listener)
+
+						// 使用srv.Serve启动服务器
+						if err := c.server.Serve(listener); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
+							c.logger.Errorf("[control] HTTPS server error: %v", err)
+							if failedFunc != nil {
+								failedFunc(err)
+							}
+							return
+						}
+					}()
+				}
+
 			} else {
-				c.logger.Infof("[control] start https server on %v", c.serverConfig.Address)
+				c.logger.Infof("[control] start http server on %v", c.config.Address)
 				go func() {
-
-					// 使用tls.Listen创建监听器
-					listener, err := tls.Listen("tcp", c.serverConfig.Address, c.tlsConfig)
+					// 使用普通TCP监听器
+					listener, err := net.Listen("tcp", c.config.Address)
 					if err != nil {
-						c.logger.Errorf("[control] failed to create TLS listener: %v", err)
+						c.logger.Errorf("[control] failed to create TCP listener: %v", err)
 						if failedFunc != nil {
 							failedFunc(err)
 						}
 						return
 					}
-
 					defer func(listener net.Listener) {
 						if err := listener.Close(); err != nil {
-							c.logger.Errorf("[control] failed to close TLS listener: %v", err)
+							c.logger.Errorf("[control] failed to close TCP listener: %v", err)
 						}
 					}(listener)
 
 					// 使用srv.Serve启动服务器
 					if err := c.server.Serve(listener); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
-						c.logger.Errorf("[control] HTTPS server error: %v", err)
+						c.logger.Errorf("[control] HTTP server error: %v", err)
 						if failedFunc != nil {
 							failedFunc(err)
 						}
@@ -284,34 +321,6 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 					}
 				}()
 			}
-
-		} else {
-			c.logger.Infof("[control] start http server on %v", c.serverConfig.Address)
-			go func() {
-				// 使用普通TCP监听器
-				listener, err := net.Listen("tcp", c.serverConfig.Address)
-				if err != nil {
-					c.logger.Errorf("[control] failed to create TCP listener: %v", err)
-					if failedFunc != nil {
-						failedFunc(err)
-					}
-					return
-				}
-				defer func(listener net.Listener) {
-					if err := listener.Close(); err != nil {
-						c.logger.Errorf("[control] failed to close TCP listener: %v", err)
-					}
-				}(listener)
-
-				// 使用srv.Serve启动服务器
-				if err := c.server.Serve(listener); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
-					c.logger.Errorf("[control] HTTP server error: %v", err)
-					if failedFunc != nil {
-						failedFunc(err)
-					}
-					return
-				}
-			}()
 		}
 	})
 }
@@ -359,34 +368,138 @@ func (c *Control) registerDefaultRouter() {
 
 	{
 		// 定义路由
-		allRouterUri := fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, "routers")
-
-		c.ginRouter.GET(allRouterUri, func(ctx *gin.Context) {
-			commonhttp.SuccessResponse(ctx, gin.H{
-				"routers": c.routers,
-			})
+		allRouterUri := fmt.Sprintf("%s/%s", c.config.ContextPath, "routers")
+		c.RegisterRouter([]commonhttp.RouterHandler{
+			&commonhttp.MyRouter{
+				Name:   "router",
+				Uri:    allRouterUri,
+				Method: http.MethodGet,
+				HandlerFunc: func(ctx *gin.Context) {
+					commonhttp.SuccessResponse(ctx, gin.H{
+						"routers": c.routers,
+					})
+				},
+				Enabled:         true,
+				Desc:            "获取全部路由信息",
+				EnableJWtVerify: false,
+			},
 		})
 	}
 
 	// 如果启用了pprof，则注册pprof路由
-	if c.serverConfig.Pprof {
+	if c.config.Pprof {
 		c.logger.Infof("[control] pprof enabled, registering pprof routes")
-		pprofUri := fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, "debug/pprof")
-		pprofRouter := c.ginRouter.Group(pprofUri)
-		{
-			pprofRouter.GET("/", gin.WrapF(pprof.Index))
-			pprofRouter.GET("/cmdline", gin.WrapF(pprof.Cmdline))
-			pprofRouter.GET("/profile", gin.WrapF(pprof.Profile))
-			pprofRouter.POST("/symbol", gin.WrapF(pprof.Symbol))
-			pprofRouter.GET("/symbol", gin.WrapF(pprof.Symbol))
-			pprofRouter.GET("/trace", gin.WrapF(pprof.Trace))
-			pprofRouter.GET("/allocs", gin.WrapF(pprof.Handler("allocs").ServeHTTP))
-			pprofRouter.GET("/block", gin.WrapF(pprof.Handler("block").ServeHTTP))
-			pprofRouter.GET("/goroutine", gin.WrapF(pprof.Handler("goroutine").ServeHTTP))
-			pprofRouter.GET("/heap", gin.WrapF(pprof.Handler("heap").ServeHTTP))
-			pprofRouter.GET("/mutex", gin.WrapF(pprof.Handler("mutex").ServeHTTP))
-			pprofRouter.GET("/threadcreate", gin.WrapF(pprof.Handler("threadcreate").ServeHTTP))
-		}
+		pprofUri := fmt.Sprintf("%s/%s", c.config.ContextPath, "debug/pprof")
+		c.RegisterRouter([]commonhttp.RouterHandler{
+			&commonhttp.MyRouter{
+				Name:            "pprof",
+				Uri:             fmt.Sprintf("%v/", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Index),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprof",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofCmdLine",
+				Uri:             fmt.Sprintf("%v/cmdline", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Cmdline),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofCmdLine",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofProfile",
+				Uri:             fmt.Sprintf("%v/profile", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Profile),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofProfile",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofSymbol",
+				Uri:             fmt.Sprintf("%v/symbol", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Symbol),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofSymbol",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofSymbol",
+				Uri:             fmt.Sprintf("%v/symbol", pprofUri),
+				Method:          http.MethodPost,
+				HandlerFunc:     gin.WrapF(pprof.Symbol),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofSymbol",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofTrace",
+				Uri:             fmt.Sprintf("%v/trace", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Trace),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofTrace",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofAllocs",
+				Uri:             fmt.Sprintf("%v/allocs", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Handler("allocs").ServeHTTP),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofAllocs",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofBlock",
+				Uri:             fmt.Sprintf("%v/block", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Handler("block").ServeHTTP),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofBlock",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofGoroutine",
+				Uri:             fmt.Sprintf("%v/goroutine", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Handler("goroutine").ServeHTTP),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofGoroutine",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofHeap",
+				Uri:             fmt.Sprintf("%v/heap", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Handler("heap").ServeHTTP),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofHeap",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofMutex",
+				Uri:             fmt.Sprintf("%v/mutex", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Handler("mutex").ServeHTTP),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofMutex",
+			},
+			&commonhttp.MyRouter{
+				Name:            "pprofThreadcreate",
+				Uri:             fmt.Sprintf("%v/threadcreate", pprofUri),
+				Method:          http.MethodGet,
+				HandlerFunc:     gin.WrapF(pprof.Handler("threadcreate").ServeHTTP),
+				EnableJWtVerify: false,
+				Enabled:         true,
+				Desc:            "pprofThreadcreate",
+			},
+		})
 	}
 
 	c.logger.Debugf("[control] default router registered successfully")
@@ -448,9 +561,9 @@ func (c *Control) initRouters() {
 		var url string
 		if strings.HasPrefix(router.GetUri(), "/") {
 			// 避免重复添加前缀
-			url = fmt.Sprintf("%s%s", c.serverConfig.ContextPath, router.GetUri())
+			url = fmt.Sprintf("%s%s", c.config.ContextPath, router.GetUri())
 		} else {
-			url = fmt.Sprintf("%s/%s", c.serverConfig.ContextPath, router.GetUri())
+			url = fmt.Sprintf("%s/%s", c.config.ContextPath, router.GetUri())
 		}
 
 		handlerFunc := router.GetHandlerFunc()

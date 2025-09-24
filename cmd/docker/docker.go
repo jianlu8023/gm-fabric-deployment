@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	
 	"github.com/docker/docker/api/types/container"
 	dockermount "github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
@@ -38,11 +39,7 @@ func main() {
 		DefaultTimeout: 5,
 	}
 
-	dockerControl, err := docker.NewDockerControl(dockerConfig, loggerControl)
-	if err != nil {
-		fmt.Printf("load docker failed: %v\n", err)
-		return
-	}
+	dockerControl := docker.NewDockerControl(dockerConfig, loggerControl)
 	dockerControl.StartUp(func(err error) {
 		fmt.Printf("docker start failed: %v\n", err)
 	})

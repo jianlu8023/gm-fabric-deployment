@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	
+
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
-	
+
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/spf13/viper"
 )
@@ -113,6 +113,20 @@ func (c *Control) GetFabricCAConfig() *FabricCAConfig {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.config.FabricCAConfig
+}
+
+// GetAuthzConfig 获取权限控制配置
+// @return *AuthzConfig 权限控制配置
+func (c *Control) GetAuthzConfig() *AuthzConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.AuthzConfig
+}
+
+func (c *Control) GetIpfsConfig() *IpfsConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.IpfsConfig
 }
 
 // GetTunnyPoolConfig 获取Tunny线程池配置

@@ -6,7 +6,9 @@ import (
 	"sync"
 
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
+	"github.com/jianlu8023/golang-example/pkg/control/authz"
 	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
+	"github.com/jianlu8023/golang-example/pkg/control/ipfs"
 	"github.com/jianlu8023/golang-example/version"
 
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
@@ -39,6 +41,8 @@ type Control struct {
 	captchaControl    *captcha.Control
 	antsControl       *ants.Control
 	fabricCAControl   *fabricca.Control
+	authzControl      *authz.Control
+	ipfsControl       *ipfs.Control
 	logger            *zap.SugaredLogger
 	once              sync.Once
 	mutex             sync.RWMutex
@@ -101,25 +105,20 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建DataSource控制器
 	dataSourceConfig := configControl.GetDataSourceConfig()
 	if dataSourceConfig != nil && dataSourceConfig.Enabled {
-		dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
-		if err != nil {
-			control.logger.Errorf("[control] create datasource control failed: %v", err)
-			return nil, err
-		}
+		dataSourceControl := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
 		control.datasourceControl = dataSourceControl
+	}
+
+	ipfsConfig := configControl.GetIpfsConfig()
+	if ipfsConfig != nil && ipfsConfig.Enabled {
+		ipfsControl := ipfs.NewIpfsControl(ipfsConfig, control.GetLoggerControl())
+		control.ipfsControl = ipfsControl
 	}
 
 	antsPoolConfig := configControl.GetAntsPoolConfig()
 	if antsPoolConfig != nil && antsPoolConfig.Enabled {
 		antsPoolControl := ants.NewAntsPoolControl(antsPoolConfig, control.GetLoggerControl())
 		control.antsControl = antsPoolControl
-	}
-
-	// if control.GetAntsPoolControl() == nil {
-	// 	return nil, fmt.Errorf("ants pool control is nil")
-	// }
-
-	if control.GetAntsPoolControl() != nil {
 		// 创建Job控制器
 		jobControl := job.NewJobControl(control.GetLoggerControl(), control.GetAntsPoolControl())
 		control.jobControl = jobControl
@@ -128,11 +127,7 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建Docker控制器
 	dockerConfig := configControl.GetDockerConfig()
 	if dockerConfig != nil && dockerConfig.Enabled {
-		dockerControl, err := docker.NewDockerControl(dockerConfig, control.GetLoggerControl())
-		if err != nil {
-			control.logger.Errorf("[control] create docker control failed: %v", err)
-			return nil, err
-		}
+		dockerControl := docker.NewDockerControl(dockerConfig, control.GetLoggerControl())
 		control.dockerControl = dockerControl
 
 		// 创建fabricca控制器
@@ -151,12 +146,16 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建验证码控制器
 	captchaConfig := configControl.GetCaptchaConfig()
 	if captchaConfig != nil && captchaConfig.Enabled {
-		captchaControl, err := captcha.NewCaptchaControl(captchaConfig, control.GetLoggerControl())
-		if err != nil {
-			control.logger.Errorf("[control] create captcha control failed: %v", err)
-			return nil, err
-		}
+		captchaControl := captcha.NewCaptchaControl(captchaConfig, control.GetLoggerControl())
 		control.captchaControl = captchaControl
+	}
+
+	// 检查并创建权限控制器
+	authzConfig := configControl.GetAuthzConfig()
+	if authzConfig != nil && authzConfig.Enabled {
+		authzControl := authz.NewAuthzControl(authzConfig, control.GetLoggerControl())
+
+		control.authzControl = authzControl
 	}
 
 	// 检查并创建HTTP控制器
@@ -276,6 +275,20 @@ func (c *Control) GetFabricCAControl() *fabricca.Control {
 	return c.fabricCAControl
 }
 
+// GetAuthzControl 获取权限控制器
+// @return *authz.Control 权限控制器实例
+func (c *Control) GetAuthzControl() *authz.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.authzControl
+}
+
+func (c *Control) GetIpfsControl() *ipfs.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.ipfsControl
+}
+
 // NewServerControl 创建服务器控制器
 // @param dockerControl *docker.Control Docker控制器
 // @param configControl *config.Control 配置控制器
@@ -301,6 +314,8 @@ func NewServerControl(dockerControl *docker.Control,
 	captchaControl *captcha.Control,
 	antsControl *ants.Control,
 	fabricCAControl *fabricca.Control,
+	authzControl *authz.Control,
+	ipfsControl *ipfs.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -319,6 +334,8 @@ func NewServerControl(dockerControl *docker.Control,
 		captchaControl:    captchaControl,
 		antsControl:       antsControl,
 		fabricCAControl:   fabricCAControl,
+		authzControl:      authzControl,
+		ipfsControl:       ipfsControl,
 	}
 }
 
@@ -356,6 +373,10 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.logger.Debugf("[control] starting up libp2p server...")
 			c.libp2pControl.StartUp(failedFunc)
 		}
+		if c.ipfsControl != nil {
+			c.logger.Debugf("[control] starting up ipfs server...")
+			c.ipfsControl.StartUp(failedFunc)
+		}
 
 		if c.dockerControl != nil {
 			c.logger.Debugf("[control] starting up docker server...")
@@ -380,6 +401,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.captchaControl != nil {
 			c.logger.Debugf("[control] starting up captcha server...")
 			c.captchaControl.StartUp(failedFunc)
+		}
+
+		if c.authzControl != nil {
+			c.logger.Debugf("[control] starting up authz server...")
+			c.authzControl.StartUp(failedFunc)
 		}
 
 		if c.websocketControl != nil {
@@ -432,6 +458,11 @@ func (c *Control) Shutdown() error {
 		_ = c.captchaControl.Shutdown()
 	}
 
+	if c.authzControl != nil {
+		c.logger.Debugf("[control] shutting down authz server...")
+		_ = c.authzControl.Shutdown()
+	}
+
 	if c.httpControl != nil {
 		c.logger.Debugf("[control] shutting down http server...")
 		if err := c.httpControl.Shutdown(); err != nil {
@@ -451,6 +482,11 @@ func (c *Control) Shutdown() error {
 	if c.grpcControl != nil {
 		c.logger.Debugf("[control] shutting down grpc server...")
 		_ = c.grpcControl.Shutdown()
+	}
+
+	if c.ipfsControl != nil {
+		c.logger.Debugf("[control] shutting down ipfs server...")
+		_ = c.ipfsControl.Shutdown()
 	}
 
 	if c.fabricCAControl != nil {

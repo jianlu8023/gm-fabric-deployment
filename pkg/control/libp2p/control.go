@@ -2,6 +2,7 @@ package libp2p
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"strings"
@@ -64,6 +65,12 @@ type Control struct {
 // @return *Control libp2p控制器
 // @return error 错误
 func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.Control) (*Control, error) {
+	if libp2pConfig == nil {
+		libp2pConfig = getDefaultConfig()
+	}
+	if !libp2pConfig.Enabled {
+		return nil, errors.New("libp2p is disabled")
+	}
 	libp2pLogger := loggerControl.GenLogger(logger.ModuleLibp2p)
 	libp2pLogger.Infof("[control] starting new libp2p control...")
 
@@ -212,35 +219,37 @@ func (lc *Control) initNode() error {
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (lc *Control) StartUp(failedFunc func(err error)) {
 	lc.once.Do(func() {
-		lc.logger.Infof("[control] starting libp2p service...")
-		// 启动发现服务
-		if err := lc.discoveryService.Start(); err != nil {
-			lc.logger.Errorf("[control] failed to start discovery service: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+		if lc.libp2pConfig.Enabled {
+			lc.logger.Infof("[control] starting libp2p service...")
+			// 启动发现服务
+			if err := lc.discoveryService.Start(); err != nil {
+				lc.logger.Errorf("[control] failed to start discovery service: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
 			}
-		}
 
-		// 启动DHT引导
-		lc.logger.Infof("[control] bootstrapping DHT...")
-		if err := lc.discoveryService.BootstrapDHT(); err != nil {
-			lc.logger.Errorf("[control] failed to bootstrap DHT: %v", err)
-			if failedFunc != nil {
-				failedFunc(err)
+			// 启动DHT引导
+			lc.logger.Infof("[control] bootstrapping DHT...")
+			if err := lc.discoveryService.BootstrapDHT(); err != nil {
+				lc.logger.Errorf("[control] failed to bootstrap DHT: %v", err)
+				if failedFunc != nil {
+					failedFunc(err)
+				}
 			}
+
+			// 连接bootstrap节点
+			go lc.discoveryService.ConnectBootstrapPeers()
+
+			// 启动健康检查
+			go lc.discoveryService.StartHealthCheck()
+
+			// 启动消息处理工作协程
+			lc.wg.Add(1)
+			go lc.messageProcessor()
+
+			lc.logger.Infof("[control] libp2p service started...")
 		}
-
-		// 连接bootstrap节点
-		go lc.discoveryService.ConnectBootstrapPeers()
-
-		// 启动健康检查
-		go lc.discoveryService.StartHealthCheck()
-
-		// 启动消息处理工作协程
-		lc.wg.Add(1)
-		go lc.messageProcessor()
-
-		lc.logger.Infof("[control] libp2p service started...")
 	})
 }
 

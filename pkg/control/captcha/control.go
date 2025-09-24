@@ -22,33 +22,18 @@ type Control struct {
 	once    sync.Once
 }
 
-func (c *Control) StartUp(failedFunc func(err error)) {
-	c.once.Do(func() {
-		c.logger.Debugf("[control] starting captcha server...")
-		// 初始化驱动
-		c.initDrivers()
-
-		c.logger.Debugf("[control] generate captcha...")
-		c.captcha = base64Captcha.NewCaptcha(c.getDriver(c.config.DefaultType),
-			c.store)
-	})
-}
-
-func (c *Control) Shutdown() error {
-	c.logger.Debugf("[control] shutting down captcha server...")
-	return nil
-}
-
 // NewCaptchaControl 创建一个新的验证码控制器
 //
 // @param captchaConfig *config.CaptchaConfig 验证码配置
 // @param loggerControl *logger.Control 日志控制器
 //
 // @return *Control 验证码控制器
-// @return error 新建过程中的错误
-func NewCaptchaControl(captchaConfig *config.CaptchaConfig, loggerControl *logger.Control) (*Control, error) {
+func NewCaptchaControl(captchaConfig *config.CaptchaConfig, loggerControl *logger.Control) *Control {
 	if captchaConfig == nil {
-		return nil, errors.New("captcha config cannot be nil")
+		captchaConfig = getDefaultConfig()
+	}
+	if !captchaConfig.Enabled {
+		return nil
 	}
 
 	captchaLogger := loggerControl.GenLogger(logger.ModuleCaptcha)
@@ -70,7 +55,26 @@ func NewCaptchaControl(captchaConfig *config.CaptchaConfig, loggerControl *logge
 		drivers: drivers,
 	}
 
-	return captcha, nil
+	return captcha
+}
+
+func (c *Control) StartUp(failedFunc func(err error)) {
+	c.once.Do(func() {
+		if c.config.Enabled {
+			c.logger.Debugf("[control] starting captcha server...")
+			// 初始化驱动
+			c.initDrivers()
+
+			c.logger.Debugf("[control] generate captcha...")
+			c.captcha = base64Captcha.NewCaptcha(c.getDriver(c.config.DefaultType),
+				c.store)
+		}
+	})
+}
+
+func (c *Control) Shutdown() error {
+	c.logger.Debugf("[control] shutting down captcha server...")
+	return nil
 }
 
 // initDrivers 初始化验证码驱动
