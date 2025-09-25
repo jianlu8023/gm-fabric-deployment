@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 	"net/http"
+
+	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -47,14 +48,14 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
 		h.logger.Errorf("JWT authentication failed: userID not found")
-		http.Error(ctx.Writer, "认证失败，请先登录", http.StatusUnauthorized)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
 		return
 	}
 
 	sessionID, exists := ctx.Get("session_id")
 	if !exists {
 		h.logger.Errorf("Session validation failed: sessionID not found")
-		http.Error(ctx.Writer, "会话已过期，请重新登录", http.StatusUnauthorized)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "会话已过期，请重新登录")
 		return
 	}
 
@@ -64,61 +65,19 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 	req := new(request.WSConnectRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
 		h.logger.Errorf("binding request failed: %v", err)
-		http.Error(ctx.Writer, "参数绑定失败", http.StatusBadRequest)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "参数绑定失败")
 		return
 	}
 
 	// 验证请求参数
 	if !req.IsLegal() {
 		h.logger.Debugf("websocket connect request is illegal: %v", req)
-		http.Error(ctx.Writer, "输入参数不合法", http.StatusBadRequest)
-		return
-	}
-
-	// 调用WebSocket控制模块的UpgradeConnection方法来升级连接
-	h.logger.Infof("upgrading connection for user: %v, node: %v", userID, req.NodeID)
-
-	// 升级连接
-	connID, connection, err := h.service.wsControl.UpgradeConnection(ctx.Writer, ctx.Request)
-	if err != nil {
-		h.logger.Errorf("websocket connection upgrade failed: %v", err)
-		http.Error(ctx.Writer, "WebSocket连接升级失败", http.StatusInternalServerError)
-		return
-	}
-
-	// 设置连接的用户ID和节点ID
-	h.service.wsControl.SetConnectionUserID(connID, userID.(string))
-	if req.NodeID != "" {
-		h.service.wsControl.SetConnectionNodeID(connID, req.NodeID)
-	}
-
-	h.logger.Infof("websocket connection established successfully, connection ID: %s, user: %v, node: %v", connID, userID, req.NodeID)
-
-	// 注意：由于WebSocket连接是长连接，这个函数会阻塞直到连接关闭
-	// connection对象会自动处理后续的消息读写
-	_ = connection
-}
-
-// ConnectHandler WebSocket连接请求处理函数（HTTP接口）
-//
-// @description 处理WebSocket连接建立的HTTP接口请求
-// @method POST
-// @url /api/v1/ws/connect
-// @param nodeID string 目标节点ID (必需)
-// @return JSON 连接状态信息
-func (h *WebSocketHandler) ConnectHandler(ctx *gin.Context) {
-	h.logger.Infof("received websocket connect request (HTTP interface)...")
-
-	// 绑定请求参数
-	req := new(request.WSConnectRequest)
-	if err := binding.BindFormData(ctx, req); err != nil {
-		h.logger.Errorf("binding request failed: %v", err)
-		http.Error(ctx.Writer, "参数绑定失败", http.StatusBadRequest)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
 		return
 	}
 
 	// 调用service层处理业务逻辑
-	h.service.ConnectService(ctx, req)
+	h.service.ConnectService(ctx, req, userID)
 }
 
 // DisconnectHandler WebSocket断开连接处理函数
@@ -131,16 +90,38 @@ func (h *WebSocketHandler) ConnectHandler(ctx *gin.Context) {
 func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
 	h.logger.Infof("received websocket disconnect request...")
 
-	// 获取连接ID
-	connID := ctx.Query("connID")
-	if connID == "" {
-		h.logger.Errorf("connection ID is required")
-		http.Error(ctx.Writer, "连接ID不能为空", http.StatusBadRequest)
+	// 验证JWT和Session信息
+	_, exists := ctx.Get("user_id")
+	if !exists {
+		h.logger.Errorf("JWT authentication failed: userID not found")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
+		return
+	}
+
+	_, exists = ctx.Get("session_id")
+	if !exists {
+		h.logger.Errorf("Session validation failed: sessionID not found")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "会话已过期，请重新登录")
+		return
+	}
+
+	// 绑定请求参数
+	req := new(request.WSDisconnectRequest)
+	if err := binding.BindQuery(ctx, req); err != nil {
+		h.logger.Errorf("binding request failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "参数绑定失败")
+		return
+	}
+
+	// 验证请求参数
+	if !req.IsLegal() {
+		h.logger.Debugf("websocket disconnect request is illegal: %v", req)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
 		return
 	}
 
 	// 调用service层处理业务逻辑
-	h.service.DisconnectService(ctx, connID)
+	h.service.DisconnectService(ctx, req)
 }
 
 // SendMessageHandler 发送WebSocket消息处理函数
@@ -155,11 +136,33 @@ func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
 func (h *WebSocketHandler) SendMessageHandler(ctx *gin.Context) {
 	h.logger.Infof("received websocket send message request...")
 
+	// 验证JWT和Session信息
+	_, exists := ctx.Get("user_id")
+	if !exists {
+		h.logger.Errorf("JWT authentication failed: userID not found")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
+		return
+	}
+
+	_, exists = ctx.Get("session_id")
+	if !exists {
+		h.logger.Errorf("Session validation failed: sessionID not found")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "会话已过期，请重新登录")
+		return
+	}
+
 	// 绑定请求参数
 	req := new(request.WSMessageRequest)
 	if err := binding.BindJSON(ctx, req); err != nil {
 		h.logger.Errorf("binding request failed: %v", err)
-		http.Error(ctx.Writer, "参数绑定失败", http.StatusBadRequest)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "参数绑定失败")
+		return
+	}
+
+	// 验证请求参数
+	if !req.IsLegal() {
+		h.logger.Debugf("websocket message request is illegal: %v", req)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
 		return
 	}
 
@@ -180,22 +183,32 @@ func (h *WebSocketHandler) GetConnectionListHandler(ctx *gin.Context) {
 	h.logger.Infof("received get connection list request...")
 
 	// 验证JWT和Session信息
-	// userID, exists := ctx.Get("user_id")
-	// if !exists {
-	// 	w.logger.Errorf("JWT authentication failed: userID not found")
-	// 	http.Error(ctx.Writer, "认证失败，请先登录", http.StatusUnauthorized)
-	// 	return
-	// }
+	userID, exists := ctx.Get("user_id")
+	if !exists {
+		h.logger.Errorf("JWT authentication failed: userID not found")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
+		return
+	}
 
-	// userIDStr := userID.(string)
+	userIDStr := userID.(string)
 
-	// 获取分页参数
-	// pageNo := binding.GetQueryInt64(ctx, "pageNo", 1)
-	// pageSize := binding.GetQueryInt64(ctx, "pageSize", 10)
-	// isPage := binding.GetQueryBool(ctx, "isPage", true)
+	// 绑定分页参数
+	req := new(request.WSConnectionListRequest)
+	if err := binding.BindQuery(ctx, req); err != nil {
+		h.logger.Errorf("binding pagination request failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "分页参数绑定失败")
+		return
+	}
+
+	// 验证请求参数
+	if !req.IsLegal() {
+		h.logger.Debugf("websocket connection list request is illegal: %v", req)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
+		return
+	}
 
 	// 调用service层处理业务逻辑
-	// w.service.GetConnectionListService(ctx, userIDStr, isPage, pageNo, pageSize)
+	h.service.GetConnectionListService(ctx, req, userIDStr)
 }
 
 // Routers 获取WebSocket相关路由列表
@@ -207,20 +220,11 @@ func (h *WebSocketHandler) Routers() []commonhttp.RouterHandler {
 		&commonhttp.MyRouter{
 			Name:            "websocketUpgrade",
 			Uri:             "ws",
+			Method:          http.MethodGet,
 			HandlerFunc:     h.UpgradeHandler,
 			Enabled:         true,
 			EnableJWtVerify: true,
 			Desc:            "websocket connection upgrade",
-		},
-		// WebSocket连接请求路由
-		&commonhttp.MyRouter{
-			Name:            "websocketConnect",
-			Uri:             "ws/connect",
-			Method:          http.MethodPost,
-			HandlerFunc:     h.ConnectHandler,
-			Enabled:         true,
-			EnableJWtVerify: true,
-			Desc:            "websocket connect request",
 		},
 		// WebSocket断开连接路由
 		&commonhttp.MyRouter{

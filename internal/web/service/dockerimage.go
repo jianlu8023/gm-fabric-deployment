@@ -3,7 +3,7 @@ package service
 import (
 	"database/sql"
 	"fmt"
-	
+
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -139,7 +139,9 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 				s.logger.Errorf("save docker image failed: %v", err)
 
 			}
-			s.websocketControl.Broadcast([]byte("pull image success"))
+			s.websocketControl.Broadcast(websocket.Message{
+				Content: []byte("pull image success"),
+			})
 		}
 	}); err != nil {
 		s.logger.Errorf("submit docker image pull task failed: %v", err)
