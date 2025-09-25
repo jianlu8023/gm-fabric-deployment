@@ -129,6 +129,14 @@ func (c *Control) GetIpfsConfig() *IpfsConfig {
 	return c.config.IpfsConfig
 }
 
+// GetMFAConfig 获取MFA配置
+// @return *MFAConfig MFA配置
+func (c *Control) GetMFAConfig() *MFAConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.MFAConfig
+}
+
 // GetTunnyPoolConfig 获取Tunny线程池配置
 // @return *TunnyPoolConfig Tunny线程池配置
 // func (c *Control) GetTunnyPoolConfig() *TunnyPoolConfig {

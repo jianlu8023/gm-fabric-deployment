@@ -509,6 +509,29 @@ func (a *AuthzConfig) String() string {
 	return string(pretty)
 }
 
+// MFAConfig MFA配置
+// @description 多因素认证配置
+// @struct MFAConfig
+type MFAConfig struct {
+	Enabled         bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
+	DefaultProvider string `json:"default_provider,omitempty" yaml:"default_provider,omitempty" mapstructure:"default_provider"` // 默认认证提供商 (google/microsoft)
+	Google          struct {
+		Issuer string `json:"issuer,omitempty" yaml:"issuer,omitempty" mapstructure:"issuer"` // Google认证器的颁发者名称
+	} `json:"google,omitempty" yaml:"google,omitempty" mapstructure:"google"` // Google认证器配置
+	Microsoft struct {
+		TenantID     string `json:"tenant_id,omitempty" yaml:"tenant_id,omitempty" mapstructure:"tenant_id"`             // Microsoft租户ID
+		ClientID     string `json:"client_id,omitempty" yaml:"client_id,omitempty" mapstructure:"client_id"`             // Microsoft客户端ID
+		ClientSecret string `json:"client_secret,omitempty" yaml:"client_secret,omitempty" mapstructure:"client_secret"` // Microsoft客户端密钥
+	} `json:"microsoft,omitempty" yaml:"microsoft,omitempty" mapstructure:"microsoft"` // Microsoft认证器配置
+}
+
+// String MFAConfig的字符串表示
+// @return string MFAConfig的字符串表示
+func (m *MFAConfig) String() string {
+	pretty, _ := json.MarshalPretty(m)
+	return string(pretty)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig       *GrpcConfig       `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -524,6 +547,7 @@ type Config struct {
 	FabricCAConfig   *FabricCAConfig   `json:"fabric_ca_config,omitempty" yaml:"fabric_ca_config,omitempty" mapstructure:"fabric_ca"`    // Fabric CA配置
 	WebRTCConfig     *WebRTCConfig     `json:"webrtc_config,omitempty" yaml:"webrtc_config,omitempty" mapstructure:"webrtc"`             // WebRTC配置
 	AuthzConfig      *AuthzConfig      `json:"authz_config,omitempty" yaml:"authz_config,omitempty" mapstructure:"authz"`                // 权限控制配置
+	MFAConfig        *MFAConfig        `json:"mfa_config,omitempty" yaml:"mfa_config,omitempty" mapstructure:"mfa"`                      // MFA配置
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 
