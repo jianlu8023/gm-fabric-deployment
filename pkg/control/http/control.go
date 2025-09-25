@@ -249,7 +249,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 							return
 						}
 						defer func(listener net.Listener) {
-							if err := listener.Close(); err != nil {
+							if err := listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 								c.logger.Errorf("[control] failed to close gm TLS listener: %v", err)
 							}
 						}(listener)
@@ -277,7 +277,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 						}
 
 						defer func(listener net.Listener) {
-							if err := listener.Close(); err != nil {
+							if err := listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 								c.logger.Errorf("[control] failed to close TLS listener: %v", err)
 							}
 						}(listener)
@@ -306,7 +306,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 						return
 					}
 					defer func(listener net.Listener) {
-						if err := listener.Close(); err != nil {
+						if err := listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 							c.logger.Errorf("[control] failed to close TCP listener: %v", err)
 						}
 					}(listener)
