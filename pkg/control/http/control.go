@@ -368,7 +368,7 @@ func (c *Control) registerDefaultRouter() {
 
 	{
 		// 定义路由
-		allRouterUri := fmt.Sprintf("%s/%s", c.config.ContextPath, "routers")
+		allRouterUri := fmt.Sprintf("%s", "routers")
 		c.RegisterRouter([]commonhttp.RouterHandler{
 			&commonhttp.MyRouter{
 				Name:   "router",
