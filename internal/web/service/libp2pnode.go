@@ -71,7 +71,7 @@ func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2p
 }
 
 func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context) {
-	s.logger.Debugf("received libp2p node myself handler...")
+	s.logger.Debugf("received libp2p node myself request...")
 
 	peerId := s.libp2pControl.GetLocalhostPeerID().String()
 	myself, err := s.mapper.NodeMyself(peerId)
@@ -86,5 +86,8 @@ func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context) {
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
 		return
 	}
+
+	s.logger.Debugf("from database query result %s convert result %s", myself.String(), myselfResponse.String())
+
 	commonhttp.SuccessResponse(ctx, myselfResponse)
 }
