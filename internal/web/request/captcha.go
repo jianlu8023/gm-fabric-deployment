@@ -19,14 +19,14 @@ type CaptchaRequest struct {
 	// Height      int    `form:"height" json:"height" binding:"omitempty,min=40,max=200"`
 }
 
-func (c *CaptchaRequest) String() string {
+func (c CaptchaRequest) String() string {
 	str, _ := json.MarshalString(c)
 	return str
 }
 
 // IsLegal 验证请求参数是否合法
 // @return bool 参数是否合法
-func (c *CaptchaRequest) IsLegal() bool {
+func (c CaptchaRequest) IsLegal() bool {
 	// 验证CaptchaType是否合法
 	// if c.CaptchaType == "" {
 	// 	c.CaptchaType = "string"
@@ -62,7 +62,7 @@ type GenerateCaptchaRequest struct {
 
 // IsLegal 验证生成验证码请求参数是否合法
 // @return bool 参数是否合法
-func (g *GenerateCaptchaRequest) IsLegal() bool {
+func (g GenerateCaptchaRequest) IsLegal() bool {
 	// 验证CaptchaType是否合法
 	// if g.CaptchaType == "" {
 	// 	g.CaptchaType = "string"
@@ -77,7 +77,7 @@ func (g *GenerateCaptchaRequest) IsLegal() bool {
 	return true
 }
 
-func (g *GenerateCaptchaRequest) String() string {
+func (g GenerateCaptchaRequest) String() string {
 	str, _ := json.MarshalString(g)
 	return str
 }

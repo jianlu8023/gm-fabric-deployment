@@ -24,14 +24,14 @@ type DockerImage struct {
 }
 
 // MarshalJSON 自定义json返回
-func (i *DockerImage) MarshalJSON() ([]byte, error) {
+func (i DockerImage) MarshalJSON() ([]byte, error) {
 	type Alias DockerImage
 	aux := struct {
 		*Alias
 		IsDelete     bool   `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
 		ImageCreated string `json:"image_created,omitempty" yaml:"image_created,omitempty"`
 	}{
-		Alias:        (*Alias)(i),
+		Alias:        (*Alias)(&i),
 		IsDelete:     i.IsDelete.Bool,
 		ImageCreated: humantime.HumanTime(i.ImageCreated, "unknown"),
 	}
@@ -40,13 +40,13 @@ func (i *DockerImage) MarshalJSON() ([]byte, error) {
 
 // TableName 返回表名
 // @return string 表名
-func (i *DockerImage) TableName() string {
+func (DockerImage) TableName() string {
 	return imageInfoTableName
 }
 
 // String 返回json字符串
 // @return string json字符串
-func (i *DockerImage) String() string {
+func (i DockerImage) String() string {
 	str, _ := json.MarshalString(i)
 	return str
 }

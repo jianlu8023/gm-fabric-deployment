@@ -1,6 +1,7 @@
 package request
 
 import (
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
@@ -11,8 +12,13 @@ type WSConnectRequest struct {
 	NodeID string `json:"node_id" form:"nodeId" binding:"required"` // 节点ID
 }
 
+func (r WSConnectRequest) String() string {
+	str, _ := json.MarshalString(r)
+	return str
+}
+
 // IsLegal 验证WSConnectRequest参数是否合法
-func (r *WSConnectRequest) IsLegal() bool {
+func (r WSConnectRequest) IsLegal() bool {
 	if stringer.IsBlank(r.NodeID) {
 		return false
 	}
@@ -24,11 +30,15 @@ type WSDisconnectRequest struct {
 }
 
 // IsLegal 验证WSConnectRequest参数是否合法
-func (r *WSDisconnectRequest) IsLegal() bool {
+func (r WSDisconnectRequest) IsLegal() bool {
 	if stringer.IsBlank(r.NodeID) {
 		return false
 	}
 	return true
+}
+func (r WSDisconnectRequest) String() string {
+	str, _ := json.MarshalString(r)
+	return str
 }
 
 // WSMessageRequest 表示WebSocket消息请求的参数
@@ -39,11 +49,15 @@ type WSMessageRequest struct {
 }
 
 // IsLegal 验证WSMessageRequest参数是否合法
-func (r *WSMessageRequest) IsLegal() bool {
+func (r WSMessageRequest) IsLegal() bool {
 	if stringer.IsBlank(r.Message) {
 		return false
 	}
 	return true
+}
+func (r WSMessageRequest) String() string {
+	str, _ := json.MarshalString(r)
+	return str
 }
 
 // WSConnectionListRequest WebSocket连接列表请求
@@ -52,9 +66,13 @@ type WSConnectionListRequest struct {
 }
 
 // IsLegal 验证WSConnectionListRequest参数是否合法
-func (r *WSConnectionListRequest) IsLegal() bool {
+func (r WSConnectionListRequest) IsLegal() bool {
 	if r.PageNo <= 0 || r.PageSize <= 0 {
 		return false
 	}
 	return true
+}
+func (r WSConnectionListRequest) String() string {
+	str, _ := json.MarshalString(r)
+	return str
 }

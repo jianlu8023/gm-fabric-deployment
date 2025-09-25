@@ -23,14 +23,14 @@ type Libp2pNode struct {
 // TableName 返回表名
 // @description 实现gorm接口，指定结构体对应的数据库表名
 // @return string 数据库表名
-func (i *Libp2pNode) TableName() string {
+func (Libp2pNode) TableName() string {
 	return nodeInfoTableName
 }
 
 // String 返回json格式字符串
 // @description 将节点信息转换为JSON格式字符串
 // @return string 节点信息的JSON格式字符串
-func (i *Libp2pNode) String() string {
+func (i Libp2pNode) String() string {
 	str, _ := json.MarshalString(i)
 	return str
 }

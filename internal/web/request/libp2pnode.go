@@ -9,12 +9,12 @@ type Libp2pNodeListRequest struct {
 	commonhttp.PaginationRequest
 }
 
-func (p *Libp2pNodeListRequest) String() string {
+func (p Libp2pNodeListRequest) String() string {
 	str, _ := json.MarshalString(p)
 	return str
 }
 
-func (p *Libp2pNodeListRequest) IsLegal() bool {
+func (p Libp2pNodeListRequest) IsLegal() bool {
 	if p.PageNo <= 0 || p.PageSize <= 0 {
 		return false
 	}

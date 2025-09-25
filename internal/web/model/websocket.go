@@ -20,7 +20,7 @@ type ConnectionInfo struct {
 // TableName 返回数据库表名
 // @description 实现gorm接口，指定ConnectionInfo结构体对应的数据库表名
 // @return string 数据库表名
-func (c *ConnectionInfo) TableName() string {
+func (ConnectionInfo) TableName() string {
 	return "websocket_connections"
 }
 
