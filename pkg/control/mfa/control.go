@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	
+
 	// "github.com/google/uuid"
 	// "github.com/pquerna/otp"
 	// "github.com/pquerna/otp/totp"
 	"go.uber.org/zap"
-	
+
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 )
@@ -25,25 +25,6 @@ type Control struct {
 	once            sync.Once           // 确保StartUp只执行一次
 	providers       map[string]Provider // 认证提供商映射
 	currentProvider Provider            // 当前使用的认证提供商
-}
-
-// Provider 认证提供商接口
-// @interface Provider
-// @method GenerateSecret(userID string) (string, string, error) 生成MFA密钥
-// @method VerifyCode(userID string, code string) bool 验证MFA代码
-type Provider interface {
-	// GenerateSecret 生成MFA密钥
-	// @param userID string 用户ID
-	// @return string 密钥
-	// @return string 二维码URL
-	// @return error 生成过程中的错误
-	GenerateSecret(userID string) (string, string, error)
-
-	// VerifyCode 验证MFA代码
-	// @param secret string 用户ID
-	// @param code string MFA代码
-	// @return bool 验证结果
-	VerifyCode(secret string, code string) bool
 }
 
 // NewMFAControl 创建一个新的MFA控制器

@@ -6,6 +6,7 @@ import (
 
 	glog "github.com/jianlu8023/go-logger/v2"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/pion/logging"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -54,7 +55,7 @@ func (w *webrtcLogger) Errorf(format string, args ...interface{}) {
 	w.logger.Errorf(format, args...)
 }
 
-func (w *webrtcLogger) NewLogger(scope string) *webrtcLogger {
+func (w *webrtcLogger) NewLogger(scope string) logging.LeveledLogger {
 	named := w.logger.Named(scope)
 	return &webrtcLogger{
 		logger: named,

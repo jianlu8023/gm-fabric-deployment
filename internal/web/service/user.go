@@ -3,13 +3,13 @@ package service
 import (
 	"strconv"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
 	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/google/uuid"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -135,7 +135,7 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 	}
 
 	// 生成会话ID
-	sessionID := uuid.New().String()
+	sessionID := uuid.GetUUID()
 	// 生成JWT令牌，过期时间设置为24小时
 	token, claims, err := jwt.GenerateToken(
 		strconv.Itoa(int(user.AutoUid)),

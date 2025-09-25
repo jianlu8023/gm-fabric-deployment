@@ -1,6 +1,7 @@
 package datasource
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -102,14 +103,6 @@ func (c *Control) setConnPool() error {
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			if err := c.initDBConn(); err != nil {
-				c.logger.Errorf("[control] init db conn failed: %v", err)
-				if failedFunc != nil {
-					failedFunc(err)
-				}
-				return
-			}
-
 			c.logger.Debugf("[control] call db ping instead startup...")
 			sqlDB, err := c.dbConn.DB()
 			if err != nil {
@@ -201,13 +194,13 @@ func (c *Control) initDBConn() error {
 // @param config *config.DataSourceConfig 数据源配置
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control 数据源控制器实例
-
-func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control) *Control {
+// @return error 错误信息
+func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control) (*Control, error) {
 	if dbConfig == nil {
 		dbConfig = getDefaultConfig()
 	}
 	if !dbConfig.Enabled {
-		return nil
+		return nil, errors.New("datasource is not enabled")
 	}
 
 	dsLogger := loggerControl.GenLogger(logger.ModuleDataSource)
@@ -220,5 +213,10 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 		autoMigrateTable: make([]interface{}, 0, 8),
 	}
 
-	return ctl
+	dsLogger.Debugf("[control] starting init db connection...")
+	if err := ctl.initDBConn(); err != nil {
+		return nil, err
+	}
+
+	return ctl, nil
 }

@@ -1,9 +1,10 @@
 package handler
 
 import (
-	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 	"net/http"
 	"strings"
+
+	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -79,20 +80,33 @@ func (h *Libp2pNodeHandler) Libp2pNodeList(ctx *gin.Context) {
 	h.service.Libp2pNodeList(ctx, req)
 }
 
+func (h *Libp2pNodeHandler) Libp2pNodeMyself(ctx *gin.Context) {
+	h.logger.Infof("received libp2p node myself handler...")
+	h.service.Libp2pNodeMyself(ctx)
+}
+
 // Routers 获取节点相关路由列表
 //
 // @return []commonhttp.RouterHandler 节点路由处理器列表
 func (h *Libp2pNodeHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
-			Name:            "nodeList",
-			Uri:             "node/list",
+			Name:            "libp2pNodeList",
+			Uri:             "libp2p/list",
 			Method:          http.MethodGet,
 			HandlerFunc:     h.Libp2pNodeList,
 			Enabled:         true,
 			Desc:            "获取libp2p已发现的节点",
 			EnableJWtVerify: false,
 		},
+		&commonhttp.MyRouter{
+			Name:            "libp2pNodeMyself",
+			Uri:             "libp2p/myself",
+			Method:          http.MethodGet,
+			HandlerFunc:     h.Libp2pNodeMyself,
+			Enabled:         true,
+			Desc:            "获取libp2p本机节点",
+			EnableJWtVerify: false,
+		},
 	}
-
 }

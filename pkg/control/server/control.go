@@ -105,7 +105,11 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建DataSource控制器
 	dataSourceConfig := configControl.GetDataSourceConfig()
 	if dataSourceConfig != nil && dataSourceConfig.Enabled {
-		dataSourceControl := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
+		dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
+		if err != nil {
+			control.logger.Errorf("[control] create data source control failed: %v", err)
+			return nil, err
+		}
 		control.datasourceControl = dataSourceControl
 	}
 

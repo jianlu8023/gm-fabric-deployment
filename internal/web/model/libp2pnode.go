@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 )
 
 const (
@@ -19,23 +18,6 @@ type Libp2pNode struct {
 	LastAliveMessageTime time.Time    `json:"last_alive_message_time,omitempty" yaml:"last_alive_message_time,omitempty" gorm:"column:last_alive_message_time;type:datetime;"` // 最后一次收到心跳时间
 	IsAlive              sql.NullBool `json:"is_alive,omitempty" yaml:"is_alive,omitempty" gorm:"column:is_alive;type:bool;"`                                                  // 是否存活状态
 	IsMySelf             sql.NullBool `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty" gorm:"column:is_my_self;type:bool;default:false"`                               // 是否是本机节点
-}
-
-func (i *Libp2pNode) MarshalJSON() ([]byte, error) {
-	type Alias Libp2pNode
-
-	aux := struct {
-		*Alias
-		IsAlive              bool   `json:"is_alive,omitempty" yaml:"is_alive,omitempty"`
-		IsMySelf             bool   `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty"`
-		LastAliveMessageTime string `json:"last_alive_message_time,omitempty" yaml:"last_alive_message_time,omitempty"`
-	}{
-		Alias:                (*Alias)(i),
-		IsAlive:              i.IsAlive.Bool,
-		IsMySelf:             i.IsMySelf.Bool,
-		LastAliveMessageTime: humantime.HumanTimeLower(i.LastAliveMessageTime, "unknown"),
-	}
-	return json.Marshal(aux)
 }
 
 // TableName 返回表名

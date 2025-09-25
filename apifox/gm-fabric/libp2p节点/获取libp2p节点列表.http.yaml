@@ -1,5 +1,5 @@
 method: get
-url: "{{addr}}/{{contextpath}}/node/list?pageNo=1&pageSize=2&isPage=true"
+url: "{{addr}}/{{contextpath}}/libp2p/list?pageNo=1&pageSize=2&isPage=true"
 parameters:
   query:
     - name: pageNo

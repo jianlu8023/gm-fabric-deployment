@@ -146,3 +146,16 @@ func (m *Libp2pNodeMapper) InsertOrUpdate(record *model.Libp2pNode) error {
 		return nil
 	})
 }
+
+func (m *Libp2pNodeMapper) NodeMyself(peerId string) (model.Libp2pNode, error) {
+	if m.db == nil {
+		return model.Libp2pNode{}, datasource.ErrNoDataSourceConn
+	}
+	var node model.Libp2pNode
+	if err := m.db.Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
+		NodeId: peerId,
+	}).First(&node).Error; err != nil {
+		return model.Libp2pNode{}, err
+	}
+	return node, nil
+}

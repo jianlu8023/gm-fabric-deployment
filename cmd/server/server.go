@@ -10,6 +10,7 @@ import (
 	"time"
 
 	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
+	"github.com/jianlu8023/golang-example/internal/web/router"
 	"github.com/jianlu8023/golang-example/pkg/control/job"
 	"github.com/jianlu8023/golang-example/version"
 
@@ -19,7 +20,6 @@ import (
 	"github.com/jianlu8023/go-tools/v2/pkg/pidfile"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
-	"github.com/jianlu8023/golang-example/internal/web/router"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"

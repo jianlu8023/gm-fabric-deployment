@@ -5,6 +5,7 @@ import (
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/internal/web/request"
+	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 )
@@ -15,23 +16,24 @@ import (
 // @method NodeList 获取节点列表
 type NodeServiceInterface interface {
 	Libp2pNodeList(ctx *gin.Context, req *request.Libp2pNodeListRequest)
+	Libp2pNodeMyself(ctx *gin.Context)
 }
 
 // Libp2pNodeService 节点服务实现
 // @description 实现NodeServiceInterface接口，处理节点相关业务逻辑
 // @struct
 // @property *Service 基础服务
-// @property nodeMapper *mapper.Libp2pNodeMapper 节点映射器
+// @property mapper *mapper.Libp2pNodeMapper 节点映射器
 type Libp2pNodeService struct {
 	*Service
-	nodeMapper    *mapper.Libp2pNodeMapper
+	mapper        *mapper.Libp2pNodeMapper
 	libp2pControl *libp2p.Control
 }
 
 // NeeNodeService 创建节点服务实例
 // @description 创建并返回一个新的节点服务实例
 // @param service *Service 基础服务
-// @param nodeMapper *mapper.Libp2pNodeMapper 节点映射器
+// @param mapper *mapper.Libp2pNodeMapper 节点映射器
 // @param libp2pControl *libp2p.Control libp2p控制器
 // @return *Libp2pNodeService 节点服务实例
 func NeeNodeService(service *Service,
@@ -40,7 +42,7 @@ func NeeNodeService(service *Service,
 ) *Libp2pNodeService {
 	return &Libp2pNodeService{
 		Service:       service,
-		nodeMapper:    nodeMapper,
+		mapper:        nodeMapper,
 		libp2pControl: libp2pControl,
 	}
 }
@@ -53,11 +55,36 @@ func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2p
 	s.logger.Debugf("received libp2p node list request with params: %v", req)
 
 	s.logger.Debugf("starting call mapper to query info...")
-	page, err := s.nodeMapper.NodeList(model.Libp2pNode{}, req.IsPage, req.PageNo, req.PageSize)
+	page, err := s.mapper.NodeList(model.Libp2pNode{}, req.IsPage, req.PageNo, req.PageSize)
 	if err != nil {
 		s.logger.Errorf("query node list err: %v", err)
 		commonhttp.FailedResponse(ctx, commonhttp.NewError(commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed))
 		return
 	}
-	commonhttp.SuccessResponse(ctx, page)
+	nodeResponse, err := response.ToLibp2pNodeListResponse(page)
+	if err != nil {
+		s.logger.Errorf("convert node list err: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		return
+	}
+	commonhttp.SuccessResponse(ctx, nodeResponse)
+}
+
+func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context) {
+	s.logger.Debugf("received libp2p node myself handler...")
+
+	peerId := s.libp2pControl.GetLocalhostPeerID().String()
+	myself, err := s.mapper.NodeMyself(peerId)
+	if err != nil {
+		s.logger.Errorf("query node myself err: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		return
+	}
+	myselfResponse, err := response.ToLibp2pNodeMyselfResponse(myself)
+	if err != nil {
+		s.logger.Errorf("convert node myself err: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		return
+	}
+	commonhttp.SuccessResponse(ctx, myselfResponse)
 }

@@ -65,7 +65,11 @@ func main() {
 		MaxOpenConn:    50,
 	}
 
-	dataSourceControl := datasource.NewDataSourceControl(datasourceConfig, loggerControl)
+	dataSourceControl, err := datasource.NewDataSourceControl(datasourceConfig, loggerControl)
+	if err != nil {
+		fmt.Printf("start datasource control failed: %v\n", err)
+		return
+	}
 	dataSourceControl.StartUp(func(err error) {
 		fmt.Printf("start up datasource failed: %v\n", err)
 		return

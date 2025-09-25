@@ -389,7 +389,7 @@ func (c *Control) registerDefaultRouter() {
 	// 如果启用了pprof，则注册pprof路由
 	if c.config.Pprof {
 		c.logger.Infof("[control] pprof enabled, registering pprof routes")
-		pprofUri := fmt.Sprintf("%s/%s", c.config.ContextPath, "debug/pprof")
+		pprofUri := fmt.Sprintf("%s", "debug/pprof")
 		c.RegisterRouter([]commonhttp.RouterHandler{
 			&commonhttp.MyRouter{
 				Name:            "pprof",

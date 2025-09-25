@@ -3,17 +3,10 @@ package ipfs
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 	"sync"
 
-	"github.com/ipfs/boxo/files"
-	"github.com/ipfs/boxo/path"
-	"github.com/ipfs/go-cid"
 	shell "github.com/ipfs/go-ipfs-api"
-	ipfsrpc "github.com/ipfs/kubo/client/rpc"
-	"github.com/ipfs/kubo/core/coreiface/options"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/multiformats/go-multiaddr"
@@ -21,10 +14,9 @@ import (
 )
 
 // Control IPFS控制结构体
-
 type Control struct {
-	shell  *shell.Shell
-	client *ipfsrpc.HttpApi
+	shell *shell.Shell
+	// client *ipfsrpc.HttpApi
 	config *config.IpfsConfig
 	logger *zap.SugaredLogger
 	ctx    context.Context
@@ -86,13 +78,13 @@ func (ipfs *Control) initClient() error {
 		return err
 	}
 	ipfs.logger.Debugf("[control] connecting to IPFS API at %s", addr)
-	newApi, err := ipfsrpc.NewApi(addr)
-	if err != nil {
-		ipfs.logger.Errorf("[control] failed to create IPFS client: %v", err)
-		return err
-	}
+	// newApi, err := ipfsrpc.NewApi(addr)
+	// if err != nil {
+	// 	ipfs.logger.Errorf("[control] failed to create IPFS client: %v", err)
+	// 	return err
+	// }
 
-	ipfs.client = newApi
+	// ipfs.client = newApi
 	return nil
 }
 
@@ -196,21 +188,22 @@ func (ipfs *Control) UploadFile(filePath string) (string, error) {
 	}(file)
 
 	// 上传文件到IPFS
-	readerFile := files.NewReaderFile(file)
-	immutablePath, err := ipfs.client.Unixfs().Add(
-		ipfs.ctx,
-		readerFile,
-		options.Unixfs.CidVersion(1),
-		options.Unixfs.Pin(true),
-	)
-	if err != nil {
-		ipfs.logger.Errorf("[control] failed to upload file: %v", err)
-		return "", err
-	}
+	// readerFile := files.NewReaderFile(file)
+	// immutablePath, err := ipfs.client.Unixfs().Add(
+	// 	ipfs.ctx,
+	// 	readerFile,
+	// 	options.Unixfs.CidVersion(1),
+	// 	options.Unixfs.Pin(true),
+	// )
+	// if err != nil {
+	// 	ipfs.logger.Errorf("[control] failed to upload file: %v", err)
+	// 	return "", err
+	// }
 
-	cidStr := immutablePath.String()
-	ipfs.logger.Infof("[control] file uploaded successfully, CID: %s", cidStr)
-	return cidStr, nil
+	// cidStr := immutablePath.String()
+	// ipfs.logger.Infof("[control] file uploaded successfully, CID: %s", cidStr)
+	// return cidStr, nil
+	return "", nil
 }
 
 // uploadDirectory 上传目录到IPFS
@@ -222,47 +215,47 @@ func (ipfs *Control) uploadDirectory(dirPath string) (string, error) {
 	ipfs.logger.Debugf("[control] uploading directory recursively: %s", dirPath)
 
 	// 构建一个目录添加操作
-	addDir := func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// 忽略目录本身，只处理其中的文件
-		if !info.IsDir() {
-			ipfs.logger.Debugf("[control] uploading file in directory: %s", path)
-			file, err := os.Open(path)
-			if err != nil {
-				return err
-			}
-			defer func(file *os.File) {
-				if err := file.Close(); err != nil {
-					ipfs.logger.Errorf("[control] failed to close file: %v", err)
-				}
-			}(file)
-
-			// 上传文件
-			readerFile := files.NewReaderFile(file)
-			_, err = ipfs.client.Unixfs().Add(ipfs.ctx, readerFile,
-				options.Unixfs.CidVersion(1),
-				options.Unixfs.Pin(true),
-			)
-			return err
-		}
-		return nil
-	}
-
-	// 遍历目录并上传所有文件
-	if err := filepath.Walk(dirPath, addDir); err != nil {
-		ipfs.logger.Errorf("[control] failed to upload directory: %v", err)
-		return "", err
-	}
-
-	// 注意：这个简化实现会返回最后上传文件的CID
-	// 实际项目中可能需要使用MFS (Mutable File System) 来创建目录结构
-	// 并返回整个目录的根CID
-	ipfs.logger.Infof("[control] directory upload process completed: %s", dirPath)
-
-	// 这里返回一个临时值，实际实现需要调整
+	// addDir := func(path string, info os.FileInfo, err error) error {
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	//
+	// 	// 忽略目录本身，只处理其中的文件
+	// 	if !info.IsDir() {
+	// 		ipfs.logger.Debugf("[control] uploading file in directory: %s", path)
+	// 		file, err := os.Open(path)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		defer func(file *os.File) {
+	// 			if err := file.Close(); err != nil {
+	// 				ipfs.logger.Errorf("[control] failed to close file: %v", err)
+	// 			}
+	// 		}(file)
+	//
+	// 		// 上传文件
+	// 		readerFile := files.NewReaderFile(file)
+	// 		_, err = ipfs.client.Unixfs().Add(ipfs.ctx, readerFile,
+	// 			options.Unixfs.CidVersion(1),
+	// 			options.Unixfs.Pin(true),
+	// 		)
+	// 		return err
+	// 	}
+	// 	return nil
+	// }
+	//
+	// // 遍历目录并上传所有文件
+	// if err := filepath.Walk(dirPath, addDir); err != nil {
+	// 	ipfs.logger.Errorf("[control] failed to upload directory: %v", err)
+	// 	return "", err
+	// }
+	//
+	// // 注意：这个简化实现会返回最后上传文件的CID
+	// // 实际项目中可能需要使用MFS (Mutable File System) 来创建目录结构
+	// // 并返回整个目录的根CID
+	// ipfs.logger.Infof("[control] directory upload process completed: %s", dirPath)
+	//
+	// // 这里返回一个临时值，实际实现需要调整
 	return "", fmt.Errorf("directory upload not fully implemented")
 }
 
@@ -275,11 +268,11 @@ func (ipfs *Control) DownloadFile(cidStr string, outputPath string) error {
 	ipfs.logger.Infof("[control] downloading file from IPFS, CID: %s", cidStr)
 
 	// 解析CID
-	decode, err := cid.Decode(cidStr)
-	if err != nil {
-		ipfs.logger.Errorf("[control] invalid CID format: %v", err)
-		return err
-	}
+	// decode, err := cid.Decode(cidStr)
+	// if err != nil {
+	// 	ipfs.logger.Errorf("[control] invalid CID format: %v", err)
+	// 	return err
+	// }
 
 	// 创建输出文件
 	outputFile, err := os.Create(outputPath)
@@ -295,28 +288,28 @@ func (ipfs *Control) DownloadFile(cidStr string, outputPath string) error {
 	}(outputFile)
 
 	// 从IPFS获取文件内容
-	ipfsPath := path.FromCid(decode)
-	reader, err := ipfs.client.Unixfs().Get(ipfs.ctx, ipfsPath)
-	if err != nil {
-		ipfs.logger.Errorf("[control] failed to get file from IPFS: %v", err)
-		return err
-	}
-	defer func(reader files.Node) {
-		err := reader.Close()
-		if err != nil {
-			ipfs.logger.Errorf("[control] failed to close file: %v", err)
-		}
-	}(reader)
+	// ipfsPath := path.FromCid(decode)
+	// reader, err := ipfs.client.Unixfs().Get(ipfs.ctx, ipfsPath)
+	// if err != nil {
+	// 	ipfs.logger.Errorf("[control] failed to get file from IPFS: %v", err)
+	// 	return err
+	// }
+	// defer func(reader files.Node) {
+	// 	err := reader.Close()
+	// 	if err != nil {
+	// 		ipfs.logger.Errorf("[control] failed to close file: %v", err)
+	// 	}
+	// }(reader)
 
 	// 写入文件
-	toFile := files.ToFile(reader)
-	size, err := io.Copy(outputFile, toFile)
-	if err != nil {
-		ipfs.logger.Errorf("[control] failed to write to output file: %v", err)
-		return err
-	}
+	// toFile := files.ToFile(reader)
+	// size, err := io.Copy(outputFile, toFile)
+	// if err != nil {
+	// 	ipfs.logger.Errorf("[control] failed to write to output file: %v", err)
+	// 	return err
+	// }
 
-	ipfs.logger.Infof("[control] file downloaded successfully, size: %d bytes, saved to: %s", size, outputPath)
+	// ipfs.logger.Infof("[control] file downloaded successfully, size: %d bytes, saved to: %s", size, outputPath)
 	return nil
 }
 
@@ -329,38 +322,39 @@ func (ipfs *Control) GetFileContent(cidStr string) ([]byte, error) {
 	ipfs.logger.Infof("[control] getting file content from IPFS, CID: %s", cidStr)
 
 	// 解析CID
-	decode, err := cid.Decode(cidStr)
-	if err != nil {
-		ipfs.logger.Errorf("[control] invalid CID format: %v", err)
-		return nil, err
-	}
+	// decode, err := cid.Decode(cidStr)
+	// if err != nil {
+	// 	ipfs.logger.Errorf("[control] invalid CID format: %v", err)
+	// 	return nil, err
+	// }
 
 	// 从IPFS获取文件内容
-	ipfsPath := path.FromCid(decode)
-	reader, err := ipfs.client.Unixfs().Get(ipfs.ctx, ipfsPath)
-	if err != nil {
-		ipfs.logger.Errorf("[control] failed to get file from IPFS: %v", err)
-		return nil, err
-	}
-	defer func(reader files.Node) {
-		if err := reader.Close(); err != nil {
-			ipfs.logger.Errorf("[control] failed to close file: %v", err)
-		}
-	}(reader)
+	// ipfsPath := path.FromCid(decode)
+	// reader, err := ipfs.client.Unixfs().Get(ipfs.ctx, ipfsPath)
+	// if err != nil {
+	// 	ipfs.logger.Errorf("[control] failed to get file from IPFS: %v", err)
+	// 	return nil, err
+	// }
+	// defer func(reader files.Node) {
+	// 	if err := reader.Close(); err != nil {
+	// 		ipfs.logger.Errorf("[control] failed to close file: %v", err)
+	// 	}
+	// }(reader)
 
 	// 读取内容
-	toFile := files.ToFile(reader)
-	defer func(toFile files.File) {
-		if err := toFile.Close(); err != nil {
-			ipfs.logger.Errorf("[control] failed to close file: %v", err)
-		}
-	}(toFile)
-	content, err := io.ReadAll(toFile)
-	if err != nil {
-		ipfs.logger.Errorf("[control] failed to read file content: %v", err)
-		return nil, err
-	}
+	// toFile := files.ToFile(reader)
+	// defer func(toFile files.File) {
+	// 	if err := toFile.Close(); err != nil {
+	// 		ipfs.logger.Errorf("[control] failed to close file: %v", err)
+	// 	}
+	// }(toFile)
+	// content, err := io.ReadAll(toFile)
+	// if err != nil {
+	// 	ipfs.logger.Errorf("[control] failed to read file content: %v", err)
+	// 	return nil, err
+	// }
 
-	ipfs.logger.Infof("[control] file content retrieved successfully, size: %d bytes", len(content))
-	return content, nil
+	// ipfs.logger.Infof("[control] file content retrieved successfully, size: %d bytes", len(content))
+	// return content, nil
+	return nil, nil
 }
