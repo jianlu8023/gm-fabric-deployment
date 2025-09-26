@@ -101,6 +101,7 @@ require (
 	// github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	// github.com/gin-contrib/cache v1.3.1
 	// github.com/gin-contrib/sessions v1.0.2
+	// github.com/pquerna/otp v1.5.0 // totp 验证码
 	// github.com/gin-contrib/secure v1.1.1
 	// github.com/gin-contrib/location v1.0.2
 	// github.com/gin-contrib/authz v1.0.3
