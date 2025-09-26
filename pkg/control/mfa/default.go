@@ -25,6 +25,8 @@ type Provider interface {
 	// @param code string MFA代码
 	// @return bool 验证结果
 	VerifyCode(secret string, code string) bool
+
+	GenerateQrCode(otpauthURL string) string
 }
 
 // 常量定义

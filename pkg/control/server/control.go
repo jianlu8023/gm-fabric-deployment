@@ -9,6 +9,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/authz"
 	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 	"github.com/jianlu8023/golang-example/pkg/control/ipfs"
+	"github.com/jianlu8023/golang-example/pkg/control/mfa"
 	"github.com/jianlu8023/golang-example/version"
 
 	"github.com/jianlu8023/golang-example/pkg/control/flags"
@@ -43,6 +44,7 @@ type Control struct {
 	fabricCAControl   *fabricca.Control
 	authzControl      *authz.Control
 	ipfsControl       *ipfs.Control
+	mfaControl        *mfa.Control
 	logger            *zap.SugaredLogger
 	once              sync.Once
 	mutex             sync.RWMutex
@@ -152,6 +154,16 @@ func NewServerControlFromFile() (*Control, error) {
 	if captchaConfig != nil && captchaConfig.Enabled {
 		captchaControl := captcha.NewCaptchaControl(captchaConfig, control.GetLoggerControl())
 		control.captchaControl = captchaControl
+	}
+
+	mfaConfig := configControl.GetMFAConfig()
+	if mfaConfig != nil && mfaConfig.Enabled {
+		mfaControl, err := mfa.NewMFAControl(mfaConfig, control.GetLoggerControl())
+		if err != nil {
+			control.logger.Errorf("[control] create mfa control failed: %v", err)
+			return nil, err
+		}
+		control.mfaControl = mfaControl
 	}
 
 	// 检查并创建权限控制器
@@ -293,6 +305,12 @@ func (c *Control) GetIpfsControl() *ipfs.Control {
 	return c.ipfsControl
 }
 
+func (c *Control) GetMFAControl() *mfa.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.mfaControl
+}
+
 // NewServerControl 创建服务器控制器
 // @param dockerControl *docker.Control Docker控制器
 // @param configControl *config.Control 配置控制器
@@ -320,6 +338,7 @@ func NewServerControl(dockerControl *docker.Control,
 	fabricCAControl *fabricca.Control,
 	authzControl *authz.Control,
 	ipfsControl *ipfs.Control,
+	mfaControl *mfa.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -340,6 +359,7 @@ func NewServerControl(dockerControl *docker.Control,
 		fabricCAControl:   fabricCAControl,
 		authzControl:      authzControl,
 		ipfsControl:       ipfsControl,
+		mfaControl:        mfaControl,
 	}
 }
 
@@ -411,6 +431,10 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.logger.Debugf("[control] starting up authz server...")
 			c.authzControl.StartUp(failedFunc)
 		}
+		if c.mfaControl != nil {
+			c.logger.Debugf("[control] starting up mfa server...")
+			c.mfaControl.StartUp(failedFunc)
+		}
 
 		if c.websocketControl != nil {
 			c.logger.Debugf("[control] starting up websocket server...")
@@ -465,6 +489,10 @@ func (c *Control) Shutdown() error {
 	if c.authzControl != nil {
 		c.logger.Debugf("[control] shutting down authz server...")
 		_ = c.authzControl.Shutdown()
+	}
+	if c.mfaControl != nil {
+		c.logger.Debugf("[control] shutting down mfa server...")
+		_ = c.mfaControl.Shutdown()
 	}
 
 	if c.httpControl != nil {

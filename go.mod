@@ -23,6 +23,7 @@ replace (
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
 	// github.com/pion/webrtc/v4 v4.0.9 => github.com/pion/webrtc/v4 v4.1.1
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
+	github.com/skip2/go-qrcode => github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
 	golang.org/x/crypto => golang.org/x/crypto v0.33.0
 	google.golang.org/genproto/googleapis/api => google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9
@@ -83,7 +84,9 @@ require (
 	github.com/pion/interceptor v0.1.37
 	github.com/pion/logging v0.2.3
 	github.com/pion/webrtc/v4 v4.0.9
+	github.com/pquerna/otp v1.5.0
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/sony/sonyflake v1.1.0
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.10.0
@@ -160,6 +163,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.14.1 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect

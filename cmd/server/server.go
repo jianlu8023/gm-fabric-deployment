@@ -94,6 +94,7 @@ func main() {
 			serverControl.GetCaptchaControl(),
 			serverControl.GetAntsPoolControl(),
 			serverControl.GetFabricCAControl(),
+			serverControl.GetMFAControl(),
 		))
 	}
 

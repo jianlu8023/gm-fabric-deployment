@@ -107,3 +107,13 @@ fabric_ca:
   local_abs_path: "/home/user/codes/go/src/github.com/jianlu8023/golang-example/test/baasca"
   log_in_console: true
   test_mode: false
+mfa:
+  enabled: true
+  # google microsoft
+  default_provider: "google"
+  google:
+    issuer: "golang-example"
+  microsoft:
+    tenant_id: ""
+    client_id: ""
+    client_secret: ""

@@ -75,10 +75,11 @@ func (c *Control) initProviders() {
 	// 初始化Google认证提供商
 	c.providers[ProviderGoogle] = &GoogleProvider{
 		issuer: c.config.Google.Issuer,
+		logger: c.logger.Named("google"),
 	}
 	// 初始化Microsoft认证提供商
 	c.providers[ProviderMicrosoft] = &MicrosoftProvider{
-
+		logger:   c.logger.Named("microsoft"),
 		tenantID: c.config.Microsoft.TenantID,
 		clientID: c.config.Microsoft.ClientID,
 	}
@@ -101,6 +102,14 @@ func (c *Control) GenerateSecret(userID string) (string, string, error) {
 func (c *Control) VerifyCode(userID string, code string) bool {
 	c.logger.Debugf("[control] verifying MFA code for user: %s", userID)
 	return c.currentProvider.VerifyCode(userID, code)
+}
+
+// GetQrCodeImage 获取MFA二维码图片
+// @param otpauthURL string OTP认证URL
+// @return string 二维码图片的Base64编码
+func (c *Control) GetQrCodeImage(otpauthURL string) string {
+	c.logger.Debugf("[control] generating MFA QR code image")
+	return c.currentProvider.GenerateQrCode(otpauthURL)
 }
 
 // SetProvider 设置认证提供商

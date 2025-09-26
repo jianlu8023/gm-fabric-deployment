@@ -14,6 +14,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/http"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/mfa"
 	"github.com/jianlu8023/golang-example/pkg/control/websocket"
 )
 
@@ -39,6 +40,7 @@ func NewRouter(loggerControl *logger.Control,
 	captchaControl *captcha.Control,
 	antsPoolControl *ants.Control,
 	fabriccaControl *fabricca.Control,
+	mfaControl *mfa.Control,
 ) []commonhttp.RouterHandler {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	baseHandler := handler.NewHandler(webLogger)
@@ -128,6 +130,11 @@ func NewRouter(loggerControl *logger.Control,
 			mapper.NewFileMapper(baseMapper),
 		),
 	)
+	
+	mfaHandler:=handler.NewMFAHandler(baseHandler,
+		service.NewMFAService(baseService,
+			mfaControl,
+			))
 
 	result := make([]commonhttp.RouterHandler, 0, 64)
 	result = append(result, baseHandler.Routers()...)
@@ -141,6 +148,7 @@ func NewRouter(loggerControl *logger.Control,
 	result = append(result, dockerNetworkHandler.Routers()...)
 	result = append(result, grpcHandler.Routers()...)
 	result = append(result, fileHandler.Routers()...)
+	result = append(result, mfaHandler.Routers()...)
 
 	return result
 }

@@ -93,3 +93,13 @@ ants_pool:
   pre_alloc: true
   # 是否非阻塞模式
   nonblocking: true
+mfa:
+  enabled: true
+  # google microsoft
+  default_provider: "google"
+  google:
+    issuer: "golang-example"
+  microsoft:
+    tenant_id: ""
+    client_id: ""
+    client_secret: ""

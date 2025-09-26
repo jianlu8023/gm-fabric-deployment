@@ -4,10 +4,16 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/base32"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/pquerna/otp"
+	"github.com/pquerna/otp/totp"
+	"github.com/skip2/go-qrcode"
+	"go.uber.org/zap"
 )
 
 type googleAuth struct {
@@ -60,6 +66,7 @@ func (g *googleAuth) totp(key []byte, count uint64, digits int) int {
 // @implements Provider
 type GoogleProvider struct {
 	issuer string // 颁发者名称
+	logger *zap.SugaredLogger
 }
 
 // GenerateSecret 生成Google认证器的MFA密钥
@@ -71,28 +78,26 @@ func (g *GoogleProvider) GenerateSecret(userID string) (string, string, error) {
 	if userID == "" {
 		return "", "", ErrInvalidUserID
 	}
-	// https://zh.mojotv.cn/go/golang-2fa
-	// // 生成TOTP密钥
-	// key, err := totp.Generate(totp.GenerateOpts{
-	// 	Issuer:      g.issuer,
-	// 	AccountName: userID,
-	// 	Period:      30,
-	// 	SecretSize:  20,
-	// 	Algorithm:   otp.AlgorithmSHA1,
-	// 	Digits:      otp.DigitsSix,
-	// })
-	// if err != nil {
-	// 	g.mfaControl.logger.Errorf("[control] failed to generate Google TOTP key: %v", err)
-	// 	return "", "", ErrGenerateSecretFailed
-	// }
-	//
-	// // 存储密钥
-	// g.mfaControl.secretStore[userID] = key.Secret()
-	// g.mfaControl.logger.Debugf("[control] Google MFA secret generated for user: %s", userID)
-	//
-	// // 返回密钥和二维码URL
-	// return key.Secret(), key.URL(), nil
-	return "", "", nil
+	// 生成TOTP密钥
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      g.issuer,
+		AccountName: userID,
+		Period:      30,
+		SecretSize:  20,
+		Algorithm:   otp.AlgorithmSHA1,
+		Digits:      otp.DigitsSix,
+	})
+	if err != nil {
+		g.logger.Errorf("[control] failed to generate Google TOTP key: %v", err)
+		return "", "", ErrGenerateSecretFailed
+	}
+
+	// 存储密钥
+	g.logger.Debugf("[control] Google MFA secret generated for user: %s", userID)
+
+	// 返回密钥和二维码URL
+	return key.Secret(), key.URL(), nil
+	// return "", "", nil
 
 }
 
@@ -102,14 +107,34 @@ func (g *GoogleProvider) GenerateSecret(userID string) (string, string, error) {
 // @return bool 验证结果
 func (g *GoogleProvider) VerifyCode(secret string, code string) bool {
 
-	// // 验证代码
-	// valid, err := totp.Validate(code, secret)
-	// if err != nil {
-	// 	g.mfaControl.logger.Errorf("[control] failed to validate Google MFA code: %v", err)
-	// 	return false
-	// }
-	//
-	// g.mfaControl.logger.Debugf("[control] Google MFA code validation for user: %s, valid: %v", userID, valid)
-	// return valid
-	return false
+	// 验证代码
+	valid := totp.Validate(code, secret)
+	g.logger.Debugf("[control] Google MFA code validation for valid: %v", valid)
+	return valid
+}
+
+// GenerateQrCode 生成MFA二维码图片
+// @param otpauthURL string OTP认证URL
+// @return string 二维码图片的Base64编码
+func (g *GoogleProvider) GenerateQrCode(otpauthURL string) string {
+	// 创建二维码
+	qr, err := qrcode.New(otpauthURL, qrcode.Medium)
+	if err != nil {
+		g.logger.Errorf("[control] failed to create QR code: %v", err)
+		return ""
+	}
+
+	// 调整二维码尺寸
+	qr.DisableBorder = false
+
+	// 生成PNG并转换为Base64
+	qrBytes, err := qr.PNG(240)
+	if err != nil {
+		g.logger.Errorf("[control] failed to generate QR code PNG: %v", err)
+		return ""
+	}
+
+	// 转换为Base64编码的图片数据
+	base64Str := base64.StdEncoding.EncodeToString(qrBytes)
+	return "data:image/png;base64," + base64Str
 }
