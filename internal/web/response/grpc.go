@@ -13,20 +13,20 @@ type GrpcSendPingMessageResponse struct {
 	Message         []byte `json:"message,omitempty"`
 }
 
-func (g GrpcSendPingMessageResponse) MarshalJSON() ([]byte, error) {
+func (resp GrpcSendPingMessageResponse) MarshalJSON() ([]byte, error) {
 	type Alias GrpcSendPingMessageResponse
 	aux := struct {
 		*Alias
 		Message string `json:"message,omitempty"`
 	}{
-		Alias:   (*Alias)(&g),
-		Message: string(g.Message),
+		Alias:   (*Alias)(&resp),
+		Message: string(resp.Message),
 	}
 	return json.Marshal(aux)
 }
 
-func (g GrpcSendPingMessageResponse) String() string {
-	str, _ := json.MarshalString(g)
+func (resp GrpcSendPingMessageResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 

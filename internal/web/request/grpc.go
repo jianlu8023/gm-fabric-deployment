@@ -6,11 +6,11 @@ import (
 
 type GrpcSendPingMessageRequest struct{}
 
-func (g GrpcSendPingMessageRequest) IsLegal() bool {
+func (req GrpcSendPingMessageRequest) IsLegal() bool {
 	return true
 }
 
-func (g GrpcSendPingMessageRequest) String() string {
-	str, _ := json.MarshalString(g)
+func (req GrpcSendPingMessageRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }

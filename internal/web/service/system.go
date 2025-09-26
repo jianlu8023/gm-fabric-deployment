@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	systeminfo "github.com/jianlu8023/go-tools/v2/pkg/system/info"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/internal/web/request"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/version"
 )
@@ -21,8 +22,8 @@ type SystemService struct {
 // GetSystemOverview 获取系统概览信息
 // @description 获取系统的基本信息，包括操作系统、CPU、磁盘和内存信息
 // @param ctx *gin.Context Gin上下文
-func (s *SystemService) GetSystemOverview(ctx *gin.Context) {
-	s.logger.Debugf("received get system overview request...")
+func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemOverviewRequest) {
+	s.logger.Debugf("received system overview request with params: %v", req)
 
 	os := systeminfo.InitOS()
 	cpu, err := systeminfo.InitCPU()
@@ -54,8 +55,8 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context) {
 	})
 }
 
-func (s *SystemService) GetSystemInitStatus(ctx *gin.Context) {
-	s.logger.Debugf("received get system init status request...")
+func (s *SystemService) GetSystemInitStatus(ctx *gin.Context, req *request.SystemInitStatusRequest) {
+	s.logger.Debugf("received system init status request with params: %v", req)
 
 	init, err := s.mapper.GetSystemInit()
 	if err != nil {

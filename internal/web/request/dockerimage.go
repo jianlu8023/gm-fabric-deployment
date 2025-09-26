@@ -11,14 +11,14 @@ type DockerImageListRequest struct {
 	PeerId string `json:"peer_id,omitempty" yaml:"peer_id,omitempty" form:"peerId" binding:"-"`
 }
 
-func (n DockerImageListRequest) IsLegal() bool {
-	if n.PageSize <= 0 || n.PageNo <= 0 {
+func (req DockerImageListRequest) IsLegal() bool {
+	if req.PageSize <= 0 || req.PageNo <= 0 {
 		return false
 	}
 	return true
 }
-func (n DockerImageListRequest) String() string {
-	str, _ := json.MarshalString(n)
+func (req DockerImageListRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -27,15 +27,15 @@ type DockerImagePullRequest struct {
 	PeerId    string `json:"peer_id,omitempty" yaml:"peer_id,omitempty" form:"peerId" binding:"required"`
 }
 
-func (n DockerImagePullRequest) IsLegal() bool {
-	if stringer.IsBlank(n.ImageName) ||
-		stringer.IsBlank(n.PeerId) {
+func (req DockerImagePullRequest) IsLegal() bool {
+	if stringer.IsBlank(req.ImageName) ||
+		stringer.IsBlank(req.PeerId) {
 		return false
 	}
 	return true
 }
 
-func (n DockerImagePullRequest) String() string {
-	str, _ := json.MarshalString(n)
+func (req DockerImagePullRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }

@@ -25,6 +25,16 @@ type BaseResponse struct {
 	Message string `json:"message" yaml:"message"`
 }
 
+func (b BaseResponse) MarshalJSON() ([]byte, error) {
+	type Alias BaseResponse
+	aux := struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&b),
+	}
+	return json.Marshal(aux)
+}
+
 // String 将BaseResponse转换为字符串
 //
 // @description 将BaseResponse结构体转换为JSON字符串

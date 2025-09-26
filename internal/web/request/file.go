@@ -27,29 +27,29 @@ type FileInitUploadRequest struct {
 	ExpireTime  int64  `form:"expire_time" binding:"omitempty,gte=0" validate:"gte=0"`
 }
 
-func (r FileInitUploadRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req FileInitUploadRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
 // IsLegal 验证初始化上传请求参数是否合法
 // @description 检查文件名、文件大小、分片大小等参数的合法性
 // @return bool 参数是否合法
-func (r FileInitUploadRequest) IsLegal() bool {
+func (req FileInitUploadRequest) IsLegal() bool {
 	// 文件名不能为空
-	if stringer.IsBlank(r.FileName) {
+	if stringer.IsBlank(req.FileName) {
 		return false
 	}
 	// 文件大小必须大于0
-	if r.FileSize <= 0 {
+	if req.FileSize <= 0 {
 		return false
 	}
 	// 分片大小必须在合理范围内 (1KB - 10MB)
-	if r.ChunkSize <= 0 || r.ChunkSize > 10*1024*1024 {
+	if req.ChunkSize <= 0 || req.ChunkSize > 10*1024*1024 {
 		return false
 	}
 	// 分片大小不能大于文件大小
-	if r.ChunkSize > r.FileSize {
+	if req.ChunkSize > req.FileSize {
 		return false
 	}
 	return true
@@ -74,27 +74,27 @@ type FileUploadChunkRequest struct {
 // IsLegal 验证上传分片请求参数是否合法
 // @description 检查文件ID、分片索引、总分片数等参数的合法性
 // @return bool 参数是否合法
-func (r FileUploadChunkRequest) IsLegal() bool {
+func (req FileUploadChunkRequest) IsLegal() bool {
 	// 文件ID必须大于0
-	if r.FileID <= 0 {
+	if req.FileID <= 0 {
 		return false
 	}
 	// 分片索引必须大于等于0
-	if r.ChunkIndex < 0 {
+	if req.ChunkIndex < 0 {
 		return false
 	}
 	// 总分片数必须大于0
-	if r.TotalChunks <= 0 {
+	if req.TotalChunks <= 0 {
 		return false
 	}
 	// 分片索引不能大于等于总分片数
-	if r.ChunkIndex >= r.TotalChunks {
+	if req.ChunkIndex >= req.TotalChunks {
 		return false
 	}
 	return true
 }
-func (r FileUploadChunkRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req FileUploadChunkRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -113,15 +113,15 @@ type CompleteUploadRequest struct {
 // IsLegal 验证完成上传请求参数是否合法
 // @description 检查文件ID等参数的合法性
 // @return bool 参数是否合法
-func (r CompleteUploadRequest) IsLegal() bool {
+func (req CompleteUploadRequest) IsLegal() bool {
 	// 文件ID必须大于0
-	if r.FileID <= 0 {
+	if req.FileID <= 0 {
 		return false
 	}
 	return true
 }
-func (r CompleteUploadRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req CompleteUploadRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -136,15 +136,15 @@ type GetUploadStatusRequest struct {
 // IsLegal 验证获取上传状态请求参数是否合法
 // @description 检查文件ID等参数的合法性
 // @return bool 参数是否合法
-func (r GetUploadStatusRequest) IsLegal() bool {
+func (req GetUploadStatusRequest) IsLegal() bool {
 	// 文件ID必须大于0
-	if r.FileID <= 0 {
+	if req.FileID <= 0 {
 		return false
 	}
 	return true
 }
-func (r GetUploadStatusRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req GetUploadStatusRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -159,15 +159,15 @@ type DownloadFileRequest struct {
 // IsLegal 验证下载文件请求参数是否合法
 // @description 检查文件ID等参数的合法性
 // @return bool 参数是否合法
-func (r DownloadFileRequest) IsLegal() bool {
+func (req DownloadFileRequest) IsLegal() bool {
 	// 文件ID必须大于0
-	if r.FileID <= 0 {
+	if req.FileID <= 0 {
 		return false
 	}
 	return true
 }
-func (r DownloadFileRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req DownloadFileRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -194,25 +194,25 @@ type ListFilesRequest struct {
 // IsLegal 验证文件列表请求参数是否合法
 // @description 检查分页参数、排序参数等的合法性
 // @return bool 参数是否合法
-func (r ListFilesRequest) IsLegal() bool {
+func (req ListFilesRequest) IsLegal() bool {
 	// 页码必须大于0
-	if r.Page <= 0 {
-		r.Page = 1
+	if req.Page <= 0 {
+		req.Page = 1
 	}
 	// 页面大小必须在合理范围内
-	if r.PageSize <= 0 {
-		r.PageSize = 10
-	} else if r.PageSize > 100 {
-		r.PageSize = 100
+	if req.PageSize <= 0 {
+		req.PageSize = 10
+	} else if req.PageSize > 100 {
+		req.PageSize = 100
 	}
 	// 排序类型只能是asc或desc
-	if r.OrderType != "" && r.OrderType != "asc" && r.OrderType != "desc" {
+	if req.OrderType != "" && req.OrderType != "asc" && req.OrderType != "desc" {
 		return false
 	}
 	return true
 }
-func (r ListFilesRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req ListFilesRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -227,15 +227,15 @@ type DeleteFileRequest struct {
 // IsLegal 验证删除文件请求参数是否合法
 // @description 检查文件ID等参数的合法性
 // @return bool 参数是否合法
-func (r DeleteFileRequest) IsLegal() bool {
+func (req DeleteFileRequest) IsLegal() bool {
 	// 文件ID必须大于0
-	if r.FileID <= 0 {
+	if req.FileID <= 0 {
 		return false
 	}
 	return true
 }
-func (r DeleteFileRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req DeleteFileRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -250,16 +250,16 @@ type GetFileMetadataRequest struct {
 // IsLegal 验证获取文件元数据请求参数是否合法
 // @description 检查文件ID等参数的合法性
 // @return bool 参数是否合法
-func (r GetFileMetadataRequest) IsLegal() bool {
+func (req GetFileMetadataRequest) IsLegal() bool {
 	// 文件ID必须大于0
-	if r.FileID <= 0 {
+	if req.FileID <= 0 {
 		return false
 	}
 	return true
 }
 
-func (r GetFileMetadataRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req GetFileMetadataRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -274,15 +274,15 @@ type ResumeUploadRequest struct {
 // IsLegal 验证恢复上传请求参数是否合法
 // @description 检查上传ID等参数的合法性
 // @return bool 参数是否合法
-func (r ResumeUploadRequest) IsLegal() bool {
+func (req ResumeUploadRequest) IsLegal() bool {
 	// 上传ID不能为空
-	if stringer.IsBlank(r.UploadID) {
+	if stringer.IsBlank(req.UploadID) {
 		return false
 	}
 	return true
 }
 
-func (r ResumeUploadRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req ResumeUploadRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }

@@ -12,14 +12,14 @@ type WSConnectRequest struct {
 	NodeID string `json:"node_id" form:"nodeId" binding:"required"` // 节点ID
 }
 
-func (r WSConnectRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req WSConnectRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
 // IsLegal 验证WSConnectRequest参数是否合法
-func (r WSConnectRequest) IsLegal() bool {
-	if stringer.IsBlank(r.NodeID) {
+func (req WSConnectRequest) IsLegal() bool {
+	if stringer.IsBlank(req.NodeID) {
 		return false
 	}
 	return true
@@ -30,14 +30,14 @@ type WSDisconnectRequest struct {
 }
 
 // IsLegal 验证WSConnectRequest参数是否合法
-func (r WSDisconnectRequest) IsLegal() bool {
-	if stringer.IsBlank(r.NodeID) {
+func (req WSDisconnectRequest) IsLegal() bool {
+	if stringer.IsBlank(req.NodeID) {
 		return false
 	}
 	return true
 }
-func (r WSDisconnectRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req WSDisconnectRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -49,14 +49,14 @@ type WSMessageRequest struct {
 }
 
 // IsLegal 验证WSMessageRequest参数是否合法
-func (r WSMessageRequest) IsLegal() bool {
-	if stringer.IsBlank(r.Message) {
+func (req WSMessageRequest) IsLegal() bool {
+	if stringer.IsBlank(req.Message) {
 		return false
 	}
 	return true
 }
-func (r WSMessageRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req WSMessageRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
@@ -66,13 +66,13 @@ type WSConnectionListRequest struct {
 }
 
 // IsLegal 验证WSConnectionListRequest参数是否合法
-func (r WSConnectionListRequest) IsLegal() bool {
-	if r.PageNo <= 0 || r.PageSize <= 0 {
+func (req WSConnectionListRequest) IsLegal() bool {
+	if req.PageNo <= 0 || req.PageSize <= 0 {
 		return false
 	}
 	return true
 }
-func (r WSConnectionListRequest) String() string {
-	str, _ := json.MarshalString(r)
+func (req WSConnectionListRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }

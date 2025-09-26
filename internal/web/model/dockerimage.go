@@ -30,8 +30,8 @@ func (DockerImage) TableName() string {
 
 // String 返回json字符串
 // @return string json字符串
-func (i DockerImage) String() string {
-	str, _ := json.MarshalString(i)
+func (model DockerImage) String() string {
+	str, _ := json.MarshalString(model)
 	return str
 }
 

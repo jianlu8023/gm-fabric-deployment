@@ -2,10 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 )
 
 // SystemHandler 系统处理器结构体
@@ -40,9 +43,27 @@ func NewSystemHandler(handler *Handler, service *service.SystemService) *SystemH
 // @return JSON 系统概览信息，包括节点数量、容器状态、资源使用情况等
 func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
 	h.logger.Debugf("received system overview handler...")
+	// 绑定请求参数
+	req := new(request.SystemOverviewRequest)
+	if err := binding.BindQuery(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+	}
 
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("system overview request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
 	// 调用服务层方法
-	h.service.GetSystemOverview(ctx)
+	h.service.GetSystemOverview(ctx, req)
 }
 
 // GetSystemInitStatus 获取系统初始化状态处理函数
@@ -53,9 +74,27 @@ func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
 // @return JSON 系统初始化状态信息
 func (h *SystemHandler) GetSystemInitStatus(ctx *gin.Context) {
 	h.logger.Debugf("received system init status handler...")
+	// 绑定请求参数
+	req := new(request.SystemInitStatusRequest)
+	if err := binding.BindQuery(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+	}
 
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("system init status request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
 	// 调用服务层方法
-	h.service.GetSystemInitStatus(ctx)
+	h.service.GetSystemInitStatus(ctx, req)
 }
 
 // Routers 获取系统相关路由列表

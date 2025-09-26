@@ -30,8 +30,8 @@ func (Libp2pNode) TableName() string {
 // String 返回json格式字符串
 // @description 将节点信息转换为JSON格式字符串
 // @return string 节点信息的JSON格式字符串
-func (i Libp2pNode) String() string {
-	str, _ := json.MarshalString(i)
+func (model Libp2pNode) String() string {
+	str, _ := json.MarshalString(model)
 	return str
 }
 

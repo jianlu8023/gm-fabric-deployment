@@ -21,24 +21,24 @@ type DockerImageListResponse struct {
 }
 
 // MarshalJSON 自定义json返回
-func (i DockerImageListResponse) MarshalJSON() ([]byte, error) {
+func (resp DockerImageListResponse) MarshalJSON() ([]byte, error) {
 	type Alias DockerImageListResponse
 	aux := struct {
 		*Alias
 		IsDelete     bool   `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
 		ImageCreated string `json:"image_created,omitempty" yaml:"image_created,omitempty"`
 	}{
-		Alias:        (*Alias)(&i),
-		IsDelete:     i.IsDelete.Bool,
-		ImageCreated: humantime.HumanTime(i.ImageCreated, "unknown"),
+		Alias:        (*Alias)(&resp),
+		IsDelete:     resp.IsDelete.Bool,
+		ImageCreated: humantime.HumanTime(resp.ImageCreated, "unknown"),
 	}
 	return json.Marshal(aux)
 }
 
 // String 返回json字符串
 // @return string json字符串
-func (i DockerImageListResponse) String() string {
-	str, _ := json.MarshalString(i)
+func (resp DockerImageListResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
@@ -65,12 +65,12 @@ type DockerImagePullResponse struct {
 	Msg string `json:"msg,omitempty" yaml:"msg,omitempty"`
 }
 
-func (d DockerImagePullResponse) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d)
+func (resp DockerImagePullResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(resp)
 }
 
-func (d DockerImagePullResponse) String() string {
-	str, _ := json.MarshalString(d)
+func (resp DockerImagePullResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 

@@ -54,7 +54,12 @@ func (h *UserHandler) RegisterUserHandler(ctx *gin.Context) {
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定请求参数失败")
 		return
 	}
-
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("register user request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
 	h.service.RegisterUser(ctx, req)
 }
 
@@ -77,7 +82,12 @@ func (h *UserHandler) LoginUserHandler(ctx *gin.Context) {
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定请求参数失败")
 		return
 	}
-
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("login user request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
 	h.service.LoginUser(ctx, req)
 }
 

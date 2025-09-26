@@ -16,12 +16,18 @@ type CaptchaGenerateResponse struct {
 	ImgBase64 string `json:"img_base64,omitempty" yaml:"img_base64,omitempty"`
 }
 
-func (c CaptchaGenerateResponse) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c)
+func (resp CaptchaGenerateResponse) MarshalJSON() ([]byte, error) {
+	type Alias CaptchaGenerateResponse
+	aux := struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&resp),
+	}
+	return json.Marshal(aux)
 }
 
-func (c CaptchaGenerateResponse) String() string {
-	str, _ := json.MarshalString(c)
+func (resp CaptchaGenerateResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
@@ -49,12 +55,18 @@ type CaptchaValidateResponse struct {
 	CaptchaId string `json:"captchaId"`
 }
 
-func (v CaptchaValidateResponse) MarshalJSON() ([]byte, error) {
-	return json.Marshal(v)
+func (resp CaptchaValidateResponse) MarshalJSON() ([]byte, error) {
+	type Alias CaptchaValidateResponse
+	aux := struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&resp),
+	}
+	return json.Marshal(aux)
 }
 
-func (v CaptchaValidateResponse) String() string {
-	str, _ := json.MarshalString(v)
+func (resp CaptchaValidateResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 

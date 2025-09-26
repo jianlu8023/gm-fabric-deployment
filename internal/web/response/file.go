@@ -24,8 +24,8 @@ type InitUploadResponse struct {
 
 // String 将InitUploadResponse转换为字符串
 // @return string 格式化的JSON字符串
-func (r InitUploadResponse) String() string {
-	str, _ := json.MarshalString(r)
+func (resp InitUploadResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
@@ -64,8 +64,8 @@ type UploadChunkResponse struct {
 
 // String 将UploadChunkResponse转换为字符串
 // @return string 格式化的JSON字符串
-func (r UploadChunkResponse) String() string {
-	str, _ := json.MarshalString(r)
+func (resp UploadChunkResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
@@ -108,8 +108,8 @@ type CompleteUploadResponse struct {
 
 // String 将CompleteUploadResponse转换为字符串
 // @return string 格式化的JSON字符串
-func (r CompleteUploadResponse) String() string {
-	str, _ := json.MarshalString(r)
+func (resp CompleteUploadResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
@@ -162,8 +162,8 @@ type GetUploadStatusResponse struct {
 
 // String 将GetUploadStatusResponse转换为字符串
 // @return string 格式化的JSON字符串
-func (r GetUploadStatusResponse) String() string {
-	str, _ := json.MarshalString(r)
+func (resp GetUploadStatusResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
@@ -210,8 +210,8 @@ type ListFilesResponse struct {
 
 // String 将ListFilesResponse转换为字符串
 // @return string 格式化的JSON字符串
-func (r ListFilesResponse) String() string {
-	str, _ := json.MarshalString(r)
+func (resp ListFilesResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
@@ -268,8 +268,8 @@ type FileInfoResponse struct {
 
 // String 将FileInfoResponse转换为字符串
 // @return string 格式化的JSON字符串
-func (r FileInfoResponse) String() string {
-	str, _ := json.MarshalString(r)
+func (resp FileInfoResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 

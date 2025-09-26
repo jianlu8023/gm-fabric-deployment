@@ -15,20 +15,20 @@ type SystemInit struct {
 	IsInit sql.NullBool `json:"is_init,omitempty" yaml:"is_init,omitempty" gorm:"column:is_init;not null;default:false;"` // 是否已经初始化
 }
 
-func (s SystemInit) MarshalJSON() ([]byte, error) {
+func (model SystemInit) MarshalJSON() ([]byte, error) {
 	type Alias SystemInit
 	aux := &struct {
 		*Alias
 		IsInit bool `json:"is_init,omitempty" yaml:"is_init,omitempty"`
 	}{
-		Alias:  (*Alias)(&s),
-		IsInit: s.IsInit.Bool,
+		Alias:  (*Alias)(&model),
+		IsInit: model.IsInit.Bool,
 	}
 	return json.Marshal(aux)
 }
 
-func (s SystemInit) String() string {
-	str, _ := json.MarshalString(s)
+func (model SystemInit) String() string {
+	str, _ := json.MarshalString(model)
 	return str
 }
 

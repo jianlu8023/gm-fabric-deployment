@@ -28,11 +28,10 @@ type GrpcHandler struct {
 // @param baseHandler *Handler 基础处理器
 // @param service *service.GrpcService gRPC服务
 // @return *GrpcHandler gRPC处理器实例
-func NewGrpcHandler(baseHandler *Handler,
-	service *service.GrpcService) *GrpcHandler {
+func NewGrpcHandler(baseHandler *Handler, grpcService *service.GrpcService) *GrpcHandler {
 	return &GrpcHandler{
 		Handler: baseHandler,
-		service: service,
+		service: grpcService,
 	}
 }
 

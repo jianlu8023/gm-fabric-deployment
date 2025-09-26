@@ -19,12 +19,12 @@ type Libp2pNodeListResponse struct {
 	IsMySelf             sql.NullBool `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty" gorm:"column:is_my_self;type:bool;default:false"`                               // 是否是本机节点
 }
 
-func (i Libp2pNodeListResponse) String() string {
-	str, _ := json.MarshalString(i)
+func (resp Libp2pNodeListResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
-func (i Libp2pNodeListResponse) MarshalJSON() ([]byte, error) {
+func (resp Libp2pNodeListResponse) MarshalJSON() ([]byte, error) {
 	type Alias Libp2pNodeListResponse
 
 	aux := struct {
@@ -33,10 +33,10 @@ func (i Libp2pNodeListResponse) MarshalJSON() ([]byte, error) {
 		IsMySelf             bool   `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty"`
 		LastAliveMessageTime string `json:"last_alive_message_time,omitempty" yaml:"last_alive_message_time,omitempty"`
 	}{
-		Alias:                (*Alias)(&i),
-		IsAlive:              i.IsAlive.Bool,
-		IsMySelf:             i.IsMySelf.Bool,
-		LastAliveMessageTime: humantime.HumanTimeLower(i.LastAliveMessageTime, "unknown"),
+		Alias:                (*Alias)(&resp),
+		IsAlive:              resp.IsAlive.Bool,
+		IsMySelf:             resp.IsMySelf.Bool,
+		LastAliveMessageTime: humantime.HumanTimeLower(resp.LastAliveMessageTime, "unknown"),
 	}
 	return json.Marshal(aux)
 }
@@ -68,12 +68,12 @@ type Libp2pNodeMyselfResponse struct {
 	IsMySelf             sql.NullBool `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty"`                           // 是否是本机节点
 }
 
-func (i Libp2pNodeMyselfResponse) String() string {
-	str, _ := json.MarshalString(i)
+func (resp Libp2pNodeMyselfResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
-func (i Libp2pNodeMyselfResponse) MarshalJSON() ([]byte, error) {
+func (resp Libp2pNodeMyselfResponse) MarshalJSON() ([]byte, error) {
 	type Alias Libp2pNodeMyselfResponse
 
 	aux := struct {
@@ -82,10 +82,10 @@ func (i Libp2pNodeMyselfResponse) MarshalJSON() ([]byte, error) {
 		IsMySelf             bool   `json:"is_my_self,omitempty" yaml:"is_my_self,omitempty"`
 		LastAliveMessageTime string `json:"last_alive_message_time,omitempty" yaml:"last_alive_message_time,omitempty"`
 	}{
-		Alias:                (*Alias)(&i),
-		IsAlive:              i.IsAlive.Bool,
-		IsMySelf:             i.IsMySelf.Bool,
-		LastAliveMessageTime: humantime.HumanTimeLower(i.LastAliveMessageTime, "unknown"),
+		Alias:                (*Alias)(&resp),
+		IsAlive:              resp.IsAlive.Bool,
+		IsMySelf:             resp.IsMySelf.Bool,
+		LastAliveMessageTime: humantime.HumanTimeLower(resp.LastAliveMessageTime, "unknown"),
 	}
 	return json.Marshal(aux)
 }

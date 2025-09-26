@@ -19,15 +19,15 @@ type UserRegisterRequest struct {
 // 	return err
 // }
 
-func (u UserRegisterRequest) String() string {
-	str, _ := json.MarshalString(u)
+func (req UserRegisterRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
-func (u UserRegisterRequest) IsLegal() bool {
-	if stringer.IsBlank(u.Username) ||
-		stringer.IsBlank(u.Password) ||
-		stringer.IsBlank(u.Email) {
+func (req UserRegisterRequest) IsLegal() bool {
+	if stringer.IsBlank(req.Username) ||
+		stringer.IsBlank(req.Password) ||
+		stringer.IsBlank(req.Email) {
 		return false
 	}
 	return true
@@ -39,14 +39,14 @@ type UserLoginRequest struct {
 	Password string `json:"password,omitempty" yaml:"password,omitempty" form:"password" binding:"required"`
 }
 
-func (u UserLoginRequest) String() string {
-	str, _ := json.MarshalString(u)
+func (req UserLoginRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
-func (u UserLoginRequest) IsLegal() bool {
-	if stringer.IsBlank(u.Username) ||
-		stringer.IsBlank(u.Password) {
+func (req UserLoginRequest) IsLegal() bool {
+	if stringer.IsBlank(req.Username) ||
+		stringer.IsBlank(req.Password) {
 		return false
 	}
 	return true

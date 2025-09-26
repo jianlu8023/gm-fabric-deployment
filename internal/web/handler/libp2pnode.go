@@ -28,10 +28,10 @@ type Libp2pNodeHandler struct {
 // @param handler *Handler 基础处理器
 // @param service *service.Libp2pNodeService 节点服务
 // @return *Libp2pNodeHandler 节点处理器实例
-func NewLibp2pNodeHandler(handler *Handler, service *service.Libp2pNodeService) *Libp2pNodeHandler {
+func NewLibp2pNodeHandler(handler *Handler, libp2pNodeService *service.Libp2pNodeService) *Libp2pNodeHandler {
 	return &Libp2pNodeHandler{
 		Handler: handler,
-		service: service,
+		service: libp2pNodeService,
 	}
 }
 

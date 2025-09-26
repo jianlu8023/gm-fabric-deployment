@@ -17,15 +17,15 @@ type CaptchaValidateRequest struct {
 	Code      string `form:"code" json:"code" binding:"required,min=4,max=6"` // gin 也使用这个库`validate:"min=200"`参数错误时，返回InvalidValidationError类型；校验错误时返回ValidationErrors
 }
 
-func (c CaptchaValidateRequest) String() string {
-	str, _ := json.MarshalString(c)
+func (req CaptchaValidateRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
 // IsLegal 验证请求参数是否合法
 // @return bool 参数是否合法
-func (c CaptchaValidateRequest) IsLegal() bool {
-	if stringer.IsBlank(c.CaptchaId) || stringer.IsBlank(c.Code) {
+func (req CaptchaValidateRequest) IsLegal() bool {
+	if stringer.IsBlank(req.CaptchaId) || stringer.IsBlank(req.Code) {
 		return false
 	}
 	return true
@@ -36,22 +36,22 @@ type CaptchaGenerateRequest struct{}
 
 // IsLegal 验证生成验证码请求参数是否合法
 // @return bool 参数是否合法
-func (g CaptchaGenerateRequest) IsLegal() bool {
+func (req CaptchaGenerateRequest) IsLegal() bool {
 	// 验证CaptchaType是否合法
-	// if g.CaptchaType == "" {
-	// 	g.CaptchaType = "string"
+	// if req.CaptchaType == "" {
+	// 	req.CaptchaType = "string"
 	// }
 	// 验证宽度和高度
-	// if g.Width == 0 {
-	// 	g.Width = 240
+	// if req.Width == 0 {
+	// 	req.Width = 240
 	// }
-	// if g.Height == 0 {
-	// 	g.Height = 80
+	// if req.Height == 0 {
+	// 	req.Height = 80
 	// }
 	return true
 }
 
-func (g CaptchaGenerateRequest) String() string {
-	str, _ := json.MarshalString(g)
+func (req CaptchaGenerateRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }

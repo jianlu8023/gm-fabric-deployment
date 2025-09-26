@@ -68,12 +68,12 @@ type FileInfo struct {
 	Extra          map[string]interface{} `json:"extra" db:"extra"`
 }
 
-func (f FileInfo) TableName() string {
+func (model FileInfo) TableName() string {
 	return fileInfoTableName
 }
 
-func (f FileInfo) String() string {
-	str, _ := json.MarshalString(f)
+func (model FileInfo) String() string {
+	str, _ := json.MarshalString(model)
 	return str
 }
 
@@ -104,7 +104,7 @@ type FileChunk struct {
 	Status     string    `json:"status" db:"status"` // "uploaded", "missing"
 }
 
-func (c FileChunk) TableName() string {
+func (model FileChunk) TableName() string {
 	return fileChunkTableName
 }
 

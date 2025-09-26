@@ -25,12 +25,12 @@ type DockerNetworkListResponse struct {
 	IsDelete              sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:bool;default:false"`                                         // 删除标记（默认false）
 }
 
-func (i DockerNetworkListResponse) String() string {
-	str, _ := json.MarshalString(i)
+func (resp DockerNetworkListResponse) String() string {
+	str, _ := json.MarshalString(resp)
 	return str
 }
 
-func (i DockerNetworkListResponse) MarshalJSON() ([]byte, error) {
+func (resp DockerNetworkListResponse) MarshalJSON() ([]byte, error) {
 	type Alias DockerNetworkListResponse
 	aux := struct {
 		*Alias
@@ -40,12 +40,12 @@ func (i DockerNetworkListResponse) MarshalJSON() ([]byte, error) {
 		NetworkIngress    bool `json:"network_ingress,omitempty" yaml:"network_ingress,omitempty"`
 		IsDelete          bool `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
 	}{
-		Alias:             (*Alias)(&i),
-		NetworkEnableIPv6: i.NetworkEnableIPv6.Bool,
-		NetworkInternal:   i.NetworkInternal.Bool,
-		NetworkAttachable: i.NetworkAttachable.Bool,
-		NetworkIngress:    i.NetworkIngress.Bool,
-		IsDelete:          i.IsDelete.Bool,
+		Alias:             (*Alias)(&resp),
+		NetworkEnableIPv6: resp.NetworkEnableIPv6.Bool,
+		NetworkInternal:   resp.NetworkInternal.Bool,
+		NetworkAttachable: resp.NetworkAttachable.Bool,
+		NetworkIngress:    resp.NetworkIngress.Bool,
+		IsDelete:          resp.IsDelete.Bool,
 	}
 	return json.Marshal(aux)
 }

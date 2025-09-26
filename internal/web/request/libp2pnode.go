@@ -9,13 +9,13 @@ type Libp2pNodeListRequest struct {
 	commonhttp.PaginationRequest
 }
 
-func (p Libp2pNodeListRequest) String() string {
-	str, _ := json.MarshalString(p)
+func (req Libp2pNodeListRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
-func (p Libp2pNodeListRequest) IsLegal() bool {
-	if p.PageNo <= 0 || p.PageSize <= 0 {
+func (req Libp2pNodeListRequest) IsLegal() bool {
+	if req.PageNo <= 0 || req.PageSize <= 0 {
 		return false
 	}
 	return true
@@ -23,11 +23,11 @@ func (p Libp2pNodeListRequest) IsLegal() bool {
 
 type Libp2pNodeMyselfRequest struct{}
 
-func (p Libp2pNodeMyselfRequest) String() string {
-	str, _ := json.MarshalString(p)
+func (req Libp2pNodeMyselfRequest) String() string {
+	str, _ := json.MarshalString(req)
 	return str
 }
 
-func (p Libp2pNodeMyselfRequest) IsLegal() bool {
+func (req Libp2pNodeMyselfRequest) IsLegal() bool {
 	return true
 }

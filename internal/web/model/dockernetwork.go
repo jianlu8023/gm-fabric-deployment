@@ -37,8 +37,8 @@ func (DockerNetwork) TableName() string {
 // String 将网络信息转换为JSON字符串
 // @description 将Info结构体转换为JSON格式的字符串表示
 // @return string 网络信息的JSON格式字符串
-func (i DockerNetwork) String() string {
-	str, _ := json.MarshalString(i)
+func (model DockerNetwork) String() string {
+	str, _ := json.MarshalString(model)
 	return str
 }
 

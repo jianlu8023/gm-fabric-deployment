@@ -30,16 +30,16 @@ type UserInfo struct {
 // @description 自定义UserInfo结构体的JSON序列化逻辑，将sql.NullBool类型的IsDelete字段转换为普通bool类型
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
-func (u UserInfo) MarshalJSON() ([]byte, error) {
+func (model UserInfo) MarshalJSON() ([]byte, error) {
 	type Alias UserInfo
 	aux := struct {
 		*Alias
 		IsDelete      bool   `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
 		LastLoginTime string `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty"`
 	}{
-		Alias:         (*Alias)(&u),
-		IsDelete:      u.IsDelete.Bool,
-		LastLoginTime: humantime.HumanTimeLower(u.LastLoginTime, "unknown"),
+		Alias:         (*Alias)(&model),
+		IsDelete:      model.IsDelete.Bool,
+		LastLoginTime: humantime.HumanTimeLower(model.LastLoginTime, "unknown"),
 	}
 	return json.Marshal(aux)
 }
@@ -47,8 +47,8 @@ func (u UserInfo) MarshalJSON() ([]byte, error) {
 // String 将用户信息转换为字符串表示
 // @description 将UserInfo结构体转换为JSON格式的字符串
 // @return string 用户信息的JSON格式字符串
-func (u UserInfo) String() string {
-	str, _ := json.MarshalString(u)
+func (model UserInfo) String() string {
+	str, _ := json.MarshalString(model)
 	return str
 }
 

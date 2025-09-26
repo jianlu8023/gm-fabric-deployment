@@ -138,7 +138,7 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 	sessionID := uuid.GetUUID()
 	// 生成JWT令牌，过期时间设置为24小时
 	token, claims, err := jwt.GenerateToken(
-		strconv.Itoa(int(user.AutoUid)),
+		strconv.Itoa(user.AutoUid),
 		user.Username,
 		"user", // 默认角色为普通用户
 		sessionID,
