@@ -122,6 +122,13 @@ func NewRouter(loggerControl *logger.Control,
 		),
 	)
 
+	fileHandler := handler.NewFileHandler(baseHandler,
+		service.NewFileService(
+			baseService,
+			mapper.NewFileMapper(baseMapper),
+		),
+	)
+
 	result := make([]commonhttp.RouterHandler, 0, 64)
 	result = append(result, baseHandler.Routers()...)
 	result = append(result, userHandler.Routers()...)
@@ -133,6 +140,7 @@ func NewRouter(loggerControl *logger.Control,
 	result = append(result, dockerImageHandler.Routers()...)
 	result = append(result, dockerNetworkHandler.Routers()...)
 	result = append(result, grpcHandler.Routers()...)
+	result = append(result, fileHandler.Routers()...)
 
 	return result
 }

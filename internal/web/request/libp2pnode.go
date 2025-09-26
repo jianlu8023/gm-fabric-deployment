@@ -20,3 +20,14 @@ func (p Libp2pNodeListRequest) IsLegal() bool {
 	}
 	return true
 }
+
+type Libp2pNodeMyselfRequest struct{}
+
+func (p Libp2pNodeMyselfRequest) String() string {
+	str, _ := json.MarshalString(p)
+	return str
+}
+
+func (p Libp2pNodeMyselfRequest) IsLegal() bool {
+	return true
+}

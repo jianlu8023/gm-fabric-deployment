@@ -1,18 +1,16 @@
-package model
+package response
 
 import (
 	"database/sql"
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/pkg/dbpage"
+	"github.com/jinzhu/copier"
 )
 
-const (
-	networkInfoTableName = "t_docker_network_info"
-)
-
-type DockerNetwork struct {
-	AutoUid               int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                        // 自增ID（主键）
+type DockerNetworkListResponse struct {
 	NetworkName           string       `json:"network_name,omitempty" yaml:"network_name,omitempty" gorm:"column:network_name;type:varchar(255);not null;"`                            // 网络名称
 	NetworkID             string       `json:"network_id,omitempty" yaml:"network_id,omitempty" gorm:"column:network_id;type:varchar(255);not null;"`                                  // 网络ID（Docker生成的唯一标识）
 	NetworkCreateTime     time.Time    `json:"network_create_time,omitempty" yaml:"network_create_time,omitempty" gorm:"column:network_create_time;type:datetime;not null;"`           // 网络创建时间
@@ -27,24 +25,46 @@ type DockerNetwork struct {
 	IsDelete              sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:bool;default:false"`                                         // 删除标记（默认false）
 }
 
-// TableName 返回数据库表名
-// @description 实现gorm接口，指定Info结构体对应的数据库表名
-// @return string 数据库表名
-func (DockerNetwork) TableName() string {
-	return networkInfoTableName
-}
-
-// String 将网络信息转换为JSON字符串
-// @description 将Info结构体转换为JSON格式的字符串表示
-// @return string 网络信息的JSON格式字符串
-func (i DockerNetwork) String() string {
+func (i DockerNetworkListResponse) String() string {
 	str, _ := json.MarshalString(i)
 	return str
 }
 
-// NewDockerNetwork 创建新的网络信息实例
-// @description 初始化一个空的Docker网络信息结构体指针
-// @return *Info 网络信息结构体指针
-func NewDockerNetwork() *DockerNetwork {
-	return &DockerNetwork{}
+func (i DockerNetworkListResponse) MarshalJSON() ([]byte, error) {
+	type Alias DockerNetworkListResponse
+	aux := struct {
+		*Alias
+		NetworkEnableIPv6 bool `json:"network_enable_ipv6,omitempty" yaml:"network_enable_ipv6,omitempty"`
+		NetworkInternal   bool `json:"network_internal,omitempty" yaml:"network_internal,omitempty"`
+		NetworkAttachable bool `json:"network_attachable,omitempty" yaml:"network_attachable,omitempty"`
+		NetworkIngress    bool `json:"network_ingress,omitempty" yaml:"network_ingress,omitempty"`
+		IsDelete          bool `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
+	}{
+		Alias:             (*Alias)(&i),
+		NetworkEnableIPv6: i.NetworkEnableIPv6.Bool,
+		NetworkInternal:   i.NetworkInternal.Bool,
+		NetworkAttachable: i.NetworkAttachable.Bool,
+		NetworkIngress:    i.NetworkIngress.Bool,
+		IsDelete:          i.IsDelete.Bool,
+	}
+	return json.Marshal(aux)
+}
+
+func NewDockerNetworkListResponse(page dbpage.Info[model.DockerNetwork]) (*dbpage.Info[DockerNetworkListResponse], error) {
+	var convert []DockerNetworkListResponse
+
+	err := copier.CopyWithOption(&convert, page.GetRecords(), copier.Option{
+		IgnoreEmpty: true,
+		DeepCopy:    true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return dbpage.NewPageInfo[DockerNetworkListResponse](
+		page.GetPageNo(),
+		page.GetPageSize(),
+		page.GetCount(),
+		page.GetMaxPage(),
+		convert,
+	), nil
 }

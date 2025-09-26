@@ -10,15 +10,6 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 )
 
-// NodeServiceInterface 节点服务接口
-// @description 定义节点服务的接口
-// @interface
-// @method NodeList 获取节点列表
-type NodeServiceInterface interface {
-	Libp2pNodeList(ctx *gin.Context, req *request.Libp2pNodeListRequest)
-	Libp2pNodeMyself(ctx *gin.Context)
-}
-
 // Libp2pNodeService 节点服务实现
 // @description 实现NodeServiceInterface接口，处理节点相关业务逻辑
 // @struct
@@ -70,8 +61,8 @@ func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2p
 	commonhttp.SuccessResponse(ctx, nodeResponse)
 }
 
-func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context) {
-	s.logger.Debugf("received libp2p node myself request...")
+func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest) {
+	s.logger.Debugf("received libp2p node myself request with params: %v", req)
 
 	peerId := s.libp2pControl.GetLocalhostPeerID().String()
 	myself, err := s.mapper.NodeMyself(peerId)
@@ -87,7 +78,7 @@ func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context) {
 		return
 	}
 
-	s.logger.Debugf("from database query result %s convert result %s", myself.String(), myselfResponse.String())
+	s.logger.Debugf("from database query result %v convert result %v", myself, myselfResponse)
 
 	commonhttp.SuccessResponse(ctx, myselfResponse)
 }

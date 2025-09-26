@@ -1,17 +1,33 @@
 package handler
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	"net/http"
+	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 )
 
+// GrpcHandler gRPC处理器结构体
+//
+// @description 处理gRPC相关的HTTP请求
+// @struct
+// @property *Handler 基础处理器，提供日志功能
+// @property service *service.GrpcService gRPC服务，处理gRPC相关的业务逻辑
 type GrpcHandler struct {
 	*Handler
 	service *service.GrpcService
 }
 
+// NewGrpcHandler 创建gRPC处理器
+//
+// @description 创建并返回一个新的gRPC处理器实例
+// @param baseHandler *Handler 基础处理器
+// @param service *service.GrpcService gRPC服务
+// @return *GrpcHandler gRPC处理器实例
 func NewGrpcHandler(baseHandler *Handler,
 	service *service.GrpcService) *GrpcHandler {
 	return &GrpcHandler{
@@ -20,10 +36,46 @@ func NewGrpcHandler(baseHandler *Handler,
 	}
 }
 
+// SendGrpcPingMessage 发送gRPC Ping消息处理函数
+//
+// @description 处理发送gRPC Ping消息的HTTP请求
+// @method GET
+// @url /api/v1/grpc/send/message/ping
+// @param peer_id string 节点ID (可选)
+// @return JSON gRPC Ping消息发送结果
 func (h *GrpcHandler) SendGrpcPingMessage(ctx *gin.Context) {
-	h.logger.Debugf("received send grpc ping message handler...")
+	h.logger.Debugf("received grpc send ping message handler...")
+
+	// 绑定请求参数
+	req := new(request.GrpcSendPingMessageRequest)
+	if err := binding.BindQuery(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages,
+		)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		return
+	}
+
+	// 验证参数合法性
+	if !req.IsLegal() {
+		h.logger.Errorf("grpc send ping message request is illegal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
+
+	// 调用服务层方法
+	h.service.GrpcPingMessage(ctx, req)
 }
 
+// Routers 获取gRPC相关路由列表
+//
+// @description 返回gRPC相关的所有HTTP路由定义
+// @return []commonhttp.RouterHandler gRPC路由处理器列表
 func (h *GrpcHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 )
 
 const (
@@ -21,21 +20,6 @@ type DockerImage struct {
 	ImageLocationPeerId string       `json:"image_location_peer_id,omitempty" yaml:"image_location_peer_id,omitempty" gorm:"column:image_location_peer_id;type:varchar(255);"` // 镜像所在peer
 	IsDelete            sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:bool;default:false"`                                   // 是否删除
 	// ImageFrom string `json:"image_from,omitempty" yaml:"image_from,omitempty" gorm:"column:image_from;type:varchar(255);"`
-}
-
-// MarshalJSON 自定义json返回
-func (i DockerImage) MarshalJSON() ([]byte, error) {
-	type Alias DockerImage
-	aux := struct {
-		*Alias
-		IsDelete     bool   `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
-		ImageCreated string `json:"image_created,omitempty" yaml:"image_created,omitempty"`
-	}{
-		Alias:        (*Alias)(&i),
-		IsDelete:     i.IsDelete.Bool,
-		ImageCreated: humantime.HumanTime(i.ImageCreated, "unknown"),
-	}
-	return json.Marshal(aux)
 }
 
 // TableName 返回表名

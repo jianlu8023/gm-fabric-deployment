@@ -1,13 +1,14 @@
 package handler
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
-	"net/http"
-	"strings"
 )
 
 type DockerNetworkHandler struct {
@@ -22,6 +23,10 @@ func NewDockerNetworkHandler(baseHandler *Handler,
 		Handler: baseHandler,
 		service: service,
 	}
+}
+
+type DockerNetworkServiceInterface interface {
+	DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest)
 }
 
 func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
@@ -40,6 +45,12 @@ func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
 		return
 	}
 
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("docker network list request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
 	h.service.DockerNetworkList(ctx, req)
 }
 

@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 	"net/http"
+
+	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"

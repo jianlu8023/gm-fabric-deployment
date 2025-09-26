@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"database/sql"
+
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"gorm.io/gorm"

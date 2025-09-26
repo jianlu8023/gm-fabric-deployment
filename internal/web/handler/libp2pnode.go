@@ -35,6 +35,15 @@ func NewLibp2pNodeHandler(handler *Handler, service *service.Libp2pNodeService) 
 	}
 }
 
+// Libp2pNodeServiceInterface 节点服务接口
+// @description 定义节点服务的接口
+// @interface
+// @method NodeList 获取节点列表
+type Libp2pNodeServiceInterface interface {
+	Libp2pNodeList(ctx *gin.Context, req *request.Libp2pNodeListRequest)
+	Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest)
+}
+
 // Libp2pNodeList 获取节点列表的处理函数
 //
 // @description 处理获取节点列表的HTTP请求
@@ -76,13 +85,37 @@ func (h *Libp2pNodeHandler) Libp2pNodeList(ctx *gin.Context) {
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
 		return
 	}
-
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("libp2p node list request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
 	h.service.Libp2pNodeList(ctx, req)
 }
 
 func (h *Libp2pNodeHandler) Libp2pNodeMyself(ctx *gin.Context) {
 	h.logger.Infof("received libp2p node myself handler...")
-	h.service.Libp2pNodeMyself(ctx)
+
+	req := new(request.Libp2pNodeMyselfRequest)
+	if err := binding.BindQuery(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		return
+	}
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("libp2p node list request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
+	h.service.Libp2pNodeMyself(ctx, req)
 }
 
 // Routers 获取节点相关路由列表

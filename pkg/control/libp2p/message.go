@@ -97,6 +97,10 @@ type DockerImagePullContent struct {
 	RegistryAuth string `json:"registry_auth,omitempty" yaml:"registry_auth,omitempty"`
 }
 
+func (d DockerImagePullContent) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d)
+}
+
 func (d DockerImagePullContent) String() string {
 	bytes, _ := json.Marshal(d)
 	return string(bytes)

@@ -1,13 +1,14 @@
 package handler
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
-	"net/http"
-	"strings"
 )
 
 type DockerImageHandler struct {
@@ -24,6 +25,11 @@ func NewDockerImageHandler(baseHandler *Handler,
 	}
 }
 
+type DockerImageServiceInterface interface {
+	DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest)
+	DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest)
+}
+
 func (h *DockerImageHandler) DockerImageList(ctx *gin.Context) {
 	h.logger.Debugf("received docker image list handler...")
 
@@ -38,6 +44,12 @@ func (h *DockerImageHandler) DockerImageList(ctx *gin.Context) {
 			msg = append(msg, message)
 		}
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		return
+	}
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("docker image list request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
@@ -59,7 +71,12 @@ func (h *DockerImageHandler) DockerImagePull(ctx *gin.Context) {
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
 		return
 	}
-
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("docker image pull request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		return
+	}
 	h.service.DockerImagePull(ctx, req)
 }
 
