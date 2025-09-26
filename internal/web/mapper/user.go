@@ -31,21 +31,30 @@ func NewUserMapper(baseMapper *Mapper) *UserMapper {
 // QueryExistUser 查询用户是否存在
 //
 // @param query model.UserInfo 查询条件
-// @return error 错误信息，如果用户存在返回ErrAlreadyExists
-func (m *UserMapper) QueryExistUser(query model.UserInfo) error {
+// @return bool 用户是否存在
+// @return error 错误信息
+func (m *UserMapper) QueryExistUser(query model.UserInfo) (bool, error) {
 	if m.db == nil {
-		return datasource.ErrNoDataSourceConn
+		return false, datasource.ErrNoDataSourceConn
 	}
 	var exist int64
 	if err := m.db.Model(&model.UserInfo{}).
 		Where(&query).
+		Where(&model.UserInfo{
+			IsDelete: sql.NullBool{Bool: false, Valid: true},
+		}).
 		Count(&exist).Error; err != nil {
-		return err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, err
 	}
+	// 用户存在返回true
 	if exist > 0 {
-		return datasource.ErrAlreadyExists
+		return true, nil
 	}
-	return nil
+	// 用户不存在返回false
+	return false, nil
 }
 
 // InsertOneUser 插入一个用户
@@ -119,4 +128,33 @@ func (m *UserMapper) UpdateLastLoginTime(user *model.UserInfo) error {
 		return nil
 	})
 
+}
+
+func (m *UserMapper) QueryUserByQuery(query model.UserInfo) (model.UserInfo, error) {
+	if m.db == nil {
+		return model.UserInfo{}, datasource.ErrNoDataSourceConn
+	}
+	var user model.UserInfo
+	if err := m.db.Model(&model.UserInfo{}).
+		Where(&query).Where(&model.UserInfo{
+		IsDelete: sql.NullBool{Bool: false, Valid: true},
+	}).First(&user).Error; err != nil {
+		return model.UserInfo{}, err
+	}
+	return user, nil
+}
+
+func (m *UserMapper) UpdateUser(user *model.UserInfo) error {
+	if m.db == nil {
+		return datasource.ErrNoDataSourceConn
+	}
+	return m.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.UserInfo{}).Where(&model.UserInfo{
+			IsDelete: sql.NullBool{Bool: false, Valid: true},
+			UserId:   user.UserId,
+		}).Updates(user).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }

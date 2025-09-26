@@ -4,9 +4,9 @@ requestBody:
   type: multipart/form-data
   parameters:
     - name: captchaId
-      value: 93uyGaZ7d6qybsUVBZUo
+      value: M6aEKUNBuu3u9CJZVv9a
       type: text
     - name: code
-      value: "894066"
+      value: "539641"
       type: text
   data: "{\r\n    \"captchaId\":\"\"\r\n}"

@@ -12,12 +12,16 @@ var (
 
 	// ErrNoDataSourceConn 没有可用的数据库连接
 	ErrNoDataSourceConn = errors.New("no can used datasource connection")
+
+	ErrNotExists = errors.New("not exists") //nolint:unused
 )
 
+//nolint:unused
 func IsUnknownDataSourceType(err error) bool {
 	return errors.Is(err, ErrUnknownDataSourceType)
 }
 
+//nolint:unused
 func IsAlreadyExists(err error) bool {
 	return errors.Is(err, ErrAlreadyExists)
 }

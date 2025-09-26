@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 )
 
 const (
@@ -16,32 +15,19 @@ const (
 // @description 定义系统用户的数据结构，包含用户的基本信息
 // @struct
 type UserInfo struct {
-	AutoUid       int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                  // 自增ID（主键）
-	Username      string       `json:"username,omitempty" yaml:"username,omitempty" gorm:"column:username;type:varchar(255);not null;unique"`                            // 用户名（唯一）
-	Password      string       `json:"-" yaml:"password,omitempty" gorm:"column:password;type:varchar(255);not null"`                                                    // 密码（JSON序列化时忽略）
-	Email         string       `json:"email,omitempty" yaml:"email,omitempty" gorm:"column:email;type:varchar(255);not null;unique"`                                     // 邮箱（唯一）
-	UserType      string       `json:"user_type,omitempty" yaml:"user_type,omitempty" gorm:"column:user_type;type:varchar(255);"`                                        // 用户类型
-	Certificate   string       `json:"-" yaml:"certificate,omitempty" gorm:"column:certificate;type:text"`                                                               // 证书（JSON序列化时忽略）
-	IsDelete      sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0"`                                 // 是否删除标记（默认为0）
-	LastLoginTime time.Time    `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty" gorm:"column:last_login_time;type:datetime;default:CURRENT_TIMESTAMP"` // 最后登录时间（默认为当前时间戳）
-}
-
-// MarshalJSON 自定义JSON序列化方法
-// @description 自定义UserInfo结构体的JSON序列化逻辑，将sql.NullBool类型的IsDelete字段转换为普通bool类型
-// @return []byte JSON字节数组
-// @return error 序列化错误信息
-func (model UserInfo) MarshalJSON() ([]byte, error) {
-	type Alias UserInfo
-	aux := struct {
-		*Alias
-		IsDelete      bool   `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
-		LastLoginTime string `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty"`
-	}{
-		Alias:         (*Alias)(&model),
-		IsDelete:      model.IsDelete.Bool,
-		LastLoginTime: humantime.HumanTimeLower(model.LastLoginTime, "unknown"),
-	}
-	return json.Marshal(aux)
+	AutoUid           int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                   // 自增ID（主键）
+	UserId            string       `json:"user_id,omitempty" yaml:"user_id,omitempty" gorm:"column:user_id;type:varchar(255);not null;"`                                      // 用户id
+	Username          string       `json:"username,omitempty" yaml:"username,omitempty" gorm:"column:username;type:varchar(255);not null;unique"`                             // 用户名（唯一）
+	Password          string       `json:"password,omitempty" yaml:"password,omitempty" gorm:"column:password;type:varchar(255);not null"`                                    // 密码（JSON序列化时忽略）
+	Email             string       `json:"email,omitempty" yaml:"email,omitempty" gorm:"column:email;type:varchar(255);not null;unique"`                                      // 邮箱（唯一）
+	UserType          string       `json:"user_type,omitempty" yaml:"user_type,omitempty" gorm:"column:user_type;type:varchar(255);"`                                         // 用户类型
+	Certificate       string       `json:"certificate,omitempty" yaml:"certificate,omitempty" gorm:"column:certificate;type:text;default:''"`                                 // 证书（JSON序列化时忽略）
+	MFAEnabled        sql.NullBool `json:"mfa_enabled,omitempty" yaml:"mfa_enabled,omitempty" gorm:"column:mfa_enabled;type:tinyint(1);default:0;"`                           // 是否启用mfa
+	MFASecret         string       `json:"mfa_secret,omitempty" yaml:"mfa_secret,omitempty" gorm:"column:mfa_secret;type:varchar(255);default:'';"`                           // mfa的secret
+	MFARecoverySecret string       `json:"mfa_recovery_secret,omitempty" yaml:"mfa_recovery_secret,omitempty" gorm:"column:mfa_recovery_secret;type:varchar(255);default:''"` // 恢复secret
+	MFAOTPAuthURL     string       `json:"mfa_otp_auth_url,omitempty" yaml:"mfa_otp_auth_url,omitempty" gorm:"column:mfa_otp_auth_url;type:varchar(255);default:'';"`         // mfa的otp auth url
+	IsDelete          sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0"`                                  // 是否删除标记（默认为0）
+	LastLoginTime     time.Time    `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty" gorm:"column:last_login_time;type:datetime;default:CURRENT_TIMESTAMP"`  // 最后登录时间（默认为当前时间戳）
 }
 
 // String 将用户信息转换为字符串表示

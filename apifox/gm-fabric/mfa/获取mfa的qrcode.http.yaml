@@ -1,0 +1,36 @@
+method: get
+url: "{{addr}}/{{contextpath}}/mfa/qrcode?userId=001"
+parameters:
+  query:
+    - name: userId
+      value: "001"
+requestBody:
+  type: multipart/form-data
+postProcessors:
+  - type: extractor
+    data:
+      variableName: qrcode
+      variableType: local
+      subject: responseJson
+      template: ""
+      expression: $.data.qr_code_image
+      extractSettings:
+        expression: $.data.qr_code_image
+        continueExtractorSettings:
+          isContinueExtractValue: false
+          JsonArrayValueIndexValue: ""
+    defaultEnable: true
+    enable: true
+  - type: customScript
+    data: |-
+      // 将接口返回数据，封装成自己需要的结构
+      var resp = {
+          response: pm.variables.get("qrcode")
+      }
+      // html 模板字符
+      var template = `<html><img src="{{response}}" /></html>`;
+
+      // 设置 visualizer 数据。传模板、解析对象。
+      pm.visualizer.set(template, resp);
+    defaultEnable: true
+    enable: true

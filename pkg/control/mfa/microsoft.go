@@ -1,9 +1,10 @@
 package mfa
 
 import (
-	"fmt"
 	"encoding/base64"
+	"fmt"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"github.com/skip2/go-qrcode"
@@ -17,6 +18,22 @@ type MicrosoftProvider struct {
 	logger   *zap.SugaredLogger
 	tenantID string // 租户ID
 	clientID string // 客户端ID
+}
+
+func (m *MicrosoftProvider) GenRecoverySecret(userId string, recoveryNum int) ([]string, error) {
+	if stringer.IsBlank(userId) {
+		return nil, ErrInvalidUserID
+	}
+	recoverySecret := make([]string, 0, recoveryNum)
+
+	for i := 0; i < recoveryNum; i++ {
+		secret, _, err := m.GenerateSecret(userId)
+		if err != nil {
+			return nil, err
+		}
+		recoverySecret = append(recoverySecret, secret)
+	}
+	return recoverySecret, nil
 }
 
 // GenerateSecret 生成Microsoft认证器的MFA密钥
@@ -76,17 +93,17 @@ func (m *MicrosoftProvider) GenerateQrCode(otpauthURL string) string {
 		m.logger.Errorf("[control] failed to create QR code: %v", err)
 		return ""
 	}
-	
+
 	// 调整二维码尺寸
 	qr.DisableBorder = false
-	
+
 	// 生成PNG并转换为Base64
 	qrBytes, err := qr.PNG(240)
 	if err != nil {
 		m.logger.Errorf("[control] failed to generate QR code PNG: %v", err)
 		return ""
 	}
-	
+
 	// 转换为Base64编码的图片数据
 	base64Str := base64.StdEncoding.EncodeToString(qrBytes)
 	return "data:image/png;base64," + base64Str

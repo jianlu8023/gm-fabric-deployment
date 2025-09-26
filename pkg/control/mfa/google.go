@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"github.com/skip2/go-qrcode"
@@ -69,6 +70,23 @@ type GoogleProvider struct {
 	logger *zap.SugaredLogger
 }
 
+func (g *GoogleProvider) GenRecoverySecret(userId string, recoveryNum int) ([]string, error) {
+	if stringer.IsBlank(userId) {
+		return nil, ErrInvalidUserID
+	}
+
+	recoverySecret := make([]string, 0, recoveryNum)
+
+	for i := 0; i < recoveryNum; i++ {
+		secret, _, err := g.GenerateSecret(userId)
+		if err != nil {
+			return nil, err
+		}
+		recoverySecret = append(recoverySecret, secret)
+	}
+	return recoverySecret, nil
+}
+
 // GenerateSecret 生成Google认证器的MFA密钥
 // @param userID string 用户ID
 // @return string 密钥
@@ -97,8 +115,6 @@ func (g *GoogleProvider) GenerateSecret(userID string) (string, string, error) {
 
 	// 返回密钥和二维码URL
 	return key.Secret(), key.URL(), nil
-	// return "", "", nil
-
 }
 
 // VerifyCode 验证Google认证器的MFA代码

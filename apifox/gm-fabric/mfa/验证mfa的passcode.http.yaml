@@ -1,0 +1,11 @@
+method: post
+url: "{{addr}}/{{contextpath}}/mfa/verify"
+requestBody:
+  type: multipart/form-data
+  parameters:
+    - name: userId
+      value: "001"
+      type: text
+    - name: code
+      value: "432578"
+      type: text

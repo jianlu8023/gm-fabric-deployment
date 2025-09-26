@@ -2,11 +2,13 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 )
 
 // MFAHandler MFA处理器
@@ -26,64 +28,79 @@ func NewMFAHandler(baseHandler *Handler, mfaService *service.MFAService) *MFAHan
 	}
 }
 
-func (h *MFAHandler) GenerateMfaSecret(ctx *gin.Context) {
-	h.logger.Debugf("received generate MFA secret request")
-	var req request.MFAGenerateSecretRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		h.logger.Error("Invalid request body", "error", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "请求参数无效: "+err.Error())
+func (h *MFAHandler) GenerateRecoverySecret(ctx *gin.Context) {
+	h.logger.Debugf("received mfa generate secret handler...")
+	req := new(request.MFARecoverySecretRequest)
+	if err := binding.BindMultiPartForm(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		return
+	}
+
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("mfa generate request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
 	// 调用服务层生成MFA密钥
-	resp, err := h.service.GenerateSecret(&req)
-	if err != nil {
-		h.logger.Error("Failed to generate MFA secret", "error", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "生成MFA密钥失败: "+err.Error())
-		return
-	}
-
-	commonhttp.SuccessResponse(ctx, resp)
+	h.service.GenerateRecoverySecret(ctx, req)
 }
 
 func (h *MFAHandler) VerifyMfaCode(ctx *gin.Context) {
-	h.logger.Debugf("received verify MFA code request")
-	var req request.MFAVerifyCodeRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		h.logger.Error("Invalid request body", "error", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "请求参数无效: "+err.Error())
+	h.logger.Debugf("received mfa verify code handler...")
+	req := new(request.MFAVerifyCodeRequest)
+	if err := binding.BindMultiPartForm(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
 		return
 	}
 
-	// 调用服务层验证MFA代码
-	resp, err := h.service.VerifyCode(&req)
-	if err != nil {
-		h.logger.Error("Failed to verify MFA code", "error", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "验证MFA代码失败: "+err.Error())
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("mfa verify code request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
-
-	commonhttp.SuccessResponse(ctx, resp)
-
+	h.service.VerifyCode(ctx, req)
 }
 
 func (h *MFAHandler) GenerateQrCode(ctx *gin.Context) {
-	h.logger.Debugf("received get QR code image request")
-	qrCodeURL := ctx.Query("qr_code_url")
-	if qrCodeURL == "" {
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "qr_code_url参数不能为空")
+	h.logger.Debugf("received mfa generate qrcode handler...")
+	req := new(request.MFAQrcodeRequest)
+	if err := binding.BindQuery(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
 		return
 	}
 
-	// 调用服务层获取二维码图片
-	qrCodeImage, err := h.service.GetQrCodeImage(qrCodeURL)
-	if err != nil {
-		h.logger.Error("Failed to get QR code image", "error", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取二维码图片失败: "+err.Error())
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("mfa generate qrcode request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
-	commonhttp.SuccessResponse(ctx, gin.H{"qr_code_image": qrCodeImage})
+	h.service.GenerateQrCodeImage(ctx, req)
 }
 
 // Routers 获取MFA相关的路由列表
@@ -93,11 +110,11 @@ func (h *MFAHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
 			Name:            "GenerateMFASecret",
-			Uri:             "/mfa/secret",
+			Uri:             "/mfa/recovery/secret",
 			Method:          http.MethodPost,
-			HandlerFunc:     h.GenerateMfaSecret,
+			HandlerFunc:     h.GenerateRecoverySecret,
 			Enabled:         true,
-			Desc:            "生成MFA密钥和二维码",
+			Desc:            "生成MFA恢复密钥",
 			EnableJWtVerify: false,
 		},
 		&commonhttp.MyRouter{

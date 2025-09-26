@@ -1,0 +1,8 @@
+method: post
+url: "{{addr}}/{{contextpath}}/mfa/recovery/secret"
+requestBody:
+  type: multipart/form-data
+  parameters:
+    - name: userId
+      value: "001"
+      type: text

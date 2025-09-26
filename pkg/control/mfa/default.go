@@ -21,12 +21,14 @@ type Provider interface {
 	GenerateSecret(userID string) (string, string, error)
 
 	// VerifyCode 验证MFA代码
-	// @param secret string 用户ID
+	// @param secret string 密钥
 	// @param code string MFA代码
 	// @return bool 验证结果
 	VerifyCode(secret string, code string) bool
 
 	GenerateQrCode(otpauthURL string) string
+
+	GenRecoverySecret(userId string, recoveryNum int) ([]string, error)
 }
 
 // 常量定义

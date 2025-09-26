@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	// "github.com/google/uuid"
-	// "github.com/pquerna/otp"
-	// "github.com/pquerna/otp/totp"
 	"go.uber.org/zap"
 
 	"github.com/jianlu8023/golang-example/pkg/control/config"
@@ -59,7 +56,7 @@ func NewMFAControl(mfaConfig *config.MFAConfig, loggerControl *logger.Control) (
 	control.initProviders()
 
 	// 设置默认认证提供商
-	if err := control.SetProvider(mfaConfig.DefaultProvider); err != nil {
+	if err := control.setProvider(mfaConfig.DefaultProvider); err != nil {
 		mfaLogger.Errorf("[control] failed to set default provider: %v", err)
 		cancel()
 		return nil, err
@@ -96,26 +93,31 @@ func (c *Control) GenerateSecret(userID string) (string, string, error) {
 }
 
 // VerifyCode 验证MFA代码
-// @param userID string 用户ID
+// @param secret string 密钥
 // @param code string MFA代码
 // @return bool 验证结果
-func (c *Control) VerifyCode(userID string, code string) bool {
-	c.logger.Debugf("[control] verifying MFA code for user: %s", userID)
-	return c.currentProvider.VerifyCode(userID, code)
+func (c *Control) VerifyCode(secret string, code string) bool {
+	c.logger.Debugf("[control] verifying MFA code for code: %s", code)
+	return c.currentProvider.VerifyCode(secret, code)
 }
 
-// GetQrCodeImage 获取MFA二维码图片
+// GenerateQrCodeImage 获取MFA二维码图片
 // @param otpauthURL string OTP认证URL
 // @return string 二维码图片的Base64编码
-func (c *Control) GetQrCodeImage(otpauthURL string) string {
+func (c *Control) GenerateQrCodeImage(otpauthURL string) string {
 	c.logger.Debugf("[control] generating MFA QR code image")
 	return c.currentProvider.GenerateQrCode(otpauthURL)
 }
 
-// SetProvider 设置认证提供商
+func (c *Control) GenerateRecoverySecret(userId string, recoveryNum int) ([]string, error) {
+	c.logger.Debugf("[control] generate MFA recovery secret for user: %s", userId)
+	return c.currentProvider.GenRecoverySecret(userId, recoveryNum)
+}
+
+// setProvider 设置认证提供商
 // @param provider string 认证提供商 (google/microsoft)
 // @return error 设置过程中的错误
-func (c *Control) SetProvider(provider string) error {
+func (c *Control) setProvider(provider string) error {
 	c.logger.Debugf("[control] setting MFA provider to: %s", provider)
 
 	// 检查提供商是否存在

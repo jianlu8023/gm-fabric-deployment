@@ -7,9 +7,9 @@ postProcessors:
       variableType: local
       subject: responseJson
       template: ""
-      expression: $.data.imgBase64
+      expression: $.data.img_base64
       extractSettings:
-        expression: $.data.imgBase64
+        expression: $.data.img_base64
         continueExtractorSettings:
           isContinueExtractValue: false
           JsonArrayValueIndexValue: ""

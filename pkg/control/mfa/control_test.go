@@ -77,7 +77,7 @@ func TestMFAControl_GenerateSecret(t *testing.T) {
 
 	t.Logf("Google MFA密钥生成成功: %s", secret)
 	t.Logf("Google MFA QR码URL: %s", url)
-	image := mfaCtrl.GetQrCodeImage(url)
+	image := mfaCtrl.GenerateQrCodeImage(url)
 	t.Logf("Google MFA QR码图片: %s", image)
 }
 

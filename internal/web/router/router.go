@@ -130,11 +130,13 @@ func NewRouter(loggerControl *logger.Control,
 			mapper.NewFileMapper(baseMapper),
 		),
 	)
-	
-	mfaHandler:=handler.NewMFAHandler(baseHandler,
+
+	mfaHandler := handler.NewMFAHandler(baseHandler,
 		service.NewMFAService(baseService,
+			mapper.NewUserMapper(baseMapper),
 			mfaControl,
-			))
+		),
+	)
 
 	result := make([]commonhttp.RouterHandler, 0, 64)
 	result = append(result, baseHandler.Routers()...)

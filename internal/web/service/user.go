@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
+	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 
@@ -13,7 +13,6 @@ import (
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/internal/web/request"
-	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 )
 
@@ -61,18 +60,21 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 		return
 	}
 	// 验证用户是否存在
-	if err := s.mapper.QueryExistUser(model.UserInfo{
-		Email: req.Email,
-	}); err != nil {
-		if datasource.IsAlreadyExists(err) {
-			// 用户已存在，返回错误
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.EmailAlreadyExists, commonhttp.ErrMsgEmailAlreadyExists)
-			return
-		} else {
-			// 数据库查询错误，返回错误
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, commonhttp.ErrMsgDatabaseError)
-			return
-		}
+	exist, err := s.mapper.QueryExistUser(model.UserInfo{
+		Email:    req.Email,
+		Username: req.Username,
+	})
+	if err != nil {
+		// 数据库查询错误，返回错误
+		s.logger.Errorf("query user exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, commonhttp.ErrMsgDatabaseError)
+		return
+	}
+
+	if exist {
+		// 用户已存在，返回错误
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.EmailAlreadyExists, commonhttp.ErrMsgEmailAlreadyExists)
+		return
 	}
 	// 用户不存在，创建用户
 	user := model.NewUserInfo()
@@ -80,6 +82,7 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 	user.Password = req.Password
 	user.Email = req.Email
 	user.UserType = "normal"
+	user.UserId = uuid.GetUUID()
 
 	if err := s.fabriccaControl.RegisterUserAndGetCert(user); err != nil {
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "register user failed")
@@ -92,7 +95,14 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 		return
 	}
 
-	commonhttp.SuccessResponse(ctx, user)
+	userResponse, err := response.NewRegisterUserResponse(user)
+	if err != nil {
+		s.logger.Errorf("convert response err: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		return
+	}
+
+	commonhttp.SuccessResponse(ctx, userResponse)
 }
 
 // LoginUser 处理用户登录请求
@@ -161,10 +171,5 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 	}
 
 	// 返回登录成功响应，包含JWT令牌
-	commonhttp.SuccessResponse(ctx, map[string]string{
-		"token":           token,
-		"user_id":         strconv.Itoa(user.AutoUid),
-		"username":        user.Username,
-		"last_login_time": humantime.HumanTimeLower(user.LastLoginTime, ""),
-	})
+	commonhttp.SuccessResponse(ctx, response.NewLoginUserResponse(user, token))
 }
