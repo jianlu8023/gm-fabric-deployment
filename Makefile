@@ -3,13 +3,13 @@ BUILDTIME=$(shell date +"%Y-%m-%d %H:%M:%S")
 
 server:
 	@go build -tags=jsoniter -trimpath -ldflags="-s -w -X 'github.com/jianlu8023/golang-example/version.Version=$(VERSION)'" -o server.bin cmd/server/server.go
-	@echo -e "version : ${VERSION}\ntime : ${BUILDTIME}" > server.latest
+	@echo "version: ${VERSION}\ntime: ${BUILDTIME}" > server.latest
 	@echo "server done"
 .PHONY: server
 
 client:
 	@go build -tags=jsoniter -trimpath -ldflags="-s -w -X 'github.com/jianlu8023/golang-example/version.Version=$(VERSION)'" -o client.bin cmd/client/client.go
-	@echo -e "version : ${VERSION}\ntime : ${BUILDTIME}" > client.latest
+	@echo "version: ${VERSION}\ntime: ${BUILDTIME}" > client.latest
 	@echo "client done"
 .PHONY: client
 
