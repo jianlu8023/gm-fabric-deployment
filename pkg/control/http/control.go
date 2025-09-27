@@ -22,7 +22,10 @@ import (
 
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipblacklist"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipwhitelist"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ratelimit"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 
@@ -71,6 +74,30 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	engine.Use(requestid.EnableRequestID(webLogger))
 	engine.Use(cors.EnableCors())
 	engine.Use(gzip.EnableGzip())
+
+	// 注册IP白名单中间件
+	if serverConfig.IPWhiteList.Enabled && len(serverConfig.IPWhiteList.IPs) > 0 {
+		webLogger.Debugf("[control] register IP white list middleware with %d IPs", len(serverConfig.IPWhiteList.IPs))
+		engine.Use(ipwhitelist.EnableIPWhiteList(webLogger, serverConfig.IPWhiteList.IPs))
+	}
+
+	// 注册IP黑名单中间件
+	if serverConfig.IPBlackList.Enabled && len(serverConfig.IPBlackList.IPs) > 0 {
+		webLogger.Debugf("[control] register IP black list middleware with %d IPs", len(serverConfig.IPBlackList.IPs))
+		engine.Use(ipblacklist.EnableIPBlackList(webLogger, serverConfig.IPBlackList.IPs))
+	}
+
+	// 注册限流中间件
+	if serverConfig.RateLimit.Enabled && serverConfig.RateLimit.RPS > 0 {
+		// 创建限流配置
+		config := ratelimit.Config{
+			Type:  ratelimit.Type(serverConfig.RateLimit.Type), // 使用配置文件中的限流类型
+			RPS:   serverConfig.RateLimit.RPS,
+			Burst: serverConfig.RateLimit.Burst,
+		}
+		// 使用工厂函数创建限流中间件
+		engine.Use(ratelimit.NewRateLimitMiddleware(webLogger, config))
+	}
 
 	// 调试模式，开启 pprof 包，便于开发阶段分析程序性能
 	// gin.DefaultWriter = io.MultiWriter(os.Stdout, io.Discard)

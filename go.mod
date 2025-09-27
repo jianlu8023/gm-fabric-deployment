@@ -18,14 +18,17 @@ replace (
 	// github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
 	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
 	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20250926064530-9051196ba39a
+	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
 	// github.com/mitchellh/mapstructure v1.4.2 => github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
 	// github.com/pion/webrtc/v4 v4.0.9 => github.com/pion/webrtc/v4 v4.1.1
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/skip2/go-qrcode => github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
+	github.com/ulule/limiter/v3 => github.com/ulule/limiter/v3 v3.11.2
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
 	golang.org/x/crypto => golang.org/x/crypto v0.33.0
+	golang.org/x/time => golang.org/x/time v0.10.0
 	google.golang.org/genproto/googleapis/api => google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9
 	gorm.io/gorm => gorm.io/gorm v1.30.0
 )
@@ -74,6 +77,7 @@ require (
 	github.com/jianlu8023/go-logger/v2 v2.0.0
 	github.com/jianlu8023/go-tools/v2 v2.0.0-20250921142734-6afed502d952
 	github.com/jinzhu/copier v0.4.0 // copy的功能 结构体 等值拷贝
+	github.com/juju/ratelimit v1.0.2 // juju 限流
 	github.com/libp2p/go-libp2p v0.40.0
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0
 	github.com/mingrammer/commonregex v1.0.1
@@ -91,10 +95,12 @@ require (
 	github.com/spf13/viper v1.10.1
 	github.com/stretchr/testify v1.10.0
 	github.com/tjfoc/gmsm v1.4.1
+	github.com/ulule/limiter/v3 v3.11.2 // ulule 限流
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/valyala/quicktemplate v1.8.0
 	go.uber.org/zap v1.27.0
+	golang.org/x/time v0.5.0 // time的限流
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.36.5
