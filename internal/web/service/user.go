@@ -118,13 +118,6 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 		return
 	}
 
-	// 验证请求参数
-	if !req.IsLegal() {
-		s.logger.Errorf("login request is illegal: %v", req)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
-		return
-	}
-
 	// 调用mapper层验证用户凭据
 	user, err := s.mapper.QueryUserByUsernameAndPassword(req.Username, req.Password)
 	if err != nil {
