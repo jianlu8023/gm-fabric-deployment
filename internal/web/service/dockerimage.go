@@ -20,6 +20,16 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
+// DockerImageService Docker镜像服务
+//
+// @description 提供Docker镜像相关的服务功能，如镜像列表查询、镜像拉取等
+// @struct
+// @property *Service 基础服务
+// @property mapper *mapper.DockerImageMapper Docker镜像映射器
+// @property dockerControl *docker.Control Docker控制器
+// @property websocketControl *websocket.Control WebSocket控制器
+// @property libp2pControl *libp2p.Control libp2p控制器
+// @property antsPoolControl *ants.Control 线程池控制器
 type DockerImageService struct {
 	*Service
 	mapper           *mapper.DockerImageMapper
@@ -29,6 +39,16 @@ type DockerImageService struct {
 	antsPoolControl  *ants.Control
 }
 
+// NewDockerImageService 创建Docker镜像服务实例
+//
+// @description 创建并返回一个新的Docker镜像服务实例
+// @param baseService *Service 基础服务
+// @param mapper *mapper.DockerImageMapper Docker镜像映射器
+// @param dockerControl *docker.Control Docker控制器
+// @param websocketControl *websocket.Control WebSocket控制器
+// @param libp2pControl *libp2p.Control libp2p控制器
+// @param antsPoolControl *ants.Control 线程池控制器
+// @return *DockerImageService Docker镜像服务实例
 func NewDockerImageService(baseService *Service,
 	mapper *mapper.DockerImageMapper,
 	dockerControl *docker.Control,
@@ -46,6 +66,11 @@ func NewDockerImageService(baseService *Service,
 	}
 }
 
+// DockerImageList 查询Docker镜像列表
+//
+// @description 根据查询条件获取Docker镜像列表
+// @param ctx *gin.Context Gin上下文
+// @param req *request.DockerImageListRequest 镜像列表查询请求参数
 func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest) {
 	s.logger.Debugf("received docker image list request with params: %v", req)
 
@@ -68,6 +93,11 @@ func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.Dock
 	commonhttp.SuccessResponse(ctx, listResponse)
 }
 
+// DockerImagePull 拉取Docker镜像
+//
+// @description 拉取指定名称的Docker镜像到本地或远程节点
+// @param ctx *gin.Context Gin上下文
+// @param req *request.DockerImagePullRequest 镜像拉取请求参数
 func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest) {
 	s.logger.Debugf("received docker image pull request with params: %v", req)
 

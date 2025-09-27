@@ -22,6 +22,7 @@ import (
 // @property *Service 基础服务
 // @property mapper *mapper.UserMapper 用户映射器
 // @property sessionManager jwt.SessionManager 会话管理器
+// @property fabriccaControl *fabricca.Control Fabric CA控制器
 type UserService struct {
 	*Service
 	mapper          *mapper.UserMapper

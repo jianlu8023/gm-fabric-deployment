@@ -3,6 +3,7 @@ package request
 import (
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
+	"mime/multipart"
 )
 
 // FileInitUploadRequest 初始化文件上传请求
@@ -17,16 +18,19 @@ import (
 // @property StorageType string 存储类型
 // @property ExpireTime int64 过期时间戳(秒)
 type FileInitUploadRequest struct {
-	FileName    string `form:"file_name" binding:"required,max=255" validate:"max=255"`
-	FileSize    int64  `form:"file_size" binding:"required,gte=0" validate:"gte=0"`
-	FileHash    string `form:"file_hash" binding:"omitempty,max=255" validate:"max=255"`
-	ChunkSize   int64  `form:"chunk_size" binding:"required,gt=0,lte=10485760" validate:"gt=0,lte=10485760"` // 最大10MB
-	FileType    string `form:"file_type" binding:"omitempty,max=100" validate:"max=100"`
-	Description string `form:"description" binding:"omitempty,max=1000" validate:"max=1000"`
-	StorageType string `form:"storage_type" binding:"omitempty,max=50" validate:"max=50"`
-	ExpireTime  int64  `form:"expire_time" binding:"omitempty,gte=0" validate:"gte=0"`
+	FileName    string `json:"file_name,omitempty" yaml:"file_name,omitempty" form:"fileName" binding:"required,max=255"`
+	FileSize    int64  `json:"file_size,omitempty" yaml:"file_size,omitempty" form:"fileSize" binding:"required,gte=0"`
+	FileHash    string `json:"file_hash,omitempty" yaml:"file_hash,omitempty" form:"fileHash" binding:"omitempty,max=255"`
+	ChunkSize   int64  `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" form:"chunkSize" binding:"required,gt=0,lte=10485760"` // 最大10MB
+	FileType    string `json:"file_type,omitempty" yaml:"file_type,omitempty" form:"fileType" binding:"omitempty,max=100"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty" form:"description" binding:"omitempty,max=1000"`
+	StorageType string `json:"storage_type,omitempty" yaml:"storage_type,omitempty" form:"storageType" binding:"omitempty,max=50"`
+	ExpireTime  int64  `json:"expire_time,omitempty" yaml:"expire_time,omitempty" form:"expireTime" binding:"omitempty,gte=0"`
 }
 
+// String 将初始化文件上传请求参数转换为字符串表示
+// @description 将FileInitUploadRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req FileInitUploadRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
@@ -64,10 +68,11 @@ func (req FileInitUploadRequest) IsLegal() bool {
 // @property TotalChunks int 总分片数
 // @property File multipart.FileHeader 分片文件数据
 type FileUploadChunkRequest struct {
-	FileID      int64  `form:"file_id" binding:"required,gt=0" validate:"gt=0"`
-	ChunkIndex  int    `form:"chunk_index" binding:"required,gte=0" validate:"gte=0"`
-	ChunkHash   string `form:"chunk_hash" binding:"omitempty,max=255" validate:"max=255"`
-	TotalChunks int    `form:"total_chunks" binding:"required,gt=0" validate:"gt=0"`
+	FileID      int64                 `json:"file_id,omitempty" yaml:"file_id,omitempty" form:"fileId" binding:"required,gt=0"`
+	ChunkIndex  int                   `json:"chunk_index,omitempty" yaml:"chunk_index,omitempty" form:"chunkIndex" binding:"required,gte=0"`
+	ChunkHash   string                `json:"chunk_hash,omitempty" yaml:"chunk_hash,omitempty" form:"chunkHash" binding:"omitempty,max=255"`
+	TotalChunks int                   `json:"total_chunks,omitempty" yaml:"total_chunks,omitempty" form:"totalChunks" binding:"required,gt=0"`
+	File        *multipart.FileHeader `json:"file,omitempty" yaml:"file,omitempty" form:"file" binding:"required"`
 	// File字段用于接收文件数据，在handler中通过ctx.FormFile("file")获取
 }
 
@@ -93,6 +98,10 @@ func (req FileUploadChunkRequest) IsLegal() bool {
 	}
 	return true
 }
+
+// String 将上传文件分片请求参数转换为字符串表示
+// @description 将FileUploadChunkRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req FileUploadChunkRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
@@ -105,9 +114,9 @@ func (req FileUploadChunkRequest) String() string {
 // @property FileHash string 文件哈希值
 // @property Uploader string 上传者
 type CompleteUploadRequest struct {
-	FileID   int64  `form:"file_id" binding:"required,gt=0" validate:"gt=0"`
-	FileHash string `form:"file_hash" binding:"omitempty,max=255" validate:"max=255"`
-	Uploader string `form:"uploader" binding:"omitempty,max=100" validate:"max=100"`
+	FileID   int64  `json:"file_id,omitempty" yaml:"file_id,omitempty" form:"fileId" binding:"required,gt=0"`
+	FileHash string `json:"file_hash,omitempty" yaml:"file_hash,omitempty" form:"fileHash" binding:"omitempty,max=255"`
+	Uploader string `json:"uploader,omitempty" yaml:"uploader,omitempty" form:"uploader" binding:"omitempty,max=100"`
 }
 
 // IsLegal 验证完成上传请求参数是否合法
@@ -120,6 +129,10 @@ func (req CompleteUploadRequest) IsLegal() bool {
 	}
 	return true
 }
+
+// String 将完成文件上传请求参数转换为字符串表示
+// @description 将CompleteUploadRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req CompleteUploadRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
@@ -130,7 +143,7 @@ func (req CompleteUploadRequest) String() string {
 // @struct
 // @property FileID int64 文件ID
 type GetUploadStatusRequest struct {
-	FileID int64 `form:"file_id" binding:"required,gt=0" validate:"gt=0"`
+	FileID int64 `json:"file_id,omitempty" yaml:"file_id,omitempty" form:"fileId" binding:"required,gt=0"`
 }
 
 // IsLegal 验证获取上传状态请求参数是否合法
@@ -143,6 +156,10 @@ func (req GetUploadStatusRequest) IsLegal() bool {
 	}
 	return true
 }
+
+// String 将查询文件上传状态请求参数转换为字符串表示
+// @description 将GetUploadStatusRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req GetUploadStatusRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
@@ -153,7 +170,7 @@ func (req GetUploadStatusRequest) String() string {
 // @struct
 // @property FileID int64 文件ID
 type DownloadFileRequest struct {
-	FileID int64 `form:"file_id" binding:"required,gt=0" validate:"gt=0"`
+	FileID int64 `json:"file_id,omitempty" yaml:"file_id,omitempty" form:"fileId" binding:"required,gt=0"`
 }
 
 // IsLegal 验证下载文件请求参数是否合法
@@ -166,6 +183,10 @@ func (req DownloadFileRequest) IsLegal() bool {
 	}
 	return true
 }
+
+// String 将下载文件请求参数转换为字符串表示
+// @description 将DownloadFileRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req DownloadFileRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
@@ -182,13 +203,13 @@ func (req DownloadFileRequest) String() string {
 // @property OrderBy string 排序字段
 // @property OrderType string 排序类型(asc/desc)
 type ListFilesRequest struct {
-	Page      int    `form:"page" binding:"omitempty,gte=1" validate:"gte=1"`
-	PageSize  int    `form:"page_size" binding:"omitempty,gte=1,lte=100" validate:"gte=1,lte=100"`
-	Status    string `form:"status" binding:"omitempty,max=20" validate:"max=20"`
-	FileName  string `form:"file_name" binding:"omitempty,max=255" validate:"max=255"`
-	Uploader  string `form:"uploader" binding:"omitempty,max=100" validate:"max=100"`
-	OrderBy   string `form:"order_by" binding:"omitempty,max=50" validate:"max=50"`
-	OrderType string `form:"order_type" binding:"omitempty,eq=asc|eq=desc" validate:"eq=asc|eq=desc"`
+	Page      int    `json:"page,omitempty" yaml:"page,omitempty" form:"page" binding:"omitempty,gte=1"`
+	PageSize  int    `json:"page_size,omitempty" yaml:"page_size,omitempty" form:"pageSize" binding:"omitempty,gte=1,lte=100"`
+	Status    string `json:"status,omitempty" yaml:"status,omitempty" form:"status" binding:"omitempty,max=20"`
+	FileName  string `json:"file_name,omitempty" yaml:"file_name,omitempty" form:"fileName" binding:"omitempty,max=255"`
+	Uploader  string `json:"uploader,omitempty" yaml:"uploader,omitempty" form:"uploader" binding:"omitempty,max=100"`
+	OrderBy   string `json:"order_by,omitempty" yaml:"order_by,omitempty" form:"orderBy" binding:"omitempty,max=50"`
+	OrderType string `json:"order_type,omitempty" yaml:"order_type,omitempty" form:"orderType" binding:"omitempty,eq=asc|eq=desc"`
 }
 
 // IsLegal 验证文件列表请求参数是否合法
@@ -197,13 +218,11 @@ type ListFilesRequest struct {
 func (req ListFilesRequest) IsLegal() bool {
 	// 页码必须大于0
 	if req.Page <= 0 {
-		req.Page = 1
+		return false
 	}
 	// 页面大小必须在合理范围内
-	if req.PageSize <= 0 {
-		req.PageSize = 10
-	} else if req.PageSize > 100 {
-		req.PageSize = 100
+	if req.PageSize <= 0 || req.PageSize > 100 {
+		return false
 	}
 	// 排序类型只能是asc或desc
 	if req.OrderType != "" && req.OrderType != "asc" && req.OrderType != "desc" {
@@ -211,6 +230,10 @@ func (req ListFilesRequest) IsLegal() bool {
 	}
 	return true
 }
+
+// String 将查询文件列表请求参数转换为字符串表示
+// @description 将ListFilesRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req ListFilesRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
@@ -221,7 +244,7 @@ func (req ListFilesRequest) String() string {
 // @struct
 // @property FileID int64 文件ID
 type DeleteFileRequest struct {
-	FileID int64 `form:"file_id" binding:"required,gt=0" validate:"gt=0"`
+	FileID int64 `json:"file_id,omitempty" yaml:"file_id,omitempty" form:"fileId" binding:"required,gt=0"`
 }
 
 // IsLegal 验证删除文件请求参数是否合法
@@ -234,6 +257,10 @@ func (req DeleteFileRequest) IsLegal() bool {
 	}
 	return true
 }
+
+// String 将删除文件请求参数转换为字符串表示
+// @description 将DeleteFileRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req DeleteFileRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
@@ -244,7 +271,7 @@ func (req DeleteFileRequest) String() string {
 // @struct
 // @property FileID int64 文件ID
 type GetFileMetadataRequest struct {
-	FileID int64 `form:"file_id" binding:"required,gt=0" validate:"gt=0"`
+	FileID int64 `json:"file_id,omitempty" yaml:"file_id,omitempty" form:"fileId" binding:"required,gt=0"`
 }
 
 // IsLegal 验证获取文件元数据请求参数是否合法
@@ -258,6 +285,9 @@ func (req GetFileMetadataRequest) IsLegal() bool {
 	return true
 }
 
+// String 将获取文件元数据请求参数转换为字符串表示
+// @description 将GetFileMetadataRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req GetFileMetadataRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
@@ -268,7 +298,7 @@ func (req GetFileMetadataRequest) String() string {
 // @struct
 // @property UploadID string 上传ID
 type ResumeUploadRequest struct {
-	UploadID string `form:"upload_id" binding:"required" validate:"required"`
+	UploadID string `json:"upload_id,omitempty" yaml:"upload_id,omitempty" form:"uploadId" binding:"required"`
 }
 
 // IsLegal 验证恢复上传请求参数是否合法
@@ -282,6 +312,9 @@ func (req ResumeUploadRequest) IsLegal() bool {
 	return true
 }
 
+// String 将恢复上传请求参数转换为字符串表示
+// @description 将ResumeUploadRequest结构体转换为JSON格式的字符串
+// @return string 请求数据的JSON格式字符串
 func (req ResumeUploadRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str

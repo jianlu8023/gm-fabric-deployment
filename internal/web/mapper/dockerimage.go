@@ -12,20 +12,30 @@ import (
 	"gorm.io/gorm"
 )
 
+// DockerImageMapper Docker镜像数据访问层结构体
+//
+// @description 提供Docker镜像相关的数据访问操作
+// @struct
 type DockerImageMapper struct {
 	*Mapper
 }
 
+// NewDockerImageMapper 创建一个新的DockerImageMapper实例
+//
+// @param baseMapper *Mapper 基础Mapper
+// @return *DockerImageMapper DockerImageMapper实例
 func NewDockerImageMapper(baseMapper *Mapper) *DockerImageMapper {
 	return &DockerImageMapper{
 		Mapper: baseMapper,
 	}
 }
 
-// InsertOneWithCheck 插入一条镜像信息，如果存在（包括已逻辑删除的）则返回datasource.ErrAlreadyExists
-// @param imageInfo *Info 镜像信息
+// InsertOneWithCheck 插入一条Docker镜像信息，如果存在（包括已逻辑删除的）则返回datasource.ErrAlreadyExists
+//
+// @description 在事务中插入一条Docker镜像信息，如果数据库中已存在相同名称和位置的镜像（包括已逻辑删除的），则返回错误
+// @param imageInfo *model.DockerImage Docker镜像信息
 // @return error 错误信息
-func (m *Mapper) InsertOneWithCheck(imageInfo *model.DockerImage) error {
+func (m *DockerImageMapper) InsertOneWithCheck(imageInfo *model.DockerImage) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -54,8 +64,9 @@ func (m *Mapper) InsertOneWithCheck(imageInfo *model.DockerImage) error {
 }
 
 // InsertOrUpdateOne 插入或更新Docker镜像信息，支持恢复已逻辑删除的记录
+//
 // @description 在事务中插入或更新Docker镜像信息，根据名称和位置确定是否存在
-// @param info *Info 要插入或更新的镜像信息
+// @param info *model.DockerImage 要插入或更新的Docker镜像信息
 // @return error 操作结果错误信息
 func (m *DockerImageMapper) InsertOrUpdateOne(info *model.DockerImage) error {
 	if m.db == nil {
@@ -94,6 +105,15 @@ func (m *DockerImageMapper) InsertOrUpdateOne(info *model.DockerImage) error {
 	})
 }
 
+// DockerImageList 查询Docker镜像列表
+//
+// @description 根据查询条件获取Docker镜像列表，支持分页和不分页查询
+// @param query model.DockerImage 查询条件
+// @param isPage bool 是否分页
+// @param pageNo int 页码（当isPage为true时有效）
+// @param pageSize int 每页大小（当isPage为true时有效）
+// @return dbpage.Info[model.DockerImage] 分页结果信息
+// @return error 错误信息
 func (m *DockerImageMapper) DockerImageList(query model.DockerImage, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerImage], error) {
 	page := dbpage.Info[model.DockerImage]{}
 	if m.db == nil {

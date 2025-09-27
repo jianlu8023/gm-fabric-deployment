@@ -12,11 +12,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// DockerNetworkMapper Docker网络数据访问层结构体
+//
+// @description 提供Docker网络相关的数据访问操作
+// @struct
 type DockerNetworkMapper struct {
 	*Mapper
 }
 
-// NewDockerNetworkMapper 新建docker network mapper
+// NewDockerNetworkMapper 创建一个新的DockerNetworkMapper实例
+//
+// @description 创建并返回一个新的DockerNetworkMapper实例
+// @param baseMapper *Mapper 基础Mapper
+// @return *DockerNetworkMapper DockerNetworkMapper实例
 func NewDockerNetworkMapper(baseMapper *Mapper) *DockerNetworkMapper {
 	return &DockerNetworkMapper{
 		Mapper: baseMapper,
@@ -24,8 +32,9 @@ func NewDockerNetworkMapper(baseMapper *Mapper) *DockerNetworkMapper {
 }
 
 // InsertOrUpdateOne 插入或更新Docker网络信息，支持恢复已逻辑删除的记录
+//
 // @description 在事务中插入或更新Docker网络信息，根据网络ID和位置确定是否存在
-// @param info *Info 要插入或更新的网络信息
+// @param info *model.DockerNetwork 要插入或更新的Docker网络信息
 // @return error 操作结果错误信息
 func (m *DockerNetworkMapper) InsertOrUpdateOne(info *model.DockerNetwork) error {
 	if m.db == nil {
@@ -111,6 +120,15 @@ func (m *DockerNetworkMapper) BatchLogicalDelete(query model.DockerNetwork) erro
 	})
 }
 
+// DockerNetworkList 查询Docker网络列表
+//
+// @description 根据查询条件获取Docker网络列表，支持分页和不分页查询
+// @param query model.DockerNetwork 查询条件
+// @param isPage bool 是否分页
+// @param pageNo int 页码（当isPage为true时有效）
+// @param pageSize int 每页大小（当isPage为true时有效）
+// @return dbpage.Info[model.DockerNetwork] 分页结果信息
+// @return error 错误信息
 func (m *DockerNetworkMapper) DockerNetworkList(query model.DockerNetwork,
 	isPage bool, pageNo int, pageSize int,
 ) (dbpage.Info[model.DockerNetwork], error) {

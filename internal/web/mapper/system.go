@@ -16,6 +16,11 @@ type SystemMapper struct {
 	*Mapper
 }
 
+// GetSystemInit 获取系统初始化状态
+//
+// @description 获取系统的初始化状态，判断系统是否已经完成初始化配置
+// @return bool 系统是否已初始化
+// @return error 错误信息
 func (m *SystemMapper) GetSystemInit() (bool, error) {
 	if m.db == nil {
 		return false, datasource.ErrNoDataSourceConn
@@ -31,6 +36,9 @@ func (m *SystemMapper) GetSystemInit() (bool, error) {
 	return systemInit.IsInit.Bool, nil
 }
 
+// init 初始化系统状态数据
+//
+// @description 初始化系统状态数据表，确保系统状态记录存在
 func (m *SystemMapper) init() {
 	if m.db == nil {
 		return
@@ -62,6 +70,7 @@ func (m *SystemMapper) init() {
 
 // NewSystemMapper 创建一个新的SystemMapper实例
 //
+// @description 创建并返回一个新的SystemMapper实例，用于系统相关的数据访问操作
 // @param mapper *Mapper 基础Mapper
 // @return *SystemMapper SystemMapper实例
 func NewSystemMapper(mapper *Mapper) *SystemMapper {

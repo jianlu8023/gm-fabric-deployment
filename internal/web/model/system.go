@@ -10,11 +10,20 @@ const (
 	systemInitTableName = "t_system_init_status"
 )
 
+// SystemInit 系统初始化状态模型
+//
+// @description 存储系统的初始化状态信息
+// @struct
 type SystemInit struct {
 	Id     uint         `json:"uid,omitempty" yaml:"uid,omitempty" gorm:"primaryKey;check:id=1"`                          // 主键 确保id 始终是1
 	IsInit sql.NullBool `json:"is_init,omitempty" yaml:"is_init,omitempty" gorm:"column:is_init;not null;default:false;"` // 是否已经初始化
 }
 
+// MarshalJSON 自定义JSON序列化方法
+//
+// @description 自定义SystemInit结构体的JSON序列化，将sql.NullBool类型的IsInit字段序列化为普通bool类型
+// @return []byte JSON字节数组
+// @return error 错误信息
 func (model SystemInit) MarshalJSON() ([]byte, error) {
 	type Alias SystemInit
 	aux := &struct {
@@ -27,11 +36,19 @@ func (model SystemInit) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
+// String 将SystemInit结构体转换为字符串
+//
+// @description 将SystemInit结构体转换为JSON格式的字符串
+// @return string JSON格式的字符串
 func (model SystemInit) String() string {
 	str, _ := json.MarshalString(model)
 	return str
 }
 
+// TableName 获取SystemInit结构体对应的数据库表名
+//
+// @description 返回SystemInit结构体在数据库中对应的表名
+// @return string 数据库表名
 func (SystemInit) TableName() string {
 	return systemInitTableName
 }

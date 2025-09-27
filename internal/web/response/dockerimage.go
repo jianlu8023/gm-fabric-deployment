@@ -11,22 +11,34 @@ import (
 	"github.com/jinzhu/copier"
 )
 
+// DockerImageListResponse Docker镜像列表响应结构体
+// @description 用于返回Docker镜像列表的响应数据
+// @struct
+// @property image_name string 镜像名称
+// @property image_created string 镜像创建时间
+// @property image_labels string 镜像标签
+// @property image_id string 镜像id
+// @property image_location_peer_id string 镜像所在peer
+// @property is_delete bool 是否删除
 type DockerImageListResponse struct {
-	ImageName           string       `json:"image_name,omitempty" yaml:"image_name,omitempty" gorm:"column:image_name;type:varchar(255);"`                                     // 镜像名称
-	ImageCreated        time.Time    `json:"image_created,omitempty" yaml:"image_created,omitempty" gorm:"column:image_created;type:datetime;"`                                // 镜像创建时间
-	ImageLabels         string       `json:"image_labels,omitempty" yaml:"image_labels,omitempty" gorm:"column:image_labels;type:varchar(255);"`                               // 镜像标签
-	ImageId             string       `json:"image_id,omitempty" yaml:"image_id,omitempty" gorm:"column:image_id;type:varchar(255);"`                                           // 镜像id
-	ImageLocationPeerId string       `json:"image_location_peer_id,omitempty" yaml:"image_location_peer_id,omitempty" gorm:"column:image_location_peer_id;type:varchar(255);"` // 镜像所在peer
-	IsDelete            sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:bool;default:false"`                                   // 是否删除
+	ImageName           string       `json:"image_name" yaml:"image_name"`                         // 镜像名称
+	ImageCreated        time.Time    `json:"image_created" yaml:"image_created"`                   // 镜像创建时间
+	ImageLabels         string       `json:"image_labels" yaml:"image_labels"`                     // 镜像标签
+	ImageId             string       `json:"image_id" yaml:"image_id"`                             // 镜像id
+	ImageLocationPeerId string       `json:"image_location_peer_id" yaml:"image_location_peer_id"` // 镜像所在peer
+	IsDelete            sql.NullBool `json:"is_delete" yaml:"is_delete"`                           // 是否删除
 }
 
-// MarshalJSON 自定义json返回
+// MarshalJSON 自定义JSON序列化方法
+// @description 自定义DockerImageListResponse结构体的JSON序列化逻辑，处理时间格式和sql.NullBool类型
+// @return []byte JSON字节数组
+// @return error 序列化错误信息
 func (resp DockerImageListResponse) MarshalJSON() ([]byte, error) {
 	type Alias DockerImageListResponse
 	aux := struct {
 		*Alias
-		IsDelete     bool   `json:"is_delete,omitempty" yaml:"is_delete,omitempty"`
-		ImageCreated string `json:"image_created,omitempty" yaml:"image_created,omitempty"`
+		IsDelete     bool   `json:"is_delete"`
+		ImageCreated string `json:"image_created"`
 	}{
 		Alias:        (*Alias)(&resp),
 		IsDelete:     resp.IsDelete.Bool,
@@ -35,13 +47,19 @@ func (resp DockerImageListResponse) MarshalJSON() ([]byte, error) {
 	return json.Marshal(aux)
 }
 
-// String 返回json字符串
-// @return string json字符串
+// String 将Docker镜像列表响应转换为字符串表示
+// @description 将DockerImageListResponse结构体转换为JSON格式的字符串
+// @return string 响应数据的JSON格式字符串
 func (resp DockerImageListResponse) String() string {
 	str, _ := json.MarshalString(resp)
 	return str
 }
 
+// NewDockerImageListResponse 创建Docker镜像列表响应对象
+// @description 将数据库模型转换为API响应对象，并创建分页信息
+// @param page dbpage.Info[model.DockerImage] 数据库查询得到的分页镜像数据
+// @return *dbpage.Info[DockerImageListResponse] 转换后的分页响应数据
+// @return error 转换过程中的错误信息
 func NewDockerImageListResponse(page dbpage.Info[model.DockerImage]) (*dbpage.Info[DockerImageListResponse], error) {
 	var convert []DockerImageListResponse
 
@@ -61,19 +79,40 @@ func NewDockerImageListResponse(page dbpage.Info[model.DockerImage]) (*dbpage.In
 	), nil
 }
 
+// DockerImagePullResponse Docker镜像拉取响应结构体
+// @description 用于返回Docker镜像拉取操作的响应数据
+// @struct
+// @property msg string 操作结果消息
 type DockerImagePullResponse struct {
-	Msg string `json:"msg,omitempty" yaml:"msg,omitempty"`
+	Msg string `json:"msg" yaml:"msg"` // 操作结果消息
 }
 
+// MarshalJSON 自定义JSON序列化方法
+// @description 自定义DockerImagePullResponse结构体的JSON序列化逻辑
+// @return []byte JSON字节数组
+// @return error 序列化错误信息
 func (resp DockerImagePullResponse) MarshalJSON() ([]byte, error) {
-	return json.Marshal(resp)
+	type Alias DockerImagePullResponse
+	aux := struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&resp),
+	}
+	return json.Marshal(aux)
 }
 
+// String 将Docker镜像拉取响应转换为字符串表示
+// @description 将DockerImagePullResponse结构体转换为JSON格式的字符串
+// @return string 响应数据的JSON格式字符串
 func (resp DockerImagePullResponse) String() string {
 	str, _ := json.MarshalString(resp)
 	return str
 }
 
+// NewDockerImagePullResponse 创建Docker镜像拉取响应对象
+// @description 创建一个新的Docker镜像拉取响应对象
+// @param msg string 操作结果消息
+// @return *DockerImagePullResponse 镜像拉取响应对象
 func NewDockerImagePullResponse(msg string) *DockerImagePullResponse {
 	return &DockerImagePullResponse{
 		Msg: msg,

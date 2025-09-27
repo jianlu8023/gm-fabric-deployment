@@ -97,7 +97,7 @@ func IsValidationErrors(err error) bool {
 }
 
 // GetValidationErrorMessages 从验证错误中提取错误信息
-//
+// gin 也使用这个库`validate:"min=200"`参数错误时，返回InvalidValidationError类型；校验错误时返回ValidationErrors
 // @description 从ValidationErrors或原始的validator/v10.ValidationErrors中提取人类可读的错误信息
 // @param err error 验证错误
 // @return map[string]string 字段名到错误信息的映射，格式为"【字段】违反什么策略"

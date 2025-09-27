@@ -12,7 +12,7 @@ import (
 // SystemService 系统服务
 // @description 提供系统相关的服务功能，如获取系统概览信息
 // @struct
-// @property *Service 基础服务
+// @property Service *Service 基础服务
 // @property mapper *mapper.SystemMapper 系统映射器
 type SystemService struct {
 	*Service
@@ -22,6 +22,7 @@ type SystemService struct {
 // GetSystemOverview 获取系统概览信息
 // @description 获取系统的基本信息，包括操作系统、CPU、磁盘和内存信息
 // @param ctx *gin.Context Gin上下文
+// @param req *request.SystemOverviewRequest 系统概览请求参数
 func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemOverviewRequest) {
 	s.logger.Debugf("received system overview request with params: %v", req)
 
@@ -55,6 +56,10 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemO
 	})
 }
 
+// GetSystemInitStatus 获取系统初始化状态
+// @description 检查系统是否已经完成初始化配置
+// @param ctx *gin.Context Gin上下文
+// @param req *request.SystemInitStatusRequest 系统初始化状态请求参数
 func (s *SystemService) GetSystemInitStatus(ctx *gin.Context, req *request.SystemInitStatusRequest) {
 	s.logger.Debugf("received system init status request with params: %v", req)
 

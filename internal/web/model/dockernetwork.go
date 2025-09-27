@@ -11,6 +11,10 @@ const (
 	networkInfoTableName = "t_docker_network_info"
 )
 
+// DockerNetwork Docker网络信息模型
+//
+// @description 存储Docker网络的详细信息
+// @struct
 type DockerNetwork struct {
 	AutoUid               int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                        // 自增ID（主键）
 	NetworkName           string       `json:"network_name,omitempty" yaml:"network_name,omitempty" gorm:"column:network_name;type:varchar(255);not null;"`                            // 网络名称
@@ -28,14 +32,16 @@ type DockerNetwork struct {
 }
 
 // TableName 返回数据库表名
-// @description 实现gorm接口，指定Info结构体对应的数据库表名
+//
+// @description 实现gorm接口，指定DockerNetwork结构体对应的数据库表名
 // @return string 数据库表名
 func (DockerNetwork) TableName() string {
 	return networkInfoTableName
 }
 
 // String 将网络信息转换为JSON字符串
-// @description 将Info结构体转换为JSON格式的字符串表示
+//
+// @description 将DockerNetwork结构体转换为JSON格式的字符串表示
 // @return string 网络信息的JSON格式字符串
 func (model DockerNetwork) String() string {
 	str, _ := json.MarshalString(model)
@@ -43,8 +49,9 @@ func (model DockerNetwork) String() string {
 }
 
 // NewDockerNetwork 创建新的网络信息实例
+//
 // @description 初始化一个空的Docker网络信息结构体指针
-// @return *Info 网络信息结构体指针
+// @return *DockerNetwork 网络信息结构体指针
 func NewDockerNetwork() *DockerNetwork {
 	return &DockerNetwork{}
 }

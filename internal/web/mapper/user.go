@@ -110,6 +110,11 @@ func (m *UserMapper) QueryUserByUsernameAndPassword(
 	return user, nil
 }
 
+// UpdateLastLoginTime 更新用户最后登录时间
+//
+// @description 更新指定用户的最后登录时间为当前时间
+// @param user *model.UserInfo 用户信息
+// @return error 错误信息
 func (m *UserMapper) UpdateLastLoginTime(user *model.UserInfo) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
@@ -130,6 +135,12 @@ func (m *UserMapper) UpdateLastLoginTime(user *model.UserInfo) error {
 
 }
 
+// QueryUserByQuery 根据查询条件查询用户信息
+//
+// @description 根据传入的查询条件，查询未被删除的用户信息
+// @param query model.UserInfo 查询条件
+// @return model.UserInfo 用户信息
+// @return error 错误信息
 func (m *UserMapper) QueryUserByQuery(query model.UserInfo) (model.UserInfo, error) {
 	if m.db == nil {
 		return model.UserInfo{}, datasource.ErrNoDataSourceConn
@@ -144,6 +155,11 @@ func (m *UserMapper) QueryUserByQuery(query model.UserInfo) (model.UserInfo, err
 	return user, nil
 }
 
+// UpdateUser 更新用户信息
+//
+// @description 更新指定用户的信息，根据UserId字段确定要更新的用户
+// @param user *model.UserInfo 包含要更新的用户信息
+// @return error 错误信息
 func (m *UserMapper) UpdateUser(user *model.UserInfo) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn

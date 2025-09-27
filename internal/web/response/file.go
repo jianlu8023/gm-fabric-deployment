@@ -15,14 +15,15 @@ import (
 // @property ChunkSize int64 分片大小
 // @property UploadPath string 上传路径前缀
 type InitUploadResponse struct {
-	FileID      int64  `json:"file_id"`
-	UploadID    string `json:"upload_id"`
-	TotalChunks int    `json:"total_chunks"`
-	ChunkSize   int64  `json:"chunk_size"`
-	UploadPath  string `json:"upload_path"`
+	FileID      int64  `json:"file_id" yaml:"file_id"`           // 文件ID
+	UploadID    string `json:"upload_id" yaml:"upload_id"`       // 上传ID
+	TotalChunks int    `json:"total_chunks" yaml:"total_chunks"` // 总分片数
+	ChunkSize   int64  `json:"chunk_size" yaml:"chunk_size"`     // 分片大小
+	UploadPath  string `json:"upload_path" yaml:"upload_path"`   // 上传路径前缀
 }
 
 // String 将InitUploadResponse转换为字符串
+// @description 将InitUploadResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp InitUploadResponse) String() string {
 	str, _ := json.MarshalString(resp)
@@ -30,6 +31,7 @@ func (resp InitUploadResponse) String() string {
 }
 
 // NewInitUploadResponse 创建初始化上传响应对象
+// @description 创建一个新的初始化文件上传响应对象
 // @param fileID int64 文件ID
 // @param uploadID string 上传ID
 // @param totalChunks int 总分片数
@@ -55,14 +57,15 @@ func NewInitUploadResponse(fileID int64, uploadID string, totalChunks int, chunk
 // @property TotalChunks int 总分片数
 // @property Progress float64 上传进度(0-100)
 type UploadChunkResponse struct {
-	FileID         int64   `json:"file_id"`
-	ChunkIndex     int     `json:"chunk_index"`
-	UploadedChunks int     `json:"uploaded_chunks"`
-	TotalChunks    int     `json:"total_chunks"`
-	Progress       float64 `json:"progress"`
+	FileID         int64   `json:"file_id" yaml:"file_id"`                 // 文件ID
+	ChunkIndex     int     `json:"chunk_index" yaml:"chunk_index"`         // 分片索引
+	UploadedChunks int     `json:"uploaded_chunks" yaml:"uploaded_chunks"` // 已上传分片数
+	TotalChunks    int     `json:"total_chunks" yaml:"total_chunks"`       // 总分片数
+	Progress       float64 `json:"progress" yaml:"progress"`               // 上传进度(0-100)
 }
 
 // String 将UploadChunkResponse转换为字符串
+// @description 将UploadChunkResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp UploadChunkResponse) String() string {
 	str, _ := json.MarshalString(resp)
@@ -70,6 +73,7 @@ func (resp UploadChunkResponse) String() string {
 }
 
 // NewUploadChunkResponse 创建上传分片响应对象
+// @description 创建一个新的文件分片上传响应对象
 // @param fileID int64 文件ID
 // @param chunkIndex int 分片索引
 // @param uploadedChunks int 已上传分片数
@@ -97,16 +101,17 @@ func NewUploadChunkResponse(fileID int64, chunkIndex, uploadedChunks, totalChunk
 // @property DownloadUrl string 下载URL
 // @property UploadTime time.Time 上传完成时间
 type CompleteUploadResponse struct {
-	FileID      int64     `json:"file_id"`
-	FileName    string    `json:"file_name"`
-	FileSize    int64     `json:"file_size"`
-	FileHash    string    `json:"file_hash"`
-	FilePath    string    `json:"file_path"`
-	DownloadUrl string    `json:"download_url"`
-	UploadTime  time.Time `json:"upload_time"`
+	FileID      int64     `json:"file_id" yaml:"file_id"`           // 文件ID
+	FileName    string    `json:"file_name" yaml:"file_name"`       // 文件名
+	FileSize    int64     `json:"file_size" yaml:"file_size"`       // 文件大小
+	FileHash    string    `json:"file_hash" yaml:"file_hash"`       // 文件哈希值
+	FilePath    string    `json:"file_path" yaml:"file_path"`       // 文件路径
+	DownloadUrl string    `json:"download_url" yaml:"download_url"` // 下载URL
+	UploadTime  time.Time `json:"upload_time" yaml:"upload_time"`   // 上传完成时间
 }
 
 // String 将CompleteUploadResponse转换为字符串
+// @description 将CompleteUploadResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp CompleteUploadResponse) String() string {
 	str, _ := json.MarshalString(resp)
@@ -114,6 +119,7 @@ func (resp CompleteUploadResponse) String() string {
 }
 
 // NewCompleteUploadResponse 创建完成上传响应对象
+// @description 创建一个新的完成文件上传响应对象
 // @param fileID int64 文件ID
 // @param fileName string 文件名
 // @param fileSize int64 文件大小
@@ -148,19 +154,20 @@ func NewCompleteUploadResponse(fileID int64, fileName string, fileSize int64, fi
 // @property UploadedChunkIndexes []int 已上传分片索引列表
 // @property LastChunkTime time.Time 最后分片上传时间
 type GetUploadStatusResponse struct {
-	FileID               int64     `json:"file_id"`
-	FileName             string    `json:"file_name"`
-	FileSize             int64     `json:"file_size"`
-	ChunkSize            int64     `json:"chunk_size"`
-	TotalChunks          int       `json:"total_chunks"`
-	UploadedChunks       int       `json:"uploaded_chunks"`
-	Progress             float64   `json:"progress"`
-	Status               string    `json:"status"`
-	UploadedChunkIndexes []int     `json:"uploaded_chunk_indexes"`
-	LastChunkTime        time.Time `json:"last_chunk_time"`
+	FileID               int64     `json:"file_id" yaml:"file_id"`                               // 文件ID
+	FileName             string    `json:"file_name" yaml:"file_name"`                           // 文件名
+	FileSize             int64     `json:"file_size" yaml:"file_size"`                           // 文件大小
+	ChunkSize            int64     `json:"chunk_size" yaml:"chunk_size"`                         // 分片大小
+	TotalChunks          int       `json:"total_chunks" yaml:"total_chunks"`                     // 总分片数
+	UploadedChunks       int       `json:"uploaded_chunks" yaml:"uploaded_chunks"`               // 已上传分片数
+	Progress             float64   `json:"progress" yaml:"progress"`                             // 上传进度(0-100)
+	Status               string    `json:"status" yaml:"status"`                                 // 上传状态
+	UploadedChunkIndexes []int     `json:"uploaded_chunk_indexes" yaml:"uploaded_chunk_indexes"` // 已上传分片索引列表
+	LastChunkTime        time.Time `json:"last_chunk_time" yaml:"last_chunk_time"`               // 最后分片上传时间
 }
 
 // String 将GetUploadStatusResponse转换为字符串
+// @description 将GetUploadStatusResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp GetUploadStatusResponse) String() string {
 	str, _ := json.MarshalString(resp)
@@ -168,6 +175,7 @@ func (resp GetUploadStatusResponse) String() string {
 }
 
 // NewGetUploadStatusResponse 创建上传状态响应对象
+// @description 创建一个新的文件上传状态查询响应对象
 // @param fileID int64 文件ID
 // @param fileName string 文件名
 // @param fileSize int64 文件大小
@@ -202,13 +210,14 @@ func NewGetUploadStatusResponse(fileID int64, fileName string, fileSize, chunkSi
 // @property Page int 当前页码
 // @property PageSize int 每页大小
 type ListFilesResponse struct {
-	Total    int                `json:"total"`
-	List     []FileInfoResponse `json:"list"`
-	Page     int                `json:"page"`
-	PageSize int                `json:"page_size"`
+	Total    int                `json:"total" yaml:"total"`         // 总记录数
+	List     []FileInfoResponse `json:"list" yaml:"list"`           // 文件信息列表
+	Page     int                `json:"page" yaml:"page"`           // 当前页码
+	PageSize int                `json:"page_size" yaml:"page_size"` // 每页大小
 }
 
 // String 将ListFilesResponse转换为字符串
+// @description 将ListFilesResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp ListFilesResponse) String() string {
 	str, _ := json.MarshalString(resp)
@@ -216,6 +225,7 @@ func (resp ListFilesResponse) String() string {
 }
 
 // NewListFilesResponse 创建文件列表响应对象
+// @description 创建一个新的文件列表响应对象
 // @param total int 总记录数
 // @param list []FileInfoResponse 文件列表
 // @param page int 当前页码
@@ -249,24 +259,25 @@ func NewListFilesResponse(total int, list []FileInfoResponse, page, pageSize int
 // @property DownloadUrl string 下载URL
 // @property Extra map[string]interface{} 额外信息
 type FileInfoResponse struct {
-	ID            int64                  `json:"id"`
-	FileName      string                 `json:"file_name"`
-	FileSize      int64                  `json:"file_size"`
-	FilePath      string                 `json:"file_path"`
-	FileHash      string                 `json:"file_hash"`
-	FileType      string                 `json:"file_type"`
-	Uploader      string                 `json:"uploader"`
-	UploadTime    time.Time              `json:"upload_time"`
-	Status        string                 `json:"status"`
-	DownloadCount int                    `json:"download_count"`
-	Description   string                 `json:"description"`
-	StorageType   string                 `json:"storage_type"`
-	ExpireTime    time.Time              `json:"expire_time"`
-	DownloadUrl   string                 `json:"download_url"`
-	Extra         map[string]interface{} `json:"extra"`
+	ID            int64                  `json:"id" yaml:"id"`                         // 文件ID
+	FileName      string                 `json:"file_name" yaml:"file_name"`           // 文件名
+	FileSize      int64                  `json:"file_size" yaml:"file_size"`           // 文件大小
+	FilePath      string                 `json:"file_path" yaml:"file_path"`           // 文件路径
+	FileHash      string                 `json:"file_hash" yaml:"file_hash"`           // 文件哈希值
+	FileType      string                 `json:"file_type" yaml:"file_type"`           // 文件类型
+	Uploader      string                 `json:"uploader" yaml:"uploader"`             // 上传者
+	UploadTime    time.Time              `json:"upload_time" yaml:"upload_time"`       // 上传时间
+	Status        string                 `json:"status" yaml:"status"`                 // 文件状态
+	DownloadCount int                    `json:"download_count" yaml:"download_count"` // 下载次数
+	Description   string                 `json:"description" yaml:"description"`       // 文件描述
+	StorageType   string                 `json:"storage_type" yaml:"storage_type"`     // 存储类型
+	ExpireTime    time.Time              `json:"expire_time" yaml:"expire_time"`       // 过期时间
+	DownloadUrl   string                 `json:"download_url" yaml:"download_url"`     // 下载URL
+	Extra         map[string]interface{} `json:"extra" yaml:"extra"`                   // 额外信息
 }
 
 // String 将FileInfoResponse转换为字符串
+// @description 将FileInfoResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp FileInfoResponse) String() string {
 	str, _ := json.MarshalString(resp)
@@ -274,6 +285,7 @@ func (resp FileInfoResponse) String() string {
 }
 
 // NewFileInfoResponse 创建文件信息响应对象
+// @description 创建一个新的文件详细信息响应对象
 // @param id int64 文件ID
 // @param fileName string 文件名
 // @param fileSize int64 文件大小

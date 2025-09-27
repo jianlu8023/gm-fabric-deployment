@@ -19,17 +19,20 @@ import (
 )
 
 // NewRouter 创建新的路由列表
-// @func NewRouter
-// @since 1.0.0
-// @description 创建并返回路由列表
+//
+// @description 创建并返回路由处理器列表，包含所有业务模块的路由
 // @param loggerControl *logger.Control 日志控制器
 // @param libp2pControl *libp2p.Control libp2p控制器
 // @param grpcControl *grpc.Control gRPC控制器
 // @param dockerControl *docker.Control Docker控制器
 // @param datasourceControl *datasource.Control 数据源控制器
-// @returns []http.RouterHandler 路由处理器列表
-// @example
-// routers := NewRouter(loggerControl, libp2pControl, grpcControl, dockerControl, datasourceControl)
+// @param websocketControl *websocket.Control WebSocket控制器
+// @param httpControl *http.Control HTTP控制器
+// @param captchaControl *captcha.Control 验证码控制器
+// @param antsPoolControl *ants.Control 线程池控制器
+// @param fabriccaControl *fabricca.Control Fabric CA控制器
+// @param mfaControl *mfa.Control MFA控制器
+// @return []commonhttp.RouterHandler 路由处理器列表
 func NewRouter(loggerControl *logger.Control,
 	libp2pControl *libp2p.Control,
 	grpcControl *grpc.Control,

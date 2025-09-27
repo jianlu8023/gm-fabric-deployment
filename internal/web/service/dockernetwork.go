@@ -10,12 +10,26 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
 )
 
+// DockerNetworkService Docker网络服务
+//
+// @description 提供Docker网络相关的服务功能，如获取Docker网络列表
+// @struct
+// @property Service *Service 基础服务
+// @property mapper *mapper.DockerNetworkMapper Docker网络映射器
+// @property dockerControl *docker.Control Docker控制器
 type DockerNetworkService struct {
 	*Service
 	mapper        *mapper.DockerNetworkMapper
 	dockerControl *docker.Control
 }
 
+// NewDockerNetworkService 创建Docker网络服务实例
+//
+// @description 创建并返回一个新的Docker网络服务实例
+// @param baseService *Service 基础服务
+// @param mapper *mapper.DockerNetworkMapper Docker网络映射器
+// @param dockerControl *docker.Control Docker控制器
+// @return *DockerNetworkService Docker网络服务实例
 func NewDockerNetworkService(baseService *Service,
 	mapper *mapper.DockerNetworkMapper,
 	dockerControl *docker.Control,
@@ -26,6 +40,12 @@ func NewDockerNetworkService(baseService *Service,
 		dockerControl: dockerControl,
 	}
 }
+
+// DockerNetworkList 获取Docker网络列表
+//
+// @description 获取Docker网络列表信息
+// @param ctx *gin.Context Gin上下文
+// @param req *request.DockerNetworkListRequest Docker网络列表请求参数
 func (s *DockerNetworkService) DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest) {
 	s.logger.Debugf("received docker network list request with params: %v", req)
 

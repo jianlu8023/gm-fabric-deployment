@@ -11,11 +11,23 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 )
 
+// DockerNetworkHandler Docker网络处理器结构体
+//
+// @description 处理Docker网络相关的HTTP请求
+// @struct
 type DockerNetworkHandler struct {
+	// Handler 基础处理器，提供日志功能
 	*Handler
+	// service Docker网络服务，处理Docker网络相关的业务逻辑
 	service *service.DockerNetworkService
 }
 
+// NewDockerNetworkHandler 创建Docker网络处理器
+//
+// @description 创建并返回一个新的Docker网络处理器实例
+// @param baseHandler *Handler 基础handler
+// @param service *service.DockerNetworkService Docker网络相关服务
+// @return *DockerNetworkHandler Docker网络处理器实例
 func NewDockerNetworkHandler(baseHandler *Handler,
 	service *service.DockerNetworkService,
 ) *DockerNetworkHandler {
@@ -25,10 +37,23 @@ func NewDockerNetworkHandler(baseHandler *Handler,
 	}
 }
 
+// DockerNetworkServiceInterface Docker网络服务接口
+//
+// @description 定义Docker网络服务需要实现的方法
+// @interface
 type DockerNetworkServiceInterface interface {
+	// DockerNetworkList 获取Docker网络列表
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.DockerNetworkListRequest Docker网络列表请求参数
 	DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest)
 }
 
+// DockerNetworkList 获取Docker网络列表处理函数
+//
+// @description 获取Docker网络列表信息
+// @method GET
+// @url /api/v1/docker/network/list
+// @return JSON Docker网络列表信息
 func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
 	h.logger.Debugf("received docker network list handler...")
 	req := new(request.DockerNetworkListRequest)
@@ -54,6 +79,10 @@ func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
 	h.service.DockerNetworkList(ctx, req)
 }
 
+// Routers 获取Docker网络相关路由列表
+//
+// @description 返回Docker网络相关的所有HTTP路由定义
+// @return []commonhttp.RouterHandler Docker网络路由处理器列表
 func (h *DockerNetworkHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
