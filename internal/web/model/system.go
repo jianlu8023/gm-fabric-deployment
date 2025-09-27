@@ -19,23 +19,6 @@ type SystemInit struct {
 	IsInit sql.NullBool `json:"is_init,omitempty" yaml:"is_init,omitempty" gorm:"column:is_init;not null;default:false;"` // 是否已经初始化
 }
 
-// MarshalJSON 自定义JSON序列化方法
-//
-// @description 自定义SystemInit结构体的JSON序列化，将sql.NullBool类型的IsInit字段序列化为普通bool类型
-// @return []byte JSON字节数组
-// @return error 错误信息
-func (model SystemInit) MarshalJSON() ([]byte, error) {
-	type Alias SystemInit
-	aux := &struct {
-		*Alias
-		IsInit bool `json:"is_init,omitempty" yaml:"is_init,omitempty"`
-	}{
-		Alias:  (*Alias)(&model),
-		IsInit: model.IsInit.Bool,
-	}
-	return json.Marshal(aux)
-}
-
 // String 将SystemInit结构体转换为字符串
 //
 // @description 将SystemInit结构体转换为JSON格式的字符串

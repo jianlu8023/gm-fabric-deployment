@@ -5,6 +5,7 @@ import (
 	systeminfo "github.com/jianlu8023/go-tools/v2/pkg/system/info"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/request"
+	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/version"
 )
@@ -69,9 +70,7 @@ func (s *SystemService) GetSystemInitStatus(ctx *gin.Context, req *request.Syste
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取系统初始化状态失败")
 		return
 	}
-	commonhttp.SuccessResponse(ctx, gin.H{
-		"init": init,
-	})
+	commonhttp.SuccessResponse(ctx, response.NewSystemInitStatusResponse(init))
 }
 
 // NewSystemService 创建系统服务实例
