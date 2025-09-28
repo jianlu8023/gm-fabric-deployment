@@ -7,7 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	
+	"sync/atomic"
+
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
@@ -21,7 +22,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	traceapi "go.opentelemetry.io/otel/trace"
-	
+
 	// semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace/noop"
@@ -30,37 +31,37 @@ import (
 
 var (
 	once sync.Once
-	pp sync.Pool
+	pp   atomic.Pointer[Control]
 )
 
 type Control struct {
 	logger   *zap.SugaredLogger
 	config   *config.OTELConfig
 	ctx      context.Context
-	cancel   context.CancelFunc
 	provider shutdownTracerProvider
 }
 
-func NewOTELControl(otelConfig *config.OTELConfig, loggerControl logger.Control) (*Control, error) {
-	if otelConfig == nil {
-		otelConfig = getDefaultConfig()
+func NewOTELControl(otelConfig *config.OTELConfig, loggerControl logger.Control, ctx context.Context) (*Control, error) {
+	if pp.Load() == nil {
+		if otelConfig == nil {
+			otelConfig = getDefaultConfig()
+		}
+		if !otelConfig.Enabled {
+			return nil, errors.New("otel is not enabled")
+		}
+
+		otelLogger := loggerControl.GenLogger("otel")
+
+		control := &Control{
+			logger: otelLogger,
+			config: otelConfig,
+			ctx:    ctx,
+		}
+		control.setProvider()
+		pp.Store(control)
+		// return control, nil
 	}
-	if !otelConfig.Enabled {
-		return nil, errors.New("otel is not enabled")
-	}
-
-	otelLogger := loggerControl.GenLogger("otel")
-
-	ctx, cancel := context.WithCancel(context.Background())
-
-	control := &Control{
-		logger: otelLogger,
-		config: otelConfig,
-		ctx:    ctx,
-		cancel: cancel,
-	}
-
-	return control, nil
+	return pp.Load(), nil
 }
 
 func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
@@ -188,7 +189,6 @@ func (c *Control) setProvider() {
 	c.ctx = ctx
 }
 
-func(c *Control) Span(componentName string,spanName string,opts ...traceapi.SpanStartOption)(context.Context,traceapi.Span){
-	return c.provider.Tracer(c.config.ExporterServiceName).Start(c.ctx,fmt.Sprintf("%s.%s",componentName,spanName),opts...)
+func (c *Control) Span(componentName string, spanName string, opts ...traceapi.SpanStartOption) (context.Context, traceapi.Span) {
+	return c.provider.Tracer(c.config.ExporterServiceName).Start(c.ctx, fmt.Sprintf("%s.%s", componentName, spanName), opts...)
 }
-
