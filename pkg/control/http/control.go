@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -13,7 +15,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -47,19 +48,22 @@ type Control struct {
 	routerMutex    sync.RWMutex
 	sessionManager jwt.SessionManager
 	once           sync.Once
+	tracerControl  *tracer.Control
 }
 
 // NewWebServerControl 创建Web服务器控制器
 // @param config *config.HttpServerConfig HTTP服务器配置
 // @param loggerControl *logger.Control 日志控制器
+// @param opts ...Option 可选的配置选项
 // @return *Control Web服务器控制器实例
-func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control) (*Control, error) {
+func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control, opts ...Option) (*Control, error) {
 	if serverConfig == nil {
 		serverConfig = getDefaultConfig()
 	}
 	if !serverConfig.Enabled {
 		return nil, errors.New("http is not enabled")
 	}
+
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	webLogger.Infof("[control] start new http server control...")
 	gin.SetMode(serverConfig.RunMode)
@@ -106,10 +110,6 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	// 调试模式下开启pprof
 	// pprof.Register(engine)
 
-	// 创建会话管理器
-	webLogger.Debugf("[control] create session manager...")
-	sessionManager := jwt.NewMemorySessionManager(webLogger, ctx)
-
 	// 注册JWT中间件
 	// webLogger.Debugf("[control] register JWT middleware...")
 	// engine.Use(middleware.EnableJWT(webLogger, sessionManager))
@@ -141,13 +141,29 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	webLogger.Debugf("[control] generate http control...")
 	control := &Control{
-		config:         serverConfig,
-		server:         srv,
-		ctx:            ctx,
-		logger:         webLogger,
-		ginRouter:      engine,
-		sessionManager: sessionManager,
+		config:    serverConfig,
+		server:    srv,
+		ctx:       ctx,
+		logger:    webLogger,
+		ginRouter: engine,
 	}
+
+	// 应用所有选项
+	for _, opt := range opts {
+		opt(control)
+	}
+
+	if control.sessionManager == nil {
+		// 创建会话管理器
+		webLogger.Debugf("[control] create session manager...")
+		control.sessionManager = jwt.NewMemorySessionManager(webLogger, ctx)
+	}
+
+	if control.tracerControl != nil {
+		engine.Use(otelgin.Middleware("", otelgin.WithTracerProvider(control.tracerControl.GetProvider())))
+	}
+
+	// control.ginRouter = engine
 
 	// webLogger.Debugf("[control] generate http server...")
 	if serverConfig.TlsEnabled {
@@ -371,6 +387,8 @@ func (c *Control) registerDefaultRouter() {
 		// 首先注册NoMethod处理器（方法不允许）
 		// NoMethod应该在NoRoute之前注册，以确保当路径存在但方法不支持时能正确返回405
 		c.ginRouter.NoMethod(func(ctx *gin.Context) {
+			span, _ := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noMethod")
+			defer span.Done()
 			c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
 			ctx.JSON(http.StatusMethodNotAllowed, gin.H{
 				"code":    http.StatusMethodNotAllowed,
@@ -383,6 +401,8 @@ func (c *Control) registerDefaultRouter() {
 	{
 		// 然后注册NoRoute处理器（路径不存在）
 		c.ginRouter.NoRoute(func(ctx *gin.Context) {
+			span, _ := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noRouter")
+			defer span.Done()
 			c.logger.Warnf("[control] 404 Not Found: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
 			ctx.JSON(http.StatusNotFound, gin.H{
 				"code":    http.StatusNotFound,
@@ -402,6 +422,8 @@ func (c *Control) registerDefaultRouter() {
 				Uri:    allRouterUri,
 				Method: http.MethodGet,
 				HandlerFunc: func(ctx *gin.Context) {
+					span, _ := tracer.StartSpan(ctx.Request.Context(), "ceshiComponentName", "ceshiSpanName")
+					defer span.Done()
 					commonhttp.SuccessResponse(ctx, gin.H{
 						"routers": c.routers,
 					})

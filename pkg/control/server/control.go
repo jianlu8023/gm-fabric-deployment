@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"os"
 	"sync"
 
@@ -45,6 +46,7 @@ type Control struct {
 	authzControl      *authz.Control
 	ipfsControl       *ipfs.Control
 	mfaControl        *mfa.Control
+	tracerControl     *tracer.Control
 	logger            *zap.SugaredLogger
 	once              sync.Once
 	mutex             sync.RWMutex
@@ -81,6 +83,16 @@ func NewServerControlFromFile() (*Control, error) {
 	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	control.loggerControl = loggerControl
 	control.logger = loggerControl.GenLogger(logger.ModuleServer)
+
+	tracerConfig := configControl.GetTracerConfig()
+	if tracerConfig != nil && tracerConfig.Enabled {
+		tracerControl, err := tracer.NewTracerControl(tracerConfig, control.GetLoggerControl(), nil)
+		if err != nil {
+			control.logger.Errorf("[control] create tracer control failed: %v", err)
+			return nil, err
+		}
+		control.tracerControl = tracerControl
+	}
 
 	// 检查并创建GRPC控制器
 	grpcConfig := configControl.GetGrpcConfig()
@@ -177,12 +189,23 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建HTTP控制器
 	webConfig := configControl.GetWebConfig()
 	if webConfig != nil && webConfig.Enabled {
-		webServerControl, err := http.NewWebServerControl(webConfig, control.GetLoggerControl())
-		if err != nil {
-			control.logger.Errorf("[control] create http control failed: %v", err)
-			return nil, err
+		if control.GetTracerControl() != nil {
+			webServerControl, err := http.NewWebServerControl(webConfig,
+				control.GetLoggerControl(),
+				http.WithTracer(control.GetTracerControl()))
+			if err != nil {
+				control.logger.Errorf("[control] create http control failed: %v", err)
+				return nil, err
+			}
+			control.httpControl = webServerControl
+		} else {
+			webServerControl, err := http.NewWebServerControl(webConfig, control.GetLoggerControl())
+			if err != nil {
+				control.logger.Errorf("[control] create http control failed: %v", err)
+				return nil, err
+			}
+			control.httpControl = webServerControl
 		}
-		control.httpControl = webServerControl
 
 		websocketControl := websocket.NewWebsocketControl(webConfig, control.GetLoggerControl())
 		control.websocketControl = websocketControl
@@ -311,6 +334,12 @@ func (c *Control) GetMFAControl() *mfa.Control {
 	return c.mfaControl
 }
 
+func (c *Control) GetTracerControl() *tracer.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.tracerControl
+}
+
 // NewServerControl 创建服务器控制器
 // @param dockerControl *docker.Control Docker控制器
 // @param configControl *config.Control 配置控制器
@@ -339,6 +368,7 @@ func NewServerControl(dockerControl *docker.Control,
 	authzControl *authz.Control,
 	ipfsControl *ipfs.Control,
 	mfaControl *mfa.Control,
+	tracerControl *tracer.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -360,6 +390,7 @@ func NewServerControl(dockerControl *docker.Control,
 		authzControl:      authzControl,
 		ipfsControl:       ipfsControl,
 		mfaControl:        mfaControl,
+		tracerControl:     tracerControl,
 	}
 }
 
@@ -381,6 +412,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.loggerControl != nil {
 			c.logger.Debugf("[control] starting up logger server...")
 			c.loggerControl.StartUp(failedFunc)
+		}
+
+		if c.tracerControl != nil {
+			c.logger.Debugf("[control] starting up tracer server...")
+			c.tracerControl.StartUp(failedFunc)
 		}
 
 		if c.datasourceControl != nil {
@@ -541,6 +577,14 @@ func (c *Control) Shutdown() error {
 		c.logger.Debugf("[control] shutting down datasource server...")
 		if err := c.datasourceControl.Shutdown(); err != nil {
 			c.logger.Errorf("[control] shutdown datasource server err: %v", err)
+			return err
+		}
+	}
+
+	if c.tracerControl != nil {
+		c.logger.Debugf("[control] shutting down tracer server...")
+		if err := c.tracerControl.Shutdown(); err != nil {
+			c.logger.Errorf("[control] shutdown tracer server err: %v", err)
 			return err
 		}
 	}

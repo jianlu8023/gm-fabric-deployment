@@ -548,7 +548,7 @@ func (m *MFAConfig) String() string {
 	return string(pretty)
 }
 
-type OTELConfig struct {
+type TracerConfig struct {
 	Enabled                bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                                    // 是否启用
 	ExporterServiceName    string `json:"exporter_service_name,omitempty" yaml:"exporter_service_name,omitempty" mapstructure:"exporter_service_name"`          // OTEL服务名称
 	ExporterFilePath       string `json:"exporter_file_path,omitempty" yaml:"exporter_file_path,omitempty" mapstructure:"exporter_file_path"`                   // OTEL文件路径
@@ -575,6 +575,7 @@ type Config struct {
 	WebRTCConfig     *WebRTCConfig     `json:"webrtc_config,omitempty" yaml:"webrtc_config,omitempty" mapstructure:"webrtc"`             // WebRTC配置
 	AuthzConfig      *AuthzConfig      `json:"authz_config,omitempty" yaml:"authz_config,omitempty" mapstructure:"authz"`                // 权限控制配置
 	MFAConfig        *MFAConfig        `json:"mfa_config,omitempty" yaml:"mfa_config,omitempty" mapstructure:"mfa"`                      // MFA配置
+	TracerConfig     *TracerConfig     `json:"tracer_config,omitempty" yaml:"tracer_config,omitempty" mapstructure:"tracer"`
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 

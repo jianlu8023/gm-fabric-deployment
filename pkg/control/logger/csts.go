@@ -15,4 +15,5 @@ const (
 	ModuleWebRTC     = "WebRTC"
 	ModuleAuthZ      = "authz"
 	ModuleMFA        = "MFA"
+	ModuleTracer     = "Tracer"
 )

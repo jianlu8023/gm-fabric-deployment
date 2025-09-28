@@ -137,6 +137,12 @@ func (c *Control) GetMFAConfig() *MFAConfig {
 	return c.config.MFAConfig
 }
 
+func (c *Control) GetTracerConfig() *TracerConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.TracerConfig
+}
+
 // GetTunnyPoolConfig 获取Tunny线程池配置
 // @return *TunnyPoolConfig Tunny线程池配置
 // func (c *Control) GetTunnyPoolConfig() *TunnyPoolConfig {
