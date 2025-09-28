@@ -548,6 +548,17 @@ func (m *MFAConfig) String() string {
 	return string(pretty)
 }
 
+type OTELConfig struct {
+	Enabled                bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                                    // 是否启用
+	ExporterServiceName    string `json:"exporter_service_name,omitempty" yaml:"exporter_service_name,omitempty" mapstructure:"exporter_service_name"`          // OTEL服务名称
+	ExporterFilePath       string `json:"exporter_file_path,omitempty" yaml:"exporter_file_path,omitempty" mapstructure:"exporter_file_path"`                   // OTEL文件路径
+	ExporterOTELInsecure   bool   `json:"exporter_otel_insecure,omitempty" yaml:"exporter_otel_insecure,omitempty" mapstructure:"exporter_otel_insecure"`       // OTEL是否不安全
+	TracesExporter         string `json:"traces_exporter,omitempty" yaml:"traces_exporter,omitempty" mapstructure:"traces_exporter"`                            // 类型 otel,file
+	ExporterZipkinEndpoint string `json:"exporter_zipkin_endpoint,omitempty" yaml:"exporter_zipkin_endpoint,omitempty" mapstructure:"exporter_zipkin_endpoint"` // Zipkin端点
+	ExporterOTELEndpoint   string `json:"exporter_otel_endpoint,omitempty" yaml:"exporter_otel_endpoint,omitempty" mapstructure:"exporter_otel_endpoint"`       // OTEL端点
+	ExporterOTELProtocol   string `json:"exporter_otel_protocol,omitempty" yaml:"exporter_otel_protocol,omitempty" mapstructure:"exporter_otel_protocol"`       // OTEL协议
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig       *GrpcConfig       `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置

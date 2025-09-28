@@ -99,6 +99,14 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/valyala/quicktemplate v1.8.0
+	go.opentelemetry.io/otel v1.35.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.31.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.31.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.31.0
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.31.0
+	go.opentelemetry.io/otel/exporters/zipkin v1.31.0
+	go.opentelemetry.io/otel/sdk v1.35.0
+	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/time v0.5.0 // time的限流
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
@@ -174,6 +182,7 @@ require (
 	github.com/bytedance/sonic v1.14.1 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/casbin/govaluate v1.3.0 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
@@ -186,8 +195,8 @@ require (
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/eapache/go-resiliency v1.2.0 // indirect
-	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
+	github.com/eapache/go-resiliency v1.6.0 // indirect
+	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/ebitengine/purego v0.8.1 // indirect
 	github.com/elastic/gosigar v0.14.3 // indirect
@@ -217,6 +226,7 @@ require (
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
@@ -297,6 +307,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/opencontainers/runtime-spec v1.2.0 // indirect
+	github.com/openzipkin/zipkin-go v0.4.3 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
@@ -353,9 +364,8 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0 // indirect
-	go.opentelemetry.io/otel v1.34.0 // indirect
-	go.opentelemetry.io/otel/metric v1.34.0 // indirect
-	go.opentelemetry.io/otel/trace v1.34.0 // indirect
+	go.opentelemetry.io/otel/metric v1.35.0 // indirect
+	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/dig v1.18.0 // indirect
 	go.uber.org/fx v1.23.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect
