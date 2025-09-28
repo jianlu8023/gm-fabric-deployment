@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/pkg/control/datasource"
+	"gorm.io/gorm"
 )
 
 type FileMapper struct {
@@ -16,175 +18,252 @@ func NewFileMapper(baseMapper *Mapper) *FileMapper {
 	}
 }
 
+// QueryFileExist 查询文件是否存在
+// @description 根据文件查询条件查询文件是否存在
+// @param query *model.FileInfo 文件查询条件，非空字段将作为查询条件
+// @return bool 文件是否存在
+// @return error 错误信息
+func (m *FileMapper) QueryFileExist(query *model.FileInfo) (bool, error) {
+	if m.db == nil {
+		return false, datasource.ErrNoDataSourceConn
+	}
+
+	var count int64
+	if err := m.db.Model(&model.FileInfo{}).Where(query).Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
 // CreateFileInfo 创建文件信息记录
-func (m *FileMapper) CreateFileInfo(fileInfo *model.FileInfo) (int64, error) {
-	// 这里应该实现向数据库插入文件信息的逻辑
-	// 由于没有具体的数据库实现，这里返回一个模拟的ID
-	// 实际项目中应该使用数据库操作来保存文件信息
-	fileInfo.ID = 1 // 模拟ID，实际应该从数据库获取
-	return fileInfo.ID, nil
+// @description 直接插入文件信息，不包含存在性检查，应由service层调用QueryFileExist进行检查
+func (m *FileMapper) CreateFileInfo(fileInfo *model.FileInfo) error {
+	if m.db == nil {
+		return datasource.ErrNoDataSourceConn
+	}
+
+	// 直接插入文件信息
+	return m.db.Create(fileInfo).Error
 }
 
 // GetFileInfoByID 根据ID获取文件信息
-func (m *FileMapper) GetFileInfoByID(fileID int64) (*model.FileInfo, error) {
-	// 这里应该实现从数据库获取文件信息的逻辑
-	// 由于没有具体的数据库实现，这里返回一个模拟的文件信息
-	// 实际项目中应该使用数据库操作来获取文件信息
+func (m *FileMapper) GetFileInfoByID(autoUid int) (*model.FileInfo, error) {
+	if m.db == nil {
+		return nil, datasource.ErrNoDataSourceConn
+	}
 
-	// 模拟数据库查询结果
-	fileInfo := &model.FileInfo{
-		ID:             fileID,
-		FileName:       "example.txt",
-		FileSize:       1024 * 1024, // 1MB
-		FileHash:       "abcdef1234567890",
-		ChunkSize:      1024 * 1024, // 1MB
-		TotalChunks:    1,
-		UploadedChunks: 1,
-		FilePath:       "/uploads/example.txt",
-		FileType:       "text/plain",
-		Uploader:       "user1",
-		UploadTime:     time.Now(),
-		UpdateTime:     time.Now(),
-		Status:         model.FileStatusCompleted,
-		DownloadCount:  0,
-		Description:    "示例文件",
-		StorageType:    "local",
-		Extra:          map[string]interface{}{},
+	fileInfo := &model.FileInfo{}
+	if err := m.db.Where("auto_uid = ?", autoUid).First(fileInfo).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, datasource.ErrNotExists
+		}
+		return nil, err
+	}
+
+	return fileInfo, nil
+}
+
+// GetFileInfoByUploadID 根据上传ID获取文件信息
+func (m *FileMapper) GetFileInfoByUploadID(uploadID string) (*model.FileInfo, error) {
+	if m.db == nil {
+		return nil, datasource.ErrNoDataSourceConn
+	}
+
+	fileInfo := &model.FileInfo{}
+	if err := m.db.Where("upload_id = ?", uploadID).First(fileInfo).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, datasource.ErrNotExists
+		}
+		return nil, err
 	}
 
 	return fileInfo, nil
 }
 
 // UpdateFileInfo 更新文件信息
+// @description 直接更新文件信息，不包含存在性检查，应由service层调用QueryFileExist进行检查
 func (m *FileMapper) UpdateFileInfo(fileInfo *model.FileInfo) error {
-	// 这里应该实现更新数据库中文件信息的逻辑
-	// 由于没有具体的数据库实现，这里直接返回nil
-	// 实际项目中应该使用数据库操作来更新文件信息
+	if m.db == nil {
+		return datasource.ErrNoDataSourceConn
+	}
+
 	fileInfo.UpdateTime = time.Now()
-	return nil
+	return m.db.Model(fileInfo).Updates(fileInfo).Error
+
 }
 
 // CreateFileChunk 创建文件分片记录
+// @description 直接插入分片信息，不包含存在性检查，应由service层调用CheckChunkExists进行检查
 func (m *FileMapper) CreateFileChunk(fileChunk *model.FileChunk) (int64, error) {
-	// 这里应该实现向数据库插入文件分片信息的逻辑
-	// 由于没有具体的数据库实现，这里返回一个模拟的ID
-	// 实际项目中应该使用数据库操作来保存分片信息
-	fileChunk.FileID = 1 // 模拟ID，实际应该从数据库获取
-	return fileChunk.FileID, nil
+	if m.db == nil {
+		return 0, datasource.ErrNoDataSourceConn
+	}
+
+	if err := m.db.Create(fileChunk).Error; err != nil {
+		return 0, err
+	}
+
+	return 1, nil
 }
 
 // CheckChunkExists 检查分片是否已存在
 func (m *FileMapper) CheckChunkExists(fileID int64, chunkIndex int) (bool, error) {
-	// 这里应该实现检查数据库中是否存在指定分片的逻辑
-	// 由于没有具体的数据库实现，这里返回false
-	// 实际项目中应该使用数据库操作来检查分片是否存在
-	return false, nil
+	if m.db == nil {
+		return false, datasource.ErrNoDataSourceConn
+	}
+
+	var count int64
+	if err := m.db.Model(&model.FileChunk{}).
+		Where("file_id = ? AND chunk_index = ?", fileID, chunkIndex).
+		Count(&count).Error; err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 // UpdateFileChunk 更新分片信息
+// @description 直接更新分片信息，不包含存在性检查，应由service层调用CheckChunkExists进行检查
 func (m *FileMapper) UpdateFileChunk(fileChunk *model.FileChunk) error {
-	// 这里应该实现更新数据库中分片信息的逻辑
-	// 由于没有具体的数据库实现，这里直接返回nil
-	// 实际项目中应该使用数据库操作来更新分片信息
+	if m.db == nil {
+		return datasource.ErrNoDataSourceConn
+	}
+
 	fileChunk.UploadTime = time.Now()
-	return nil
+	return m.db.Model(fileChunk).
+		Where("file_id = ? AND chunk_index = ?", fileChunk.UploadID, fileChunk.ChunkIndex).
+		Updates(fileChunk).Error
 }
 
 // GetUploadedChunkCount 获取已上传分片数
 func (m *FileMapper) GetUploadedChunkCount(fileID int64) (int, error) {
-	// 这里应该实现从数据库获取已上传分片数的逻辑
-	// 由于没有具体的数据库实现，这里返回模拟的分片数
-	// 实际项目中应该使用数据库操作来获取已上传分片数
-	return 1, nil
+	if m.db == nil {
+		return 0, datasource.ErrNoDataSourceConn
+	}
+
+	var count int64
+	if err := m.db.Model(&model.FileChunk{}).
+		Where("file_id = ?", fileID).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+
+	return int(count), nil
 }
 
 // GetFileChunks 获取所有分片信息
-func (m *FileMapper) GetFileChunks(fileID int64) ([]*model.FileChunk, error) {
-	// 这里应该实现从数据库获取所有分片信息的逻辑
-	// 由于没有具体的数据库实现，这里返回模拟的分片信息
-	// 实际项目中应该使用数据库操作来获取分片信息
+func (m *FileMapper) GetFileChunks(fileID int) ([]*model.FileChunk, error) {
+	if m.db == nil {
+		return nil, datasource.ErrNoDataSourceConn
+	}
 
-	// 模拟数据库查询结果
-	chunks := []*model.FileChunk{
-		{
-			FileID:     fileID,
-			ChunkIndex: 0,
-			ChunkSize:  1024 * 1024, // 1MB
-			FilePath:   "/uploads/temp/chunk_0",
-			UploadTime: time.Now(),
-		},
+	var chunks []*model.FileChunk
+	if err := m.db.Where("file_id = ?", fileID).
+		Order("chunk_index ASC").
+		Find(&chunks).Error; err != nil {
+		return nil, err
 	}
 
 	return chunks, nil
 }
 
 // GetUploadedChunkIndexes 获取已上传分片索引
-func (m *FileMapper) GetUploadedChunkIndexes(fileID int64) ([]int, error) {
-	// 这里应该实现从数据库获取已上传分片索引的逻辑
-	// 由于没有具体的数据库实现，这里返回模拟的分片索引
-	// 实际项目中应该使用数据库操作来获取分片索引
+func (m *FileMapper) GetUploadedChunkIndexes(fileID int) ([]int, error) {
+	if m.db == nil {
+		return nil, datasource.ErrNoDataSourceConn
+	}
 
-	// 模拟数据库查询结果
-	indexes := []int{0}
+	var indexes []int
+	if err := m.db.Model(&model.FileChunk{}).
+		Where("file_id = ?", fileID).
+		Order("chunk_index ASC").
+		Pluck("chunk_index", &indexes).Error; err != nil {
+		return nil, err
+	}
 
 	return indexes, nil
 }
 
 // GetLastChunkUploadTime 获取最后分片上传时间
-func (m *FileMapper) GetLastChunkUploadTime(fileID int64) (time.Time, error) {
-	// 这里应该实现从数据库获取最后分片上传时间的逻辑
-	// 由于没有具体的数据库实现，这里返回当前时间
-	// 实际项目中应该使用数据库操作来获取最后分片上传时间
-	return time.Now(), nil
+func (m *FileMapper) GetLastChunkUploadTime(fileID int) (time.Time, error) {
+	if m.db == nil {
+		return time.Time{}, datasource.ErrNoDataSourceConn
+	}
+
+	var maxUploadTime time.Time
+	if err := m.db.Model(&model.FileChunk{}).
+		Where("file_id = ?", fileID).
+		Select("MAX(upload_time)").
+		Scan(&maxUploadTime).Error; err != nil {
+		return time.Time{}, err
+	}
+
+	return maxUploadTime, nil
 }
 
 // ListFiles 列出文件
-func (m *FileMapper) ListFiles(fileName, status, uploader string, offset, limit int, orderBy, orderType string) ([]*model.FileInfo, int, error) {
-	// 这里应该实现从数据库查询文件列表的逻辑
-	// 由于没有具体的数据库实现，这里返回模拟的文件列表
-	// 实际项目中应该使用数据库操作来查询文件列表
-
-	// 模拟数据库查询结果
-	files := []*model.FileInfo{
-		{
-			ID:             1,
-			FileName:       "example.txt",
-			FileSize:       1024 * 1024, // 1MB
-			FileHash:       "abcdef1234567890",
-			ChunkSize:      1024 * 1024, // 1MB
-			TotalChunks:    1,
-			UploadedChunks: 1,
-			FilePath:       "/uploads/example.txt",
-			FileType:       "text/plain",
-			Uploader:       "user1",
-			UploadTime:     time.Now(),
-			UpdateTime:     time.Now(),
-			Status:         model.FileStatusCompleted,
-			DownloadCount:  0,
-			Description:    "示例文件",
-			StorageType:    "local",
-			Extra:          map[string]interface{}{},
-		},
+func (m *FileMapper) ListFiles(fileName, status, uploaderId string, offset, limit int, orderBy, orderType string) ([]*model.FileInfo, int, error) {
+	if m.db == nil {
+		return nil, 0, datasource.ErrNoDataSourceConn
 	}
 
-	// 模拟总记录数
-	total := 1
+	var files []*model.FileInfo
+	query := m.db.Model(&model.FileInfo{})
 
-	return files, total, nil
+	// 构建查询条件
+	if fileName != "" {
+		query = query.Where("file_name LIKE ?", "%"+fileName+"%")
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if uploaderId != "" {
+		query = query.Where("uploader_id = ?", uploaderId)
+	}
+
+	// 获取总记录数
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 构建排序
+	if orderBy != "" {
+		orderDirection := "ASC"
+		if orderType == "desc" {
+			orderDirection = "DESC"
+		}
+		query = query.Order(orderBy + " " + orderDirection)
+	} else {
+		// 默认按更新时间倒序
+		query = query.Order("update_time DESC")
+	}
+
+	// 分页查询
+	if err := query.Offset(offset).Limit(limit).Find(&files).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return files, int(total), nil
 }
 
 // DeleteFileInfo 删除文件信息
-func (m *FileMapper) DeleteFileInfo(fileID int64) error {
-	// 这里应该实现从数据库删除文件信息的逻辑
-	// 由于没有具体的数据库实现，这里直接返回nil
-	// 实际项目中应该使用数据库操作来删除文件信息
-	return nil
+// @description 直接删除文件信息，不包含存在性检查，应由service层调用QueryFileExist进行检查
+func (m *FileMapper) DeleteFileInfo(fileID int) error {
+	if m.db == nil {
+		return datasource.ErrNoDataSourceConn
+	}
+
+	return m.db.Where("auto_uid = ?", fileID).Delete(&model.FileInfo{}).Error
+
 }
 
 // DeleteFileChunks 删除分片信息
-func (m *FileMapper) DeleteFileChunks(fileID int64) error {
-	// 这里应该实现从数据库删除分片信息的逻辑
-	// 由于没有具体的数据库实现，这里直接返回nil
-	// 实际项目中应该使用数据库操作来删除分片信息
-	return nil
+func (m *FileMapper) DeleteFileChunks(fileID int) error {
+	if m.db == nil {
+		return datasource.ErrNoDataSourceConn
+	}
+
+	return m.db.Where("file_id = ?", fileID).Delete(&model.FileChunk{}).Error
 }

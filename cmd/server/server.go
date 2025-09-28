@@ -79,6 +79,8 @@ func main() {
 			&model.Libp2pNode{},
 			&model.UserInfo{},
 			&model.SystemInit{},
+			&model.FileInfo{},
+			&model.FileChunk{},
 		)
 	}
 

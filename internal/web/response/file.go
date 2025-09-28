@@ -15,11 +15,20 @@ import (
 // @property ChunkSize int64 分片大小
 // @property UploadPath string 上传路径前缀
 type InitUploadResponse struct {
-	FileID      int64  `json:"file_id" yaml:"file_id"`           // 文件ID
-	UploadID    string `json:"upload_id" yaml:"upload_id"`       // 上传ID
-	TotalChunks int    `json:"total_chunks" yaml:"total_chunks"` // 总分片数
-	ChunkSize   int64  `json:"chunk_size" yaml:"chunk_size"`     // 分片大小
-	UploadPath  string `json:"upload_path" yaml:"upload_path"`   // 上传路径前缀
+	UploadID    string  `json:"upload_id" yaml:"upload_id"`       // 上传ID
+	TotalChunks float64 `json:"total_chunks" yaml:"total_chunks"` // 总分片数
+	ChunkSize   float64 `json:"chunk_size" yaml:"chunk_size"`     // 分片大小
+	UploadPath  string  `json:"upload_path" yaml:"upload_path"`   // 上传路径前缀
+}
+
+func (resp InitUploadResponse) MarshalJSON() ([]byte, error) {
+	type Alias InitUploadResponse
+	aux := struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&resp),
+	}
+	return json.Marshal(aux)
 }
 
 // String 将InitUploadResponse转换为字符串
@@ -38,9 +47,8 @@ func (resp InitUploadResponse) String() string {
 // @param chunkSize int64 分片大小
 // @param uploadPath string 上传路径
 // @return *InitUploadResponse 初始化上传响应对象
-func NewInitUploadResponse(fileID int64, uploadID string, totalChunks int, chunkSize int64, uploadPath string) *InitUploadResponse {
-	return &InitUploadResponse{
-		FileID:      fileID,
+func NewInitUploadResponse(uploadID string, totalChunks float64, chunkSize float64, uploadPath string) InitUploadResponse {
+	return InitUploadResponse{
 		UploadID:    uploadID,
 		TotalChunks: totalChunks,
 		ChunkSize:   chunkSize,

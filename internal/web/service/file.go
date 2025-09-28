@@ -5,11 +5,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"time"
-
+	
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
@@ -67,22 +68,33 @@ func ensureDir(dir string) {
 // @param ctx *gin.Context Gin上下文
 // @param req *request.FileInitUploadRequest 初始化上传请求参数
 func (s *FileService) InitUpload(ctx *gin.Context, req *request.FileInitUploadRequest) {
-	s.logger.Debugf("received init upload request: %v", req)
+	s.logger.Debugf("received file init upload request with params: %v", req)
 
 	// 计算总分片数
-	totalChunks := int(req.FileSize / req.ChunkSize)
-	if req.FileSize%req.ChunkSize != 0 {
-		totalChunks++
-	}
+	totalChunks := math.Ceil(req.FileSize / req.ChunkSize)
 
 	// 生成上传ID
 	uploadID := uuid.GetUUID()
+
+	// 先检查文件是否已存在
+	fileExist, err := s.mapper.QueryFileExist(&model.FileInfo{UploadID: uploadID})
+	if err != nil {
+		s.logger.Errorf("check file exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查文件是否存在失败")
+		return
+	}
+	if fileExist {
+		s.logger.Errorf("file already exists: upload_id=%s", uploadID)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "文件已存在")
+		return
+	}
 
 	// 创建文件信息记录
 	fileInfo := &model.FileInfo{
 		UploadID:       uploadID,
 		FileName:       req.FileName,
 		FileSize:       req.FileSize,
+		FilePath:       "",
 		FileHash:       req.FileHash,
 		ChunkSize:      req.ChunkSize,
 		TotalChunks:    totalChunks,
@@ -96,29 +108,19 @@ func (s *FileService) InitUpload(ctx *gin.Context, req *request.FileInitUploadRe
 	}
 
 	// 保存文件信息
-	id, err := s.mapper.CreateFileInfo(fileInfo)
+	err = s.mapper.CreateFileInfo(fileInfo)
 	if err != nil {
 		s.logger.Errorf("save file info failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "保存文件信息失败")
 		return
 	}
 
-	fileInfo.ID = id
-
 	// 创建临时目录用于存储分片
 	tempChunkDir := filepath.Join(s.tempDir, uploadID)
 	ensureDir(tempChunkDir)
 
-	r := &response.InitUploadResponse{
-		FileID:      id,
-		UploadID:    uploadID,
-		TotalChunks: totalChunks,
-		ChunkSize:   req.ChunkSize,
-		UploadPath:  tempChunkDir,
-	}
-
-	s.logger.Infof("init file upload success, file_id: %d, upload_id: %s", id, uploadID)
-	commonhttp.SuccessResponse(ctx, r)
+	s.logger.Infof("init file upload success, file_id: %d, upload_id: %s", fileInfo.UploadID, uploadID)
+	commonhttp.SuccessResponse(ctx, response.NewInitUploadResponse(uploadID, totalChunks, req.ChunkSize, tempChunkDir))
 }
 
 // UploadChunk 上传文件分片服务
@@ -126,7 +128,20 @@ func (s *FileService) InitUpload(ctx *gin.Context, req *request.FileInitUploadRe
 // @param ctx *gin.Context Gin上下文
 // @param req *request.FileUploadChunkRequest 上传分片请求参数
 func (s *FileService) UploadChunk(ctx *gin.Context, req *request.FileUploadChunkRequest) {
-	s.logger.Debugf("received upload chunk request: file_id=%d, chunk_index=%d", req.FileID, req.ChunkIndex)
+	s.logger.Debugf("received upload chunk request with params: %v", req)
+
+	// 先检查文件是否存在
+	fileExist, err := s.mapper.QueryFileExist(&model.FileInfo{AutoUid: req.FileID})
+	if err != nil {
+		s.logger.Errorf("check file exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查文件是否存在失败")
+		return
+	}
+	if !fileExist {
+		s.logger.Errorf("file not found: file_id=%d", req.FileID)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.RecordNotFound, "文件不存在")
+		return
+	}
 
 	// 获取文件信息
 	fileInfo, err := s.mapper.GetFileInfoByID(req.FileID)
@@ -174,91 +189,91 @@ func (s *FileService) UploadChunk(ctx *gin.Context, req *request.FileUploadChunk
 	defer chunkOutput.Close()
 
 	// 写入分片数据
-	// written, err := io.Copy(chunkOutput, src)
-	// if err != nil {
-	// 	s.logger.Errorf("write chunk data failed: %v", err)
-	// 	commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "写入分片数据失败")
-	// 	return
-	// }
+	written, err := io.Copy(chunkOutput, src)
+	if err != nil {
+		s.logger.Errorf("write chunk data failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "写入分片数据失败")
+		return
+	}
 
 	// 获取文件的实际大小
-	// chunkSize := written
+	chunkSize := written
 
-	// if written != req.ChunkSize {
-	// 	s.logger.Warnf("chunk data incomplete: expected %d bytes, wrote %d bytes", req.ChunkSize, written)
-	// }
-	//
-	// // 记录已上传分片
-	// fileChunk := &model.FileChunk{
-	// 	FileID:     req.FileID,
-	// 	ChunkIndex: req.ChunkIndex,
-	// 	ChunkSize:  chunkSize,
-	// 	FilePath:   chunkFilePath,
-	// 	UploadTime: time.Now(),
-	// }
-	//
-	// // 检查分片是否已存在
-	// exists, err := s.mapper.CheckChunkExists(req.FileID, req.ChunkIndex)
-	// if err != nil {
-	// 	s.logger.Errorf("check chunk exists failed: %v", err)
-	// 	commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查分片是否存在失败")
-	// 	return
-	// }
-	//
-	// if exists {
-	// 	// 更新分片信息
-	// 	if err := s.mapper.UpdateFileChunk(fileChunk); err != nil {
-	// 		s.logger.Errorf("update file chunk failed: %v", err)
-	// 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "更新分片信息失败")
-	// 		return
-	// 	}
-	// } else {
-	// 	// 插入新分片信息
-	// 	if _, err := s.mapper.CreateFileChunk(fileChunk); err != nil {
-	// 		s.logger.Errorf("save file chunk failed: %v", err)
-	// 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "保存分片信息失败")
-	// 		return
-	// 	}
-	// }
-	//
-	// // 更新已上传分片数
-	// uploadedChunks, err := s.mapper.GetUploadedChunkCount(req.FileID)
-	// if err != nil {
-	// 	s.logger.Errorf("get uploaded chunk count failed: %v", err)
-	// 	commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "获取已上传分片数失败")
-	// 	return
-	// }
-	//
-	// // 更新文件信息
-	// fileInfo.UploadedChunks = uploadedChunks
-	// fileInfo.UpdateTime = time.Now()
-	//
-	// if uploadedChunks >= fileInfo.TotalChunks {
-	// 	fileInfo.Status = model.FileStatusPendingMerge // 等待合并
-	// }
-	//
-	// if err := s.mapper.UpdateFileInfo(fileInfo); err != nil {
-	// 	s.logger.Errorf("update file info failed: %v", err)
-	// 	commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "更新文件信息失败")
-	// 	return
-	// }
-	//
-	// // 计算上传进度
-	// progress := 0.0
-	// if fileInfo.TotalChunks > 0 {
-	// 	progress = float64(uploadedChunks) / float64(fileInfo.TotalChunks) * 100
-	// }
-	//
-	// s.logger.Infof("upload chunk success, file_id: %d, chunk_index: %d, progress: %.2f%%",
-	// 	req.FileID, req.ChunkIndex, progress)
-	//
-	// commonhttp.SuccessResponse(ctx, map[string]interface{}{
-	// 	"file_id":         req.FileID,
-	// 	"chunk_index":     req.ChunkIndex,
-	// 	"uploaded_chunks": uploadedChunks,
-	// 	"total_chunks":    fileInfo.TotalChunks,
-	// 	"progress":        progress,
-	// })
+	if written != req.ChunkSize && req.ChunkIndex != req.TotalChunks-1 {
+		s.logger.Warnf("chunk data incomplete: expected %d bytes, wrote %d bytes", req.ChunkSize, written)
+	}
+
+	// 记录已上传分片
+	fileChunk := &model.FileChunk{
+		FileID:     req.FileID,
+		ChunkIndex: req.ChunkIndex,
+		ChunkSize:  chunkSize,
+		FilePath:   chunkFilePath,
+		UploadTime: time.Now(),
+	}
+
+	// 检查分片是否已存在
+	exists, err := s.mapper.CheckChunkExists(req.FileID, req.ChunkIndex)
+	if err != nil {
+		s.logger.Errorf("check chunk exists failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查分片是否存在失败")
+		return
+	}
+
+	if exists {
+		// 更新分片信息
+		if err := s.mapper.UpdateFileChunk(fileChunk); err != nil {
+			s.logger.Errorf("update file chunk failed: %v", err)
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "更新分片信息失败")
+			return
+		}
+	} else {
+		// 插入新分片信息
+		if _, err := s.mapper.CreateFileChunk(fileChunk); err != nil {
+			s.logger.Errorf("save file chunk failed: %v", err)
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "保存分片信息失败")
+			return
+		}
+	}
+
+	// 更新已上传分片数
+	uploadedChunks, err := s.mapper.GetUploadedChunkCount(req.FileID)
+	if err != nil {
+		s.logger.Errorf("get uploaded chunk count failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "获取已上传分片数失败")
+		return
+	}
+
+	// 更新文件信息
+	fileInfo.UploadedChunks = uploadedChunks
+	fileInfo.UpdateTime = time.Now()
+
+	if uploadedChunks >= fileInfo.TotalChunks {
+		fileInfo.Status = model.FileStatusPendingMerge // 等待合并
+	}
+
+	if err := s.mapper.UpdateFileInfo(fileInfo); err != nil {
+		s.logger.Errorf("update file info failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "更新文件信息失败")
+		return
+	}
+
+	// 计算上传进度
+	progress := 0.0
+	if fileInfo.TotalChunks > 0 {
+		progress = float64(uploadedChunks) / float64(fileInfo.TotalChunks) * 100
+	}
+
+	s.logger.Infof("upload chunk success, file_id: %d, chunk_index: %d, progress: %.2f%%",
+		req.FileID, req.ChunkIndex, progress)
+
+	commonhttp.SuccessResponse(ctx, map[string]interface{}{
+		"file_id":         req.FileID,
+		"chunk_index":     req.ChunkIndex,
+		"uploaded_chunks": uploadedChunks,
+		"total_chunks":    fileInfo.TotalChunks,
+		"progress":        progress,
+	})
 }
 
 // CompleteUpload 完成文件上传服务
@@ -267,6 +282,19 @@ func (s *FileService) UploadChunk(ctx *gin.Context, req *request.FileUploadChunk
 // @param req *request.CompleteUploadRequest 完成上传请求参数
 func (s *FileService) CompleteUpload(ctx *gin.Context, req *request.CompleteUploadRequest) {
 	s.logger.Debugf("received complete upload request: file_id=%d", req.FileID)
+
+	// 先检查文件是否存在
+	fileExist, err := s.mapper.QueryFileExist(&model.FileInfo{AutoUid: req.FileID})
+	if err != nil {
+		s.logger.Errorf("check file exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查文件是否存在失败")
+		return
+	}
+	if !fileExist {
+		s.logger.Errorf("file not found: file_id=%d", req.FileID)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.RecordNotFound, "文件不存在")
+		return
+	}
 
 	// 获取文件信息
 	fileInfo, err := s.mapper.GetFileInfoByID(req.FileID)
@@ -346,7 +374,7 @@ func (s *FileService) CompleteUpload(ctx *gin.Context, req *request.CompleteUplo
 			return
 		}
 
-		if size != chunk.ChunkSize {
+		if size != chunk.ChunkSize && chunk.ChunkIndex != chunks[len(chunks)-1].ChunkIndex {
 			s.logger.Errorf("chunk data incomplete: expected %d bytes, got %d bytes for chunk %d", chunk.ChunkSize, size, chunk.ChunkIndex)
 			commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed,
 				fmt.Sprintf("合并分片数据不完整：分片 %d 期望 %d 字节，实际读取 %d 字节",
@@ -404,6 +432,19 @@ func (s *FileService) CompleteUpload(ctx *gin.Context, req *request.CompleteUplo
 // @param req *request.GetUploadStatusRequest 获取上传状态请求参数
 func (s *FileService) GetUploadStatus(ctx *gin.Context, req *request.GetUploadStatusRequest) {
 	s.logger.Debugf("received get upload status request: file_id=%d", req.FileID)
+
+	// 先检查文件是否存在
+	fileExist, err := s.mapper.QueryFileExist(&model.FileInfo{AutoUid: req.FileID})
+	if err != nil {
+		s.logger.Errorf("check file exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查文件是否存在失败")
+		return
+	}
+	if !fileExist {
+		s.logger.Errorf("file not found: file_id=%d", req.FileID)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.RecordNotFound, "文件不存在")
+		return
+	}
 
 	// 获取文件信息
 	fileInfo, err := s.mapper.GetFileInfoByID(req.FileID)
@@ -474,6 +515,19 @@ func calculateFileHash(filePath string) (string, error) {
 func (s *FileService) DownloadFile(ctx *gin.Context, req *request.DownloadFileRequest) {
 	s.logger.Debugf("received download file request: file_id=%d", req.FileID)
 
+	// 先检查文件是否存在
+	fileExist, err := s.mapper.QueryFileExist(&model.FileInfo{AutoUid: req.FileID})
+	if err != nil {
+		s.logger.Errorf("check file exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查文件是否存在失败")
+		return
+	}
+	if !fileExist {
+		s.logger.Errorf("file not found: file_id=%d", req.FileID)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.RecordNotFound, "文件不存在")
+		return
+	}
+
 	// 获取文件信息
 	fileInfo, err := s.mapper.GetFileInfoByID(req.FileID)
 	if err != nil {
@@ -539,7 +593,7 @@ func (s *FileService) ListFiles(ctx *gin.Context, req *request.ListFilesRequest)
 	fileList := make([]map[string]interface{}, 0, len(files))
 	for _, file := range files {
 		fileItem := map[string]interface{}{
-			"file_id":        file.ID,
+			"file_id":        file.AutoUid,
 			"file_name":      file.FileName,
 			"file_size":      file.FileSize,
 			"file_path":      file.FilePath,
@@ -552,7 +606,7 @@ func (s *FileService) ListFiles(ctx *gin.Context, req *request.ListFilesRequest)
 			"description":    file.Description,
 			"storage_type":   file.StorageType,
 			"expire_time":    file.ExpireTime,
-			"download_url":   fmt.Sprintf("/api/v1/files/%d/download", file.ID),
+			"download_url":   fmt.Sprintf("/api/v1/files/%d/download", file.AutoUid),
 			"extra":          file.Extra,
 		}
 		fileList = append(fileList, fileItem)
@@ -560,9 +614,9 @@ func (s *FileService) ListFiles(ctx *gin.Context, req *request.ListFilesRequest)
 
 	// 计算总页数
 	totalPages := 0
-	// if total > 0 {
-	// 	totalPages = int((total + int64(req.PageSize) - 1) / int64(req.PageSize))
-	// }
+	if total > 0 {
+		totalPages = int((total + int64(req.PageSize) - 1) / int64(req.PageSize))
+	}
 
 	s.logger.Infof("list files success: page=%d, page_size=%d, total=%d",
 		req.Page, req.PageSize, total)
@@ -582,6 +636,19 @@ func (s *FileService) ListFiles(ctx *gin.Context, req *request.ListFilesRequest)
 // @param req *request.DeleteFileRequest 删除文件请求参数
 func (s *FileService) DeleteFile(ctx *gin.Context, req *request.DeleteFileRequest) {
 	s.logger.Debugf("received delete file request: file_id=%d", req.FileID)
+
+	// 先检查文件是否存在
+	fileExist, err := s.mapper.QueryFileExist(&model.FileInfo{AutoUid: req.FileID})
+	if err != nil {
+		s.logger.Errorf("check file exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查文件是否存在失败")
+		return
+	}
+	if !fileExist {
+		s.logger.Errorf("file not found: file_id=%d", req.FileID)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.RecordNotFound, "文件不存在")
+		return
+	}
 
 	// 获取文件信息
 	fileInfo, err := s.mapper.GetFileInfoByID(req.FileID)
@@ -645,52 +712,65 @@ func (s *FileService) DeleteFile(ctx *gin.Context, req *request.DeleteFileReques
 func (s *FileService) ResumeUpload(ctx *gin.Context, req *request.ResumeUploadRequest) {
 	s.logger.Debugf("received resume upload request: upload_id=%s", req.UploadID)
 
+	// 先检查文件是否存在
+	fileExist, err := s.mapper.QueryFileExist(&model.FileInfo{UploadID: req.UploadID})
+	if err != nil {
+		s.logger.Errorf("check file exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查文件是否存在失败")
+		return
+	}
+	if !fileExist {
+		s.logger.Errorf("file not found: upload_id=%s", req.UploadID)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.RecordNotFound, "文件不存在")
+		return
+	}
+
 	// 根据uploadID查询文件信息
-	// fileInfo, err := s.mapper.GetFileInfoByUploadID(req.UploadID)
-	// if err != nil {
-	// 	s.logger.Errorf("get file info failed: %v", err)
-	// 	commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "获取文件信息失败")
-	// 	return
-	// }
-	//
-	// // 检查文件状态
-	// if fileInfo.Status != model.FileStatusUploading && fileInfo.Status != model.FileStatusPendingMerge {
-	// 	s.logger.Errorf("file status incorrect for resume: status=%v", fileInfo.Status)
-	// 	commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "文件状态不正确，无法恢复上传")
-	// 	return
-	// }
-	//
-	// // 获取已上传分片索引
-	// chunkIndices, err := s.mapper.GetUploadedChunkIndices(fileInfo.ID)
-	// if err != nil {
-	// 	s.logger.Errorf("get uploaded chunk indices failed: %v", err)
-	// 	commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "获取已上传分片索引失败")
-	// 	return
-	// }
-	//
-	// // 计算已上传分片数和进度
-	// uploadedChunks := len(chunkIndices)
-	// progress := 0.0
-	// if fileInfo.TotalChunks > 0 {
-	// 	progress = float64(uploadedChunks) / float64(fileInfo.TotalChunks) * 100
-	// }
-	//
-	// s.logger.Infof("resume upload success: upload_id=%s, file_id=%d, progress=%.2f%%",
-	// 	req.UploadID, fileInfo.ID, progress)
-	//
-	// commonhttp.SuccessResponse(ctx, map[string]interface{}{
-	// 	"file_id":         fileInfo.ID,
-	// 	"file_name":       fileInfo.FileName,
-	// 	"file_size":       fileInfo.FileSize,
-	// 	"total_chunks":    fileInfo.TotalChunks,
-	// 	"chunk_size":      fileInfo.ChunkSize,
-	// 	"uploaded_chunks": uploadedChunks,
-	// 	"chunk_indices":   chunkIndices,
-	// 	"progress":        progress,
-	// 	"status":          string(fileInfo.Status),
-	// 	"upload_id":       req.UploadID,
-	// 	"create_time":     fileInfo.UploadTime,
-	// })
+	fileInfo, err := s.mapper.GetFileInfoByUploadID(req.UploadID)
+	if err != nil {
+		s.logger.Errorf("get file info failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "获取文件信息失败")
+		return
+	}
+
+	// 检查文件状态
+	if fileInfo.Status != model.FileStatusUploading && fileInfo.Status != model.FileStatusPendingMerge {
+		s.logger.Errorf("file status incorrect for resume: status=%v", fileInfo.Status)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "文件状态不正确，无法恢复上传")
+		return
+	}
+
+	// 获取已上传分片索引
+	chunkIndices, err := s.mapper.GetUploadedChunkIndexes(fileInfo.ID)
+	if err != nil {
+		s.logger.Errorf("get uploaded chunk indices failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "获取已上传分片索引失败")
+		return
+	}
+
+	// 计算已上传分片数和进度
+	uploadedChunks := len(chunkIndices)
+	progress := 0.0
+	if fileInfo.TotalChunks > 0 {
+		progress = float64(uploadedChunks) / float64(fileInfo.TotalChunks) * 100
+	}
+
+	s.logger.Infof("resume upload success: upload_id=%s, file_id=%d, progress=%.2f%%",
+		req.UploadID, fileInfo.ID, progress)
+
+	commonhttp.SuccessResponse(ctx, map[string]interface{}{
+		"file_id":         fileInfo.AutoUid,
+		"file_name":       fileInfo.FileName,
+		"file_size":       fileInfo.FileSize,
+		"total_chunks":    fileInfo.TotalChunks,
+		"chunk_size":      fileInfo.ChunkSize,
+		"uploaded_chunks": uploadedChunks,
+		"chunk_indices":   chunkIndices,
+		"progress":        progress,
+		"status":          string(fileInfo.Status),
+		"upload_id":       req.UploadID,
+		"create_time":     fileInfo.UploadTime,
+	})
 }
 
 // GetFileMetadata 获取文件元数据服务
@@ -699,6 +779,19 @@ func (s *FileService) ResumeUpload(ctx *gin.Context, req *request.ResumeUploadRe
 // @param req *request.GetFileMetadataRequest 获取文件元数据请求参数
 func (s *FileService) GetFileMetadata(ctx *gin.Context, req *request.GetFileMetadataRequest) {
 	s.logger.Debugf("received get file metadata request: file_id=%d", req.FileID)
+
+	// 先检查文件是否存在
+	fileExist, err := s.mapper.QueryFileExist(&model.FileInfo{AutoUid: req.FileID})
+	if err != nil {
+		s.logger.Errorf("check file exist failed: %v", err)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "检查文件是否存在失败")
+		return
+	}
+	if !fileExist {
+		s.logger.Errorf("file not found: file_id=%d", req.FileID)
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.RecordNotFound, "文件不存在")
+		return
+	}
 
 	// 获取文件信息
 	fileInfo, err := s.mapper.GetFileInfoByID(req.FileID)
@@ -720,7 +813,7 @@ func (s *FileService) GetFileMetadata(ctx *gin.Context, req *request.GetFileMeta
 	s.logger.Infof("get file metadata success: file_id=%d, file_name=%s", req.FileID, fileInfo.FileName)
 
 	commonhttp.SuccessResponse(ctx, map[string]interface{}{
-		"file_id":         fileInfo.ID,
+		"file_id":         fileInfo.AutoUid,
 		"upload_id":       fileInfo.UploadID,
 		"file_name":       fileInfo.FileName,
 		"file_size":       fileInfo.FileSize,
@@ -739,7 +832,7 @@ func (s *FileService) GetFileMetadata(ctx *gin.Context, req *request.GetFileMeta
 		"download_count":  fileInfo.DownloadCount,
 		"description":     fileInfo.Description,
 		"storage_type":    fileInfo.StorageType,
-		"download_url":    fmt.Sprintf("/api/v1/files/%d/download", fileInfo.ID),
+		"download_url":    fmt.Sprintf("/api/v1/files/%d/download", fileInfo.AutoUid),
 		"extra":           fileInfo.Extra,
 		"file_stats":      fileStats,
 	})

@@ -1,9 +1,10 @@
 package request
 
 import (
+	"mime/multipart"
+
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
-	"mime/multipart"
 )
 
 // FileInitUploadRequest 初始化文件上传请求
@@ -18,14 +19,14 @@ import (
 // @property StorageType string 存储类型
 // @property ExpireTime int64 过期时间戳(秒)
 type FileInitUploadRequest struct {
-	FileName    string `json:"file_name,omitempty" yaml:"file_name,omitempty" form:"fileName" binding:"required,max=255"`
-	FileSize    int64  `json:"file_size,omitempty" yaml:"file_size,omitempty" form:"fileSize" binding:"required,gte=0"`
-	FileHash    string `json:"file_hash,omitempty" yaml:"file_hash,omitempty" form:"fileHash" binding:"omitempty,max=255"`
-	ChunkSize   int64  `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" form:"chunkSize" binding:"required,gt=0,lte=10485760"` // 最大10MB
-	FileType    string `json:"file_type,omitempty" yaml:"file_type,omitempty" form:"fileType" binding:"omitempty,max=100"`
-	Description string `json:"description,omitempty" yaml:"description,omitempty" form:"description" binding:"omitempty,max=1000"`
-	StorageType string `json:"storage_type,omitempty" yaml:"storage_type,omitempty" form:"storageType" binding:"omitempty,max=50"`
-	ExpireTime  int64  `json:"expire_time,omitempty" yaml:"expire_time,omitempty" form:"expireTime" binding:"omitempty,gte=0"`
+	FileName    string  `json:"file_name,omitempty" yaml:"file_name,omitempty" form:"fileName" binding:"required,max=255"`
+	FileSize    float64 `json:"file_size,omitempty" yaml:"file_size,omitempty" form:"fileSize" binding:"required,gte=0"`
+	FileHash    string  `json:"file_hash,omitempty" yaml:"file_hash,omitempty" form:"fileHash" binding:"omitempty,max=255"`
+	ChunkSize   float64 `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" form:"chunkSize" binding:"required,gt=0,lte=10485760"` // 最大10MB
+	FileType    string  `json:"file_type,omitempty" yaml:"file_type,omitempty" form:"fileType" binding:"omitempty,max=100"`
+	Description string  `json:"description,omitempty" yaml:"description,omitempty" form:"description" binding:"omitempty,max=1000"`
+	StorageType string  `json:"storage_type,omitempty" yaml:"storage_type,omitempty" form:"storageType" binding:"omitempty,max=50"`
+	ExpireTime  int64   `json:"expire_time,omitempty" yaml:"expire_time,omitempty" form:"expireTime" binding:"omitempty,gte=0"`
 }
 
 // String 将初始化文件上传请求参数转换为字符串表示
