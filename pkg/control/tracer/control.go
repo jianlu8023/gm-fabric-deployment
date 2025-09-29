@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -116,27 +117,6 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
-// GetInstance 获取tracer控制器的单例实例
-// @description 获取全局唯一的tracer控制器实例，确保全链路追踪的一致性
-// @return *Control tracer控制器的单例实例
-func GetInstance() *Control {
-	instanceMu.RLock()
-	result := instance
-	instanceMu.RUnlock()
-	return result
-}
-
-// SetInstance 设置tracer控制器的单例实例
-// @description 设置全局唯一的tracer控制器实例，通常在应用初始化时调用一次
-// @param control *Control tracer控制器实例
-func SetInstance(control *Control) {
-	instanceOnce.Do(func() {
-		instanceMu.Lock()
-		instance = control
-		instanceMu.Unlock()
-	})
-}
-
 func (c *Control) GetProvider() shutdownTracerProvider {
 	c.logger.Debugf("[control] get tracer provider...")
 	c.providerMutex.RLock()
@@ -211,7 +191,7 @@ func (c *Control) newTracerProvider() error {
 	exporters, err := c.initExporters()
 	if err != nil {
 		c.logger.Errorf("[control] init exporters failed: %v", err)
-		return nil
+		return err
 	}
 	if len(exporters) == 0 {
 		c.logger.Warnf("[control] no exporter found, using noop tracer provider...")
@@ -221,7 +201,7 @@ func (c *Control) newTracerProvider() error {
 
 	var options []sdktrace.TracerProviderOption
 	for _, exporter := range exporters {
-		options = append(options, sdktrace.WithBatcher(exporter))
+		options = append(options, sdktrace.WithBatcher(exporter, sdktrace.WithBatchTimeout(time.Second)))
 	}
 
 	// 创建 resource
@@ -253,7 +233,7 @@ func (c *Control) newTracerProvider() error {
 		return err
 	}
 	options = append(options, sdktrace.WithResource(r))
-	// options = append(options, sdktrace.WithSampler(sdktrace.AlwaysSample())) // 或者自定义采样器
+	options = append(options, sdktrace.WithSampler(sdktrace.AlwaysSample())) // 或者自定义采样器
 	c.providerMutex.Lock()
 	c.provider = sdktrace.NewTracerProvider(options...)
 	c.providerMutex.Unlock()
@@ -300,6 +280,27 @@ func (c *Control) Span(ctx context.Context, componentName string, spanName strin
 // StartSpan 创建并启动一个 Span (可以根据需要添加 attributes)
 func (c *Control) StartSpan(ctx context.Context, componentName string, spanName string, attributes ...attribute.KeyValue) (tCtx context.Context, span traceapi.Span) {
 	return c.Span(ctx, componentName, spanName, traceapi.WithAttributes(attributes...))
+}
+
+// GetInstance 获取tracer控制器的单例实例
+// @description 获取全局唯一的tracer控制器实例，确保全链路追踪的一致性
+// @return *Control tracer控制器的单例实例
+func GetInstance() *Control {
+	instanceMu.RLock()
+	result := instance
+	instanceMu.RUnlock()
+	return result
+}
+
+// SetInstance 设置tracer控制器的单例实例
+// @description 设置全局唯一的tracer控制器实例，通常在应用初始化时调用一次
+// @param control *Control tracer控制器实例
+func SetInstance(control *Control) {
+	instanceOnce.Do(func() {
+		instanceMu.Lock()
+		instance = control
+		instanceMu.Unlock()
+	})
 }
 
 func Span(ctx context.Context, componentName string, spanName string, opts ...traceapi.SpanStartOption) (tCtx context.Context, span traceapi.Span) {
