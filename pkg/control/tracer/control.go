@@ -23,6 +23,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+	// semconv "go.opentelemetry.io/otel/semconv/v1.5.0"
 	traceapi "go.opentelemetry.io/otel/trace"
 
 	// semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
@@ -101,6 +102,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
 			c.logger.Debugf("[control] starting tracer server...")
+			c.init()
 		}
 	})
 }
@@ -269,11 +271,14 @@ func (c *Control) setProvider() error {
 	c.providerMutex.RUnlock()
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	// otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
-	tracer := c.provider.Tracer(c.config.ExporterServiceName)
-	ctx, span := tracer.Start(c.ctx, "init")
+	return nil
+}
+
+func (c *Control) init() {
+	c.logger.Debugf("[control] init...")
+	ctx, span := c.provider.Tracer(c.config.ExporterServiceName).Start(c.ctx, "initialize")
 	defer span.End()
 	c.ctx = ctx
-	return nil
 }
 
 // Span 创建一个新的span

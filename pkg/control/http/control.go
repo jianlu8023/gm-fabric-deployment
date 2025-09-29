@@ -6,8 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/jianlu8023/golang-example/pkg/control/tracer"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -15,6 +13,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -94,13 +95,13 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	// 注册限流中间件
 	if serverConfig.RateLimit.Enabled && serverConfig.RateLimit.RPS > 0 {
 		// 创建限流配置
-		config := ratelimit.Config{
+		rateLimitConfig := ratelimit.Config{
 			Type:  ratelimit.Type(serverConfig.RateLimit.Type), // 使用配置文件中的限流类型
 			RPS:   serverConfig.RateLimit.RPS,
 			Burst: serverConfig.RateLimit.Burst,
 		}
 		// 使用工厂函数创建限流中间件
-		engine.Use(ratelimit.NewRateLimitMiddleware(webLogger, config))
+		engine.Use(ratelimit.NewRateLimitMiddleware(webLogger, rateLimitConfig))
 	}
 
 	// 调试模式，开启 pprof 包，便于开发阶段分析程序性能
@@ -387,8 +388,8 @@ func (c *Control) registerDefaultRouter() {
 		// 首先注册NoMethod处理器（方法不允许）
 		// NoMethod应该在NoRoute之前注册，以确保当路径存在但方法不支持时能正确返回405
 		c.ginRouter.NoMethod(func(ctx *gin.Context) {
-			span, _ := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noMethod")
-			defer span.Done()
+			_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noMethod")
+			defer span.End()
 			c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
 			ctx.JSON(http.StatusMethodNotAllowed, gin.H{
 				"code":    http.StatusMethodNotAllowed,
@@ -401,8 +402,8 @@ func (c *Control) registerDefaultRouter() {
 	{
 		// 然后注册NoRoute处理器（路径不存在）
 		c.ginRouter.NoRoute(func(ctx *gin.Context) {
-			span, _ := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noRouter")
-			defer span.Done()
+			_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noRouter")
+			defer span.End()
 			c.logger.Warnf("[control] 404 Not Found: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
 			ctx.JSON(http.StatusNotFound, gin.H{
 				"code":    http.StatusNotFound,
@@ -422,8 +423,9 @@ func (c *Control) registerDefaultRouter() {
 				Uri:    allRouterUri,
 				Method: http.MethodGet,
 				HandlerFunc: func(ctx *gin.Context) {
-					span, _ := tracer.StartSpan(ctx.Request.Context(), "ceshiComponentName", "ceshiSpanName")
-					defer span.Done()
+					_, span := tracer.StartSpan(ctx.Request.Context(), "ceshiComponentName", "ceshiSpanName")
+					// ctx.Request.WithContext(octx)
+					defer span.End()
 					commonhttp.SuccessResponse(ctx, gin.H{
 						"routers": c.routers,
 					})

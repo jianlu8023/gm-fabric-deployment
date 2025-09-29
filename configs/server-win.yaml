@@ -122,7 +122,7 @@ tracer:
   exporter_service_name: "golang-example"
   exporter_file_path: "tracer.json"
   exporter_otel_insecure: true
-  # file otel stdout none  zipkin
+  # file otlp stdout none  zipkin
   traces_exporter: "file,stdout"
   exporter_zipkin_endpoint: ""
   exporter_otel_endpoint: "http://127.0.0.1:4317"
