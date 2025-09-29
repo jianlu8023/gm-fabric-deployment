@@ -19,17 +19,17 @@ import (
 	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
-	"github.com/tjfoc/gmsm/gmtls"
-	gmx509 "github.com/tjfoc/gmsm/x509"
-
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipblacklist"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipwhitelist"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ratelimit"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/recovery"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/tjfoc/gmsm/gmtls"
+	gmx509 "github.com/tjfoc/gmsm/x509"
 
 	"github.com/gin-gonic/gin"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
@@ -164,7 +164,8 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		engine.Use(otelgin.Middleware("", otelgin.WithTracerProvider(control.tracerControl.GetProvider())))
 	}
 
-	// control.ginRouter = engine
+	// 注册最后一个recovery的中间件
+	engine.Use(recovery.EnableRecovery(control.logger, true))
 
 	// webLogger.Debugf("[control] generate http server...")
 	if serverConfig.TlsEnabled {

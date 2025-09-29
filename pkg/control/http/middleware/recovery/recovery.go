@@ -1,4 +1,4 @@
-package errors
+package recovery
 
 import (
 	"github.com/gin-gonic/gin"
@@ -29,10 +29,15 @@ func EnableRecovery(webLogger *zap.SugaredLogger, stack bool) gin.HandlerFunc {
 
 				httpRequest, _ := httputil.DumpRequest(c.Request, false)
 				if brokenPipe {
-					webLogger.Error(c.Request.URL.Path,
-						zap.Any("error", err),
-						zap.String("request", string(httpRequest)),
+					webLogger.Errorf("request url %v with request %v failed: %v",
+						c.Request.URL.Path,
+						string(httpRequest),
+						err,
 					)
+					// webLogger.Error(c.Request.URL.Path,
+					// 	zap.Any("error", err),
+					// 	zap.String("request", string(httpRequest)),
+					// )
 					// If the connection is dead, we can't write a status to it.
 					_ = c.Error(err.(error)) // nolint: errcheck
 					c.Abort()
@@ -40,15 +45,26 @@ func EnableRecovery(webLogger *zap.SugaredLogger, stack bool) gin.HandlerFunc {
 				}
 
 				if stack {
-					webLogger.Error("[Recovery from panic]",
-						zap.Any("error", err),
-						zap.String("request", string(httpRequest)),
-						zap.String("stack", string(debug.Stack())),
+					webLogger.Errorf("request url %v with request %v with stack %v failed: %v",
+						c.Request.URL.Path,
+						string(httpRequest),
+						string(debug.Stack()),
+						err,
 					)
+					// webLogger.Error("[Recovery from panic]",
+					// 	zap.Any("error", err),
+					// 	zap.String("request", string(httpRequest)),
+					// 	zap.String("stack", string(debug.Stack())),
+					// )
 				} else {
-					webLogger.Error("[Recovery from panic]",
-						zap.Any("error", err),
-						zap.String("request", string(httpRequest)),
+					// webLogger.Error("[Recovery from panic]",
+					// 	zap.Any("error", err),
+					// 	zap.String("request", string(httpRequest)),
+					// )
+					webLogger.Errorf("request url %v with request %v failed: %v",
+						c.Request.URL.Path,
+						string(httpRequest),
+						err,
 					)
 				}
 				c.AbortWithStatus(http.StatusInternalServerError)
