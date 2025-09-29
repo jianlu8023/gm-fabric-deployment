@@ -203,14 +203,19 @@ func NewServerControlFromFile() (*Control, error) {
 		if control.GetTracerControl() != nil {
 			webServerControl, err := http.NewWebServerControl(webConfig,
 				control.GetLoggerControl(),
-				http.WithTracer(control.GetTracerControl()))
+				http.WithTracer(control.GetTracerControl()),
+				http.WithDefaultStaticFiles(),
+			)
 			if err != nil {
 				control.logger.Errorf("[control] create http control failed: %v", err)
 				return nil, err
 			}
 			control.httpControl = webServerControl
 		} else {
-			webServerControl, err := http.NewWebServerControl(webConfig, control.GetLoggerControl())
+			webServerControl, err := http.NewWebServerControl(webConfig,
+				control.GetLoggerControl(),
+				http.WithDefaultStaticFiles(),
+			)
 			if err != nil {
 				control.logger.Errorf("[control] create http control failed: %v", err)
 				return nil, err
