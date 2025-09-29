@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -137,7 +138,7 @@ func main() {
 		myself.IsMySelf = sql.NullBool{Bool: true, Valid: true}
 		myself.LastAliveMessageTime = time.Now()
 		myself.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(serverControl.GetLibp2pControl().GetLocalhostPeerID())
-		if err = nodeMapper.InsertOrUpdate(myself); err != nil {
+		if err = nodeMapper.InsertOrUpdate(context.Background(), myself); err != nil {
 			mainLogger.Errorf("insert myself info failed: %v", err)
 		}
 
@@ -153,7 +154,7 @@ func main() {
 			info.IsAlive = sql.NullBool{Bool: true, Valid: true}
 			info.LastAliveMessageTime = time.Now()
 			info.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(msg.From)
-			if err := nodeMapper.InsertOrUpdate(info); err != nil {
+			if err := nodeMapper.InsertOrUpdate(context.Background(), info); err != nil {
 				mainLogger.Errorf("insert or update node info failed: %v", err)
 			}
 		})
@@ -167,7 +168,7 @@ func main() {
 			info.IsAlive = sql.NullBool{Bool: false, Valid: true}
 			info.LastAliveMessageTime = time.Now()
 			// info.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(msg.From)
-			if err := nodeMapper.InsertOrUpdate(info); err != nil {
+			if err := nodeMapper.InsertOrUpdate(context.Background(), info); err != nil {
 				mainLogger.Errorf("update node info failed: %v", err)
 			}
 		})

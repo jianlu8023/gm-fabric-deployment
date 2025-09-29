@@ -9,6 +9,7 @@ import (
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // Libp2pNodeService 节点服务实现
@@ -53,15 +54,20 @@ func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2p
 	if err != nil {
 		s.logger.Errorf("query node list err: %v", err)
 		commonhttp.FailedResponse(ctx, commonhttp.NewError(commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed))
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 	nodeResponse, err := response.ToLibp2pNodeListResponse(page)
 	if err != nil {
 		s.logger.Errorf("convert node list err: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 	commonhttp.SuccessResponse(ctx, nodeResponse)
+	span.SetStatus(codes.Ok, "libp2p node list service success")
 }
 
 func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest) {
@@ -74,16 +80,21 @@ func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context, req *request.Libp
 	if err != nil {
 		s.logger.Errorf("query node myself err: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 	myselfResponse, err := response.ToLibp2pNodeMyselfResponse(myself)
 	if err != nil {
 		s.logger.Errorf("convert node myself err: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 
 	s.logger.Debugf("from database query result %v convert result %v", myself, myselfResponse)
 
 	commonhttp.SuccessResponse(ctx, myselfResponse)
+	span.SetStatus(codes.Ok, "libp2p node myself service success")
 }

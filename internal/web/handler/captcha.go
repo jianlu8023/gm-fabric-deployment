@@ -2,10 +2,13 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/gin-contrib/requestid"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -49,6 +52,9 @@ type CaptchaServiceInterface interface {
 func (h *CaptchaHandler) GenerateCaptchaHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "generate")
 	defer span.End()
+	span.SetAttributes(
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	h.logger.Debugf("received captcha generate handler...")
 
 	// 绑定请求参数
@@ -61,18 +67,25 @@ func (h *CaptchaHandler) GenerateCaptchaHandler(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+		span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		return
 	}
 
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("captcha generate request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
+	span.SetAttributes(
+		attribute.String("requestParam", req.String()),
+	)
 
 	// 调用服务层生成验证码
 	h.service.GenerateCaptcha(ctx, req)
+	span.SetStatus(codes.Ok, "captcha generate handler success")
 }
 
 // ValidateCaptchaHandler 验证验证码的处理函数
@@ -85,6 +98,9 @@ func (h *CaptchaHandler) GenerateCaptchaHandler(ctx *gin.Context) {
 func (h *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "validate")
 	defer span.End()
+	span.SetAttributes(
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	h.logger.Debugf("received captcha validate handler...")
 
 	// 绑定请求参数
@@ -97,18 +113,26 @@ func (h *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+		return
 	}
 
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("captcha validate request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("requestParam", req.String()),
+	)
+
 	// 调用服务层验证验证码
 	h.service.ValidateCaptcha(ctx, req)
+	span.SetStatus(codes.Ok, "captcha validate handler success")
 }
 
 // RefreshCaptchaHandler 刷新验证码的处理函数
@@ -122,6 +146,9 @@ func (h *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
 func (h *CaptchaHandler) RefreshCaptchaHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "refresh")
 	defer span.End()
+	span.SetAttributes(
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	h.logger.Debugf("received captcha refresh handler...")
 
 	// 绑定请求参数
@@ -134,18 +161,26 @@ func (h *CaptchaHandler) RefreshCaptchaHandler(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+		span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		return
 	}
 
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("captcha refresh request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
+	span.SetAttributes(
+		attribute.String("requestParam", req.String()),
+	)
+
 	// 调用服务层生成新的验证码
 	h.service.GenerateCaptcha(ctx, req)
+	span.SetStatus(codes.Ok, "captcha refresh handler success")
 }
 
 // Routers 注册验证码相关路由

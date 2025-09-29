@@ -2,10 +2,13 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/gin-contrib/requestid"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -56,6 +59,9 @@ type Libp2pNodeServiceInterface interface {
 func (h *Libp2pNodeHandler) Libp2pNodeList(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pHandler", "list")
 	defer span.End()
+	span.SetAttributes(
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	h.logger.Infof("received libp2p node list handler...")
 
 	// 验证JWT和Session信息
@@ -85,21 +91,32 @@ func (h *Libp2pNodeHandler) Libp2pNodeList(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+		span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		span.RecordError(err)
 		return
 	}
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("libp2p node list request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
+
+	span.SetAttributes(
+		attribute.String("requestParam", req.String()),
+	)
 	h.service.Libp2pNodeList(ctx, req)
+	span.SetStatus(codes.Ok, "libp2p node list handler success")
 }
 
 func (h *Libp2pNodeHandler) Libp2pNodeMyself(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pHandler", "myself")
 	defer span.End()
+	span.SetAttributes(
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	h.logger.Infof("received libp2p node myself handler...")
 
 	req := new(request.Libp2pNodeMyselfRequest)
@@ -111,16 +128,25 @@ func (h *Libp2pNodeHandler) Libp2pNodeMyself(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+		span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		span.RecordError(err)
 		return
 	}
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("libp2p node list request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
+
+	span.SetAttributes(
+		attribute.String("requestParam", req.String()),
+	)
+
 	h.service.Libp2pNodeMyself(ctx, req)
+	span.SetStatus(codes.Ok, "libp2p node myself handler success")
 }
 
 // Routers 获取节点相关路由列表

@@ -97,24 +97,35 @@ func (m *Libp2pNodeMapper) NodeList(ctx context.Context, query model.Libp2pNode,
 //
 // @param record *node.Info 节点信息
 // @return error 错误信息，如果节点已存在返回ErrAlreadyExists
-func (m *Libp2pNodeMapper) InsertOneWithCheck(record *model.Libp2pNode) error {
+func (m *Libp2pNodeMapper) InsertOneWithCheck(ctx context.Context, record *model.Libp2pNode) error {
+	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "insertOrUpdateOneWithCheck")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("insert", record.String()),
+	)
 	if m.db == nil {
+		span.RecordError(datasource.ErrNoDataSourceConn)
+		span.SetStatus(codes.Error, datasource.ErrNoDataSourceConn.Error())
 		return datasource.ErrNoDataSourceConn
 	}
-	return m.db.Transaction(func(tx *gorm.DB) error {
+	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var count int64
-		if err := tx.Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
+		if err := tx.WithContext(ctx).Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
 			NodeId: record.NodeId,
 		}).Count(&count).Error; err != nil {
 			return err
 		}
 		if count > 0 {
 			// 节点已存在
+			span.RecordError(datasource.ErrAlreadyExists)
+			span.SetStatus(codes.Error, datasource.ErrAlreadyExists.Error())
 			return datasource.ErrAlreadyExists
 		}
 		// 节点不存在，插入
-		if err := tx.Model(&model.Libp2pNode{}).Create(record).
+		if err := tx.WithContext(ctx).Model(&model.Libp2pNode{}).Create(record).
 			Error; err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
 			return err
 		}
 		return nil
@@ -125,18 +136,22 @@ func (m *Libp2pNodeMapper) InsertOneWithCheck(record *model.Libp2pNode) error {
 //
 // @param record *node.Info 节点信息
 // @return error 错误信息
-func (m *Libp2pNodeMapper) InsertOrUpdate(record *model.Libp2pNode) error {
+func (m *Libp2pNodeMapper) InsertOrUpdate(ctx context.Context, record *model.Libp2pNode) error {
+	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "insertOrUpdate")
+	defer span.End()
 	if m.db == nil {
+		span.RecordError(datasource.ErrNoDataSourceConn)
+		span.SetStatus(codes.Error, datasource.ErrNoDataSourceConn.Error())
 		return datasource.ErrNoDataSourceConn
 	}
-	return m.db.Transaction(func(tx *gorm.DB) error {
+	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var existInfo model.Libp2pNode
-		if err := tx.Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
+		if err := tx.WithContext(ctx).Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
 			NodeId: record.NodeId,
 		}).First(&existInfo).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 记录不存在
-				if err := tx.Model(&model.Libp2pNode{}).
+				if err := tx.WithContext(ctx).Model(&model.Libp2pNode{}).
 					Create(record).Error; err != nil {
 					return err
 				}
@@ -146,7 +161,7 @@ func (m *Libp2pNodeMapper) InsertOrUpdate(record *model.Libp2pNode) error {
 		} else {
 			// 记录存在，更新
 			record.AutoUid = existInfo.AutoUid
-			if err := tx.Model(&model.Libp2pNode{}).
+			if err := tx.WithContext(ctx).Model(&model.Libp2pNode{}).
 				Where(&model.Libp2pNode{
 					AutoUid: record.AutoUid,
 				}).

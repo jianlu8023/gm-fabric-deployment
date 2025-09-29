@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
 	"go.uber.org/zap"
 )
 
@@ -41,6 +42,9 @@ func (h *Handler) Routers() []commonhttp.RouterHandler {
 			HandlerFunc: func(ctx *gin.Context) {
 				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "ping")
 				defer span.End()
+				span.SetAttributes(
+					attribute.String("requestId", requestid.Get(ctx)),
+				)
 				h.logger.Debugf("received ping handler...")
 				commonhttp.SuccessResponse(ctx, gin.H{
 					"request_id": requestid.Get(ctx),
@@ -57,6 +61,9 @@ func (h *Handler) Routers() []commonhttp.RouterHandler {
 			HandlerFunc: func(ctx *gin.Context) {
 				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "health")
 				defer span.End()
+				span.SetAttributes(
+					attribute.String("requestId", requestid.Get(ctx)),
+				)
 				h.logger.Debugf("received health handler...")
 				commonhttp.SuccessResponse(ctx, "ok")
 			},

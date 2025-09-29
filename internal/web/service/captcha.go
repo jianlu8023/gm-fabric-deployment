@@ -7,6 +7,7 @@ import (
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/captcha"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // CaptchaService 验证码服务
@@ -50,11 +51,13 @@ func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaG
 	if err != nil {
 		s.logger.Errorf("generate captcha failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.CaptchaGenerationFailed, commonhttp.ErrMsgCaptchaGenerationFailed)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
 	// 返回响应
 	commonhttp.SuccessResponse(ctx, response.NewCaptchaGenerateResponse(id, b64s))
+	span.SetStatus(codes.Ok, "captcha generate service success")
 }
 
 // ValidateCaptcha 验证验证码
@@ -77,16 +80,19 @@ func (s *CaptchaService) ValidateCaptcha(ctx *gin.Context, req *request.CaptchaV
 		if !ok {
 			s.logger.Errorf("validate captcha failed: %s", req.CaptchaId)
 			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidCaptcha, "验证码不正确或已过期")
+			span.SetStatus(codes.Error, "验证码不正确或已过期")
 			return
 		}
 	} else {
 		// 发生错误
 		s.logger.Errorf("validate captcha has error: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidCaptcha, commonhttp.ErrMsgInvalidCaptcha)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
 	// 验证成功
 	s.logger.Debugf("validate captcha success: %s", req.CaptchaId)
 	commonhttp.SuccessResponse(ctx, response.NewCaptchaValidateResponse(true, req.CaptchaId))
+	span.SetStatus(codes.Ok, "captcha validate service success")
 }
