@@ -289,7 +289,7 @@ func (c *Control) init() {
 // @param opts ...traceapi.SpanStartOption span选项
 // @return context.Context 包含新span的上下文
 // @return traceapi.Span 创建的span
-func (c *Control) Span(ctx context.Context, componentName string, spanName string, opts ...traceapi.SpanStartOption) (context.Context, traceapi.Span) {
+func (c *Control) Span(ctx context.Context, componentName string, spanName string, opts ...traceapi.SpanStartOption) (tCtx context.Context, span traceapi.Span) {
 	// 如果传入的ctx为nil，则使用控制器的ctx作为后备
 	if ctx == nil {
 		ctx = c.ctx
@@ -298,11 +298,11 @@ func (c *Control) Span(ctx context.Context, componentName string, spanName strin
 }
 
 // StartSpan 创建并启动一个 Span (可以根据需要添加 attributes)
-func (c *Control) StartSpan(ctx context.Context, componentName string, spanName string, attributes ...attribute.KeyValue) (context.Context, traceapi.Span) {
+func (c *Control) StartSpan(ctx context.Context, componentName string, spanName string, attributes ...attribute.KeyValue) (tCtx context.Context, span traceapi.Span) {
 	return c.Span(ctx, componentName, spanName, traceapi.WithAttributes(attributes...))
 }
 
-func Span(ctx context.Context, componentName string, spanName string, opts ...traceapi.SpanStartOption) (context.Context, traceapi.Span) {
+func Span(ctx context.Context, componentName string, spanName string, opts ...traceapi.SpanStartOption) (tCtx context.Context, span traceapi.Span) {
 	// 使用单例实例，如果单例实例不存在则从池中获取
 	control := GetInstance()
 	if control == nil {
@@ -322,6 +322,6 @@ func Span(ctx context.Context, componentName string, spanName string, opts ...tr
 // @param attributes ...attribute.KeyValue span属性
 // @return context.Context 包含新span的上下文
 // @return traceapi.Span 创建的span
-func StartSpan(ctx context.Context, componentName string, spanName string, attributes ...attribute.KeyValue) (context.Context, traceapi.Span) {
+func StartSpan(ctx context.Context, componentName string, spanName string, attributes ...attribute.KeyValue) (tCtx context.Context, span traceapi.Span) {
 	return Span(ctx, componentName, spanName, traceapi.WithAttributes(attributes...))
 }

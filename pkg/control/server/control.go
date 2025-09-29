@@ -2,9 +2,10 @@ package server
 
 import (
 	"fmt"
-	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"os"
 	"sync"
+
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
 	"github.com/jianlu8023/golang-example/pkg/control/authz"
@@ -119,12 +120,22 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建DataSource控制器
 	dataSourceConfig := configControl.GetDataSourceConfig()
 	if dataSourceConfig != nil && dataSourceConfig.Enabled {
-		dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
-		if err != nil {
-			control.logger.Errorf("[control] create data source control failed: %v", err)
-			return nil, err
+		if control.tracerControl != nil {
+			dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl(), datasource.WithTracer(control.GetTracerControl()))
+			if err != nil {
+				control.logger.Errorf("[control] create data source control failed: %v", err)
+				return nil, err
+			}
+			control.datasourceControl = dataSourceControl
+		} else {
+			dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
+			if err != nil {
+				control.logger.Errorf("[control] create data source control failed: %v", err)
+				return nil, err
+			}
+			control.datasourceControl = dataSourceControl
 		}
-		control.datasourceControl = dataSourceControl
+
 	}
 
 	ipfsConfig := configControl.GetIpfsConfig()

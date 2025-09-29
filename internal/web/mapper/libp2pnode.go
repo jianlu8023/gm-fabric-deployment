@@ -1,12 +1,16 @@
 package mapper
 
 import (
+	"context"
 	"errors"
 	"math"
 
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/jianlu8023/golang-example/pkg/dbpage"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"gorm.io/gorm"
 )
 
@@ -36,11 +40,18 @@ func NewLibp2pNodeMapper(mapper *Mapper) *Libp2pNodeMapper {
 // @param pageSize int64 每页大小
 // @return dbpage.Info[node.Info] 节点列表
 // @return error 错误信息
-func (m *Libp2pNodeMapper) NodeList(query model.Libp2pNode,
+func (m *Libp2pNodeMapper) NodeList(ctx context.Context, query model.Libp2pNode,
 	isPage bool, pageNo int, pageSize int,
 ) (dbpage.Info[model.Libp2pNode], error) {
+	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "list")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("query", query.String()),
+	)
 	page := dbpage.Info[model.Libp2pNode]{}
 	if m.db == nil {
+		span.RecordError(datasource.ErrNoDataSourceConn)
+		span.SetStatus(codes.Error, datasource.ErrNoDataSourceConn.Error())
 		return page, datasource.ErrNoDataSourceConn
 	}
 	page.PageNo = int64(pageNo)
@@ -50,10 +61,10 @@ func (m *Libp2pNodeMapper) NodeList(query model.Libp2pNode,
 	offset := (pageNo - 1) * pageSize
 
 	// 构建查询
-	db := m.db.Model(&model.Libp2pNode{}).Where(&query)
+	db := m.db.WithContext(ctx).Model(&model.Libp2pNode{}).Where(&query)
 
 	// 查询总记录数
-	if err := db.Count(&page.Count).Error; err != nil {
+	if err := db.WithContext(ctx).Count(&page.Count).Error; err != nil {
 		return page, err
 	}
 
@@ -66,18 +77,18 @@ func (m *Libp2pNodeMapper) NodeList(query model.Libp2pNode,
 	records := make([]model.Libp2pNode, 0)
 	if isPage {
 		// 分页查询
-		if err := db.Offset(int(offset)).
-			Limit(int(pageSize)).
+		if err := db.WithContext(ctx).Offset(offset).
+			Limit(pageSize).
 			Find(&records).Error; err != nil {
 			return page, err
 		}
 	} else {
 		// 不分页查询
-		if err := db.Find(&records).Error; err != nil {
+		if err := db.WithContext(ctx).Find(&records).Error; err != nil {
 			return page, err
 		}
 	}
-
+	span.SetStatus(codes.Ok, "success")
 	page.Records = records
 	return page, nil
 }
@@ -147,15 +158,25 @@ func (m *Libp2pNodeMapper) InsertOrUpdate(record *model.Libp2pNode) error {
 	})
 }
 
-func (m *Libp2pNodeMapper) NodeMyself(peerId string) (model.Libp2pNode, error) {
+func (m *Libp2pNodeMapper) NodeMyself(ctx context.Context, peerId string) (model.Libp2pNode, error) {
+	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "myself")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("node_id", peerId),
+	)
 	if m.db == nil {
+		span.RecordError(datasource.ErrNoDataSourceConn)
+		span.SetStatus(codes.Error, datasource.ErrNoDataSourceConn.Error())
 		return model.Libp2pNode{}, datasource.ErrNoDataSourceConn
 	}
 	var node model.Libp2pNode
-	if err := m.db.Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
+	if err := m.db.WithContext(ctx).Model(&model.Libp2pNode{}).Where(&model.Libp2pNode{
 		NodeId: peerId,
 	}).First(&node).Error; err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return model.Libp2pNode{}, err
 	}
+	span.SetStatus(codes.Ok, "success")
 	return node, nil
 }

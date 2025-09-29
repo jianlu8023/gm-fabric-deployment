@@ -8,6 +8,7 @@ import (
 	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 )
 
 // Libp2pNodeService 节点服务实现
@@ -43,10 +44,12 @@ func NeeNodeService(service *Service,
 // @param ctx *gin.Context Gin上下文
 // @param req *request.Libp2pNodeListRequest 节点列表请求参数
 func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2pNodeListRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pNodeService", "list")
+	defer span.End()
 	s.logger.Debugf("received libp2p node list request with params: %v", req)
 
 	s.logger.Debugf("starting call mapper to query info...")
-	page, err := s.mapper.NodeList(model.Libp2pNode{}, req.IsPage, req.PageNo, req.PageSize)
+	page, err := s.mapper.NodeList(ctx.Request.Context(), model.Libp2pNode{}, req.IsPage, req.PageNo, req.PageSize)
 	if err != nil {
 		s.logger.Errorf("query node list err: %v", err)
 		commonhttp.FailedResponse(ctx, commonhttp.NewError(commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed))
@@ -62,10 +65,12 @@ func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2p
 }
 
 func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pNodeService", "myself")
+	defer span.End()
 	s.logger.Debugf("received libp2p node myself request with params: %v", req)
 
 	peerId := s.libp2pControl.GetLocalhostPeerID().String()
-	myself, err := s.mapper.NodeMyself(peerId)
+	myself, err := s.mapper.NodeMyself(ctx.Request.Context(), peerId)
 	if err != nil {
 		s.logger.Errorf("query node myself err: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)

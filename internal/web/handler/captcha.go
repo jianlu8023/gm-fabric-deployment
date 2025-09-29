@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -46,6 +47,8 @@ type CaptchaServiceInterface interface {
 // @param height int 验证码图片高度 (可选, 默认:80)
 // @return JSON 验证码信息和图片
 func (h *CaptchaHandler) GenerateCaptchaHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "generate")
+	defer span.End()
 	h.logger.Debugf("received captcha generate handler...")
 
 	// 绑定请求参数
@@ -80,6 +83,8 @@ func (h *CaptchaHandler) GenerateCaptchaHandler(ctx *gin.Context) {
 // @param code string 用户输入的验证码 (必需)
 // @return JSON 验证结果
 func (h *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "validate")
+	defer span.End()
 	h.logger.Debugf("received captcha validate handler...")
 
 	// 绑定请求参数
@@ -115,6 +120,8 @@ func (h *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
 // @param height int 验证码图片高度 (可选, 默认:80)
 // @return JSON 新的验证码信息和图片
 func (h *CaptchaHandler) RefreshCaptchaHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "refresh")
+	defer span.End()
 	h.logger.Debugf("received captcha refresh handler...")
 
 	// 绑定请求参数

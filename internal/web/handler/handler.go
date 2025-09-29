@@ -6,6 +6,7 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.uber.org/zap"
 )
 
@@ -38,6 +39,8 @@ func (h *Handler) Routers() []commonhttp.RouterHandler {
 			Uri:    "/ping",
 			Method: http.MethodGet,
 			HandlerFunc: func(ctx *gin.Context) {
+				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "ping")
+				defer span.End()
 				h.logger.Debugf("received ping handler...")
 				commonhttp.SuccessResponse(ctx, gin.H{
 					"request_id": requestid.Get(ctx),
@@ -52,6 +55,8 @@ func (h *Handler) Routers() []commonhttp.RouterHandler {
 			Uri:    "/health",
 			Method: http.MethodGet,
 			HandlerFunc: func(ctx *gin.Context) {
+				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "health")
+				defer span.End()
 				h.logger.Debugf("received health handler...")
 				commonhttp.SuccessResponse(ctx, "ok")
 			},

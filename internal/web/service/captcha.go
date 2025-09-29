@@ -6,6 +6,7 @@ import (
 	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/captcha"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 )
 
 // CaptchaService 验证码服务
@@ -41,6 +42,8 @@ func NewCaptchaService(baseService *Service, captchaControl *captcha.Control) *C
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CaptchaGenerateRequest 生成验证码请求参数
 func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaGenerateRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaService", "generate")
+	defer span.End()
 	s.logger.Debugf("received captcha generate request with params: %v", req)
 
 	id, b64s, _, err := s.captchaControl.GenerateCaptcha()
@@ -65,6 +68,8 @@ func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaG
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CaptchaValidateRequest 验证码验证请求参数
 func (s *CaptchaService) ValidateCaptcha(ctx *gin.Context, req *request.CaptchaValidateRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaService", "validate")
+	defer span.End()
 	s.logger.Debugf("received captcha validate request with params: %v", req)
 
 	// 验证验证码

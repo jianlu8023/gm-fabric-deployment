@@ -8,8 +8,10 @@ import (
 	"github.com/jianlu8023/go-logger/v2/dblogger"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/plugin/opentelemetry/tracing"
 )
 
 type Control struct {
@@ -20,6 +22,7 @@ type Control struct {
 	once             sync.Once
 	autoMigrateTable []interface{}
 	autoMigrateMutex sync.RWMutex
+	tracerControl    *tracer.Control
 }
 
 // RegisterAutoMigrateTable 注册自动迁移的表
@@ -195,7 +198,7 @@ func (c *Control) initDBConn() error {
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control 数据源控制器实例
 // @return error 错误信息
-func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control) (*Control, error) {
+func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control, opts ...Option) (*Control, error) {
 	if dbConfig == nil {
 		dbConfig = getDefaultConfig()
 	}
@@ -206,17 +209,33 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 	dsLogger := loggerControl.GenLogger(logger.ModuleDataSource)
 	dsLogger.Infof("[control] starting new datasource control...")
 
-	ctl := &Control{
+	control := &Control{
 		config:           dbConfig,
 		logger:           dsLogger,
 		dbLogger:         newDbLogger(loggerControl.GetConfig(), dbConfig.LogInConsole),
 		autoMigrateTable: make([]interface{}, 0, 8),
 	}
+	for _, opt := range opts {
+		opt(control)
+	}
 
 	dsLogger.Debugf("[control] starting init db connection...")
-	if err := ctl.initDBConn(); err != nil {
+	if err := control.initDBConn(); err != nil {
 		return nil, err
 	}
 
-	return ctl, nil
+	if control.tracerControl != nil {
+		if err := control.dbConn.Use(
+			tracing.NewPlugin(
+				tracing.WithTracerProvider(control.tracerControl.GetProvider()),
+				// tracing.WithoutQueryVariables(),
+				tracing.WithRecordStackTrace(),
+			),
+		); err != nil {
+			control.logger.Errorf("[control] tracer plugin init failed, err: %v", err)
+			return nil, err
+		}
+	}
+
+	return control, nil
 }

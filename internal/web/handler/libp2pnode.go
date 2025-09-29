@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -53,6 +54,8 @@ type Libp2pNodeServiceInterface interface {
 // @param pageSize int 每页数量 (可选, 默认:10)
 // @return JSON 节点列表和分页信息
 func (h *Libp2pNodeHandler) Libp2pNodeList(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pHandler", "list")
+	defer span.End()
 	h.logger.Infof("received libp2p node list handler...")
 
 	// 验证JWT和Session信息
@@ -95,6 +98,8 @@ func (h *Libp2pNodeHandler) Libp2pNodeList(ctx *gin.Context) {
 }
 
 func (h *Libp2pNodeHandler) Libp2pNodeMyself(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pHandler", "myself")
+	defer span.End()
 	h.logger.Infof("received libp2p node myself handler...")
 
 	req := new(request.Libp2pNodeMyselfRequest)
