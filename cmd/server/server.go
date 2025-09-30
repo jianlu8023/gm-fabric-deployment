@@ -122,143 +122,154 @@ func main() {
 		networkMapper *mapper.DockerNetworkMapper
 	)
 	{
-		baseMapper := mapper.NewMapper(
-			serverControl.GetLoggerControl().GenLogger(logger.ModuleDataSource),
-			serverControl.GetDatasourceControl().GetConn())
-		imageMapper = mapper.NewDockerImageMapper(baseMapper)
-		nodeMapper = mapper.NewLibp2pNodeMapper(baseMapper)
-		networkMapper = mapper.NewDockerNetworkMapper(baseMapper)
+		if serverControl.GetDatasourceControl() != nil {
+			baseMapper := mapper.NewMapper(
+				serverControl.GetLoggerControl().GenLogger(logger.ModuleDataSource),
+				serverControl.GetDatasourceControl().GetConn())
+			imageMapper = mapper.NewDockerImageMapper(baseMapper)
+			nodeMapper = mapper.NewLibp2pNodeMapper(baseMapper)
+			networkMapper = mapper.NewDockerNetworkMapper(baseMapper)
+		}
 	}
 
 	// libp2p
 	{
-		myself := model.NewLibp2pNode()
-		myself.NodeId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
-		myself.IsAlive = sql.NullBool{Bool: true, Valid: true}
-		myself.IsMySelf = sql.NullBool{Bool: true, Valid: true}
-		myself.LastAliveMessageTime = time.Now()
-		myself.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(serverControl.GetLibp2pControl().GetLocalhostPeerID())
-		if err = nodeMapper.InsertOrUpdate(context.Background(), myself); err != nil {
-			mainLogger.Errorf("insert myself info failed: %v", err)
+		if serverControl.GetLibp2pControl() != nil {
+			if nodeMapper != nil {
+				myself := model.NewLibp2pNode()
+				myself.NodeId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
+				myself.IsAlive = sql.NullBool{Bool: true, Valid: true}
+				myself.IsMySelf = sql.NullBool{Bool: true, Valid: true}
+				myself.LastAliveMessageTime = time.Now()
+				myself.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(serverControl.GetLibp2pControl().GetLocalhostPeerID())
+				if err = nodeMapper.InsertOrUpdate(context.Background(), myself); err != nil {
+					mainLogger.Errorf("insert myself info failed: %v", err)
+				}
+			}
+
+			serverControl.GetLibp2pControl().RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
+				mainLogger.Debugf("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
+			})
+			serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgLibp2pNode, func(protocolID protocol.ID, msg *libp2p.Message) {
+				mainLogger.Debugf("received %v protocol node info message from %s content %v", protocolID, msg.From, string(msg.Content))
+				mainLogger.Infof("starting insert or update node info...")
+				// 返回节点信息
+				if nodeMapper != nil {
+					info := model.NewLibp2pNode()
+					info.NodeId = msg.From.String()
+					info.IsAlive = sql.NullBool{Bool: true, Valid: true}
+					info.LastAliveMessageTime = time.Now()
+					info.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(msg.From)
+					if err := nodeMapper.InsertOrUpdate(context.Background(), info); err != nil {
+						mainLogger.Errorf("insert or update node info failed: %v", err)
+					}
+				}
+			})
+
+			serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgBaseShutdown, func(protocolId protocol.ID, msg *libp2p.Message) {
+				mainLogger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
+				serverControl.GetLibp2pControl().DisconnectFromPeer(msg.From)
+				mainLogger.Infof("from connect peer list remove peer %v", msg.From)
+				if nodeMapper != nil {
+					info := model.NewLibp2pNode()
+					info.NodeId = msg.From.String()
+					info.IsAlive = sql.NullBool{Bool: false, Valid: true}
+					info.LastAliveMessageTime = time.Now()
+					// info.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(msg.From)
+					if err := nodeMapper.InsertOrUpdate(context.Background(), info); err != nil {
+						mainLogger.Errorf("update node info failed: %v", err)
+					}
+				}
+			})
+
+			serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
+				mainLogger.Debugf("received %v protocol message from %v", protocolID, msg.From)
+				if networkMapper != nil {
+					// 处理消息
+					var networks []dockernetwork.Summary
+
+					if err := json.Unmarshal(msg.Content, &networks); err != nil {
+						mainLogger.Errorf("unmarshal docker networks failed: %v", err)
+						return
+					}
+					if err := networkMapper.BatchLogicalDelete(model.DockerNetwork{
+						NetworkLocationPeerId: msg.From.String(),
+					}); err != nil {
+						mainLogger.Errorf("logical delete docker networks failed: %v", err)
+						return
+					}
+					for _, net := range networks {
+						info := model.NewDockerNetwork()
+						info.NetworkName = net.Name
+						info.NetworkID = net.ID
+						info.NetworkCreateTime = net.Created
+						info.NetworkScope = net.Scope
+						info.NetworkDriver = net.Driver
+						info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
+						ipamBytes, err := json.MarshalString(net.IPAM)
+						if err != nil {
+							mainLogger.Errorf("marshal network ipam failed: %v", err)
+							continue
+						}
+						info.NetworkIpam = ipamBytes
+						info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
+						info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
+						info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
+						info.NetworkLocationPeerId = msg.From.String()
+						info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+						if err := networkMapper.InsertOrUpdateOne(info); err != nil {
+							mainLogger.Errorf("insert or update network info failed: %v", err)
+						}
+					}
+				}
+
+			})
+
+			// 注册处理docker镜像的消息
+			serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
+				mainLogger.Debugf("receive %v protocol %v message from %v", protocolID, msg.Type, msg.From)
+
+				if imageMapper != nil {
+					var imageList []dockerimage.Summary
+					if err := json.Unmarshal(msg.Content, &imageList); err != nil {
+						mainLogger.Errorf("unmarshal docker images failed: %v", err)
+						return
+					}
+
+					// 先将节点的镜像全部逻辑删除 然后有的则恢复
+					if err := imageMapper.BatchLogicalDelete(model.DockerImage{
+						ImageLocationPeerId: msg.From.String(),
+					}); err != nil {
+						mainLogger.Errorf("batch logical delete docker images failed: %v", err)
+						return
+					}
+
+					for _, img := range imageList {
+						info := model.NewDockerImage()
+						info.ImageName = img.RepoTags[0]
+						info.ImageId = img.ID
+						datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", img.Created))
+						if err != nil {
+							mainLogger.Errorf("parse time on local failed: %v", err)
+							continue
+						}
+						info.ImageCreated = datetime
+						labels, err := json.MarshalString(img.Labels)
+						if err != nil {
+							mainLogger.Errorf("marshal image labels failed: %v", err)
+							continue
+						}
+						info.ImageLabels = labels
+						info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+						info.ImageLocationPeerId = msg.From.String()
+						if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+							mainLogger.Errorf("insert or update image info failed: %v", err)
+							continue
+						}
+					}
+				}
+			})
 		}
-
-		serverControl.GetLibp2pControl().RegisterMessageHandler("chat_message", func(protocolID protocol.ID, msg *libp2p.Message) {
-			mainLogger.Debugf("received %v protocol chat message from %s content %v", protocolID, msg.From, string(msg.Content))
-		})
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgLibp2pNode, func(protocolID protocol.ID, msg *libp2p.Message) {
-			mainLogger.Debugf("received %v protocol node info message from %s content %v", protocolID, msg.From, string(msg.Content))
-			mainLogger.Infof("starting insert or update node info...")
-			// 返回节点信息
-			info := model.NewLibp2pNode()
-			info.NodeId = msg.From.String()
-			info.IsAlive = sql.NullBool{Bool: true, Valid: true}
-			info.LastAliveMessageTime = time.Now()
-			info.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(msg.From)
-			if err := nodeMapper.InsertOrUpdate(context.Background(), info); err != nil {
-				mainLogger.Errorf("insert or update node info failed: %v", err)
-			}
-		})
-
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgBaseShutdown, func(protocolId protocol.ID, msg *libp2p.Message) {
-			mainLogger.Debugf("[control] received %v protocol shutdown message from %v", protocolId, msg.From)
-			serverControl.GetLibp2pControl().DisconnectFromPeer(msg.From)
-			mainLogger.Infof("from connect peer list remove peer %v", msg.From)
-			info := model.NewLibp2pNode()
-			info.NodeId = msg.From.String()
-			info.IsAlive = sql.NullBool{Bool: false, Valid: true}
-			info.LastAliveMessageTime = time.Now()
-			// info.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(msg.From)
-			if err := nodeMapper.InsertOrUpdate(context.Background(), info); err != nil {
-				mainLogger.Errorf("update node info failed: %v", err)
-			}
-		})
-
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgDockerNetworks, func(protocolID protocol.ID, msg *libp2p.Message) {
-			mainLogger.Debugf("received %v protocol message from %v", protocolID, msg.From)
-			// 处理消息
-			var networks []dockernetwork.Summary
-
-			if err := json.Unmarshal(msg.Content, &networks); err != nil {
-				mainLogger.Errorf("unmarshal docker networks failed: %v", err)
-				return
-			}
-
-			if err := networkMapper.BatchLogicalDelete(model.DockerNetwork{
-				NetworkLocationPeerId: msg.From.String(),
-			}); err != nil {
-				mainLogger.Errorf("logical delete docker networks failed: %v", err)
-				return
-			}
-
-			for _, net := range networks {
-				info := model.NewDockerNetwork()
-				info.NetworkName = net.Name
-				info.NetworkID = net.ID
-				info.NetworkCreateTime = net.Created
-				info.NetworkScope = net.Scope
-				info.NetworkDriver = net.Driver
-				info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
-				ipamBytes, err := json.MarshalString(net.IPAM)
-				if err != nil {
-					mainLogger.Errorf("marshal network ipam failed: %v", err)
-					continue
-				}
-				info.NetworkIpam = ipamBytes
-				info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
-				info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
-				info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
-				info.NetworkLocationPeerId = msg.From.String()
-				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-				if err := networkMapper.InsertOrUpdateOne(info); err != nil {
-					mainLogger.Errorf("insert or update network info failed: %v", err)
-				}
-			}
-		})
-
-		// 注册处理docker镜像的消息
-		serverControl.GetLibp2pControl().RegisterMessageHandler(libp2p.MsgDockerImages, func(protocolID protocol.ID, msg *libp2p.Message) {
-			mainLogger.Debugf("receive %v protocol %v message from %v", protocolID, msg.Type, msg.From)
-
-			var imageList []dockerimage.Summary
-			if err := json.Unmarshal(msg.Content, &imageList); err != nil {
-				mainLogger.Errorf("unmarshal docker images failed: %v", err)
-				return
-			}
-
-			// 先将节点的镜像全部逻辑删除 然后有的则恢复
-			if err := imageMapper.BatchLogicalDelete(model.DockerImage{
-				ImageLocationPeerId: msg.From.String(),
-			}); err != nil {
-				mainLogger.Errorf("batch logical delete docker images failed: %v", err)
-				return
-			}
-
-			for _, img := range imageList {
-				info := model.NewDockerImage()
-				info.ImageName = img.RepoTags[0]
-				info.ImageId = img.ID
-				datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", img.Created))
-				if err != nil {
-					mainLogger.Errorf("parse time on local failed: %v", err)
-					continue
-				}
-				info.ImageCreated = datetime
-				labels, err := json.MarshalString(img.Labels)
-				if err != nil {
-					mainLogger.Errorf("marshal image labels failed: %v", err)
-					continue
-				}
-				info.ImageLabels = labels
-				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
-				info.ImageLocationPeerId = msg.From.String()
-				if err := imageMapper.InsertOrUpdateOne(info); err != nil {
-					mainLogger.Errorf("insert or update image info failed: %v", err)
-					continue
-				}
-			}
-
-		})
-
 	}
 
 	{
@@ -403,12 +414,14 @@ func main() {
 	}
 
 	mainLogger.Infof("starting http server agagin...")
-	serverControl.GetHttpControl().StartUp(func(err error) {
-		if !commonhttp.IsHttpErrServerClosed(err) {
-			mainLogger.Errorf("start http server err: %v", err)
-		}
-		quit <- os.Interrupt
-	})
+	if serverControl.GetHttpControl() != nil {
+		serverControl.GetHttpControl().StartUp(func(err error) {
+			if !commonhttp.IsHttpErrServerClosed(err) {
+				mainLogger.Errorf("start http server err: %v", err)
+			}
+			quit <- os.Interrupt
+		})
+	}
 
 	<-quit
 	mainLogger.Infof("received shutdown signal...")
