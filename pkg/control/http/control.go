@@ -18,6 +18,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
+	// "github.com/hxx258456/ccgo/gmtls"
+	// gmx509 "github.com/hxx258456/ccgo/x509"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
@@ -172,7 +174,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		if serverConfig.TlsGM {
 			// 配置 gm tls
 			gmTLSConfig := &gmtls.Config{
-				GMSupport: &gmtls.GMSupport{},
+				GMSupport: &gmtls.GMSupport{
+					WorkMode: gmtls.ModeGMSSLOnly,
+				},
 				// MinVersion: gmtls.VersionTLS12,
 				// MaxVersion: gmtls.VersionGMSSL,
 				// CipherSuites: []uint16{
@@ -188,14 +192,64 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 				// SessionTicketsDisabled: false, // 启用会话票据
 			}
 			// TODO 目前 gmhserver.key 是加密的key 在使用 emmansun/gmsm 解密后 出现 tls: sm2 private key does not match public key
+			//
+			// certificates, err := gmtls.LoadX509KeyPair(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
+			// if err != nil {
+			// 	webLogger.Errorf("[control] failed to load GM TLS certificate: %v", err)
+			// 	return nil, err
+			// } else {
+			// 	gmTLSConfig.Certificates = []gmtls.Certificate{certificates}
+			// }
 
-			certificates, err := gmtls.LoadX509KeyPair(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
-			if err != nil {
-				webLogger.Errorf("[control] failed to load GM TLS certificate: %v", err)
-				return nil, err
-			} else {
-				gmTLSConfig.Certificates = []gmtls.Certificate{certificates}
+			// GM模式需要两套keypair：一个签名，一个加密
+			// 使用逗号分割证书和密钥文件路径
+			certFiles := strings.Split(serverConfig.TlsCertFile, ",")
+			keyFiles := strings.Split(serverConfig.TlsKeyFile, ",")
+
+			// 检查是否提供了两套证书和密钥
+			if len(certFiles) != 2 || len(keyFiles) != 2 {
+				webLogger.Errorf("[control] GM模式必须提供两套keypair（签名和加密），当前证书文件数量: %d, 密钥文件数量: %d", len(certFiles), len(keyFiles))
+				return nil, errors.New("GM模式必须提供两套keypair，请在 tls_cert_file 和 tls_key_file 中使用逗号分割两套证书和密钥文件路径")
 			}
+
+			// 去除文件路径的空格
+			for i := range certFiles {
+				certFiles[i] = strings.TrimSpace(certFiles[i])
+			}
+			for i := range keyFiles {
+				keyFiles[i] = strings.TrimSpace(keyFiles[i])
+			}
+
+			// 验证文件路径不为空
+			for i, file := range certFiles {
+				if stringer.IsBlank(file) {
+					webLogger.Errorf("[control] 第%d个证书文件路径为空", i+1)
+					return nil, fmt.Errorf("第%d个证书文件路径为空", i+1)
+				}
+			}
+			for i, file := range keyFiles {
+				if stringer.IsBlank(file) {
+					webLogger.Errorf("[control] 第%d个密钥文件路径为空", i+1)
+					return nil, fmt.Errorf("第%d个密钥文件路径为空", i+1)
+				}
+			}
+
+			// 加载两套keypair
+			var certificates []gmtls.Certificate
+			for i := 0; i < 2; i++ {
+				cert, err := gmtls.LoadX509KeyPair(certFiles[i], keyFiles[i])
+				if err != nil {
+					webLogger.Errorf("[control] 加载第%d套GM TLS证书失败: %v", i+1, err)
+					return nil, fmt.Errorf("加载第%d套GM TLS证书失败: %v", i+1, err)
+				}
+				certificates = append(certificates, cert)
+				webLogger.Debugf("[control] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
+			}
+
+			// 设置证书到GM TLS配置
+			gmTLSConfig.Certificates = certificates
+			webLogger.Infof("[control] 成功加载GM模式两套keypair，签名证书: %s，加密证书: %s", certFiles[0], certFiles[1])
+
 			// 如果配置了根证书，则启用客户端证书验证
 			rootCaCertFile := serverConfig.TlsRCACertFile
 			if !stringer.IsBlank(rootCaCertFile) {

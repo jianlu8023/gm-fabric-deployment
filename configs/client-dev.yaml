@@ -5,7 +5,7 @@ datasource:
   db_password: password
   db_host: localhost
   db_port: 3306
-  db_path: ./db/golang-example.db
+  db_path: db/golang-example.db
   max_idle_conn: 10
   max_open_conn: 50
   log_in_console: true
@@ -21,9 +21,9 @@ grpc:
     max_send_msg_size: 5242880
     chunk_size: 4194304
     tls_enabled: true
-    tls_cert_file: ./certs/gserver.crt
-    tls_key_file: ./certs/gserver.key
-    tls_rca_cert_file: ./certs/root-ca.crt
+    tls_cert_file: certs/normal/gserver.crt
+    tls_key_file: certs/normal/gserver.key
+    tls_rca_cert_file: certs/normal/root-ca.crt
   client:
     host: 192.168.58.110:65534
     max_call_recv_msg_size: 5242880
@@ -31,18 +31,18 @@ grpc:
     chunk_size: 4194304
     call_timeout: 99999
     tls_enabled: true
-    tls_cert_file: ./certs/gclient.crt
-    tls_key_file: ./certs/gclient.key
-    tls_rca_cert_file: ./certs/root-ca.crt
+    tls_cert_file: certs/normal/gclient.crt
+    tls_key_file: certs/normal/gclient.key
+    tls_rca_cert_file: certs/normal/root-ca.crt
 http:
   enabled: false
   address: :8080
   context_path: example
   run_mode: release
   tls_enabled: true
-  tls_cert_file: ./certs/hserver.crt
-  tls_key_file: ./certs/hserver.key
-  tls_rca_cert_file: ./certs/root-ca.crt
+  tls_cert_file: certs/normal/hserver.crt
+  tls_key_file: certs/normal/hserver.key
+  tls_rca_cert_file: certs/normal/root-ca.crt
 libp2p:
   enabled: true
   listen_addr:
@@ -64,7 +64,7 @@ logger:
   default_log_level: debug
   stack_log_level: fatal
   print_format: console
-  file_path: ./logs/app.log
+  file_path: logs/app.log
   max_age: 7
   rotation_time: 1
   logger_level:
