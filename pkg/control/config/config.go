@@ -161,6 +161,7 @@ type HttpServerConfig struct {
 	TlsCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `            // TLS证书文件
 	TlsKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
 	TlsRCACertFile string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
+	Http2Enabled   bool   `json:"http2_enabled,omitempty" yaml:"http2_enabled,omitempty" mapstructure:"http2_enabled"`             // 是否启用HTTP/2
 	Pprof          bool   `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                     // 是否启用pprof
 	// 黑白名单配置
 	IPWhiteList struct {

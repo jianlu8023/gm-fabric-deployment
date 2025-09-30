@@ -43,6 +43,7 @@ http:
   tls_cert_file: certs/normal/hserver.crt
   tls_key_file: certs/normal/hserver.key
   tls_rca_cert_file: certs/normal/root-ca.crt
+  http2_enabled: true  # 启用HTTP/2支持
   pprof: true
   # IP白名单配置
   ip_white_list:

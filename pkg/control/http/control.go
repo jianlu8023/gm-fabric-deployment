@@ -14,6 +14,9 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
@@ -136,10 +139,17 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	srv := &http.Server{
 		Addr:         serverConfig.Address,
-		Handler:      engine,
+		Handler:      engine.Handler(),
 		ReadTimeout:  30 * time.Second,  // 设置读取超时
 		WriteTimeout: 60 * time.Second,  // 设置写入超时
 		IdleTimeout:  120 * time.Second, // 设置空闲超时
+	}
+
+	// 如果启用HTTP/2且非TLS模式，使用h2c支持HTTP/2 over cleartext
+	if serverConfig.Http2Enabled && !serverConfig.TlsEnabled {
+		webLogger.Infof("[control] HTTP/2 enabled for cleartext connections (h2c)")
+		h2s := &http2.Server{}
+		srv.Handler = h2c.NewHandler(engine, h2s)
 	}
 
 	webLogger.Debugf("[control] generate http control...")
@@ -284,10 +294,17 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 				CurvePreferences: []tls.CurveID{
 					tls.CurveP256, tls.X25519,
 				},
-				PreferServerCipherSuites: true,  // 优先使用服务端加密套件
-				SessionTicketsDisabled:   false, // 启用会话票据
+				// PreferServerCipherSuites: true,  // 优先使用服务端加密套件
+				SessionTicketsDisabled: false, // 启用会话票据
+			}
 
-				// SessionTickets:           &tls.SessionTicketMemoryStorage{}, // 使用内存存储会话票据
+			// 根据HTTP/2配置决定是否启用HTTP/2协议协商
+			if serverConfig.Http2Enabled {
+				tlsConfig.NextProtos = []string{"h2", "http/1.1"}
+				webLogger.Infof("[control] HTTP/2 enabled for TLS connections")
+			} else {
+				tlsConfig.NextProtos = []string{"http/1.1"}
+				webLogger.Infof("[control] HTTP/2 disabled, using HTTP/1.1 only")
 			}
 			certificates, err := tls.LoadX509KeyPair(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
 			if err != nil {
@@ -347,6 +364,12 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 							}
 							return
 						}
+
+						// 注意：GM TLS不支持HTTP/2，因为HTTP/2需要的ALPN协议协商和GM TLS不兼容
+						if c.config.Http2Enabled {
+							c.logger.Warnf("[control] HTTP/2 is not supported with GM TLS, falling back to HTTP/1.1")
+						}
+
 						defer func(listener net.Listener) {
 							if err := listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 								c.logger.Errorf("[control] failed to close gm TLS listener: %v", err)
@@ -373,6 +396,18 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 								failedFunc(err)
 							}
 							return
+						}
+
+						// 为HTTPS服务器启用HTTP/2支持
+						if c.config.Http2Enabled {
+							if err := http2.ConfigureServer(c.server, &http2.Server{}); err != nil {
+								c.logger.Errorf("[control] failed to configure HTTP/2 server: %v", err)
+								if failedFunc != nil {
+									failedFunc(err)
+								}
+								return
+							}
+							c.logger.Infof("[control] HTTP/2 server configured successfully")
 						}
 
 						defer func(listener net.Listener) {

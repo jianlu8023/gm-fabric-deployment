@@ -46,6 +46,7 @@ http:
   # gm模式需要两套 签名证书,加密证书
   tls_cert_file: "certs/tjfoc/sm2_sign_cert.cer,certs/tjfoc/sm2_enc_cert.cer"
   tls_rca_cert_file: certs/tjfoc/SM2_CA.cer
+  http2_enabled: false  # 国密TLS模式不支持HTTP/2
   pprof: true
   # IP白名单配置
   ip_white_list:

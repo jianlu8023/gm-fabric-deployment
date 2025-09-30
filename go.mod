@@ -30,6 +30,7 @@ replace (
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace => go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.32.0 // 原本是v1.31.0
 	golang.org/x/crypto => golang.org/x/crypto v0.33.0
+	golang.org/x/net => golang.org/x/net v0.35.0
 	golang.org/x/time => golang.org/x/time v0.10.0
 	google.golang.org/genproto/googleapis/api => google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9
 	gorm.io/driver/mysql => gorm.io/driver/mysql v1.5.7 // 原本是v1.5.1
@@ -114,6 +115,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/zap v1.27.0
+	golang.org/x/net v0.35.0
 	golang.org/x/time v0.5.0 // time的限流
 	google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9 // indirect
 	google.golang.org/grpc v1.67.1
@@ -383,7 +385,6 @@ require (
 	golang.org/x/exp v0.0.0-20250210185358-939b2ce775ac // indirect
 	golang.org/x/image v0.23.0 // indirect
 	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/text v0.22.0 // indirect

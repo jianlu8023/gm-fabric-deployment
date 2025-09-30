@@ -6,6 +6,7 @@ import (
 
 func getDefaultConfig() *config.HttpServerConfig {
 	return &config.HttpServerConfig{
-		Enabled: false,
+		Enabled:      false,
+		Http2Enabled: true, // 默认启用HTTP/2支持
 	}
 }
