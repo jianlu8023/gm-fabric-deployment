@@ -2,14 +2,15 @@ package ratelimit
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
 	"go.uber.org/zap"
-	"net/http"
 )
 
 // EnableRateLimitUlule 使用ulule/limiter库实现的限流中间件（仅使用内存存储）
@@ -54,7 +55,7 @@ func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int) gin.H
 
 		// 如果请求被限流，记录日志
 		if c.IsAborted() && c.Writer.Status() == http.StatusTooManyRequests {
-			clientIP := getClientIP(c)
+			clientIP := iphelper.GetClientIP(c)
 			logger.Warnf("[RateLimit] Too many requests from IP: %s, Path: %s", clientIP, c.Request.URL.Path)
 		}
 	}

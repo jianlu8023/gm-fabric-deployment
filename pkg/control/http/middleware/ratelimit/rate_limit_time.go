@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 )
@@ -62,7 +63,7 @@ func EnableRateLimit(logger *zap.SugaredLogger, rps int64, burst int) gin.Handle
 
 	return func(c *gin.Context) {
 		// 获取客户端IP
-		clientIP := getClientIP(c)
+		clientIP := iphelper.GetClientIP(c)
 
 		// 检查是否允许请求
 		if rateLimiter.Allow(clientIP) {

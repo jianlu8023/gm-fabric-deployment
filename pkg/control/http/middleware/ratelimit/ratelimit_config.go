@@ -3,7 +3,6 @@ package ratelimit
 import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"strings"
 )
 
 // Type 限流类型
@@ -68,28 +67,4 @@ func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config) gin.Handle
 		logger.Warnf("[RateLimit] Unknown rate limit type: %s, using default (time/rate)", config.Type)
 		return EnableRateLimit(logger, config.RPS, burst)
 	}
-}
-
-// getClientIP 获取客户端真实IP地址
-// 优先从X-Forwarded-For头获取，其次是X-Real-IP，最后是RemoteAddr
-func getClientIP(c *gin.Context) string {
-	// 从X-Forwarded-For头获取IP，通常由代理服务器添加
-	xff := c.GetHeader("X-Forwarded-For")
-	if xff != "" {
-		// X-Forwarded-For格式可能是多个IP，逗号分隔，第一个是原始客户端IP
-		ips := strings.Split(xff, ",")
-		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0])
-		}
-	}
-
-	// 从X-Real-IP头获取，通常由Nginx等代理服务器设置
-	realIP := c.GetHeader("X-Real-IP")
-	if realIP != "" {
-		return realIP
-	}
-
-	// 直接从连接中获取RemoteAddr
-	remoteAddr := c.Request.RemoteAddr
-	return remoteAddr
 }

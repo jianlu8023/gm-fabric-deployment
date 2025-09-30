@@ -1,38 +1,59 @@
 package ipwhitelist
 
 import (
+	"net"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
 	"go.uber.org/zap"
 )
 
-// EnableIPWhiteList 创建并返回IP白名单中间件
+// EnableIPWhiteList 创建并返回IP白名单中间件（支持精确IP和CIDR范围）
 // @param logger 日志记录器
-// @param whiteList IP白名单列表
+// @param whiteList IP白名单列表，支持精确IP和CIDR格式的IP范围
 // @return gin.HandlerFunc Gin中间件函数
 func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.HandlerFunc {
-	// 创建白名单集合，提高查找效率
-	whiteListMap := make(map[string]bool)
-	for _, ip := range whiteList {
-		if ip != "" {
-			whiteListMap[strings.TrimSpace(ip)] = true
+	// 如果白名单为空，则不进行过滤
+	if len(whiteList) == 0 {
+		return func(c *gin.Context) {
+			c.Next()
+		}
+	}
+
+	// 创建CIDR列表（一次性解析，提高性能）
+	cidrList, err := iphelper.NewCIDRList(whiteList)
+	if err != nil {
+		logger.Errorf("[IP WhiteList] Failed to create CIDR list: %v", err)
+		// 如果解析失败，默认拒绝所有请求
+		return func(c *gin.Context) {
+			logger.Warnf("[IP WhiteList] Blocked due to invalid CIDR configuration, Path: %s", c.Request.URL.Path)
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    http.StatusForbidden,
+				"message": "Access forbidden: Invalid IP white list configuration",
+				"data":    nil,
+			})
+			c.Abort()
 		}
 	}
 
 	return func(c *gin.Context) {
-		// 如果白名单为空，则不进行过滤
-		if len(whiteListMap) == 0 {
-			c.Next()
+		// 获取客户端IP
+		clientIP := iphelper.GetClientIP(c)
+		parsedIP := net.ParseIP(clientIP)
+		if parsedIP == nil {
+			logger.Warnf("[IP WhiteList] Invalid IP address: %s, Path: %s", clientIP, c.Request.URL.Path)
+			c.JSON(http.StatusForbidden, gin.H{
+				"code":    http.StatusForbidden,
+				"message": "Access forbidden: Invalid IP address",
+				"data":    nil,
+			})
+			c.Abort()
 			return
 		}
 
-		// 获取客户端IP
-		clientIP := getClientIP(c)
-
-		// 检查IP是否在白名单中
-		if whiteListMap[clientIP] {
+		// 使用CIDRList检查IP是否在白名单中
+		if cidrList.Contains(parsedIP) {
 			logger.Debugf("[IP WhiteList] Allowed IP: %s, Path: %s", clientIP, c.Request.URL.Path)
 			c.Next()
 		} else {
@@ -45,35 +66,4 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.Handle
 			c.Abort()
 		}
 	}
-}
-
-// getClientIP 获取客户端真实IP地址
-// 优先从X-Forwarded-For头获取，其次是X-Real-IP，最后是RemoteAddr
-func getClientIP(c *gin.Context) string {
-	// 从X-Forwarded-For头获取IP，通常由代理服务器添加
-	xff := c.GetHeader("X-Forwarded-For")
-	if xff != "" {
-		// X-Forwarded-For格式可能是多个IP，逗号分隔，第一个是原始客户端IP
-		ips := strings.Split(xff, ",")
-		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0])
-		}
-	}
-
-	// 从X-Real-IP头获取，通常由Nginx等代理服务器设置
-	realIP := c.GetHeader("X-Real-IP")
-	if realIP != "" {
-		return realIP
-	}
-
-	// 直接从连接中获取RemoteAddr
-	remoteAddr := c.Request.RemoteAddr
-	// 移除端口部分
-	if idx := strings.LastIndex(remoteAddr, ":"); idx != -1 {
-		remoteAddr = remoteAddr[:idx]
-	}
-	// 移除可能的[]括号（IPv6地址）
-	remoteAddr = strings.TrimPrefix(strings.TrimSuffix(remoteAddr, "]"), "[")
-
-	return remoteAddr
 }

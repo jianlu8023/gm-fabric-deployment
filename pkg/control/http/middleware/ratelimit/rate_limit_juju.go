@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
 	"github.com/juju/ratelimit"
 	"go.uber.org/zap"
 )
@@ -58,7 +59,7 @@ func EnableRateLimitJuju(logger *zap.SugaredLogger, rps int64, burst int) gin.Ha
 
 	return func(c *gin.Context) {
 		// 获取客户端IP地址
-		clientIP := getClientIP(c)
+		clientIP := iphelper.GetClientIP(c)
 
 		// 检查是否允许请求通过
 		if !limiter.Allow(clientIP) {
