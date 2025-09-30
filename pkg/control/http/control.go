@@ -32,6 +32,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ratelimit"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/recovery"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/secure"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/tjfoc/gmsm/gmtls"
 	gmx509 "github.com/tjfoc/gmsm/x509"
@@ -71,33 +72,89 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	}
 
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
-	webLogger.Infof("[control] start new http server control...")
+	webLogger.Info("[control] start new http server control...")
 	gin.SetMode(serverConfig.RunMode)
 	// 强制彩色输出
 	gin.ForceConsoleColor()
 
 	ctx := context.Background()
 
-	webLogger.Debugf("[control] generate gin engine...")
+	webLogger.Debug("[control] generate gin engine...")
 	engine := gin.Default()
-	webLogger.Debugf("[control] register gin middleware...")
-	engine.Use(requestid.EnableRequestID(webLogger))
-	engine.Use(cors.EnableCors())
-	engine.Use(gzip.EnableGzip())
 
-	// 注册IP白名单中间件
+	srv := &http.Server{
+		Addr:         serverConfig.Address,
+		Handler:      engine.Handler(),
+		ReadTimeout:  30 * time.Second,  // 设置读取超时
+		WriteTimeout: 60 * time.Second,  // 设置写入超时
+		IdleTimeout:  120 * time.Second, // 设置空闲超时
+	}
+
+	// 如果启用HTTP/2且非TLS模式，使用h2c支持HTTP/2 over cleartext
+	if serverConfig.Http2Enabled && !serverConfig.TlsEnabled {
+		webLogger.Info("[control] HTTP/2 enabled for cleartext connections (h2c)")
+		h2s := &http2.Server{}
+		srv.Handler = h2c.NewHandler(engine, h2s)
+	}
+
+	webLogger.Debug("[control] generate http control...")
+	control := &Control{
+		config:    serverConfig,
+		server:    srv,
+		ctx:       ctx,
+		logger:    webLogger,
+		ginRouter: engine,
+	}
+
+	// 应用所有选项
+	for _, opt := range opts {
+		opt(control)
+	}
+
+	if control.sessionManager == nil {
+		// 创建会话管理器
+		webLogger.Debug("[control] create session manager...")
+		control.sessionManager = jwt.NewMemorySessionManager(webLogger, ctx)
+	}
+
+	webLogger.Info("[control] register gin middleware...")
+	// 1. 恢复中间件（Recovery Middleware）- 应在最前面注册，捕获所有后续中间件的panic
+	engine.Use(recovery.EnableRecovery(control.logger, true))
+
+	// 2. 请求ID中间件 - 为每个请求生成唯一标识
+	engine.Use(requestid.EnableRequestID(webLogger))
+
+	// 3. IP白名单中间件（如果启用）- 尽早过滤非白名单IP
 	if serverConfig.IPWhiteList.Enabled && len(serverConfig.IPWhiteList.IPs) > 0 {
 		webLogger.Debugf("[control] register IP white list middleware with %d IPs", len(serverConfig.IPWhiteList.IPs))
 		engine.Use(ipwhitelist.EnableIPWhiteList(webLogger, serverConfig.IPWhiteList.IPs))
 	}
 
-	// 注册IP黑名单中间件
+	// 4. IP黑名单中间件（如果启用）- 尽早拒绝黑名单IP
 	if serverConfig.IPBlackList.Enabled && len(serverConfig.IPBlackList.IPs) > 0 {
 		webLogger.Debugf("[control] register IP black list middleware with %d IPs", len(serverConfig.IPBlackList.IPs))
 		engine.Use(ipblacklist.EnableIPBlackList(webLogger, serverConfig.IPBlackList.IPs))
 	}
 
-	// 注册限流中间件
+	// 5. Tracer中间件 - 用于请求追踪，在基础过滤后执行
+	if control.tracerControl != nil {
+		engine.Use(otelgin.Middleware("", otelgin.WithTracerProvider(control.tracerControl.GetProvider())))
+	}
+
+	// 6. TLS安全中间件 - 安全检查，在基础过滤和追踪后执行
+	// 判断是否为开发环境（根据Gin模式）
+	isDevelopment := gin.Mode() == gin.DebugMode
+	// 使用成熟的unrolled/secure包实现的TLS安全中间件
+	// 推荐在生产环境使用，提供完整的TLS安全保护功能
+	engine.Use(secure.EnableSecurePackageTLS(serverConfig.Address, isDevelopment))
+
+	// 如果需要使用不依赖外部包的版本，可以取消注释下面这行
+	// engine.Use(secure.EnableUnrolledTLS(webLogger, isDevelopment, serverConfig.Address))
+
+	// 7. CORS中间件 - 跨域处理
+	engine.Use(cors.EnableCors())
+
+	// 8. 限流中间件（如果启用）- 在业务逻辑前执行
 	if serverConfig.RateLimit.Enabled && serverConfig.RateLimit.RPS > 0 {
 		// 创建限流配置
 		rateLimitConfig := ratelimit.Config{
@@ -108,6 +165,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		// 使用工厂函数创建限流中间件
 		engine.Use(ratelimit.NewRateLimitMiddleware(webLogger, rateLimitConfig))
 	}
+
+	// 9. 压缩中间件 - 性能优化，在响应前执行
+	engine.Use(gzip.EnableGzip())
 
 	// 调试模式，开启 pprof 包，便于开发阶段分析程序性能
 	// gin.DefaultWriter = io.MultiWriter(os.Stdout, io.Discard)
@@ -137,52 +197,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	// 	)
 	// }))
 
-	srv := &http.Server{
-		Addr:         serverConfig.Address,
-		Handler:      engine.Handler(),
-		ReadTimeout:  30 * time.Second,  // 设置读取超时
-		WriteTimeout: 60 * time.Second,  // 设置写入超时
-		IdleTimeout:  120 * time.Second, // 设置空闲超时
-	}
-
-	// 如果启用HTTP/2且非TLS模式，使用h2c支持HTTP/2 over cleartext
-	if serverConfig.Http2Enabled && !serverConfig.TlsEnabled {
-		webLogger.Infof("[control] HTTP/2 enabled for cleartext connections (h2c)")
-		h2s := &http2.Server{}
-		srv.Handler = h2c.NewHandler(engine, h2s)
-	}
-
-	webLogger.Debugf("[control] generate http control...")
-	control := &Control{
-		config:    serverConfig,
-		server:    srv,
-		ctx:       ctx,
-		logger:    webLogger,
-		ginRouter: engine,
-	}
-
-	// 应用所有选项
-	for _, opt := range opts {
-		opt(control)
-	}
-
-	if control.sessionManager == nil {
-		// 创建会话管理器
-		webLogger.Debugf("[control] create session manager...")
-		control.sessionManager = jwt.NewMemorySessionManager(webLogger, ctx)
-	}
-
-	if control.tracerControl != nil {
-		engine.Use(otelgin.Middleware("", otelgin.WithTracerProvider(control.tracerControl.GetProvider())))
-	}
-
-	// 注册最后一个recovery的中间件
-	engine.Use(recovery.EnableRecovery(control.logger, true))
-
-	// webLogger.Debugf("[control] generate http server...")
 	if serverConfig.TlsEnabled {
 		if serverConfig.TlsGM {
-			// 配置 gm tls
+			// 配置 gm secure
 			gmTLSConfig := &gmtls.Config{
 				GMSupport: &gmtls.GMSupport{
 					WorkMode: gmtls.ModeGMSSLOnly,
@@ -201,7 +218,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 				// },
 				// SessionTicketsDisabled: false, // 启用会话票据
 			}
-			// TODO 目前 gmhserver.key 是加密的key 在使用 emmansun/gmsm 解密后 出现 tls: sm2 private key does not match public key
+			// TODO 目前 gmhserver.key 是加密的key 在使用 emmansun/gmsm 解密后 出现 secure: sm2 private key does not match public key
 			//
 			// certificates, err := gmtls.LoadX509KeyPair(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
 			// if err != nil {
@@ -287,9 +304,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_AES_128_GCM_SHA256,       // tls 1.3
-					tls.TLS_AES_256_GCM_SHA384,       // tls 1.3
-					tls.TLS_CHACHA20_POLY1305_SHA256, // tls 1.3
+					tls.TLS_AES_128_GCM_SHA256,       // secure 1.3
+					tls.TLS_AES_256_GCM_SHA384,       // secure 1.3
+					tls.TLS_CHACHA20_POLY1305_SHA256, // secure 1.3
 				},
 				CurvePreferences: []tls.CurveID{
 					tls.CurveP256, tls.X25519,
@@ -346,9 +363,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Debugf("[control] starting up http server...")
+			c.logger.Info("[control] starting up http server...")
 
-			c.logger.Debugf("[control] starting define router...")
+			c.logger.Debug("[control] starting define router...")
 			c.registerDefaultRouter()
 			c.initRouters()
 
@@ -407,7 +424,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 								}
 								return
 							}
-							c.logger.Infof("[control] HTTP/2 server configured successfully")
+							c.logger.Info("[control] HTTP/2 server configured successfully")
 						}
 
 						defer func(listener net.Listener) {
@@ -473,7 +490,7 @@ func (c *Control) Shutdown() error {
 // registerDefaultRouter 注册默认路由处理器
 // @description 注册404(路径不存在)和405(方法不允许)的默认处理函数
 func (c *Control) registerDefaultRouter() {
-	c.logger.Debugf("[control] register default router (NoRoute and NoMethod)...")
+	c.logger.Debug("[control] register default router (NoRoute and NoMethod)...")
 	{
 		// 首先注册NoMethod处理器（方法不允许）
 		// NoMethod应该在NoRoute之前注册，以确保当路径存在但方法不支持时能正确返回405
@@ -514,7 +531,6 @@ func (c *Control) registerDefaultRouter() {
 				Method: http.MethodGet,
 				HandlerFunc: func(ctx *gin.Context) {
 					_, span := tracer.StartSpan(ctx.Request.Context(), "ceshiComponentName", "ceshiSpanName")
-					// ctx.Request.WithContext(octx)
 					defer span.End()
 					commonhttp.SuccessResponse(ctx, gin.H{
 						"routers": c.routers,
@@ -529,7 +545,7 @@ func (c *Control) registerDefaultRouter() {
 
 	// 如果启用了pprof，则注册pprof路由
 	if c.config.Pprof {
-		c.logger.Infof("[control] pprof enabled, registering pprof routes")
+		c.logger.Info("[control] pprof enabled, registering pprof routes")
 		pprofUri := fmt.Sprintf("%s", "debug/pprof")
 		c.RegisterRouter([]commonhttp.RouterHandler{
 			&commonhttp.MyRouter{
@@ -643,7 +659,7 @@ func (c *Control) registerDefaultRouter() {
 		})
 	}
 
-	c.logger.Debugf("[control] default router registered successfully")
+	c.logger.Debug("[control] default router registered successfully")
 }
 
 // GetSessionManager 获取会话管理器
@@ -655,18 +671,18 @@ func (c *Control) GetSessionManager() jwt.SessionManager {
 // RegisterRouter 注册HTTP路由
 // @param routers []commonhttp.RouterHandler 路由处理器列表
 func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
-	c.logger.Infof("[control] register router...")
+	c.logger.Info("[control] register router...")
 	c.routerMutex.Lock()
 	c.routers = append(c.routers, routers...)
 	c.routerMutex.Unlock()
-	c.logger.Debugf("[control] deduplicate routers...")
+	c.logger.Debug("[control] deduplicate routers...")
 	c.deduplicateRouters()
 
-	c.logger.Infof("[control] register router success...")
+	c.logger.Info("[control] register router success...")
 }
 
 func (c *Control) deduplicateRouters() {
-	c.logger.Debugf("[control] starting deduplicate routers...")
+	c.logger.Debug("[control] starting deduplicate routers...")
 	c.routerMutex.RLock()
 	defer c.routerMutex.RUnlock()
 	after := make([]commonhttp.RouterHandler, 0, len(c.routers))
@@ -681,13 +697,13 @@ func (c *Control) deduplicateRouters() {
 		seen[router.GetUri()] = struct{}{}
 		after = append(after, router)
 	}
-	c.logger.Debugf("[control] finished deduplicate routers...")
+	c.logger.Debug("[control] finished deduplicate routers...")
 	c.routers = after
 }
 
 // initRouters 初始化所有注册的路由
 func (c *Control) initRouters() {
-	c.logger.Infof("[control] start init routers...")
+	c.logger.Info("[control] start init routers...")
 
 	// 预创建认证和非认证的路由组，避免每次循环重新创建
 	authGroup := c.ginRouter.Group("/", jwt.EnableJWT(c.logger, c.sessionManager))

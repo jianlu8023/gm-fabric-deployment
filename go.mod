@@ -27,6 +27,7 @@ replace (
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/skip2/go-qrcode => github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/ulule/limiter/v3 => github.com/ulule/limiter/v3 v3.11.2
+	github.com/unrolled/secure => github.com/unrolled/secure v1.17.0
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace => go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.32.0 // 原本是v1.31.0
 	golang.org/x/crypto => golang.org/x/crypto v0.33.0
@@ -174,6 +175,8 @@ require (
 	gorm.io/gorm v1.30.0
 	gorm.io/plugin/opentelemetry v0.1.16
 )
+
+require github.com/unrolled/secure v0.0.0-00010101000000-000000000000
 
 require (
 	gitee.com/zhaochuninhefei/zcgolog v0.0.23 // indirect
