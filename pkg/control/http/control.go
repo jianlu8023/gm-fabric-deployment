@@ -689,12 +689,12 @@ func (c *Control) deduplicateRouters() {
 	seen := make(map[string]struct{}, len(c.routers))
 
 	for _, router := range c.routers {
-		if _, ok := seen[router.GetUri()]; ok {
+		if _, ok := seen[router.GetUri()+"_"+router.GetMethod()]; ok {
 			// 已经存在
 			continue
 		}
 		// 还不存在
-		seen[router.GetUri()] = struct{}{}
+		seen[router.GetUri()+"_"+router.GetMethod()] = struct{}{}
 		after = append(after, router)
 	}
 	c.logger.Debug("[control] finished deduplicate routers...")

@@ -36,9 +36,28 @@ func NewHandler(logger *zap.SugaredLogger) *Handler {
 func (h *Handler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
-			Name:   "ping",
+			Name:   "pingGet",
 			Uri:    "/ping",
 			Method: http.MethodGet,
+			HandlerFunc: func(ctx *gin.Context) {
+				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "ping")
+				defer span.End()
+				span.SetAttributes(
+					attribute.String("requestId", requestid.Get(ctx)),
+				)
+				h.logger.Debugf("received ping handler...")
+				commonhttp.SuccessResponse(ctx, gin.H{
+					"request_id": requestid.Get(ctx),
+					"message":    "pong",
+				})
+			},
+			Enabled: true,
+			Desc:    "ping的请求",
+		},
+		&commonhttp.MyRouter{
+			Name:   "pingPost",
+			Uri:    "/ping",
+			Method: http.MethodPost,
 			HandlerFunc: func(ctx *gin.Context) {
 				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "ping")
 				defer span.End()
