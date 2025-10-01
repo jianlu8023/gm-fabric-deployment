@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/http"
+	"github.com/jianlu8023/go-tools/v2/pkg/sonic"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"github.com/jianlu8023/golang-example/pkg/control/job"
@@ -105,6 +108,57 @@ func main() {
 					if err := serverControl.GetLibp2pControl().BroadcastMessage(pingMsg); err != nil {
 						mainLogger.Errorf("broadcast ping message failed: %v", err)
 					}
+				},
+			})
+			serverControl.GetJobControl().RegisterJob(&job.Job{
+				Name:     "http-request",
+				Interval: time.Duration(rand.IntN(10-5)+5) * time.Second,
+				Task: func() {
+					client := http.NewClient().SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+					var objJson interface{}
+					code, err := client.
+						GetJSON("https://127.0.0.1:8080/example/routers", map[string]interface{}{}, &objJson)
+					if err != nil {
+						mainLogger.Errorf("get router failed: %v", err)
+						return
+					}
+					if code != 200 {
+						mainLogger.Errorf("get router failed: %v", code)
+						return
+					}
+					pretty, err := sonic.NewStandardSonic().MarshalString(objJson)
+					if err != nil {
+						mainLogger.Errorf("marshal json failed: %v", err)
+						return
+					}
+					mainLogger.Infof("response: %v ", pretty)
+
+					body, code, err := client.GET("https://127.0.0.1:8080/example/ping", map[string]interface{}{})
+					if err != nil {
+						mainLogger.Errorf("get ping failed: %v", err)
+						return
+					}
+					if code != 200 {
+						mainLogger.Errorf("get ping failed: %v", code)
+						return
+					}
+					mainLogger.Debugf("response: %v ", string(body))
+
+					time.Sleep(time.Second)
+					body, code, err = client.GET("https://127.0.0.1:8080/example/libp2p/list", map[string]interface{}{
+						"isPage":   true,
+						"pageNo":   1,
+						"pageSize": 10,
+					})
+					if err != nil {
+						mainLogger.Errorf("get libp2p list failed: %v", err)
+						return
+					}
+					if code != 200 {
+						mainLogger.Errorf("get libp2p list failed: %v", code)
+						return
+					}
+					mainLogger.Debugf("response: %v ", string(body))
 				},
 			})
 		}

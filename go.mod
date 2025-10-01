@@ -103,6 +103,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/tjfoc/gmsm v1.4.1
 	github.com/ulule/limiter/v3 v3.11.2 // ulule 限流
+	github.com/unrolled/secure v0.0.0-00010101000000-000000000000
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/fasttemplate v1.2.2
 	github.com/valyala/quicktemplate v1.8.0
@@ -176,8 +177,6 @@ require (
 	gorm.io/plugin/opentelemetry v0.1.16
 )
 
-require github.com/unrolled/secure v0.0.0-00010101000000-000000000000
-
 require (
 	gitee.com/zhaochuninhefei/zcgolog v0.0.23 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
@@ -228,6 +227,7 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-resty/resty/v2 v2.13.1 // indirect
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
