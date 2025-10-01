@@ -125,10 +125,9 @@ func main() {
 					if code != 200 {
 						if code == 429 {
 							mainLogger.Errorf("get router failed code: %v body: %v", code, objJson)
-							return
+						} else {
+							mainLogger.Errorf("get router failed: %v", code)
 						}
-						mainLogger.Errorf("get router failed: %v", code)
-						return
 					}
 					pretty, err := sonic.NewStandardSonic().MarshalString(objJson)
 					if err != nil {
@@ -146,10 +145,9 @@ func main() {
 					if code != 200 {
 						if code == 429 {
 							mainLogger.Errorf("get ping failed code: %v body: %v", code, string(body))
-							return
+						} else {
+							mainLogger.Errorf("get ping failed: %v", code)
 						}
-						mainLogger.Errorf("get ping failed: %v", code)
-						return
 					}
 					mainLogger.Debugf("response: %v ", string(body))
 
@@ -166,10 +164,9 @@ func main() {
 					if code != 200 {
 						if code == 429 {
 							mainLogger.Errorf("get libp2p list failed code: %v body: %v", code, string(body))
-							return
+						} else {
+							mainLogger.Errorf("get libp2p list failed: %v", code)
 						}
-						mainLogger.Errorf("get libp2p list failed: %v", code)
-						return
 					}
 					mainLogger.Debugf("response: %v ", string(body))
 
@@ -182,13 +179,11 @@ func main() {
 					if code != 200 {
 						if code == 429 {
 							mainLogger.Errorf("post ping failed code: %v body: %v", code, string(body))
-							return
+						} else {
+							mainLogger.Errorf("post ping failed: %v", code)
 						}
-						mainLogger.Errorf("post ping failed: %v", code)
-						return
 					}
 					mainLogger.Debugf("response: %v ", string(body))
-
 				},
 			})
 		}
