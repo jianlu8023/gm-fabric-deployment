@@ -186,6 +186,11 @@ func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
 	return exporters, nil
 }
 
+func (c *Control) GetServiceName() string {
+	c.logger.Debugf("[control] get service name...")
+	return c.config.ExporterServiceName
+}
+
 func (c *Control) newTracerProvider() error {
 	c.logger.Debugf("[control] starting generate tracer provider...")
 	exporters, err := c.initExporters()

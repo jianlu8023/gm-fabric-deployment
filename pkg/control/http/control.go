@@ -140,7 +140,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	// 5. Tracer中间件 - 用于请求追踪，在基础过滤后执行
 	if control.tracerControl != nil {
-		engine.Use(otelgin.Middleware("", otelgin.WithTracerProvider(control.tracerControl.GetProvider())))
+		engine.Use(otelgin.Middleware(control.tracerControl.GetServiceName(), otelgin.WithTracerProvider(control.tracerControl.GetProvider())))
 	}
 
 	// 6. TLS安全中间件 - 安全检查，在基础过滤和追踪后执行

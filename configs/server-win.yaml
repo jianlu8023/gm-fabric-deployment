@@ -125,7 +125,7 @@ tracer:
   exporter_file_path: "tracer.json"
   exporter_otel_insecure: true
   # file otlp stdout none  zipkin
-  traces_exporter: "file,stdout"
+  traces_exporter: "file,"
   exporter_zipkin_endpoint: ""
   exporter_otel_endpoint: "http://127.0.0.1:4317"
   exporter_otel_protocol: "grpc"
