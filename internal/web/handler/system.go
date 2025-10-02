@@ -2,13 +2,17 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // SystemHandler 系统处理器结构体
@@ -42,6 +46,11 @@ func NewSystemHandler(handler *Handler, service *service.SystemService) *SystemH
 // @url /api/v1/system/overview
 // @return JSON 系统概览信息，包括节点数量、容器状态、资源使用情况等
 func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "systemHandler", "getSystemOverview",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received system overview handler...")
 	// 绑定请求参数
 	req := new(request.SystemOverviewRequest)
@@ -53,17 +62,28 @@ func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
+		return
 	}
 
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("system overview request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 	// 调用服务层方法
 	h.service.GetSystemOverview(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // GetSystemInitStatus 获取系统初始化状态处理函数
@@ -73,6 +93,11 @@ func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
 // @url /api/v1/system/init
 // @return JSON 系统初始化状态信息
 func (h *SystemHandler) GetSystemInitStatus(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "systemHandler", "getSystemInitStatus",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received system init status handler...")
 	// 绑定请求参数
 	req := new(request.SystemInitStatusRequest)
@@ -84,17 +109,28 @@ func (h *SystemHandler) GetSystemInitStatus(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
+		return
 	}
 
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("system init status request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 	// 调用服务层方法
 	h.service.GetSystemInitStatus(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // Routers 获取系统相关路由列表

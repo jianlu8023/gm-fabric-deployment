@@ -2,13 +2,17 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // DockerImageHandler Docker镜像处理器结构体
@@ -54,6 +58,11 @@ type DockerImageServiceInterface interface {
 // @param page_size int 每页大小 (可选，当is_page为true时必填)
 // @return JSON 镜像列表数据
 func (h *DockerImageHandler) DockerImageList(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageHandler", "dockerImageList",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received docker image list handler...")
 
 	req := new(request.DockerImageListRequest)
@@ -66,17 +75,27 @@ func (h *DockerImageHandler) DockerImageList(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("docker image list request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
 	h.service.DockerImageList(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // DockerImagePull 处理Docker镜像拉取请求
@@ -88,6 +107,11 @@ func (h *DockerImageHandler) DockerImageList(ctx *gin.Context) {
 // @param image_name string 镜像名称 (必需)
 // @return JSON 镜像拉取结果
 func (h *DockerImageHandler) DockerImagePull(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageHandler", "dockerImagePull",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received docker image pull handler...")
 
 	req := new(request.DockerImagePullRequest)
@@ -99,16 +123,26 @@ func (h *DockerImageHandler) DockerImagePull(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("docker image pull request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 	h.service.DockerImagePull(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // Routers 获取Docker镜像相关路由列表

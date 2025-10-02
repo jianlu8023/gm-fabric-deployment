@@ -3,9 +3,12 @@ package handler
 import (
 	"net/http"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // SSEHandler SSE处理器结构体
@@ -38,6 +41,11 @@ func NewSSEHandler(baseHandler *Handler, sseService *service.SSEService) *SSEHan
 // @url /api/v1/sse
 // @return text/event-stream SSE事件流
 func (h *SSEHandler) SSE(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "sseHandler", "sse",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received sse handler...")
 	h.sseService.SSE(ctx)
 }

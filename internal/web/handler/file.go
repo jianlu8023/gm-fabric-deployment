@@ -3,14 +3,16 @@ package handler
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
 
@@ -48,7 +50,9 @@ func NewFileHandler(baseHandler *Handler,
 // @param chunk_size int64 分片大小 (必需)
 // @return JSON 初始化结果，包含文件ID和分片信息
 func (h *FileHandler) InitUpload(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "initUpload")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "initUpload",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received file init upload handler...")
 
@@ -67,9 +71,9 @@ func (h *FileHandler) InitUpload(ctx *gin.Context) {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		} else {
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, strings.Join(msg, ","))
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
 		}
 		return
 	}
@@ -99,7 +103,9 @@ func (h *FileHandler) InitUpload(ctx *gin.Context) {
 // @param file file 分片文件数据 (必需)
 // @return JSON 上传结果
 func (h *FileHandler) UploadChunk(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "uploadChunk")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "uploadChunk",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received file upload chunk handler...")
 
@@ -118,9 +124,9 @@ func (h *FileHandler) UploadChunk(ctx *gin.Context) {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		} else {
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, strings.Join(msg, ","))
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
 		}
 		return
 	}
@@ -146,7 +152,9 @@ func (h *FileHandler) UploadChunk(ctx *gin.Context) {
 // @param file_id int64 文件ID (必需)
 // @return JSON 完成上传结果
 func (h *FileHandler) CompleteUpload(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "completeUpload")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "completeUpload",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received file complete upload handler...")
 
@@ -165,9 +173,9 @@ func (h *FileHandler) CompleteUpload(ctx *gin.Context) {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		} else {
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, strings.Join(msg, ","))
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
 		}
 		return
 	}
@@ -193,7 +201,9 @@ func (h *FileHandler) CompleteUpload(ctx *gin.Context) {
 // @param file_id int64 文件ID (必需)
 // @return JSON 上传状态信息
 func (h *FileHandler) GetUploadStatus(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "getUploadStatus")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "getUploadStatus",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received file get upload status handler...")
 
@@ -212,9 +222,9 @@ func (h *FileHandler) GetUploadStatus(ctx *gin.Context) {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		} else {
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, strings.Join(msg, ","))
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
 		}
 		return
 	}
@@ -240,7 +250,9 @@ func (h *FileHandler) GetUploadStatus(ctx *gin.Context) {
 // @param file_id int64 文件ID (必需)
 // @return JSON 文件元数据信息
 func (h *FileHandler) GetFileMetadata(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "getFileMetadata")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "getFileMetadata",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received file get file metadata handler...")
 
@@ -259,9 +271,9 @@ func (h *FileHandler) GetFileMetadata(ctx *gin.Context) {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		} else {
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, strings.Join(msg, ","))
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
 		}
 		return
 	}
@@ -287,7 +299,9 @@ func (h *FileHandler) GetFileMetadata(ctx *gin.Context) {
 // @param file_id int64 文件ID (必需)
 // @return JSON 断点续传信息
 func (h *FileHandler) ResumeUpload(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "resumeUpload")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "resumeUpload",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received file resume upload handler...")
 
@@ -306,9 +320,9 @@ func (h *FileHandler) ResumeUpload(ctx *gin.Context) {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		} else {
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, strings.Join(msg, ","))
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
 		}
 		return
 	}
@@ -328,7 +342,9 @@ func (h *FileHandler) ResumeUpload(ctx *gin.Context) {
 
 // CheckExistingUpload 检查现有上传记录
 func (h *FileHandler) CheckExistingUpload(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "checkExistingUpload")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "checkExistingUpload",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received check existing upload handler...")
 
@@ -366,7 +382,9 @@ func (h *FileHandler) CheckExistingUpload(ctx *gin.Context) {
 // @param id int64 文件ID (路径参数)
 // @return 文件下载流
 func (h *FileHandler) DownloadFile(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "downloadFile")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "downloadFile",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received file download file handler...")
 
@@ -401,7 +419,9 @@ func (h *FileHandler) DownloadFile(ctx *gin.Context) {
 // @param file_name string 文件名关键词搜索 (可选)
 // @return JSON 文件列表
 func (h *FileHandler) ListFiles(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "listFiles")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "listFiles",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received list files handler...")
 
@@ -420,9 +440,9 @@ func (h *FileHandler) ListFiles(ctx *gin.Context) {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		} else {
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, strings.Join(msg, ","))
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
 		}
 		return
 	}
@@ -448,7 +468,9 @@ func (h *FileHandler) ListFiles(ctx *gin.Context) {
 // @param id int64 文件ID (路径参数)
 // @return JSON 删除结果
 func (h *FileHandler) DeleteFile(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "deleteFile")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "deleteFile",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received delete file handler...")
 
@@ -480,7 +502,9 @@ func (h *FileHandler) DeleteFile(ctx *gin.Context) {
 // @url /api/v1/files/temp
 // @return JSON 清理结果
 func (h *FileHandler) CleanupTempDir(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "cleanupTempDir")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "cleanupTempDir",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
 	defer span.End()
 	h.logger.Debugf("received cleanup temp dir handler...")
 
@@ -498,9 +522,9 @@ func (h *FileHandler) CleanupTempDir(ctx *gin.Context) {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
 		} else {
-			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
 			span.RecordError(err)
-			span.SetStatus(codes.Error, strings.Join(msg, ","))
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
 		}
 		return
 	}

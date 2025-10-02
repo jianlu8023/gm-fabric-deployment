@@ -9,6 +9,7 @@ import (
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
 
@@ -45,7 +46,9 @@ func NeeNodeService(service *Service,
 // @param ctx *gin.Context Gin上下文
 // @param req *request.Libp2pNodeListRequest 节点列表请求参数
 func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2pNodeListRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pNodeService", "list")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pNodeService", "libp2pNodeList",
+		attribute.String("requestParam", req.String()),
+	)
 	defer span.End()
 	s.logger.Debugf("received libp2p node list request with params: %v", req)
 
@@ -67,11 +70,13 @@ func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2p
 		return
 	}
 	commonhttp.SuccessResponse(ctx, nodeResponse)
-	span.SetStatus(codes.Ok, "libp2p node list service success")
+	span.SetStatus(codes.Ok, "success")
 }
 
 func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pNodeService", "myself")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pNodeService", "libp2pNodeMyself",
+		attribute.String("requestParam", req.String()),
+	)
 	defer span.End()
 	s.logger.Debugf("received libp2p node myself request with params: %v", req)
 
@@ -96,5 +101,5 @@ func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context, req *request.Libp
 	s.logger.Debugf("from database query result %v convert result %v", myself, myselfResponse)
 
 	commonhttp.SuccessResponse(ctx, myselfResponse)
-	span.SetStatus(codes.Ok, "libp2p node myself service success")
+	span.SetStatus(codes.Ok, "success")
 }

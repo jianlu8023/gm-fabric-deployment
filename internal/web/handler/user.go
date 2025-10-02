@@ -3,7 +3,12 @@ package handler
 import (
 	"net/http"
 
+	"github.com/gin-contrib/requestid"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -46,21 +51,42 @@ func NewUserHandler(baseHandler *Handler, userService *service.UserService) *Use
 // @param phone string 手机号 (可选)
 // @return JSON 注册结果
 func (h *UserHandler) RegisterUserHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "userHandler", "registerUserHandler",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received register user handler...")
 
 	req := new(request.UserRegisterRequest)
 	if err := binding.BindMultiPartForm(ctx, req); err != nil {
-		h.logger.Errorf("bind user register request failed: %v", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定请求参数失败")
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("register user request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 	h.service.RegisterUser(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // LoginUserHandler 用户登录处理函数
@@ -74,21 +100,42 @@ func (h *UserHandler) RegisterUserHandler(ctx *gin.Context) {
 // @param code string 验证码 (必需)
 // @return JSON 登录结果和JWT令牌
 func (h *UserHandler) LoginUserHandler(ctx *gin.Context) {
-	h.logger.Debugf("received login user handler...")
-	req := new(request.UserLoginRequest)
+	_, span := tracer.StartSpan(ctx.Request.Context(), "userHandler", "loginUserHandler",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
 
+	h.logger.Debugf("received login user handler...")
+
+	req := new(request.UserLoginRequest)
 	if err := binding.BindMultiPartForm(ctx, req); err != nil {
-		h.logger.Errorf("bind user login request failed: %v", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "绑定请求参数失败")
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 	if !req.IsLegal() {
 		// 验证失败
 		h.logger.Errorf("login user request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 	h.service.LoginUser(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // Routers 获取用户相关路由列表

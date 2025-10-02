@@ -84,6 +84,8 @@ func (ipfs *Control) initClient() error {
 	// 	return err
 	// }
 
+	ipfs.shell = shell.NewShell(ipfs.config.ApiAddress)
+
 	// ipfs.client = newApi
 	return nil
 }

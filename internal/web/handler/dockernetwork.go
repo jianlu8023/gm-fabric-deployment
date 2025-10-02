@@ -2,13 +2,17 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // DockerNetworkHandler Docker网络处理器结构体
@@ -55,6 +59,11 @@ type DockerNetworkServiceInterface interface {
 // @url /api/v1/docker/network/list
 // @return JSON Docker网络列表信息
 func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerNetworkHandler", "dockerNetworkList",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received docker network list handler...")
 	req := new(request.DockerNetworkListRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
@@ -66,7 +75,15 @@ func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 
@@ -74,9 +91,11 @@ func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
 		// 验证失败
 		h.logger.Errorf("docker network list request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 	h.service.DockerNetworkList(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // Routers 获取Docker网络相关路由列表

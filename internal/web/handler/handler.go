@@ -40,11 +40,11 @@ func (h *Handler) Routers() []commonhttp.RouterHandler {
 			Uri:    "/ping",
 			Method: http.MethodGet,
 			HandlerFunc: func(ctx *gin.Context) {
-				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "ping")
-				defer span.End()
-				span.SetAttributes(
+				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "ping",
 					attribute.String("requestId", requestid.Get(ctx)),
 				)
+				defer span.End()
+
 				h.logger.Debugf("received ping handler...")
 				commonhttp.SuccessResponse(ctx, gin.H{
 					"request_id": requestid.Get(ctx),
@@ -59,11 +59,11 @@ func (h *Handler) Routers() []commonhttp.RouterHandler {
 			Uri:    "/ping",
 			Method: http.MethodPost,
 			HandlerFunc: func(ctx *gin.Context) {
-				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "ping")
-				defer span.End()
-				span.SetAttributes(
+				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "ping",
 					attribute.String("requestId", requestid.Get(ctx)),
 				)
+				defer span.End()
+
 				h.logger.Debugf("received ping handler...")
 				commonhttp.SuccessResponse(ctx, gin.H{
 					"request_id": requestid.Get(ctx),
@@ -78,11 +78,11 @@ func (h *Handler) Routers() []commonhttp.RouterHandler {
 			Uri:    "/health",
 			Method: http.MethodGet,
 			HandlerFunc: func(ctx *gin.Context) {
-				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "health")
-				defer span.End()
-				span.SetAttributes(
+				_, span := tracer.StartSpan(ctx.Request.Context(), "baseHandler", "health",
 					attribute.String("requestId", requestid.Get(ctx)),
 				)
+				defer span.End()
+
 				h.logger.Debugf("received health handler...")
 				commonhttp.SuccessResponse(ctx, "ok")
 			},

@@ -79,7 +79,9 @@ func ensureDir(dir string) {
 // @description 删除临时文件夹下的所有内容，用于清理上传过程中产生的临时文件
 // @param ctx *gin.Context Gin上下文
 func (s *FileService) CleanupTempDir(ctx *gin.Context, req *request.CleanUpTempDirRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "cleanupTempDir")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "cleanupTempDir",
+		attribute.String("requestParam", req.String()),
+	)
 	defer span.End()
 	s.logger.Debugf("received file cleanup temp dir request with params: %v", req)
 
@@ -945,7 +947,9 @@ func calculateFileHash(filePath string) (string, error) {
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DownloadFileRequest 下载文件请求参数
 func (s *FileService) DownloadFile(ctx *gin.Context, req *request.DownloadFileRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "downloadFile")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "downloadFile",
+		attribute.String("requestParam", req.String()),
+	)
 	defer span.End()
 	s.logger.Debugf("received upload chunk request with params: %v", req)
 
@@ -1018,7 +1022,9 @@ func (s *FileService) DownloadFile(ctx *gin.Context, req *request.DownloadFileRe
 // @param ctx *gin.Context Gin上下文
 // @param req *request.ListFilesRequest 列出文件请求参数
 func (s *FileService) ListFiles(ctx *gin.Context, req *request.ListFilesRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "listFiles")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "listFiles",
+		attribute.String("requestParam", req.String()),
+	)
 	defer span.End()
 	s.logger.Debugf("received upload chunk request with params: %v", req)
 	// 查询文件列表

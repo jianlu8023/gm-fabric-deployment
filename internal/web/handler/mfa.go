@@ -2,13 +2,17 @@ package handler
 
 import (
 	"net/http"
-	"strings"
 
+	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/service"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // MFAHandler MFA处理器
@@ -29,6 +33,11 @@ func NewMFAHandler(baseHandler *Handler, mfaService *service.MFAService) *MFAHan
 }
 
 func (h *MFAHandler) GenerateRecoverySecret(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "generateRecoverySecret",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received mfa generate secret handler...")
 	req := new(request.MFARecoverySecretRequest)
 	if err := binding.BindMultiPartForm(ctx, req); err != nil {
@@ -39,7 +48,15 @@ func (h *MFAHandler) GenerateRecoverySecret(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 
@@ -47,14 +64,21 @@ func (h *MFAHandler) GenerateRecoverySecret(ctx *gin.Context) {
 		// 验证失败
 		h.logger.Errorf("mfa generate request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
 	// 调用服务层生成MFA密钥
 	h.service.GenerateRecoverySecret(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 func (h *MFAHandler) VerifyMfaCode(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "verifyMfaCode",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Debugf("received mfa verify code handler...")
 	req := new(request.MFAVerifyCodeRequest)
 	if err := binding.BindMultiPartForm(ctx, req); err != nil {
@@ -65,7 +89,15 @@ func (h *MFAHandler) VerifyMfaCode(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 
@@ -73,12 +105,19 @@ func (h *MFAHandler) VerifyMfaCode(ctx *gin.Context) {
 		// 验证失败
 		h.logger.Errorf("mfa verify code request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
+
 	h.service.VerifyCode(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 func (h *MFAHandler) GenerateQrCode(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "generateQrCode",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
 	h.logger.Debugf("received mfa generate qrcode handler...")
 	req := new(request.MFAQrcodeRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
@@ -89,7 +128,15 @@ func (h *MFAHandler) GenerateQrCode(ctx *gin.Context) {
 		for _, message := range messages {
 			msg = append(msg, message)
 		}
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, strings.Join(msg, ","))
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 
@@ -97,10 +144,12 @@ func (h *MFAHandler) GenerateQrCode(ctx *gin.Context) {
 		// 验证失败
 		h.logger.Errorf("mfa generate qrcode request is legal...")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
 	h.service.GenerateQrCodeImage(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // Routers 获取MFA相关的路由列表

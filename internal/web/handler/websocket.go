@@ -3,7 +3,12 @@ package handler
 import (
 	"net/http"
 
+	"github.com/gin-contrib/requestid"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/common/http/binding"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -42,6 +47,11 @@ func NewWebSocketHandler(handler *Handler, service *service.WebSocketService) *W
 // @param nodeID string 目标节点ID (必需)
 // @return WebSocket连接 成功后建立WebSocket双向通信通道
 func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "websocketHandler", "upgradeHandler",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Infof("received websocket upgrade handler...")
 
 	// 验证JWT和Session信息
@@ -49,6 +59,7 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 	if !exists {
 		h.logger.Errorf("JWT authentication failed: userID not found")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
+		span.SetStatus(codes.Error, "认证失败，请先登录")
 		return
 	}
 
@@ -56,6 +67,7 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 	if !exists {
 		h.logger.Errorf("Session validation failed: sessionID not found")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "会话已过期，请重新登录")
+		span.SetStatus(codes.Error, "会话已过期，请重新登录")
 		return
 	}
 
@@ -64,8 +76,22 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 	// 绑定请求参数
 	req := new(request.WSConnectRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
-		h.logger.Errorf("binding request failed: %v", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "参数绑定失败")
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 
@@ -73,11 +99,13 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 	if !req.IsLegal() {
 		h.logger.Debugf("websocket connect request is illegal: %v", req)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
 	// 调用service层处理业务逻辑
 	h.service.ConnectService(ctx, req, userID)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // DisconnectHandler WebSocket断开连接处理函数
@@ -88,6 +116,11 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 // @param connID string 连接ID (必需)
 // @return JSON 断开连接结果
 func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "websocketHandler", "disconnectHandler",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Infof("received websocket disconnect request...")
 
 	// 验证JWT和Session信息
@@ -95,6 +128,7 @@ func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
 	if !exists {
 		h.logger.Errorf("JWT authentication failed: userID not found")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
+		span.SetStatus(codes.Error, "认证失败，请先登录")
 		return
 	}
 
@@ -102,14 +136,29 @@ func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
 	if !exists {
 		h.logger.Errorf("Session validation failed: sessionID not found")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "会话已过期，请重新登录")
+		span.SetStatus(codes.Error, "会话已过期，请重新登录")
 		return
 	}
 
 	// 绑定请求参数
 	req := new(request.WSDisconnectRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
-		h.logger.Errorf("binding request failed: %v", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "参数绑定失败")
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 
@@ -117,11 +166,13 @@ func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
 	if !req.IsLegal() {
 		h.logger.Debugf("websocket disconnect request is illegal: %v", req)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
 	// 调用service层处理业务逻辑
 	h.service.DisconnectService(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // SendMessageHandler 发送WebSocket消息处理函数
@@ -134,6 +185,11 @@ func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
 // @param messageType string 消息类型 (可选, 默认:text)
 // @return JSON 消息发送结果
 func (h *WebSocketHandler) SendMessageHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "websocketHandler", "sendMessageHandler",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Infof("received websocket send message request...")
 
 	// 验证JWT和Session信息
@@ -141,6 +197,7 @@ func (h *WebSocketHandler) SendMessageHandler(ctx *gin.Context) {
 	if !exists {
 		h.logger.Errorf("JWT authentication failed: userID not found")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
+		span.SetStatus(codes.Error, "认证失败，请先登录")
 		return
 	}
 
@@ -148,14 +205,29 @@ func (h *WebSocketHandler) SendMessageHandler(ctx *gin.Context) {
 	if !exists {
 		h.logger.Errorf("Session validation failed: sessionID not found")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "会话已过期，请重新登录")
+		span.SetStatus(codes.Error, "会话已过期，请重新登录")
 		return
 	}
 
 	// 绑定请求参数
 	req := new(request.WSMessageRequest)
 	if err := binding.BindJSON(ctx, req); err != nil {
-		h.logger.Errorf("binding request failed: %v", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "参数绑定失败")
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 
@@ -163,11 +235,13 @@ func (h *WebSocketHandler) SendMessageHandler(ctx *gin.Context) {
 	if !req.IsLegal() {
 		h.logger.Debugf("websocket message request is illegal: %v", req)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
 	// 调用service层处理业务逻辑
 	h.service.SendMessageService(ctx, req)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // GetConnectionListHandler 获取WebSocket连接列表处理函数
@@ -180,6 +254,11 @@ func (h *WebSocketHandler) SendMessageHandler(ctx *gin.Context) {
 // @param isPage bool 是否分页 (可选, 默认:true)
 // @return JSON 连接列表和分页信息
 func (h *WebSocketHandler) GetConnectionListHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "websocketHandler", "getConnectionListHandler",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+
 	h.logger.Infof("received get connection list request...")
 
 	// 验证JWT和Session信息
@@ -187,6 +266,7 @@ func (h *WebSocketHandler) GetConnectionListHandler(ctx *gin.Context) {
 	if !exists {
 		h.logger.Errorf("JWT authentication failed: userID not found")
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.Unauthorized, "认证失败，请先登录")
+		span.SetStatus(codes.Error, "认证失败，请先登录")
 		return
 	}
 
@@ -195,8 +275,22 @@ func (h *WebSocketHandler) GetConnectionListHandler(ctx *gin.Context) {
 	// 绑定分页参数
 	req := new(request.WSConnectionListRequest)
 	if err := binding.BindQuery(ctx, req); err != nil {
-		h.logger.Errorf("binding pagination request failed: %v", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "分页参数绑定失败")
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
 		return
 	}
 
@@ -204,11 +298,13 @@ func (h *WebSocketHandler) GetConnectionListHandler(ctx *gin.Context) {
 	if !req.IsLegal() {
 		h.logger.Debugf("websocket connection list request is illegal: %v", req)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "输入参数不合法")
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
 	// 调用service层处理业务逻辑
 	h.service.GetConnectionListService(ctx, req, userIDStr)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // Routers 获取WebSocket相关路由列表

@@ -7,6 +7,7 @@ import (
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/captcha"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 )
 
@@ -43,7 +44,9 @@ func NewCaptchaService(baseService *Service, captchaControl *captcha.Control) *C
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CaptchaGenerateRequest 生成验证码请求参数
 func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaGenerateRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaService", "generate")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaService", "generateCaptcha",
+		attribute.String("requestParam", req.String()),
+	)
 	defer span.End()
 	s.logger.Debugf("received captcha generate request with params: %v", req)
 
@@ -57,7 +60,7 @@ func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaG
 
 	// 返回响应
 	commonhttp.SuccessResponse(ctx, response.NewCaptchaGenerateResponse(id, b64s))
-	span.SetStatus(codes.Ok, "captcha generate service success")
+	span.SetStatus(codes.Ok, "success")
 }
 
 // ValidateCaptcha 验证验证码
@@ -71,7 +74,9 @@ func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaG
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CaptchaValidateRequest 验证码验证请求参数
 func (s *CaptchaService) ValidateCaptcha(ctx *gin.Context, req *request.CaptchaValidateRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaService", "validate")
+	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaService", "validateCaptcha",
+		attribute.String("requestParam", req.String()),
+	)
 	defer span.End()
 	s.logger.Debugf("received captcha validate request with params: %v", req)
 
@@ -94,5 +99,5 @@ func (s *CaptchaService) ValidateCaptcha(ctx *gin.Context, req *request.CaptchaV
 	// 验证成功
 	s.logger.Debugf("validate captcha success: %s", req.CaptchaId)
 	commonhttp.SuccessResponse(ctx, response.NewCaptchaValidateResponse(true, req.CaptchaId))
-	span.SetStatus(codes.Ok, "captcha validate service success")
+	span.SetStatus(codes.Ok, "success")
 }
