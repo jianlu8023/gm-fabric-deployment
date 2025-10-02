@@ -75,10 +75,10 @@ func WithStaticFiles(config StaticFileConfig) Option {
 					}
 
 					// 清理文件路径，确保安全，去除前导斜杠
-					filepath = strings.TrimPrefix(filepath, "/")
-					if filepath == "" {
-						filepath = "index.html"
-					}
+					// filepath = strings.TrimPrefix(filepath, "/")
+					// if filepath == "" {
+					// 	filepath = "index.html"
+					// }
 
 					// 构建新的请求URL路径
 					newURL := *ctx.Request.URL
