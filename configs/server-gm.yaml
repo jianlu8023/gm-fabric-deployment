@@ -48,6 +48,7 @@ http:
   tls_rca_cert_file: certs/tjfoc/SM2_CA.cer
   http2_enabled: false  # 国密TLS模式不支持HTTP/2
   pprof: true
+  upload_dir: "uploads"
   # IP白名单配置
   ip_white_list:
     enabled: true

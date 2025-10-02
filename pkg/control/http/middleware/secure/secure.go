@@ -101,7 +101,7 @@ func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost st
 		c.Header("X-XSS-Protection", "1; mode=block")
 
 		// 设置内容安全策略(CSP)
-		c.Header("Content-Security-Policy", "default-src 'self'")
+		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
 
 		// 记录TLS连接信息
 		if c.Request.TLS != nil && logger != nil {
@@ -128,7 +128,7 @@ func EnableSecurePackageTLS(sslHost string, isDevelopment bool) gin.HandlerFunc 
 			SSLHost:               sslHost,
 			STSSeconds:            315360000,
 			FrameDeny:             true,
-			ContentSecurityPolicy: "default-src 'self'",
+			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:",
 			IsDevelopment:         isDevelopment,
 		})
 		err := secureMiddleware.Process(ctx.Writer, ctx.Request)

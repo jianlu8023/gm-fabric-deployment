@@ -1,6 +1,7 @@
 package datasource
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ type Control struct {
 	autoMigrateTable []interface{}
 	autoMigrateMutex sync.RWMutex
 	tracerControl    *tracer.Control
+	ctx              context.Context
 }
 
 // RegisterAutoMigrateTable 注册自动迁移的表
@@ -42,7 +44,7 @@ func (c *Control) autoMigrate() error {
 	c.logger.Debugf("[control] auto migrate table...")
 	c.autoMigrateMutex.RLock()
 	defer c.autoMigrateMutex.RUnlock()
-	if err := c.dbConn.AutoMigrate(c.autoMigrateTable...); err != nil {
+	if err := c.dbConn.WithContext(c.ctx).AutoMigrate(c.autoMigrateTable...); err != nil {
 		c.logger.Errorf("[control] auto migrate table failed: %s", err)
 		return err
 	}
@@ -55,23 +57,17 @@ func (c *Control) ReAutoMigrate() error {
 	c.logger.Debugf("[control] call auto migrate table by hand...")
 	c.autoMigrateMutex.RLock()
 	defer c.autoMigrateMutex.RUnlock()
-	if err := c.dbConn.AutoMigrate(c.autoMigrateTable...); err != nil {
+	if err := c.dbConn.WithContext(c.ctx).AutoMigrate(c.autoMigrateTable...); err != nil {
 		c.logger.Errorf("[control] auto migrate table failed: %s", err)
 		return err
 	}
 	return nil
 }
 
-// Close 关闭数据库连接
-// @return error 关闭过程中可能产生的错误
-// func (c *Control) Close() error {
-// 	return nil
-// }
-
 // GetConn 获取数据库连接
 // @return *gorm.DB 数据库连接实例
 func (c *Control) GetConn() *gorm.DB {
-	return c.dbConn
+	return c.dbConn.WithContext(c.ctx)
 }
 
 // // AutoMigrateTable 自动迁移表
@@ -89,7 +85,7 @@ func (c *Control) GetConn() *gorm.DB {
 // setConnPool 设置数据库连接池参数（内部方法）
 // @return error 设置过程中可能产生的错误
 func (c *Control) setConnPool() error {
-	sqlDB, err := c.dbConn.DB()
+	sqlDB, err := c.dbConn.WithContext(c.ctx).DB()
 	if err != nil {
 		c.logger.Errorf("[control] faild from gorm.DB get sql.DB to set pool: %v", err)
 		return err
@@ -107,7 +103,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
 			c.logger.Debugf("[control] call db ping instead startup...")
-			sqlDB, err := c.dbConn.DB()
+			sqlDB, err := c.dbConn.WithContext(c.ctx).DB()
 			if err != nil {
 				c.logger.Errorf("[control] failed from gorm.DB get sql.DB: %v", err)
 				if failedFunc != nil {
@@ -161,7 +157,7 @@ func (c *Control) initDBConn() error {
 			return err
 		}
 		c.logger.Debugf("[control] mysql connection create success...")
-		c.dbConn = conn
+		c.dbConn = conn.WithContext(c.ctx)
 	case Postgres:
 		c.logger.Debugf("[control] using postgres data source...")
 		conn, err := newPostgresConn(c)
@@ -170,7 +166,7 @@ func (c *Control) initDBConn() error {
 			return err
 		}
 		c.logger.Debugf("[control] postgres connection create success...")
-		c.dbConn = conn
+		c.dbConn = conn.WithContext(c.ctx)
 	case Sqlite3:
 		c.logger.Debugf("[control] using sqlite3 data source...")
 		conn, err := newSqlite3Conn(c)
@@ -179,7 +175,7 @@ func (c *Control) initDBConn() error {
 			return err
 		}
 		c.logger.Debugf("[control] sqlite3 connection create success...")
-		c.dbConn = conn
+		c.dbConn = conn.WithContext(c.ctx)
 	default:
 		c.logger.Warnf("[control] unknown data source type: %s", c.config.DataSourceType)
 		return ErrUnknownDataSourceType
@@ -214,6 +210,7 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 		logger:           dsLogger,
 		dbLogger:         newDbLogger(loggerControl.GetConfig(), dbConfig.LogInConsole),
 		autoMigrateTable: make([]interface{}, 0, 8),
+		ctx:              context.Background(),
 	}
 	for _, opt := range opts {
 		opt(control)
@@ -225,7 +222,7 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 	}
 
 	if control.tracerControl != nil {
-		if err := control.dbConn.Use(
+		if err := control.dbConn.WithContext(control.ctx).Use(
 			tracing.NewPlugin(
 				tracing.WithTracerProvider(control.tracerControl.GetProvider()),
 				// tracing.WithoutQueryVariables(),

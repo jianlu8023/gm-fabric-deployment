@@ -1,12 +1,13 @@
 package http
 
 import (
-	"github.com/jianlu8023/golang-example/pkg/control/tracer"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"net/http"
 	"path"
 	"strings"
+
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 
 	"github.com/gin-gonic/gin"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
@@ -69,6 +70,12 @@ func WithStaticFiles(config StaticFileConfig) Option {
 
 					// 获取URL中的filepath参数
 					filepath := ctx.Param("filepath")
+					if filepath == "" {
+						filepath = "index.html"
+					}
+
+					// 清理文件路径，确保安全，去除前导斜杠
+					filepath = strings.TrimPrefix(filepath, "/")
 					if filepath == "" {
 						filepath = "index.html"
 					}

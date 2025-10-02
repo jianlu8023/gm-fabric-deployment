@@ -131,6 +131,8 @@ func NewRouter(loggerControl *logger.Control,
 		service.NewFileService(
 			baseService,
 			mapper.NewFileMapper(baseMapper),
+			httpControl.GetUploadDir(),
+			httpControl.GetUploadCacheDir(),
 		),
 	)
 

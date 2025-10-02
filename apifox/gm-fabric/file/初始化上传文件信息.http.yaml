@@ -1,0 +1,29 @@
+method: post
+url: "{{addr}}/{{contextpath}}/files/init"
+requestBody:
+  type: multipart/form-data
+  parameters:
+    - name: fileName
+      value: example.txt
+      type: text
+    - name: fileSize
+      value: "1000000"
+      type: text
+    - name: fileHash
+      value: ""
+      type: text
+    - name: chunkSize
+      value: "10240"
+      type: text
+    - name: fileType
+      value: ""
+      type: text
+    - name: description
+      value: ""
+      type: text
+    - name: storageType
+      value: ""
+      type: text
+    - name: expireTime
+      value: ""
+      type: text

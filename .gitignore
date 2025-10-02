@@ -32,6 +32,7 @@ go.work.sum
 # vendor/
 test/*
 testdata/*
+uploads/
 
 ### tracer files ###
 tracer.json

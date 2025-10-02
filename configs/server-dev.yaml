@@ -47,6 +47,7 @@ http:
   tls_rca_cert_file: certs/normal/root-ca.crt
   http2_enabled: true  # 启用HTTP/2支持
   pprof: true
+  upload_dir: "uploads"
   # IP白名单配置
   ip_white_list:
     enabled: true

@@ -51,15 +51,15 @@ type FileInfo struct {
 	UploadID       string       `json:"upload_id,omitempty" yaml:"upload_id,omitempty" gorm:"column:upload_id;type:varchar(255);default:'';not null"`         // 上传ID
 	FileName       string       `json:"file_name,omitempty" yaml:"file_name,omitempty" gorm:"column:file_name;type:text;default:'';"`                         // 文件名
 	FileSize       float64      `json:"file_size,omitempty" yaml:"file_size,omitempty" gorm:"column:file_size;type:float;default:0;"`                         // 文件大小
-	FilePath       string       `json:"file_path,omitempty" yaml:"file_path,omitempty" gorm:"column:file_size;type:text;default:'';"`                         // 文件路径
+	FilePath       string       `json:"file_path,omitempty" yaml:"file_path,omitempty" gorm:"column:file_path;type:text;default:'';"`                         // 文件路径
 	FileHash       string       `json:"file_hash,omitempty" yaml:"file_hash,omitempty" gorm:"column:file_hash;type:varchar(255);default:'';"`                 // 文件hash
 	FileType       string       `json:"file_type,omitempty" yaml:"file_type,omitempty" gorm:"column:file_type;type:varchar(255);default:'';"`                 // 文件类型
 	UploaderId     string       `json:"uploader_id,omitempty" yaml:"uploader_id,omitempty" gorm:"column:uploader_id;type:varchar(255);default:'';"`           // 上传者ID
-	UploadTime     time.Time    `json:"upload_time,omitempty" yaml:"upload_time,omitempty" gorm:"column:upload_id;type:datetime;default:CURRENT_TIMESTAMP"`   // 上传时间
+	UploadTime     time.Time    `json:"upload_time,omitempty" yaml:"upload_time,omitempty" gorm:"column:upload_time;type:datetime;default:CURRENT_TIMESTAMP"` // 上传时间
 	UpdateTime     time.Time    `json:"update_time,omitempty" yaml:"update_time,omitempty" gorm:"column:update_time;type:datetime;default:CURRENT_TIMESTAMP"` // 更新时间
 	Status         FileStatus   `json:"status,omitempty" yaml:"status,omitempty" gorm:"column:status;type:varchar(255);default:'';"`                          // 使用FileStatus类型
 	ChunkSize      float64      `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" gorm:"column:chunk_size;type:float;default:0;"`                      // 分片大小
-	TotalChunks    float64      `json:"total_chunks,omitempty" yaml:"total_chunks,omitempty" gorm:"column:total_chunks,type:float;default:0;"`                // 总分片数
+	TotalChunks    float64      `json:"total_chunks,omitempty" yaml:"total_chunks,omitempty" gorm:"column:total_chunks;type:float;default:0;"`                // 总分片数
 	UploadedChunks float64      `json:"uploaded_chunks,omitempty" yaml:"uploaded_chunks,omitempty" gorm:"column:uploaded_chunks;type:float;default:0;"`       // 已上传分片数
 	LastChunkTime  time.Time    `json:"last_chunk_time,omitempty" yaml:"last_chunk_time,omitempty" gorm:"column:last_chunk_time;type:datetime;"`              // 最后上传分片时间
 	ExpireTime     time.Time    `json:"expire_time,omitempty" yaml:"expire_time,omitempty" gorm:"column:expire_time;type:datetime;"`                          // 过期时间
@@ -98,14 +98,16 @@ const (
 )
 
 type FileChunk struct {
-	AutoUid    int       `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                      // 自增id
-	UploadID   string    `json:"upload_id,omitempty" yaml:"upload_id,omitempty" gorm:"column:upload_id;type:varchar(255);default:'';not null"`         // 上传ID
-	ChunkIndex float64   `json:"chunk_index,omitempty" yaml:"chunk_index,omitempty" gorm:"column:chunk_index;type:float;default:0;not null;"`          // 分片索引
-	ChunkSize  float64   `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" gorm:"column:chunk_size;type:float;default:0;not null;"`             // 分片大小
-	ChunkHash  string    `json:"chunk_hash,omitempty" yaml:"chunk_hash,omitempty" gorm:"column:chunk_hash;type:varchar(255);default:'';"`              // 分片哈希值
-	FilePath   string    `json:"file_path,omitempty" yaml:"file_path,omitempty" gorm:"column:file_path;type:text;default:'';not null;"`                // 分片文件路径
-	UploadTime time.Time `json:"upload_time,omitempty" yaml:"upload_time,omitempty" gorm:"column:upload_time;type:datetime;default:CURRENT_TIMESTAMP"` // 上传时间
-	Status     int64     `json:"status,omitempty" yaml:"status,omitempty" gorm:"column:status;type:tinyint(1);default:1;"`                             // 状态 1: upload 0: missing
+	AutoUid       int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                        // 自增id
+	UploadID      string       `json:"upload_id,omitempty" yaml:"upload_id,omitempty" gorm:"column:upload_id;type:varchar(255);default:'';not null"`           // 上传ID
+	ChunkIndex    float64      `json:"chunk_index,omitempty" yaml:"chunk_index,omitempty" gorm:"column:chunk_index;type:float;default:0;not null;"`            // 分片索引
+	ChunkSize     float64      `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" gorm:"column:chunk_size;type:float;default:0;not null;"`               // 分片大小
+	CalcChunkSize string       `json:"calc_chunk_size,omitempty" yaml:"calc_chunk_size,omitempty" gorm:"column:calc_chunk_size;type:varchar(255);default:'';"` // 后台计算的hash
+	ChunkHash     string       `json:"chunk_hash,omitempty" yaml:"chunk_hash,omitempty" gorm:"column:chunk_hash;type:varchar(255);default:'';"`                // 分片哈希值
+	FilePath      string       `json:"file_path,omitempty" yaml:"file_path,omitempty" gorm:"column:file_path;type:text;default:'';not null;"`                  // 分片文件路径
+	UploadTime    time.Time    `json:"upload_time,omitempty" yaml:"upload_time,omitempty" gorm:"column:upload_time;type:datetime;default:CURRENT_TIMESTAMP"`   // 上传时间
+	Status        sql.NullBool `json:"status,omitempty" yaml:"status,omitempty" gorm:"column:status;type:tinyint(1);default:1;"`                               // 状态 1: upload 0: missing
+	IsDelete      sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0;"`
 }
 
 func (model FileChunk) String() string {

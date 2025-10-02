@@ -163,6 +163,8 @@ type HttpServerConfig struct {
 	TlsRCACertFile string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
 	Http2Enabled   bool   `json:"http2_enabled,omitempty" yaml:"http2_enabled,omitempty" mapstructure:"http2_enabled"`             // 是否启用HTTP/2
 	Pprof          bool   `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                     // 是否启用pprof
+	// 文件上传配置
+	UploadDir string `json:"upload_dir,omitempty" yaml:"upload_dir,omitempty" mapstructure:"upload_dir"` // 文件上传目录
 	// 黑白名单配置
 	IPWhiteList struct {
 		Enabled bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用IP白名单

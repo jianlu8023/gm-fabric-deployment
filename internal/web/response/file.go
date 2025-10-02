@@ -1,9 +1,14 @@
 package response
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
+	"github.com/jianlu8023/golang-example/internal/web/model"
+	"github.com/jianlu8023/golang-example/pkg/dbpage"
+	"github.com/jinzhu/copier"
 )
 
 // InitUploadResponse 初始化文件上传响应
@@ -13,12 +18,10 @@ import (
 // @property UploadID string 上传ID
 // @property TotalChunks int 总分片数
 // @property ChunkSize int64 分片大小
-// @property UploadPath string 上传路径前缀
 type InitUploadResponse struct {
 	UploadID    string  `json:"upload_id" yaml:"upload_id"`       // 上传ID
 	TotalChunks float64 `json:"total_chunks" yaml:"total_chunks"` // 总分片数
 	ChunkSize   float64 `json:"chunk_size" yaml:"chunk_size"`     // 分片大小
-	UploadPath  string  `json:"upload_path" yaml:"upload_path"`   // 上传路径前缀
 }
 
 func (resp InitUploadResponse) MarshalJSON() ([]byte, error) {
@@ -45,30 +48,28 @@ func (resp InitUploadResponse) String() string {
 // @param uploadID string 上传ID
 // @param totalChunks int 总分片数
 // @param chunkSize int64 分片大小
-// @param uploadPath string 上传路径
 // @return *InitUploadResponse 初始化上传响应对象
-func NewInitUploadResponse(uploadID string, totalChunks float64, chunkSize float64, uploadPath string) InitUploadResponse {
+func NewInitUploadResponse(uploadID string, totalChunks float64, chunkSize float64) InitUploadResponse {
 	return InitUploadResponse{
 		UploadID:    uploadID,
 		TotalChunks: totalChunks,
 		ChunkSize:   chunkSize,
-		UploadPath:  uploadPath,
 	}
 }
 
 // UploadChunkResponse 上传文件分片响应
 // @description 上传文件分片后的响应
 // @struct
-// @property FileID int64 文件ID
+// @property UploadID string 文件ID
 // @property ChunkIndex int 分片索引
 // @property UploadedChunks int 已上传分片数
 // @property TotalChunks int 总分片数
 // @property Progress float64 上传进度(0-100)
 type UploadChunkResponse struct {
-	FileID         int64   `json:"file_id" yaml:"file_id"`                 // 文件ID
-	ChunkIndex     int     `json:"chunk_index" yaml:"chunk_index"`         // 分片索引
-	UploadedChunks int     `json:"uploaded_chunks" yaml:"uploaded_chunks"` // 已上传分片数
-	TotalChunks    int     `json:"total_chunks" yaml:"total_chunks"`       // 总分片数
+	UploadID       string  `json:"upload_id" yaml:"upload_id"`             // 上传ID
+	ChunkIndex     float64 `json:"chunk_index" yaml:"chunk_index"`         // 分片索引
+	UploadedChunks float64 `json:"uploaded_chunks" yaml:"uploaded_chunks"` // 已上传分片数
+	TotalChunks    float64 `json:"total_chunks" yaml:"total_chunks"`       // 总分片数
 	Progress       float64 `json:"progress" yaml:"progress"`               // 上传进度(0-100)
 }
 
@@ -88,9 +89,9 @@ func (resp UploadChunkResponse) String() string {
 // @param totalChunks int 总分片数
 // @param progress float64 上传进度
 // @return *UploadChunkResponse 上传分片响应对象
-func NewUploadChunkResponse(fileID int64, chunkIndex, uploadedChunks, totalChunks int, progress float64) *UploadChunkResponse {
+func NewUploadChunkResponse(uploadId string, chunkIndex, uploadedChunks, totalChunks, progress float64) *UploadChunkResponse {
 	return &UploadChunkResponse{
-		FileID:         fileID,
+		UploadID:       uploadId,
 		ChunkIndex:     chunkIndex,
 		UploadedChunks: uploadedChunks,
 		TotalChunks:    totalChunks,
@@ -109,9 +110,9 @@ func NewUploadChunkResponse(fileID int64, chunkIndex, uploadedChunks, totalChunk
 // @property DownloadUrl string 下载URL
 // @property UploadTime time.Time 上传完成时间
 type CompleteUploadResponse struct {
-	FileID      int64     `json:"file_id" yaml:"file_id"`           // 文件ID
+	UploadID    string    `json:"upload_id" yaml:"upload_id"`       // 上传ID
 	FileName    string    `json:"file_name" yaml:"file_name"`       // 文件名
-	FileSize    int64     `json:"file_size" yaml:"file_size"`       // 文件大小
+	FileSize    float64   `json:"file_size" yaml:"file_size"`       // 文件大小
 	FileHash    string    `json:"file_hash" yaml:"file_hash"`       // 文件哈希值
 	FilePath    string    `json:"file_path" yaml:"file_path"`       // 文件路径
 	DownloadUrl string    `json:"download_url" yaml:"download_url"` // 下载URL
@@ -136,9 +137,9 @@ func (resp CompleteUploadResponse) String() string {
 // @param downloadUrl string 下载URL
 // @param uploadTime time.Time 上传时间
 // @return *CompleteUploadResponse 完成上传响应对象
-func NewCompleteUploadResponse(fileID int64, fileName string, fileSize int64, fileHash, filePath, downloadUrl string, uploadTime time.Time) *CompleteUploadResponse {
+func NewCompleteUploadResponse(uploadId string, fileName string, fileSize float64, fileHash, filePath, downloadUrl string, uploadTime time.Time) *CompleteUploadResponse {
 	return &CompleteUploadResponse{
-		FileID:      fileID,
+		UploadID:    uploadId,
 		FileName:    fileName,
 		FileSize:    fileSize,
 		FileHash:    fileHash,
@@ -162,12 +163,12 @@ func NewCompleteUploadResponse(fileID int64, fileName string, fileSize int64, fi
 // @property UploadedChunkIndexes []int 已上传分片索引列表
 // @property LastChunkTime time.Time 最后分片上传时间
 type GetUploadStatusResponse struct {
-	FileID               int64     `json:"file_id" yaml:"file_id"`                               // 文件ID
+	UploadID             string    `json:"upload_id" yaml:"upload_id"`                           // 上传ID
 	FileName             string    `json:"file_name" yaml:"file_name"`                           // 文件名
-	FileSize             int64     `json:"file_size" yaml:"file_size"`                           // 文件大小
-	ChunkSize            int64     `json:"chunk_size" yaml:"chunk_size"`                         // 分片大小
-	TotalChunks          int       `json:"total_chunks" yaml:"total_chunks"`                     // 总分片数
-	UploadedChunks       int       `json:"uploaded_chunks" yaml:"uploaded_chunks"`               // 已上传分片数
+	FileSize             float64   `json:"file_size" yaml:"file_size"`                           // 文件大小
+	ChunkSize            float64   `json:"chunk_size" yaml:"chunk_size"`                         // 分片大小
+	TotalChunks          float64   `json:"total_chunks" yaml:"total_chunks"`                     // 总分片数
+	UploadedChunks       float64   `json:"uploaded_chunks" yaml:"uploaded_chunks"`               // 已上传分片数
 	Progress             float64   `json:"progress" yaml:"progress"`                             // 上传进度(0-100)
 	Status               string    `json:"status" yaml:"status"`                                 // 上传状态
 	UploadedChunkIndexes []int     `json:"uploaded_chunk_indexes" yaml:"uploaded_chunk_indexes"` // 已上传分片索引列表
@@ -195,9 +196,9 @@ func (resp GetUploadStatusResponse) String() string {
 // @param chunkIndexes []int 已上传分片索引
 // @param lastChunkTime time.Time 最后分片上传时间
 // @return *GetUploadStatusResponse 上传状态响应对象
-func NewGetUploadStatusResponse(fileID int64, fileName string, fileSize, chunkSize int64, totalChunks, uploadedChunks int, progress float64, status string, chunkIndexes []int, lastChunkTime time.Time) *GetUploadStatusResponse {
-	return &GetUploadStatusResponse{
-		FileID:               fileID,
+func NewGetUploadStatusResponse(uploadId, fileName string, fileSize, chunkSize float64, totalChunks float64, uploadedChunks float64, progress float64, status string, chunkIndexes []int, lastChunkTime time.Time) GetUploadStatusResponse {
+	return GetUploadStatusResponse{
+		UploadID:             uploadId,
 		FileName:             fileName,
 		FileSize:             fileSize,
 		ChunkSize:            chunkSize,
@@ -218,10 +219,45 @@ func NewGetUploadStatusResponse(fileID int64, fileName string, fileSize, chunkSi
 // @property Page int 当前页码
 // @property PageSize int 每页大小
 type ListFilesResponse struct {
-	Total    int                `json:"total" yaml:"total"`         // 总记录数
-	List     []FileInfoResponse `json:"list" yaml:"list"`           // 文件信息列表
-	Page     int                `json:"page" yaml:"page"`           // 当前页码
-	PageSize int                `json:"page_size" yaml:"page_size"` // 每页大小
+	UploadID       string           `json:"upload_id,omitempty" yaml:"upload_id,omitempty" gorm:"column:upload_id;type:varchar(255);default:'';not null"`         // 上传ID
+	FileName       string           `json:"file_name,omitempty" yaml:"file_name,omitempty" gorm:"column:file_name;type:text;default:'';"`                         // 文件名
+	FileSize       float64          `json:"file_size,omitempty" yaml:"file_size,omitempty" gorm:"column:file_size;type:float;default:0;"`                         // 文件大小
+	FilePath       string           `json:"file_path,omitempty" yaml:"file_path,omitempty" gorm:"column:file_path;type:text;default:'';"`                         // 文件路径
+	FileHash       string           `json:"file_hash,omitempty" yaml:"file_hash,omitempty" gorm:"column:file_hash;type:varchar(255);default:'';"`                 // 文件hash
+	FileType       string           `json:"file_type,omitempty" yaml:"file_type,omitempty" gorm:"column:file_type;type:varchar(255);default:'';"`                 // 文件类型
+	UploaderId     string           `json:"uploader_id,omitempty" yaml:"uploader_id,omitempty" gorm:"column:uploader_id;type:varchar(255);default:'';"`           // 上传者ID
+	UploadTime     time.Time        `json:"upload_time,omitempty" yaml:"upload_time,omitempty" gorm:"column:upload_time;type:datetime;default:CURRENT_TIMESTAMP"` // 上传时间
+	UpdateTime     time.Time        `json:"update_time,omitempty" yaml:"update_time,omitempty" gorm:"column:update_time;type:datetime;default:CURRENT_TIMESTAMP"` // 更新时间
+	Status         model.FileStatus `json:"status,omitempty" yaml:"status,omitempty" gorm:"column:status;type:varchar(255);default:'';"`                          // 使用FileStatus类型
+	ChunkSize      float64          `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" gorm:"column:chunk_size;type:float;default:0;"`                      // 分片大小
+	TotalChunks    float64          `json:"total_chunks,omitempty" yaml:"total_chunks,omitempty" gorm:"column:total_chunks;type:float;default:0;"`                // 总分片数
+	UploadedChunks float64          `json:"uploaded_chunks,omitempty" yaml:"uploaded_chunks,omitempty" gorm:"column:uploaded_chunks;type:float;default:0;"`       // 已上传分片数
+	LastChunkTime  time.Time        `json:"last_chunk_time,omitempty" yaml:"last_chunk_time,omitempty" gorm:"column:last_chunk_time;type:datetime;"`              // 最后上传分片时间
+	ExpireTime     time.Time        `json:"expire_time,omitempty" yaml:"expire_time,omitempty" gorm:"column:expire_time;type:datetime;"`                          // 过期时间
+	DownloadCount  float64          `json:"download_count,omitempty" yaml:"download_count,omitempty" gorm:"column:download_count;type:float;default:0;"`          // 下载次数
+	Description    string           `json:"description,omitempty" yaml:"description,omitempty" gorm:"column:description;type:text;default:'';"`                   // 文件描述
+	StorageType    string           `json:"storage_type,omitempty" yaml:"storage_type,omitempty" gorm:"column:storage_type;type:varchar(255);default:'';"`        // 存储类型
+	IpfsCid        string           `json:"ipfs_cid,omitempty" yaml:"ipfs_cid,omitempty" gorm:"column:ipfs_cid;type:varchar(255);default:'';"`                    // ipfs cid
+	IsDelete       sql.NullBool     `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0;"`                    // 是否删除
+	IsRemove       sql.NullBool     `json:"is_remove,omitempty" yaml:"is_remove,omitempty" gorm:"column:is_remove;type:tinyint(1);default:0;"`                    // 是否移除
+}
+
+func (resp ListFilesResponse) MarshalJSON() ([]byte, error) {
+	type Alias ListFilesResponse
+	aux := struct {
+		*Alias
+		Status        string `json:"status" yaml:"status"`                   // 使用FileStatus类型
+		IsDelete      bool   `json:"is_delete" yaml:"is_delete"`             // 是否删除
+		IsRemove      bool   `json:"is_remove" yaml:"is_remove"`             // 是否移除
+		LastChunkTime string `json:"last_chunk_time" yaml:"last_chunk_time"` // 最后上传分片时间
+	}{
+		Alias:         (*Alias)(&resp),
+		Status:        string(resp.Status),
+		IsDelete:      resp.IsDelete.Bool,
+		IsRemove:      resp.IsRemove.Bool,
+		LastChunkTime: humantime.HumanTime(resp.LastChunkTime, "unknown"),
+	}
+	return json.Marshal(aux)
 }
 
 // String 将ListFilesResponse转换为字符串
@@ -239,13 +275,22 @@ func (resp ListFilesResponse) String() string {
 // @param page int 当前页码
 // @param pageSize int 每页大小
 // @return *ListFilesResponse 文件列表响应对象
-func NewListFilesResponse(total int, list []FileInfoResponse, page, pageSize int) *ListFilesResponse {
-	return &ListFilesResponse{
-		Total:    total,
-		List:     list,
-		Page:     page,
-		PageSize: pageSize,
+func NewListFilesResponse(pageInfo dbpage.Info[model.FileInfo]) (dbpage.Info[ListFilesResponse], error) {
+	var resp dbpage.Info[ListFilesResponse]
+	var convert []ListFilesResponse
+	if err := copier.CopyWithOption(&convert, pageInfo.GetRecords(), copier.Option{
+		IgnoreEmpty: true,
+		DeepCopy:    true,
+	}); err != nil {
+		return resp, err
 	}
+
+	resp.SetPageNo(pageInfo.PageNo)
+	resp.SetPageSize(pageInfo.PageSize)
+	resp.SetMaxPage(pageInfo.MaxPage)
+	resp.SetCount(pageInfo.Count)
+	resp.SetRecords(convert)
+	return resp, nil
 }
 
 // FileInfoResponse 文件信息响应
@@ -327,5 +372,38 @@ func NewFileInfoResponse(id int64, fileName string, fileSize int64, filePath, fi
 		ExpireTime:    expireTime,
 		DownloadUrl:   downloadUrl,
 		Extra:         extra,
+	}
+}
+
+type ResumeUploadResponse struct {
+	FileName       string    `json:"file_name" yaml:"file_name"`
+	FileSize       float64   `json:"file_size" yaml:"file_size"`
+	TotalChunks    float64   `json:"total_chunks" yaml:"total_chunks"`
+	ChunkSize      float64   `json:"chunk_size" yaml:"chunk_size"`
+	UploadedChunks int       `json:"uploaded_chunks" yaml:"uploaded_chunks"`
+	ChunkIndices   []int     `json:"chunk_indices" yaml:"chunk_indices"`
+	Progress       float64   `json:"progress" yaml:"progress"`
+	Status         string    `json:"status" yaml:"status"`
+	UploadId       string    `json:"upload_id" yaml:"upload_id"`
+	CreateTime     time.Time `json:"create_time" yaml:"create_time"`
+}
+
+func (resp ResumeUploadResponse) String() string {
+	str, _ := json.MarshalString(resp)
+	return str
+}
+
+func NewResumeUploadResponse(fileName string, fileSize, totalChunks, chunkSize float64, uploadedChunks int, chunkIndices []int, progress float64, status string, uploadId string, createTime time.Time) ResumeUploadResponse {
+	return ResumeUploadResponse{
+		FileName:       fileName,
+		FileSize:       fileSize,
+		TotalChunks:    totalChunks,
+		ChunkSize:      chunkSize,
+		UploadedChunks: uploadedChunks,
+		ChunkIndices:   chunkIndices,
+		Progress:       progress,
+		Status:         status,
+		UploadId:       uploadId,
+		CreateTime:     createTime,
 	}
 }

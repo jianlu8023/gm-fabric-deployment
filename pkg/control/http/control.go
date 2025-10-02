@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
@@ -484,6 +486,10 @@ func (c *Control) Shutdown() error {
 		c.logger.Errorf("[control] shutdown http server failed: %v", err)
 		return err
 	}
+	if err := c.ClearUploadCache(); err != nil {
+		c.logger.Errorf("[control] failed to clear upload cache: %v", err)
+		return err
+	}
 	return nil
 }
 
@@ -771,4 +777,26 @@ func (c *Control) initRouters() {
 			}
 		}
 	}
+}
+
+func (c *Control) GetUploadDir() string {
+	c.logger.Debugf("[control] get upload dir...")
+	if stringer.IsBlank(c.config.UploadDir) {
+		return ""
+	}
+	return filepath.Clean(c.config.UploadDir)
+}
+
+func (c *Control) GetUploadCacheDir() string {
+	c.logger.Debugf("[control] get upload cache dir...")
+	return filepath.Clean(filepath.Join(c.GetUploadDir(), "temp"))
+}
+
+func (c *Control) ClearUploadCache() error {
+	c.logger.Debugf("[control] clear upload cache...")
+	if err := path.ClearDir(c.GetUploadCacheDir()); err != nil {
+		c.logger.Errorf("[control] clear upload cache failed: %v", err)
+		return err
+	}
+	return nil
 }
