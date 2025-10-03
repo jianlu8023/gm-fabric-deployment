@@ -7,9 +7,11 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
+	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/version"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -234,6 +236,8 @@ func (c *Control) newTracerProvider() error {
 		// resource.Default(),
 		resource.NewSchemaless(
 			semconv.ServiceNameKey.String(c.config.ExporterServiceName),
+			semconv.ServiceInstanceIDKey.String(uuid.GetUUID()),
+			semconv.ServiceVersionKey.String(version.Version),
 		),
 	)
 	if err != nil {
