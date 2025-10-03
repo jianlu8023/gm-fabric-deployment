@@ -260,7 +260,14 @@ func (c *Control) setProvider() error {
 	}
 	c.providerMutex.RLock()
 	otel.SetTracerProvider(c.tracerProvider)
-	c.traceApi = c.tracerProvider.Tracer(c.config.ExporterServiceName)
+	c.traceApi = c.tracerProvider.Tracer(
+		c.config.ExporterServiceName,
+		traceapi.WithInstrumentationVersion(version.Version),
+		traceapi.WithInstrumentationAttributes(
+			attribute.String("", ""),
+		),
+		traceapi.WithSchemaURL(""),
+	)
 	c.providerMutex.RUnlock()
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	// otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
