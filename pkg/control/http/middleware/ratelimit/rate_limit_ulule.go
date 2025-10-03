@@ -7,9 +7,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
 	"github.com/ulule/limiter/v3/drivers/store/memory"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 )
 
@@ -38,25 +40,33 @@ func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int) gin.H
 
 	// 使用ulule提供的中间件
 	middleware := mgin.NewMiddleware(limiterInstance, mgin.WithLimitReachedHandler(func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitUlule")
+		defer span.End()
 		ctx.Header("X-RateLimit-Type", "ulule")
 		ctx.JSON(http.StatusTooManyRequests, gin.H{
 			"code":    http.StatusTooManyRequests,
 			"message": "Too many requests",
 			"data":    nil,
+			"success": false,
 		})
+		span.SetStatus(codes.Error, "Too many requests")
 	}))
 
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitUlule")
+		defer span.End()
 		// 确保正确处理代理后的客户端IP
-		c.Request.Header.Set("X-Forwarded-For", c.ClientIP())
+		ctx.Request.Header.Set("X-Forwarded-For", ctx.ClientIP())
 
 		// 调用ulule中间件
-		middleware(c)
+		middleware(ctx)
 
 		// 如果请求被限流，记录日志
-		if c.IsAborted() && c.Writer.Status() == http.StatusTooManyRequests {
-			clientIP := iphelper.GetClientIP(c)
-			logger.Warnf("[RateLimit] Too many requests from IP: %s, Path: %s", clientIP, c.Request.URL.Path)
+		if ctx.IsAborted() && ctx.Writer.Status() == http.StatusTooManyRequests {
+			clientIP := iphelper.GetClientIP(ctx)
+			logger.Warnf("[RateLimit] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			span.SetStatus(codes.Error, "Too many requests")
 		}
+		span.SetStatus(codes.Ok, "success")
 	}
 }

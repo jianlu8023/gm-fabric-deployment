@@ -6,6 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 )
 
@@ -16,8 +18,11 @@ import (
 func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.HandlerFunc {
 	// 如果白名单为空，则不进行过滤
 	if len(whiteList) == 0 {
-		return func(c *gin.Context) {
-			c.Next()
+		return func(ctx *gin.Context) {
+			_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
+			defer span.End()
+			ctx.Next()
+			span.SetStatus(codes.Ok, "success")
 		}
 	}
 
@@ -26,44 +31,55 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.Handle
 	if err != nil {
 		logger.Errorf("[IP WhiteList] Failed to create CIDR list: %v", err)
 		// 如果解析失败，默认拒绝所有请求
-		return func(c *gin.Context) {
-			logger.Warnf("[IP WhiteList] Blocked due to invalid CIDR configuration, Path: %s", c.Request.URL.Path)
-			c.JSON(http.StatusForbidden, gin.H{
+		return func(ctx *gin.Context) {
+			_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
+			defer span.End()
+			logger.Warnf("[IP WhiteList] Blocked due to invalid CIDR configuration, Path: %s", ctx.Request.URL.Path)
+			ctx.JSON(http.StatusForbidden, gin.H{
 				"code":    http.StatusForbidden,
 				"message": "Access forbidden: Invalid IP white list configuration",
 				"data":    nil,
+				"success": false,
 			})
-			c.Abort()
+			ctx.Abort()
+			span.SetStatus(codes.Error, "Access forbidden: Invalid IP white list configuration")
 		}
 	}
 
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
+		defer span.End()
 		// 获取客户端IP
-		clientIP := iphelper.GetClientIP(c)
+		clientIP := iphelper.GetClientIP(ctx)
 		parsedIP := net.ParseIP(clientIP)
 		if parsedIP == nil {
-			logger.Warnf("[IP WhiteList] Invalid IP address: %s, Path: %s", clientIP, c.Request.URL.Path)
-			c.JSON(http.StatusForbidden, gin.H{
+			logger.Warnf("[IP WhiteList] Invalid IP address: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			ctx.JSON(http.StatusForbidden, gin.H{
 				"code":    http.StatusForbidden,
 				"message": "Access forbidden: Invalid IP address",
 				"data":    nil,
+				"success": false,
 			})
-			c.Abort()
+			ctx.Abort()
+			span.SetStatus(codes.Error, "Access forbidden: Invalid IP address")
 			return
 		}
 
 		// 使用CIDRList检查IP是否在白名单中
 		if cidrList.Contains(parsedIP) {
-			logger.Debugf("[IP WhiteList] Allowed IP: %s, Path: %s", clientIP, c.Request.URL.Path)
-			c.Next()
+			logger.Debugf("[IP WhiteList] Allowed IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			ctx.Next()
+			span.SetStatus(codes.Ok, "success")
 		} else {
-			logger.Warnf("[IP WhiteList] Forbidden IP: %s, Path: %s", clientIP, c.Request.URL.Path)
-			c.JSON(http.StatusForbidden, gin.H{
+			logger.Warnf("[IP WhiteList] Forbidden IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			ctx.JSON(http.StatusForbidden, gin.H{
 				"code":    http.StatusForbidden,
 				"message": "Access forbidden: IP not in white list",
 				"data":    nil,
+				"success": false,
 			})
-			c.Abort()
+			ctx.Abort()
+			span.SetStatus(codes.Error, "Access forbidden: IP not in white list")
 		}
 	}
 }

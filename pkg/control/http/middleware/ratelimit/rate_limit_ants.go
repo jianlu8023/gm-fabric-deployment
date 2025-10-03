@@ -7,6 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 )
 
@@ -73,9 +75,11 @@ func EnableRateLimitAnts(logger *zap.SugaredLogger, rps int64, burst int) gin.Ha
 	rateLimiters := make(map[string]*RateLimiterAnts)
 	mu := sync.RWMutex{}
 
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitAnts")
+		defer span.End()
 		// 获取客户端IP
-		clientIP := iphelper.GetClientIP(c)
+		clientIP := iphelper.GetClientIP(ctx)
 
 		// 获取或创建限流器
 		mu.RLock()
@@ -94,17 +98,20 @@ func EnableRateLimitAnts(logger *zap.SugaredLogger, rps int64, burst int) gin.Ha
 
 		// 检查是否允许请求
 		if rl.Allow() {
-			logger.Debugf("[RateLimit] Allowed request from IP: %s, Path: %s", clientIP, c.Request.URL.Path)
-			c.Next()
+			logger.Debugf("[RateLimit] Allowed request from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			ctx.Next()
+			span.SetStatus(codes.Ok, "success")
 		} else {
-			logger.Warnf("[RateLimit] Too many requests from IP: %s, Path: %s", clientIP, c.Request.URL.Path)
-			c.Header("X-RateLimit-Type", "ants")
-			c.JSON(http.StatusTooManyRequests, gin.H{
+			logger.Warnf("[RateLimit] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			ctx.Header("X-RateLimit-Type", "ants")
+			ctx.JSON(http.StatusTooManyRequests, gin.H{
 				"code":    http.StatusTooManyRequests,
 				"message": "Too many requests",
 				"data":    nil,
+				"success": false,
 			})
-			c.Abort()
+			ctx.Abort()
+			span.SetStatus(codes.Error, "To many requests")
 		}
 	}
 }

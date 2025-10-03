@@ -17,40 +17,40 @@ func EnableCors() gin.HandlerFunc {
 }
 
 func EnableCors1() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		method := c.Request.Method
-		c.Header("Access-Control-Allow-Origin",
+	return func(ctx *gin.Context) {
+		method := ctx.Request.Method
+		ctx.Header("Access-Control-Allow-Origin",
 			"*")
-		c.Header("Access-Control-Allow-Headers",
+		ctx.Header("Access-Control-Allow-Headers",
 			"Access-Control-Allow-Headers,Authorization,User-Agent, Keep-Alive, Content-Type, X-Requested-With,X-CSRF-Token,AccessToken,Token")
-		c.Header("Access-Control-Allow-Methods",
+		ctx.Header("Access-Control-Allow-Methods",
 			"GET, POST, DELETE, PUT, PATCH, OPTIONS")
-		c.Header("Access-Control-Expose-Headers",
+		ctx.Header("Access-Control-Expose-Headers",
 			"Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
-		c.Header("Access-Control-Allow-Credentials",
+		ctx.Header("Access-Control-Allow-Credentials",
 			"true")
 
 		// 放行所有OPTIONS方法
 		if method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusAccepted)
+			ctx.AbortWithStatus(http.StatusAccepted)
 		}
-		c.Next()
+		ctx.Next()
 	}
 }
 
 func CORS() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		method := c.Request.Method
-		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
-		c.Header("Access-Control-Allow-Credentials", "true")
+	return func(ctx *gin.Context) {
+		method := ctx.Request.Method
+		ctx.Header("Access-Control-Allow-Origin", ctx.GetHeader("Origin"))
+		ctx.Header("Access-Control-Allow-Credentials", "true")
 
 		if method == "OPTIONS" {
-			c.Header("Access-Control-Allow-Methods", c.GetHeader("Access-Control-Request-Method"))
-			c.Header("Access-Control-Allow-Headers", c.GetHeader("Access-Control-Request-Headers"))
-			c.Header("Access-Control-Max-Age", "7200")
-			c.AbortWithStatus(http.StatusNoContent)
+			ctx.Header("Access-Control-Allow-Methods", ctx.GetHeader("Access-Control-Request-Method"))
+			ctx.Header("Access-Control-Allow-Headers", ctx.GetHeader("Access-Control-Request-Headers"))
+			ctx.Header("Access-Control-Max-Age", "7200")
+			ctx.AbortWithStatus(http.StatusNoContent)
 			return
 		}
-		c.Next()
+		ctx.Next()
 	}
 }

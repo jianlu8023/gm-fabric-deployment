@@ -1,19 +1,24 @@
 package recovery
 
 import (
-	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"runtime/debug"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/codes"
+	"go.uber.org/zap"
 )
 
 // EnableRecovery recover掉项目可能出现的panic
 func EnableRecovery(webLogger *zap.SugaredLogger, stack bool) gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "recovery")
+		defer span.End()
 		defer func() {
 			if err := recover(); err != nil {
 				// Check for a broken connection, as it is not really a
@@ -27,26 +32,27 @@ func EnableRecovery(webLogger *zap.SugaredLogger, stack bool) gin.HandlerFunc {
 					}
 				}
 
-				httpRequest, _ := httputil.DumpRequest(c.Request, false)
+				httpRequest, _ := httputil.DumpRequest(ctx.Request, false)
 				if brokenPipe {
 					webLogger.Errorf("request url %v with request %v failed: %v",
-						c.Request.URL.Path,
+						ctx.Request.URL.Path,
 						string(httpRequest),
 						err,
 					)
-					// webLogger.Error(c.Request.URL.Path,
+					// webLogger.Error(ctx.Request.URL.Path,
 					// 	zap.Any("error", err),
 					// 	zap.String("request", string(httpRequest)),
 					// )
 					// If the connection is dead, we can't write a status to it.
-					_ = c.Error(err.(error)) // nolint: errcheck
-					c.Abort()
+					_ = ctx.Error(err.(error)) // nolint: errcheck
+					ctx.Abort()
+					span.SetStatus(codes.Error, "")
 					return
 				}
 
 				if stack {
 					webLogger.Errorf("request url %v with request %v with stack %v failed: %v",
-						c.Request.URL.Path,
+						ctx.Request.URL.Path,
 						string(httpRequest),
 						string(debug.Stack()),
 						err,
@@ -62,14 +68,16 @@ func EnableRecovery(webLogger *zap.SugaredLogger, stack bool) gin.HandlerFunc {
 					// 	zap.String("request", string(httpRequest)),
 					// )
 					webLogger.Errorf("request url %v with request %v failed: %v",
-						c.Request.URL.Path,
+						ctx.Request.URL.Path,
 						string(httpRequest),
 						err,
 					)
 				}
-				c.AbortWithStatus(http.StatusInternalServerError)
+				ctx.AbortWithStatus(http.StatusInternalServerError)
+				span.SetStatus(codes.Error, "")
 			}
 		}()
-		c.Next()
+		ctx.Next()
+		span.SetStatus(codes.Ok, "success")
 	}
 }

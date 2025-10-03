@@ -12,6 +12,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 
 	//	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	// "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
@@ -51,12 +52,14 @@ var (
 )
 
 type Control struct {
-	logger        *zap.SugaredLogger
-	config        *config.TracerConfig
-	once          sync.Once
-	ctx           context.Context
-	providerMutex sync.RWMutex
-	provider      shutdownTracerProvider
+	logger         *zap.SugaredLogger
+	config         *config.TracerConfig
+	once           sync.Once
+	ctx            context.Context
+	providerMutex  sync.RWMutex
+	tracerProvider shutdownTracerProvider
+	traceApi       traceapi.Tracer
+	meterProvider  metric.MeterProvider // 暂时没用上
 }
 
 // NewTracerControl 创建一个新的OTEL控制器并设置为全局单例
@@ -110,8 +113,8 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 
 func (c *Control) Shutdown() error {
 	c.logger.Debug("[control] shutting down tracer server...")
-	if err := c.provider.Shutdown(c.ctx); err != nil {
-		c.logger.Errorf("[control] shutting down provider failed: %v", err)
+	if err := c.tracerProvider.Shutdown(c.ctx); err != nil {
+		c.logger.Errorf("[control] shutting down tracer provider failed: %v", err)
 		return err
 	}
 	return nil
@@ -121,7 +124,7 @@ func (c *Control) GetProvider() shutdownTracerProvider {
 	c.logger.Debugf("[control] get tracer provider...")
 	c.providerMutex.RLock()
 	defer c.providerMutex.RUnlock()
-	return c.provider
+	return c.tracerProvider
 }
 
 func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
@@ -192,15 +195,15 @@ func (c *Control) GetServiceName() string {
 }
 
 func (c *Control) newTracerProvider() error {
-	c.logger.Debugf("[control] starting generate tracer provider...")
+	c.logger.Debugf("[control] starting generate tracerProvider...")
 	exporters, err := c.initExporters()
 	if err != nil {
 		c.logger.Errorf("[control] init exporters failed: %v", err)
 		return err
 	}
 	if len(exporters) == 0 {
-		c.logger.Warnf("[control] no exporter found, using noop tracer provider...")
-		c.provider = &noopShutdownTracerProvider{TracerProvider: noop.NewTracerProvider()}
+		c.logger.Warnf("[control] no exporter found, using noop tracerProvider...")
+		c.tracerProvider = &noopShutdownTracerProvider{TracerProvider: noop.NewTracerProvider()}
 		return nil
 	}
 
@@ -240,7 +243,7 @@ func (c *Control) newTracerProvider() error {
 	options = append(options, sdktrace.WithResource(r))
 	options = append(options, sdktrace.WithSampler(sdktrace.AlwaysSample())) // 或者自定义采样器
 	c.providerMutex.Lock()
-	c.provider = sdktrace.NewTracerProvider(options...)
+	c.tracerProvider = sdktrace.NewTracerProvider(options...)
 	c.providerMutex.Unlock()
 	return nil
 }
@@ -248,11 +251,12 @@ func (c *Control) newTracerProvider() error {
 func (c *Control) setProvider() error {
 	c.logger.Debugf("[control] setting provider...")
 	if err := c.newTracerProvider(); err != nil {
-		c.logger.Errorf("[control] new tracer provider failed: %v", err)
+		c.logger.Errorf("[control] new tracerProvider failed: %v", err)
 		return err
 	}
 	c.providerMutex.RLock()
-	otel.SetTracerProvider(c.provider)
+	otel.SetTracerProvider(c.tracerProvider)
+	c.traceApi = c.tracerProvider.Tracer(c.config.ExporterServiceName)
 	c.providerMutex.RUnlock()
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	// otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
@@ -261,7 +265,7 @@ func (c *Control) setProvider() error {
 
 func (c *Control) init() {
 	c.logger.Debugf("[control] init...")
-	ctx, span := c.provider.Tracer(c.config.ExporterServiceName).Start(c.ctx, "initialize")
+	ctx, span := c.traceApi.Start(c.ctx, "initialize")
 	defer span.End()
 	c.ctx = ctx
 }
@@ -279,7 +283,13 @@ func (c *Control) Span(ctx context.Context, componentName string, spanName strin
 	if ctx == nil {
 		ctx = c.ctx
 	}
-	return c.provider.Tracer(c.config.ExporterServiceName).Start(ctx, fmt.Sprintf("%s.%s", componentName, spanName), opts...)
+	if stringer.IsBlank(componentName) {
+		componentName = "defaultComponent"
+	}
+	if stringer.IsBlank(spanName) {
+		spanName = "defaultSpanName"
+	}
+	return c.traceApi.Start(ctx, fmt.Sprintf("%s.%s", componentName, spanName), opts...)
 }
 
 // StartSpan 创建并启动一个 Span (可以根据需要添加 attributes)
@@ -312,7 +322,6 @@ func Span(ctx context.Context, componentName string, spanName string, opts ...tr
 	// 使用单例实例，如果单例实例不存在则从池中获取
 	control := GetInstance()
 	if control == nil {
-		fmt.Printf("control is nil\n")
 		// 如果单例还未初始化，使用池中的实例作为后备
 		control = pool.Get().(*Control)
 		defer pool.Put(control) // 使用完后放回池中

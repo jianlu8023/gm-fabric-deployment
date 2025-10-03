@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/unrolled/secure"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 )
 
@@ -17,38 +19,41 @@ import (
 // @param isDevelopment 是否为开发环境
 // @return gin.HandlerFunc Gin中间件函数
 func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool) gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
+		defer span.End()
 		// 设置HSTS头，强制客户端使用HTTPS
 		if !isDevelopment {
 			// 315360000秒 = 10年
-			c.Header("Strict-Transport-Security", "max-age=315360000; includeSubDomains")
+			ctx.Header("Strict-Transport-Security", "max-age=315360000; includeSubDomains")
 		}
 
 		// 设置X-Frame-Options，防止点击劫持
-		c.Header("X-Frame-Options", "DENY")
+		ctx.Header("X-Frame-Options", "DENY")
 
 		// 设置X-Content-Type-Options，防止MIME类型嗅探
-		c.Header("X-Content-Type-Options", "nosniff")
+		ctx.Header("X-Content-Type-Options", "nosniff")
 
 		// 设置X-XSS-Protection，启用XSS过滤
-		c.Header("X-XSS-Protection", "1; mode=block")
+		ctx.Header("X-XSS-Protection", "1; mode=block")
 
 		// 设置内容安全策略(CSP)
 		// 这里使用相对宽松的策略，实际应用中应根据需求进行调整
-		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+		ctx.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
 
 		// 对于非GET请求，记录TLS连接信息
-		if c.Request.Method != http.MethodGet {
-			if c.Request.TLS != nil {
+		if ctx.Request.Method != http.MethodGet {
+			if ctx.Request.TLS != nil {
 				logger.Debugf("[TLS] Connection from %s using TLS version %s, cipher suite: %04x",
-					c.ClientIP(),
-					c.Request.TLS.Version,
-					c.Request.TLS.CipherSuite,
+					ctx.ClientIP(),
+					ctx.Request.TLS.Version,
+					ctx.Request.TLS.CipherSuite,
 				)
 			}
 		}
 
-		c.Next()
+		ctx.Next()
+		span.SetStatus(codes.Ok, "success")
 	}
 }
 
@@ -57,23 +62,26 @@ func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool) gin.Hand
 // @param httpsPort HTTPS服务端口
 // @return gin.HandlerFunc Gin中间件函数
 func RedirectToHTTPS(httpsPort int) gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
+		defer span.End()
 		// 检查是否为HTTPS连接
-		if c.Request.TLS == nil {
+		if ctx.Request.TLS == nil {
 			// 构建HTTPS URL
-			host := c.Request.Host
+			host := ctx.Request.Host
 			// 如果主机名包含端口号，替换为HTTPS端口
 			if _, _, err := net.SplitHostPort(host); err == nil {
 				host = strings.Split(host, ":")[0]
 			}
-			newURL := fmt.Sprintf("https://%s:%d%s", host, httpsPort, c.Request.RequestURI)
+			newURL := fmt.Sprintf("https://%s:%d%s", host, httpsPort, ctx.Request.RequestURI)
 
 			// 301永久重定向到HTTPS
-			c.Redirect(http.StatusMovedPermanently, newURL)
-			c.Abort()
+			ctx.Redirect(http.StatusMovedPermanently, newURL)
+			ctx.Abort()
 			return
 		}
-		c.Next()
+		ctx.Next()
+		span.SetStatus(codes.Ok, "success")
 	}
 }
 
@@ -84,35 +92,38 @@ func RedirectToHTTPS(httpsPort int) gin.HandlerFunc {
 // @param sslHost SSL主机名
 // @return gin.HandlerFunc Gin中间件函数
 func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost string) gin.HandlerFunc {
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
+		defer span.End()
 		// 设置HSTS头，强制客户端使用HTTPS
 		if !isDevelopment {
 			// 315360000秒 = 10年
-			c.Header("Strict-Transport-Security", "max-age=315360000; includeSubDomains")
+			ctx.Header("Strict-Transport-Security", "max-age=315360000; includeSubDomains")
 		}
 
 		// 设置X-Frame-Options，防止点击劫持
-		c.Header("X-Frame-Options", "DENY")
+		ctx.Header("X-Frame-Options", "DENY")
 
 		// 设置X-Content-Type-Options，防止MIME类型嗅探
-		c.Header("X-Content-Type-Options", "nosniff")
+		ctx.Header("X-Content-Type-Options", "nosniff")
 
 		// 设置X-XSS-Protection，启用XSS过滤
-		c.Header("X-XSS-Protection", "1; mode=block")
+		ctx.Header("X-XSS-Protection", "1; mode=block")
 
 		// 设置内容安全策略(CSP)
-		c.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+		ctx.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
 
 		// 记录TLS连接信息
-		if c.Request.TLS != nil && logger != nil {
+		if ctx.Request.TLS != nil && logger != nil {
 			logger.Debugf("[TLS] Connection to %s from %s using TLS version %s",
 				sslHost,
-				c.ClientIP(),
-				c.Request.TLS.Version,
+				ctx.ClientIP(),
+				ctx.Request.TLS.Version,
 			)
 		}
 
-		c.Next()
+		ctx.Next()
+		span.SetStatus(codes.Ok, "success")
 	}
 }
 
@@ -123,6 +134,8 @@ func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost st
 // @return gin.HandlerFunc Gin中间件函数
 func EnableSecurePackageTLS(sslHost string, isDevelopment bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
+		defer span.End()
 		secureMiddleware := secure.New(secure.Options{
 			SSLRedirect:           true,
 			SSLHost:               sslHost,
@@ -131,13 +144,14 @@ func EnableSecurePackageTLS(sslHost string, isDevelopment bool) gin.HandlerFunc 
 			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:",
 			IsDevelopment:         isDevelopment,
 		})
-		err := secureMiddleware.Process(ctx.Writer, ctx.Request)
 		// 如果SSL重定向已经发送，不再继续处理请求
-		if err != nil {
+		if err := secureMiddleware.Process(ctx.Writer, ctx.Request); err != nil {
 			ctx.Abort()
+			span.SetStatus(codes.Error, err.Error())
 			return
 		}
 		ctx.Next()
+		span.SetStatus(codes.Ok, "success")
 	}
 }
 

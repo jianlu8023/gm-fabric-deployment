@@ -5,7 +5,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/juju/ratelimit"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 )
 
@@ -57,25 +59,30 @@ func EnableRateLimitJuju(logger *zap.SugaredLogger, rps int64, burst int) gin.Ha
 	// 创建一个限流器实例
 	limiter := NewRateLimiterJuju(rps, burst)
 
-	return func(c *gin.Context) {
+	return func(ctx *gin.Context) {
+		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitJuju")
+		defer span.End()
 		// 获取客户端IP地址
-		clientIP := iphelper.GetClientIP(c)
+		clientIP := iphelper.GetClientIP(ctx)
 
 		// 检查是否允许请求通过
 		if !limiter.Allow(clientIP) {
 			// 如果不允许，记录日志并返回429状态码
 			logger.Warnf("[RateLimitJuju] Request from %s denied due to rate limiting", clientIP)
-			c.Header("X-RateLimit-Type", "juju")
-			c.JSON(http.StatusTooManyRequests, gin.H{
-				"code":    429,
+			ctx.Header("X-RateLimit-Type", "juju")
+			ctx.JSON(http.StatusTooManyRequests, gin.H{
+				"code":    http.StatusTooManyRequests,
 				"message": "Too many requests",
 				"data":    nil,
+				"success": false,
 			})
-			c.Abort()
+			span.SetStatus(codes.Error, "Too many requests")
+			ctx.Abort()
 			return
 		}
 
 		// 允许请求继续处理
-		c.Next()
+		ctx.Next()
+		span.SetStatus(codes.Ok, "success")
 	}
 }

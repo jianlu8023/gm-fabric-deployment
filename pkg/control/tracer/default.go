@@ -11,7 +11,7 @@ func getDefaultConfig() *config.TracerConfig {
 		ExporterFilePath:       "tracer.json",
 		ExporterOTELInsecure:   true,
 		ExporterOTELProtocol:   "grpc",
-		TracesExporter:         "file",
+		TracesExporter:         "none",
 		ExporterZipkinEndpoint: "",
 		ExporterOTELEndpoint:   "http://127.0.0.1:4317",
 	}
