@@ -6,6 +6,8 @@ import (
 	"github.com/gin-contrib/sse"
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // SSEService SSE服务
@@ -34,12 +36,16 @@ func NewSSEService(baseService *Service, sseMapper *mapper.SSEMapper) *SSEServic
 // @description 处理客户端的SSE连接请求，发送示例消息
 // @param ctx *gin.Context Gin上下文
 func (s *SSEService) SSE(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "sseService", "sse")
+	defer span.End()
 	s.logger.Debugf("received sse request...")
 	if err := sse.Encode(ctx.Writer, sse.Event{
 		Event: "message",
 		Data:  "some data\nmore data",
 	}); err != nil {
 		s.logger.Error("send sse message failed: %v", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
@@ -54,6 +60,9 @@ func (s *SSEService) SSE(ctx *gin.Context) {
 		},
 	}); err != nil {
 		s.logger.Error("send sse message failed: %v", err)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
+	span.SetStatus(codes.Ok, "success")
 }

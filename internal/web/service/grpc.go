@@ -8,6 +8,9 @@ import (
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 type GrpcService struct {
@@ -27,6 +30,10 @@ func NewGrpcService(baseService *Service,
 }
 
 func (s *GrpcService) GrpcPingMessage(ctx *gin.Context, req *request.GrpcSendPingMessageRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "grpcService", "grpcPingMessage",
+		attribute.String("requestParam", req.String()),
+	)
+	defer span.End()
 	s.logger.Debugf("received grpc send ping message request with params: %v", req)
 
 	baseResponse, err := s.grpcControl.Call(&pb.BaseRequest{
@@ -36,6 +43,8 @@ func (s *GrpcService) GrpcPingMessage(ctx *gin.Context, req *request.GrpcSendPin
 	if err != nil {
 		s.logger.Errorf("grpc send ping message failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, commonhttp.ErrMsgInternalServerError)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 	s.logger.Debugf("grpc send ping message success: %v", baseResponse)
@@ -43,8 +52,10 @@ func (s *GrpcService) GrpcPingMessage(ctx *gin.Context, req *request.GrpcSendPin
 	if err != nil {
 		s.logger.Errorf("convert grpc ping message err: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 	commonhttp.SuccessResponse(ctx, messageResponse)
-
+	span.SetStatus(codes.Ok, "success")
 }

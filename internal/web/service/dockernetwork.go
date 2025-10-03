@@ -8,6 +8,9 @@ import (
 	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // DockerNetworkService Docker网络服务
@@ -47,6 +50,10 @@ func NewDockerNetworkService(baseService *Service,
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerNetworkListRequest Docker网络列表请求参数
 func (s *DockerNetworkService) DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerNetworkService", "dockerNetworkList",
+		attribute.String("requestParam", req.String()),
+	)
+	defer span.End()
 	s.logger.Debugf("received docker network list request with params: %v", req)
 
 	page, err := s.mapper.DockerNetworkList(model.DockerNetwork{
@@ -55,6 +62,8 @@ func (s *DockerNetworkService) DockerNetworkList(ctx *gin.Context, req *request.
 	if err != nil {
 		s.logger.Errorf("get docker network list failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "获取docker网络失败")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
@@ -62,9 +71,11 @@ func (s *DockerNetworkService) DockerNetworkList(ctx *gin.Context, req *request.
 	if err != nil {
 		s.logger.Errorf("convert docker network list err: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		return
 	}
 
 	commonhttp.SuccessResponse(ctx, listResponse)
-
+	span.SetStatus(codes.Ok, "success")
 }

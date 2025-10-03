@@ -698,13 +698,15 @@ func (s *FileService) CompleteUpload(ctx *gin.Context, req *request.CompleteUplo
 	// 清理临时文件
 	go func() {
 		tempChunkDir := filepath.Join(s.tempDir, fileInfo.UploadID)
-		path.ClearDir(tempChunkDir)
+		if err := path.ClearDir(tempChunkDir); err != nil {
+			s.logger.Errorf("clear temp chunk dir failed: %v", err)
+			span.RecordError(err)
+		}
 	}()
 
 	// 生成下载URL
 	downloadURL := fmt.Sprintf("/files/%s/download", req.UploadID)
 
-	span.SetStatus(codes.Ok, "success")
 	commonhttp.SuccessResponse(ctx, response.NewCompleteUploadResponse(
 		req.UploadID,
 		fileInfo.FileName,
@@ -714,6 +716,7 @@ func (s *FileService) CompleteUpload(ctx *gin.Context, req *request.CompleteUplo
 		downloadURL,
 		fileInfo.UpdateTime,
 	))
+	span.SetStatus(codes.Ok, "success")
 }
 
 // CheckExistingUpload 检查现有上传记录
@@ -756,7 +759,6 @@ func (s *FileService) CheckExistingUpload(ctx *gin.Context, fileName string, fil
 		uploadedIndexes = []int{} // 默认为空
 	}
 
-	span.SetStatus(codes.Ok, "success")
 	commonhttp.SuccessResponse(ctx, map[string]interface{}{
 		"upload_id":              existingFile.UploadID,
 		"file_name":              existingFile.FileName,
@@ -769,6 +771,7 @@ func (s *FileService) CheckExistingUpload(ctx *gin.Context, fileName string, fil
 		"update_time":            existingFile.UpdateTime,
 		"uploaded_chunk_indexes": uploadedIndexes,
 	})
+	span.SetStatus(codes.Ok, "success")
 }
 
 // GetUploadStatus 获取文件上传状态服务
@@ -1136,15 +1139,17 @@ func (s *FileService) DeleteFile(ctx *gin.Context, req *request.DeleteFileReques
 	}); err != nil {
 		s.logger.Errorf("delete file info failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "删除文件信息失败")
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 
-	span.SetStatus(codes.Ok, "success")
 	commonhttp.SuccessResponse(ctx, map[string]interface{}{
 		"upload_id": req.UploadID,
 		"deleted":   true,
 		"file_name": fileInfo.FileName,
 	})
+	span.SetStatus(codes.Ok, "success")
 }
 
 // ResumeUpload 恢复上传服务
@@ -1213,7 +1218,6 @@ func (s *FileService) ResumeUpload(ctx *gin.Context, req *request.ResumeUploadRe
 		progress = float64(uploadedChunks) / fileInfo.TotalChunks * 100
 	}
 
-	span.SetStatus(codes.Ok, "success")
 	commonhttp.SuccessResponse(ctx, response.NewResumeUploadResponse(
 		fileInfo.FileName,
 		fileInfo.FileSize,
@@ -1226,7 +1230,7 @@ func (s *FileService) ResumeUpload(ctx *gin.Context, req *request.ResumeUploadRe
 		fileInfo.UploadID,
 		fileInfo.UploadTime,
 	))
-
+	span.SetStatus(codes.Ok, "success")
 }
 
 // GetFileMetadata 获取文件元数据服务
@@ -1299,4 +1303,5 @@ func (s *FileService) GetFileMetadata(ctx *gin.Context, req *request.GetFileMeta
 		"download_url":    fmt.Sprintf("/files/%s/download", fileInfo.UploadID),
 		"file_stats":      fileStats,
 	})
+	span.SetStatus(codes.Ok, "success")
 }

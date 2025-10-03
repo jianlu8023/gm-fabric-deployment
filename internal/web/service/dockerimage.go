@@ -16,8 +16,11 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/jianlu8023/golang-example/pkg/control/websocket"
 	"github.com/libp2p/go-libp2p/core/peer"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // DockerImageService Docker镜像服务
@@ -72,6 +75,11 @@ func NewDockerImageService(baseService *Service,
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerImageListRequest 镜像列表查询请求参数
 func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageService", "dockerImageList",
+		attribute.String("requestParam", req.String()),
+	)
+	defer span.End()
+
 	s.logger.Debugf("received docker image list request with params: %v", req)
 
 	page, err := s.mapper.DockerImageList(model.DockerImage{
@@ -80,6 +88,8 @@ func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.Dock
 	if err != nil {
 		s.logger.Errorf("get docker image list failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, "获取docker镜像失败")
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 
@@ -87,10 +97,13 @@ func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.Dock
 	if err != nil {
 		s.logger.Errorf("convert docker image list err: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, commonhttp.ErrMsgNormalFailed)
+		span.SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
 		return
 	}
 
 	commonhttp.SuccessResponse(ctx, listResponse)
+	span.SetStatus(codes.Ok, "success")
 }
 
 // DockerImagePull 拉取Docker镜像
@@ -99,6 +112,10 @@ func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.Dock
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerImagePullRequest 镜像拉取请求参数
 func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageService", "dockerImagePull",
+		attribute.String("requestParam", req.String()),
+	)
+	defer span.End()
 	s.logger.Debugf("received docker image pull request with params: %v", req)
 
 	if err := s.antsPoolControl.Submit(func() {
@@ -115,6 +132,8 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			}
 			if err := s.libp2pControl.SendMessageToPeer(dockerPullMsg.To, dockerPullMsg); err != nil {
 				s.logger.Errorf("send docker pull message to peer failed: %v", err)
+				span.SetStatus(codes.Error, err.Error())
+				span.RecordError(err)
 				return
 			}
 		} else {
@@ -125,6 +144,8 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			imageExist, err := s.dockerControl.GetImage(docker.WithImageQueryName(req.ImageName))
 			if err != nil {
 				s.logger.Errorf("get docker image failed: %v", err)
+				span.SetStatus(codes.Error, err.Error())
+				span.RecordError(err)
 				return
 			}
 			if !stringer.IsBlank(imageExist.ID) {
@@ -134,8 +155,10 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			}
 			// 2. 拉取镜像
 			s.logger.Debugf("docker image pull...")
-			if err := s.dockerControl.PullImage(req.ImageName); err != nil {
+			if err = s.dockerControl.PullImage(req.ImageName); err != nil {
 				s.logger.Errorf("docker image pull failed: %v", err)
+				span.SetStatus(codes.Error, err.Error())
+				span.RecordError(err)
 				return
 			}
 			// 3. 获取镜像信息
@@ -143,6 +166,7 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			summary, err := s.dockerControl.GetImage(docker.WithImageQueryName(req.ImageName))
 			if err != nil {
 				s.logger.Errorf("get docker image info failed: %v", err)
+				span.RecordError(err)
 				return
 			}
 			// 4. 保存镜像信息
@@ -153,12 +177,14 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", summary.Created))
 			if err != nil {
 				s.logger.Errorf("parse time on local failed: %v", err)
+				span.RecordError(err)
 				return
 			}
 			image.ImageCreated = datetime
 			labels, err := json.MarshalString(summary.Labels)
 			if err != nil {
 				s.logger.Errorf("get docker image info marshal failed: %v", err)
+				span.RecordError(err)
 				return
 			}
 			image.ImageLabels = labels
@@ -166,6 +192,7 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			image.ImageLocationPeerId = req.PeerId
 			if err := s.mapper.InsertOneWithCheck(image); err != nil {
 				s.logger.Errorf("save docker image failed: %v", err)
+				span.RecordError(err)
 				return
 			}
 			s.logger.Debugf("save docker image success, send websocket message to client...")
@@ -176,10 +203,12 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 	}); err != nil {
 		s.logger.Errorf("submit docker image pull task failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, commonhttp.ErrMsgInternalServerError)
+		span.RecordError(err)
 		return
 	}
 
 	commonhttp.SuccessResponse(ctx, response.NewDockerImagePullResponse(
 		fmt.Sprintf("拉取 %v 镜像成功", req.ImageName),
 	))
+	// span.SetStatus(codes.Ok, "success")
 }
