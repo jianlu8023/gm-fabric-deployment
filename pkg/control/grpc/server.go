@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -205,28 +204,6 @@ type ServerControl struct {
 	logger  *zap.SugaredLogger
 }
 
-func genServerTlsConfig(serverConfig *config.GrpcServerConfig) (*tls.Config, error) {
-	certificates, err := tls.LoadX509KeyPair(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
-	if err != nil {
-		fmt.Printf("gen server tls config error: %v", err)
-		return nil, err
-	}
-	ca := x509.NewCertPool()
-	caBytes, err := os.ReadFile(serverConfig.TlsRCACertFile)
-	if err != nil {
-		fmt.Printf("read root-ca err: %v", err)
-		return nil, err
-	}
-	if ok := ca.AppendCertsFromPEM(caBytes); !ok {
-		return nil, errors.New("append root-ca err")
-	}
-	return &tls.Config{
-		ClientAuth:   tls.RequireAndVerifyClientCert,  // 要求客户端证书
-		Certificates: []tls.Certificate{certificates}, // 服务端证书
-		ClientCAs:    ca,                              // 根证书
-	}, nil
-}
-
 func NewServerControl(control *Control) (*ServerControl, error) {
 	control.logger.Infof("[server] start new server control...")
 	var gServer *grpc.Server
@@ -245,6 +222,7 @@ func NewServerControl(control *Control) (*ServerControl, error) {
 	if control.config.Server.TlsEnabled {
 		control.logger.Debugf("[server] generate tls grpc server...")
 
+		// 为双向TLS验证创建正确的配置
 		tlsConfig := &tls.Config{
 			MinVersion: tls.VersionTLS12, // 设置最低TLS版本
 			MaxVersion: tls.VersionTLS13, // 设置最高TLS版本
@@ -260,32 +238,41 @@ func NewServerControl(control *Control) (*ServerControl, error) {
 			CurvePreferences: []tls.CurveID{
 				tls.CurveP256, tls.X25519,
 			},
-			// PreferServerCipherSuites: true,  // 优先使用服务端加密套件
 			SessionTicketsDisabled: false, // 启用会话票据
 			NextProtos:             []string{"h2", "http/1.1"},
 		}
+
+		// 加载服务端证书
 		certificates, err := tls.LoadX509KeyPair(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
 		if err != nil {
 			control.logger.Errorf("[server] failed to load TLS certificate: %v", err)
 			return nil, err
-		} else {
-			tlsConfig.Certificates = []tls.Certificate{certificates}
 		}
-		// 如果配置了根证书，则启用客户端证书验证
+		tlsConfig.Certificates = []tls.Certificate{certificates}
+
+		// 加载并配置CA证书用于验证客户端证书
 		rootCaCertFile := control.config.Server.TlsRCACertFile
 		if !stringer.IsBlank(rootCaCertFile) {
 			caCertPool := x509.NewCertPool()
 			caCert, err := os.ReadFile(rootCaCertFile)
-			if err == nil {
-				if ok := caCertPool.AppendCertsFromPEM(caCert); ok {
-					tlsConfig.ClientCAs = caCertPool
-					tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven // 根据需要验证客户端证书
-					control.logger.Debugf("[server] client certificate verification enabled with CA cert: %s", rootCaCertFile)
-				}
-			} else {
-				control.logger.Warnf("[server] failed to read CA cert file: %v", err)
+			if err != nil {
+				control.logger.Errorf("[server] failed to read CA cert file: %v", err)
+				return nil, err
 			}
+			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+				control.logger.Errorf("[server] failed to append CA cert to pool")
+				return nil, ErrFailAppendCert
+			}
+			// 要求并验证客户端证书 - 双向TLS的关键设置
+			tlsConfig.ClientCAs = caCertPool
+			tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+			control.logger.Debugf("[server] mutual TLS enabled with client certificate verification")
+		} else {
+			control.logger.Warnf("[server] CA cert file is not configured for mutual TLS")
+			return nil, ErrNoCACert
 		}
+
+		// 创建凭证
 		transportCredentials := credentials.NewTLS(tlsConfig)
 
 		// transportCredentials, err := credentials.NewServerTLSFromFile(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
@@ -294,14 +281,6 @@ func NewServerControl(control *Control) (*ServerControl, error) {
 		// 	return nil, err
 		// }
 		opts = append(opts, grpc.Creds(transportCredentials))
-
-		// serverTlsConfig, err := genServerTlsConfig(serverConfig)
-		// if err != nil {
-		// 	fmt.Printf("gen serverTlsConfig err: %v\n", err)
-		// 	return nil, err
-		// }
-		// transportCredentials := credentials.NewTLS(serverTlsConfig)
-		// opts = append(opts, grpc.Creds(transportCredentials))
 
 		gServer = grpc.NewServer(opts...)
 	} else {

@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -66,28 +65,6 @@ func (c *customCredential) RequireTransportSecurity() bool {
 	return false
 }
 
-func genClientTlsConfig(clientConfig *config.GrpcClientConfig) (*tls.Config, error) {
-	certificates, err := tls.LoadX509KeyPair(clientConfig.TlsCertFile, clientConfig.TlsKeyFile)
-	if err != nil {
-		fmt.Printf("gen server tls config error: %v", err)
-		return nil, err
-	}
-	ca := x509.NewCertPool()
-	caBytes, err := os.ReadFile(clientConfig.TlsRCACertFile)
-	if err != nil {
-		fmt.Printf("read root-ca err: %v", err)
-		return nil, err
-	}
-	if ok := ca.AppendCertsFromPEM(caBytes); !ok {
-		return nil, errors.New("append root-ca err")
-	}
-	return &tls.Config{
-		ServerName:   "grpc",
-		Certificates: []tls.Certificate{certificates},
-		RootCAs:      ca,
-	}, nil
-}
-
 func NewClientControl(control *Control) (*ClientControl, error) {
 	control.logger.Infof("[client] start new grpc client control...")
 	var gClient *grpc.ClientConn
@@ -120,6 +97,7 @@ func NewClientControl(control *Control) (*ClientControl, error) {
 		// 	return nil, err
 		// }
 
+		// 为双向TLS验证创建正确的客户端配置
 		tlsConfig := &tls.Config{
 			MinVersion: tls.VersionTLS12, // 设置最低TLS版本
 			MaxVersion: tls.VersionTLS13, // 设置最高TLS版本
@@ -135,45 +113,44 @@ func NewClientControl(control *Control) (*ClientControl, error) {
 			CurvePreferences: []tls.CurveID{
 				tls.CurveP256, tls.X25519,
 			},
-			// PreferServerCipherSuites: true,  // 优先使用服务端加密套件
 			SessionTicketsDisabled: false, // 启用会话票据
 			NextProtos:             []string{"h2", "http/1.1"},
-			ServerName:             "grpc",
+			ServerName:             "grpc", // 必须与服务器证书的Common Name匹配
 		}
-		certificates, err := tls.LoadX509KeyPair(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
+
+		// 加载客户端证书（注意：应该使用客户端自己的证书，而不是服务端证书）
+		certificates, err := tls.LoadX509KeyPair(control.config.Client.TlsCertFile, control.config.Client.TlsKeyFile)
 		if err != nil {
-			control.logger.Errorf("[client] failed to load TLS certificate: %v", err)
+			control.logger.Errorf("[client] failed to load client TLS certificate: %v", err)
 			return nil, err
-		} else {
-			tlsConfig.Certificates = []tls.Certificate{certificates}
 		}
-		// 如果配置了根证书，则启用客户端证书验证
-		rootCaCertFile := control.config.Server.TlsRCACertFile
+		tlsConfig.Certificates = []tls.Certificate{certificates}
+
+		// 加载CA证书用于验证服务器证书
+		rootCaCertFile := control.config.Client.TlsRCACertFile
 		if !stringer.IsBlank(rootCaCertFile) {
 			caCertPool := x509.NewCertPool()
 			caCert, err := os.ReadFile(rootCaCertFile)
-			if err == nil {
-				if ok := caCertPool.AppendCertsFromPEM(caCert); ok {
-					tlsConfig.ClientCAs = caCertPool
-					tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven // 根据需要验证客户端证书
-					control.logger.Debugf("[client] client certificate verification enabled with CA cert: %s", rootCaCertFile)
-				}
-			} else {
-				control.logger.Warnf("[client] failed to read CA cert file: %v", err)
+			if err != nil {
+				control.logger.Errorf("[client] failed to read CA cert file: %v", err)
+				return nil, err
 			}
+			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+				control.logger.Errorf("[client] failed to append CA cert to pool")
+				return nil, ErrFailAppendCert
+			}
+			tlsConfig.RootCAs = caCertPool
+			control.logger.Debugf("[client] mutual TLS enabled, server certificate will be verified")
+		} else {
+			control.logger.Warnf("[client] CA cert file is not configured for mutual TLS")
+			return nil, ErrNoCACert
 		}
+
+		// 创建凭证
 		transportCredentials := credentials.NewTLS(tlsConfig)
 
 		opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 		// opts = append(opts, grpc.WithPerRPCCredentials(new(customCredential)))
-
-		// clientTlsConfig, err := genClientTlsConfig(clientConfig)
-		// if err != nil {
-		// 	fmt.Printf("gen client tls config err: %v\n", err)
-		// 	return nil, err
-		// }
-		// transportCredentials := credentials.NewTLS(clientTlsConfig)
-		// opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 
 		gClient, err = grpc.NewClient(control.config.Client.Host, opts...)
 		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
