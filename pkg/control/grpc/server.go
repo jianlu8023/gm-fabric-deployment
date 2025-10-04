@@ -204,7 +204,7 @@ type ServerControl struct {
 	logger  *zap.SugaredLogger
 }
 
-func NewServerControl(control *Control) (*ServerControl, error) {
+func NewServerControl(control *Control) error {
 	control.logger.Infof("[server] start new server control...")
 	var gServer *grpc.Server
 	opts := []grpc.ServerOption{
@@ -246,7 +246,7 @@ func NewServerControl(control *Control) (*ServerControl, error) {
 		certificates, err := tls.LoadX509KeyPair(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
 		if err != nil {
 			control.logger.Errorf("[server] failed to load TLS certificate: %v", err)
-			return nil, err
+			return err
 		}
 		tlsConfig.Certificates = []tls.Certificate{certificates}
 
@@ -257,11 +257,11 @@ func NewServerControl(control *Control) (*ServerControl, error) {
 			caCert, err := os.ReadFile(rootCaCertFile)
 			if err != nil {
 				control.logger.Errorf("[server] failed to read CA cert file: %v", err)
-				return nil, err
+				return err
 			}
 			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
 				control.logger.Errorf("[server] failed to append CA cert to pool")
-				return nil, ErrFailAppendCert
+				return ErrFailAppendCert
 			}
 			// 要求并验证客户端证书 - 双向TLS的关键设置
 			tlsConfig.ClientCAs = caCertPool
@@ -269,7 +269,7 @@ func NewServerControl(control *Control) (*ServerControl, error) {
 			control.logger.Debugf("[server] mutual TLS enabled with client certificate verification")
 		} else {
 			control.logger.Warnf("[server] CA cert file is not configured for mutual TLS")
-			return nil, ErrNoCACert
+			return ErrNoCACert
 		}
 
 		// 创建凭证
@@ -297,12 +297,13 @@ func NewServerControl(control *Control) (*ServerControl, error) {
 	}
 
 	pb.RegisterMessageServiceServer(gServer, messageServer)
-	return &ServerControl{
+	control.server = &ServerControl{
 		Config:  control.config.Server,
 		gServer: gServer,
 		mServer: messageServer,
 		logger:  control.logger,
-	}, nil
+	}
+	return nil
 }
 
 func (s *ServerControl) StartUp(failedFunc func(err error)) {

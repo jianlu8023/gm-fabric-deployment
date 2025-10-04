@@ -59,19 +59,15 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control
 		opt(control)
 	}
 
-	serverControl, err := NewServerControl(control)
-	if err != nil {
+	if err := NewServerControl(control); err != nil {
 		grpcLogger.Errorf("[control] new grpc server control err: %v", err)
 		return nil, err
 	}
-	control.server = serverControl
 
-	clientControl, err := NewClientControl(control)
-	if err != nil {
+	if err := NewClientControl(control); err != nil {
 		grpcLogger.Errorf("[control] new grpc client control err: %v", err)
 		return nil, err
 	}
-	control.client = clientControl
 
 	// if err = serverControl.StartUp(failedFunc); err != nil {
 	// 	grpcLogger.Errorf("grpc server start err: %v", err)

@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/bytedance/gopkg/util/logger"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
@@ -65,7 +64,7 @@ func (c *customCredential) RequireTransportSecurity() bool {
 	return false
 }
 
-func NewClientControl(control *Control) (*ClientControl, error) {
+func NewClientControl(control *Control) error {
 	control.logger.Infof("[client] start new grpc client control...")
 	var gClient *grpc.ClientConn
 	var err error
@@ -87,7 +86,7 @@ func NewClientControl(control *Control) (*ClientControl, error) {
 	}
 
 	if control.config.Client.TlsEnabled {
-		logger.Debugf("[client] generate tls client server...")
+		control.logger.Debugf("[client] generate tls client server...")
 
 		// var transportCredentials credentials.TransportCredentials
 		// transportCredentials, err = credentials.NewClientTLSFromFile(control.config.Client.TlsRCACertFile,
@@ -122,7 +121,7 @@ func NewClientControl(control *Control) (*ClientControl, error) {
 		certificates, err := tls.LoadX509KeyPair(control.config.Client.TlsCertFile, control.config.Client.TlsKeyFile)
 		if err != nil {
 			control.logger.Errorf("[client] failed to load client TLS certificate: %v", err)
-			return nil, err
+			return err
 		}
 		tlsConfig.Certificates = []tls.Certificate{certificates}
 
@@ -133,17 +132,17 @@ func NewClientControl(control *Control) (*ClientControl, error) {
 			caCert, err := os.ReadFile(rootCaCertFile)
 			if err != nil {
 				control.logger.Errorf("[client] failed to read CA cert file: %v", err)
-				return nil, err
+				return err
 			}
 			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
 				control.logger.Errorf("[client] failed to append CA cert to pool")
-				return nil, ErrFailAppendCert
+				return ErrFailAppendCert
 			}
 			tlsConfig.RootCAs = caCertPool
 			control.logger.Debugf("[client] mutual TLS enabled, server certificate will be verified")
 		} else {
 			control.logger.Warnf("[client] CA cert file is not configured for mutual TLS")
-			return nil, ErrNoCACert
+			return ErrNoCACert
 		}
 
 		// 创建凭证
@@ -155,28 +154,29 @@ func NewClientControl(control *Control) (*ClientControl, error) {
 		gClient, err = grpc.NewClient(control.config.Client.Host, opts...)
 		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
-			logger.Errorf("[client] generate tls client err: %v", err)
-			return nil, err
+			control.logger.Errorf("[client] generate tls client err: %v", err)
+			return err
 		}
 	} else {
-		logger.Debugf("[client] generate no tls client server...")
+		control.logger.Debugf("[client] generate no tls client server...")
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		gClient, err = grpc.NewClient(control.config.Client.Host, opts...)
 		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
-			logger.Errorf("[client] generate no tls client server err: %v", err)
-			return nil, err
+			control.logger.Errorf("[client] generate no tls client server err: %v", err)
+			return err
 		}
 	}
 	ctx := context.WithValue(context.Background(), "id", control.config.Client.Host)
 	mClient := pb.NewMessageServiceClient(gClient)
-	return &ClientControl{
+	control.client = &ClientControl{
 		config:  control.config.Client,
 		gClient: gClient,
 		mClient: mClient,
 		ctx:     ctx,
 		logger:  control.logger,
-	}, nil
+	}
+	return nil
 }
 
 func (c *ClientControl) Stop() error {
