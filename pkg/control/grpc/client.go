@@ -31,7 +31,7 @@ import (
 )
 
 type ClientControl struct {
-	Config  *config.GrpcClientConfig
+	config  *config.GrpcClientConfig
 	gClient *grpc.ClientConn
 	mClient pb.MessageServiceClient
 	ctx     context.Context
@@ -171,7 +171,7 @@ func NewClientControl(control *Control) (*ClientControl, error) {
 	ctx := context.WithValue(context.Background(), "id", control.config.Client.Host)
 	mClient := pb.NewMessageServiceClient(gClient)
 	return &ClientControl{
-		Config:  control.config.Client,
+		config:  control.config.Client,
 		gClient: gClient,
 		mClient: mClient,
 		ctx:     ctx,
@@ -183,7 +183,7 @@ func (c *ClientControl) Stop() error {
 	c.logger.Infof("[client] grpc client stop...")
 	_, _ = c.SendMessage(&pb.BaseRequest{
 		MessageType: BaseShutdown,
-		ClientId:    c.Config.Host,
+		ClientId:    c.config.Host,
 	})
 
 	defer func() {
@@ -202,10 +202,10 @@ func (c *ClientControl) SendMessage(req *pb.BaseRequest) (*pb.BaseResponse, erro
 
 func (c *ClientControl) SendMessageBidi(req *pb.BaseRequest, chunkSize int) (*pb.BaseResponse, error) {
 	if chunkSize <= 0 {
-		chunkSize = c.Config.ChunkSize
+		chunkSize = c.config.ChunkSize
 	}
 
-	ctx, cancel := context.WithTimeout(c.ctx, time.Duration(c.Config.CallTimeout)*time.Minute)
+	ctx, cancel := context.WithTimeout(c.ctx, time.Duration(c.config.CallTimeout)*time.Minute)
 	defer cancel()
 
 	stream, err := c.mClient.SendMessageBidi(ctx)

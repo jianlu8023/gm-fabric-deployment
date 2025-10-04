@@ -110,11 +110,11 @@ func (c *Control) ClientState() (bool, string) {
 	c.logger.Debugf("[control] check client state...")
 	resp, err := c.Call(&pb.BaseRequest{MessageType: BasePing})
 	if err != nil {
-		return false, fmt.Sprintf("%s: failed -> code:[nil], message:%s; ", c.client.Config.Host, err.Error())
+		return false, fmt.Sprintf("%s: failed -> code:[nil], message:%s; ", c.client.config.Host, err.Error())
 	}
 
 	if !resp.Success {
-		return false, fmt.Sprintf("%s: failed -> code:%d, message:%s; ", c.client.Config.Host, resp.ResponseCode, resp.ResponseMessage)
+		return false, fmt.Sprintf("%s: failed -> code:%d, message:%s; ", c.client.config.Host, resp.ResponseCode, resp.ResponseMessage)
 	}
 
 	return true, ""
