@@ -6,7 +6,6 @@ import (
 	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
 	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -28,9 +27,8 @@ import (
 // @property fabriccaControl *fabricca.Control Fabric CA控制器
 type UserService struct {
 	*Service
-	mapper          *mapper.UserMapper
-	sessionManager  jwt.SessionManager
-	fabriccaControl *fabricca.Control
+	mapper         *mapper.UserMapper
+	sessionManager jwt.SessionManager
 }
 
 // NewUserService 创建用户服务实例
@@ -41,13 +39,11 @@ type UserService struct {
 // @return *UserService 用户服务实例
 func NewUserService(baseService *Service, userMapper *mapper.UserMapper,
 	sessionManager jwt.SessionManager,
-	fabriccaControl *fabricca.Control,
 ) *UserService {
 	return &UserService{
-		Service:         baseService,
-		mapper:          userMapper,
-		sessionManager:  sessionManager,
-		fabriccaControl: fabriccaControl,
+		Service:        baseService,
+		mapper:         userMapper,
+		sessionManager: sessionManager,
 	}
 }
 
@@ -62,12 +58,6 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 	defer span.End()
 	s.logger.Debugf("received register user request: %v", req)
 
-	if s.fabriccaControl == nil {
-		s.logger.Errorf("fabricca is nil, register user disabled...")
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, "no available fabric ca server")
-		span.SetStatus(codes.Error, "no available fabric ca server")
-		return
-	}
 	// 验证用户是否存在
 	exist, err := s.mapper.QueryExistUser(model.UserInfo{
 		Email:    req.Email,
@@ -95,13 +85,6 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 	user.Email = req.Email
 	user.UserType = "normal"
 	user.UserId = uuid.GetUUID()
-
-	if err = s.fabriccaControl.RegisterUserAndGetCert(user); err != nil {
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "register user failed")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return
-	}
 
 	if err = s.mapper.InsertOneUser(user); err != nil {
 		s.logger.Errorf("register user failed: %v", err)
@@ -135,13 +118,6 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 	defer span.End()
 	s.logger.Debugf("received login user request: %v", req)
 
-	if s.fabriccaControl == nil {
-		s.logger.Errorf("fabricca is nil, login user disabled...")
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, "no available fabric ca server")
-		span.SetStatus(codes.Error, "no available fabric ca server")
-		return
-	}
-
 	// 调用mapper层验证用户凭据
 	user, err := s.mapper.QueryUserByUsernameAndPassword(req.Username, req.Password)
 	if err != nil {
@@ -154,14 +130,6 @@ func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.DatabaseError, commonhttp.ErrMsgDatabaseError)
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "query user failed")
-		return
-	}
-
-	if err = s.fabriccaControl.EnrollUser(user); err != nil {
-		s.logger.Errorf("from fabric ca enroll user failed: %v", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "fabric ca verify failed")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "fabric ca verify failed")
 		return
 	}
 

@@ -9,15 +9,17 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.uber.org/zap"
 )
 
 type Control struct {
-	server *ServerControl
-	client *ClientControl
-	config *config.GrpcConfig
-	logger *zap.SugaredLogger
-	once   sync.Once
+	server        *ServerControl
+	client        *ClientControl
+	config        *config.GrpcConfig
+	logger        *zap.SugaredLogger
+	once          sync.Once
+	tracerControl *tracer.Control
 }
 
 func (c *Control) StartUp(failedFunc func(err error)) {
@@ -36,7 +38,7 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
-func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control) (*Control, error) {
+func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control, opts ...Option) (*Control, error) {
 	if grpcConfig == nil {
 		grpcConfig = getDefaultConfig()
 	}
@@ -44,32 +46,39 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control
 		return nil, errors.New("grpc is not enabled")
 	}
 	grpcLogger := loggerControl.GenLogger(logger.ModuleGrpc)
+
 	grpcLogger.Infof("[control] starting new grpc control...")
-	serverControl, err := NewServerControl(grpcConfig.Server, grpcLogger)
+	control := &Control{
+		config: grpcConfig,
+		// server: serverControl,
+		// client: clientControl,
+		logger: grpcLogger,
+	}
+
+	for _, opt := range opts {
+		opt(control)
+	}
+
+	serverControl, err := NewServerControl(control)
 	if err != nil {
 		grpcLogger.Errorf("[control] new grpc server control err: %v", err)
 		return nil, err
 	}
+	control.server = serverControl
+
+	clientControl, err := NewClientControl(control)
+	if err != nil {
+		grpcLogger.Errorf("[control] new grpc client control err: %v", err)
+		return nil, err
+	}
+	control.client = clientControl
 
 	// if err = serverControl.StartUp(failedFunc); err != nil {
 	// 	grpcLogger.Errorf("grpc server start err: %v", err)
 	// 	return nil, err
 	// }
 
-	clientControl, err := NewClientControl(grpcConfig.Client, grpcLogger)
-	if err != nil {
-		grpcLogger.Errorf("[control] new grpc client control err: %v", err)
-		return nil, err
-	}
-
 	grpcLogger.Infof("[control] grpc control started...")
-	control := &Control{
-		config: grpcConfig,
-		server: serverControl,
-		client: clientControl,
-		logger: grpcLogger,
-	}
-
 	control.RegisterHandler(BaseShutdown, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error) {
 		control.logger.Debugf("[control] base/shutdown finish...")
 		return &pb.BaseResponse{

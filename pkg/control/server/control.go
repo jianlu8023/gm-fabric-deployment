@@ -9,7 +9,6 @@ import (
 
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
 	"github.com/jianlu8023/golang-example/pkg/control/authz"
-	"github.com/jianlu8023/golang-example/pkg/control/fabricca"
 	"github.com/jianlu8023/golang-example/pkg/control/ipfs"
 	"github.com/jianlu8023/golang-example/pkg/control/mfa"
 	"github.com/jianlu8023/golang-example/version"
@@ -43,7 +42,6 @@ type Control struct {
 	jobControl        *job.Control
 	captchaControl    *captcha.Control
 	antsControl       *ants.Control
-	fabricCAControl   *fabricca.Control
 	authzControl      *authz.Control
 	ipfsControl       *ipfs.Control
 	mfaControl        *mfa.Control
@@ -158,17 +156,6 @@ func NewServerControlFromFile() (*Control, error) {
 	if dockerConfig != nil && dockerConfig.Enabled {
 		dockerControl := docker.NewDockerControl(dockerConfig, control.GetLoggerControl())
 		control.dockerControl = dockerControl
-
-		// 创建fabricca控制器
-		fabricCAConfig := configControl.GetFabricCAConfig()
-		if fabricCAConfig != nil {
-			fabricCAControl, err := fabricca.NewFabricCAControl(fabricCAConfig, control.GetLoggerControl(), control.GetDockerControl())
-			if err != nil {
-				control.logger.Errorf("[control] create fabricca control failed: %v", err)
-				return nil, err
-			}
-			control.fabricCAControl = fabricCAControl
-		}
 
 	}
 
@@ -324,12 +311,6 @@ func (c *Control) GetAntsPoolControl() *ants.Control {
 	return c.antsControl
 }
 
-func (c *Control) GetFabricCAControl() *fabricca.Control {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	return c.fabricCAControl
-}
-
 // GetAuthzControl 获取权限控制器
 // @return *authz.Control 权限控制器实例
 func (c *Control) GetAuthzControl() *authz.Control {
@@ -380,7 +361,7 @@ func NewServerControl(dockerControl *docker.Control,
 	flagsControl *flags.Control,
 	captchaControl *captcha.Control,
 	antsControl *ants.Control,
-	fabricCAControl *fabricca.Control,
+
 	authzControl *authz.Control,
 	ipfsControl *ipfs.Control,
 	mfaControl *mfa.Control,
@@ -402,11 +383,11 @@ func NewServerControl(dockerControl *docker.Control,
 		flagsControl:      flagsControl,
 		captchaControl:    captchaControl,
 		antsControl:       antsControl,
-		fabricCAControl:   fabricCAControl,
-		authzControl:      authzControl,
-		ipfsControl:       ipfsControl,
-		mfaControl:        mfaControl,
-		tracerControl:     tracerControl,
+
+		authzControl:  authzControl,
+		ipfsControl:   ipfsControl,
+		mfaControl:    mfaControl,
+		tracerControl: tracerControl,
 	}
 }
 
@@ -457,11 +438,6 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.dockerControl != nil {
 			c.logger.Debugf("[control] starting up docker server...")
 			c.dockerControl.StartUp(failedFunc)
-		}
-
-		if c.fabricCAControl != nil {
-			c.logger.Debugf("[control] starting up fabric ca server...")
-			c.fabricCAControl.StartUp(failedFunc)
 		}
 
 		if c.antsControl != nil {
@@ -571,14 +547,6 @@ func (c *Control) Shutdown() error {
 	if c.ipfsControl != nil {
 		c.logger.Debugf("[control] shutting down ipfs server...")
 		_ = c.ipfsControl.Shutdown()
-	}
-
-	if c.fabricCAControl != nil {
-		c.logger.Debugf("[control] shutting down fabric ca server...")
-		if err := c.fabricCAControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown fabric ca server err: %v", err)
-			return err
-		}
 	}
 
 	if c.dockerControl != nil {

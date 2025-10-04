@@ -11,13 +11,15 @@ import (
 	"net"
 	"os"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
-	// "google.golang.org/grpc"
-	// "google.golang.org/grpc/credentials"
-	"github.com/hxx258456/ccgo/grpc"
-	"github.com/hxx258456/ccgo/grpc/credentials"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	// "github.com/hxx258456/ccgo/grpc"
+	// "github.com/hxx258456/ccgo/grpc/credentials"
 	// "gitee.com/zhaochuninhefei/gmgo/grpc"
 	// "gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 )
@@ -225,21 +227,72 @@ func genServerTlsConfig(serverConfig *config.GrpcServerConfig) (*tls.Config, err
 	}, nil
 }
 
-func NewServerControl(serverConfig *config.GrpcServerConfig, logger *zap.SugaredLogger) (*ServerControl, error) {
-	logger.Infof("[server] start new server control...")
+func NewServerControl(control *Control) (*ServerControl, error) {
+	control.logger.Infof("[server] start new server control...")
 	var gServer *grpc.Server
 	opts := []grpc.ServerOption{
-		grpc.MaxRecvMsgSize(serverConfig.MaxRecvMsgSize),
-		grpc.MaxSendMsgSize(serverConfig.MaxSendMsgSize),
+		grpc.MaxRecvMsgSize(control.config.Server.MaxRecvMsgSize),
+		grpc.MaxSendMsgSize(control.config.Server.MaxSendMsgSize),
 	}
-	if serverConfig.TlsEnabled {
-		logger.Debugf("[server] generate tls grpc server...")
+	if control.tracerControl != nil {
+		control.logger.Debugf("[server] starting server with tracer...")
+		opts = append(opts, grpc.StatsHandler(
+			otelgrpc.NewServerHandler(
+				otelgrpc.WithTracerProvider(control.tracerControl.GetProvider()),
+			),
+		))
+	}
+	if control.config.Server.TlsEnabled {
+		control.logger.Debugf("[server] generate tls grpc server...")
 
-		transportCredentials, err := credentials.NewServerTLSFromFile(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
-		if err != nil {
-			logger.Errorf("[server] generate transportCredentials err: %v", err)
-			return nil, err
+		tlsConfig := &tls.Config{
+			MinVersion: tls.VersionTLS12, // 设置最低TLS版本
+			MaxVersion: tls.VersionTLS13, // 设置最高TLS版本
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_AES_128_GCM_SHA256,       // secure 1.3
+				tls.TLS_AES_256_GCM_SHA384,       // secure 1.3
+				tls.TLS_CHACHA20_POLY1305_SHA256, // secure 1.3
+			},
+			CurvePreferences: []tls.CurveID{
+				tls.CurveP256, tls.X25519,
+			},
+			// PreferServerCipherSuites: true,  // 优先使用服务端加密套件
+			SessionTicketsDisabled: false, // 启用会话票据
+			NextProtos:             []string{"h2", "http/1.1"},
 		}
+		certificates, err := tls.LoadX509KeyPair(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
+		if err != nil {
+			control.logger.Errorf("[server] failed to load TLS certificate: %v", err)
+			return nil, err
+		} else {
+			tlsConfig.Certificates = []tls.Certificate{certificates}
+		}
+		// 如果配置了根证书，则启用客户端证书验证
+		rootCaCertFile := control.config.Server.TlsRCACertFile
+		if !stringer.IsBlank(rootCaCertFile) {
+			caCertPool := x509.NewCertPool()
+			caCert, err := os.ReadFile(rootCaCertFile)
+			if err == nil {
+				if ok := caCertPool.AppendCertsFromPEM(caCert); ok {
+					tlsConfig.ClientCAs = caCertPool
+					tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven // 根据需要验证客户端证书
+					control.logger.Debugf("[server] client certificate verification enabled with CA cert: %s", rootCaCertFile)
+				}
+			} else {
+				control.logger.Warnf("[server] failed to read CA cert file: %v", err)
+			}
+		}
+		transportCredentials := credentials.NewTLS(tlsConfig)
+
+		// transportCredentials, err := credentials.NewServerTLSFromFile(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
+		// if err != nil {
+		// 	control.logger.Errorf("[server] generate transportCredentials err: %v", err)
+		// 	return nil, err
+		// }
 		opts = append(opts, grpc.Creds(transportCredentials))
 
 		// serverTlsConfig, err := genServerTlsConfig(serverConfig)
@@ -252,7 +305,7 @@ func NewServerControl(serverConfig *config.GrpcServerConfig, logger *zap.Sugared
 
 		gServer = grpc.NewServer(opts...)
 	} else {
-		logger.Debugf("[server] generate no tls grpc server...")
+		control.logger.Debugf("[server] generate no tls grpc server...")
 		gServer = grpc.NewServer(opts...)
 	}
 
@@ -260,16 +313,16 @@ func NewServerControl(serverConfig *config.GrpcServerConfig, logger *zap.Sugared
 		handler: &MessageHandler{
 			handlerMap: make(map[string]func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)),
 		},
-		serverConfig: serverConfig,
-		logger:       logger,
+		serverConfig: control.config.Server,
+		logger:       control.logger,
 	}
 
 	pb.RegisterMessageServiceServer(gServer, messageServer)
 	return &ServerControl{
-		Config:  serverConfig,
+		Config:  control.config.Server,
 		gServer: gServer,
 		mServer: messageServer,
-		logger:  logger,
+		logger:  control.logger,
 	}, nil
 }
 

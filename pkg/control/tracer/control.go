@@ -14,6 +14,8 @@ import (
 	"github.com/jianlu8023/golang-example/version"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/metric"
 
 	//	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -141,17 +143,17 @@ func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
 			}
 			switch protocol {
 			case "http/protobuf":
-				// exporter, err := otlptracehttp.New(c.ctx)
-				// if err != nil {
-				// 	return nil, fmt.Errorf("building OTLP HTTP exporter: %w", err)
-				// }
-				// exporters = append(exporters, exporter)
+				exporter, err := otlptracehttp.New(c.ctx)
+				if err != nil {
+					return nil, fmt.Errorf("building OTLP HTTP exporter: %w", err)
+				}
+				exporters = append(exporters, exporter)
 			case "grpc":
-				// exporter, err := otlptracegrpc.New(c.ctx)
-				// if err != nil {
-				// 	return nil, fmt.Errorf("building OTLP gRPC exporter: %w", err)
-				// }
-				// exporters = append(exporters, exporter)
+				exporter, err := otlptracegrpc.New(c.ctx)
+				if err != nil {
+					return nil, fmt.Errorf("building OTLP gRPC exporter: %w", err)
+				}
+				exporters = append(exporters, exporter)
 			default:
 				return nil, fmt.Errorf("unknown or unsupported OTLP exporter '%s'", exporterStr)
 			}

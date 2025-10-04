@@ -11,18 +11,20 @@ import (
 	"os"
 	"time"
 
+	"github.com/bytedance/gopkg/util/logger"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
-	// "google.golang.org/grpc"
-	// "google.golang.org/grpc/credentials"
-	// "google.golang.org/grpc/credentials/insecure"
-	// "google.golang.org/grpc/peer"
-
-	"github.com/hxx258456/ccgo/grpc"
-	"github.com/hxx258456/ccgo/grpc/credentials"
-	"github.com/hxx258456/ccgo/grpc/credentials/insecure"
-	"github.com/hxx258456/ccgo/grpc/peer"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/peer"
+	// "github.com/hxx258456/ccgo/grpc"
+	// "github.com/hxx258456/ccgo/grpc/credentials"
+	// "github.com/hxx258456/ccgo/grpc/credentials/insecure"
+	// "github.com/hxx258456/ccgo/grpc/peer"
 	// "gitee.com/zhaochuninhefei/gmgo/grpc"
 	// "gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 	// "gitee.com/zhaochuninhefei/gmgo/grpc/credentials/insecure"
@@ -86,26 +88,82 @@ func genClientTlsConfig(clientConfig *config.GrpcClientConfig) (*tls.Config, err
 	}, nil
 }
 
-func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.SugaredLogger) (*ClientControl, error) {
-	logger.Infof("[client] start new grpc client control...")
+func NewClientControl(control *Control) (*ClientControl, error) {
+	control.logger.Infof("[client] start new grpc client control...")
 	var gClient *grpc.ClientConn
 	var err error
 
 	opts := []grpc.DialOption{
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(clientConfig.MaxCallRecvMsgSize)),
-		grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(clientConfig.MaxCallSendMsgSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(control.config.Client.MaxCallRecvMsgSize)),
+		grpc.WithDefaultCallOptions(grpc.MaxCallSendMsgSize(control.config.Client.MaxCallSendMsgSize)),
 	}
 
-	if clientConfig.TlsEnabled {
+	if control.tracerControl != nil {
+		control.logger.Debugf("[client] starting client with tracer...")
+		opts = append(opts,
+			grpc.WithStatsHandler(
+				otelgrpc.NewClientHandler(
+					otelgrpc.WithTracerProvider(control.tracerControl.GetProvider()),
+				),
+			),
+		)
+	}
+
+	if control.config.Client.TlsEnabled {
 		logger.Debugf("[client] generate tls client server...")
 
-		var transportCredentials credentials.TransportCredentials
-		transportCredentials, err = credentials.NewClientTLSFromFile(clientConfig.TlsRCACertFile,
-			"grpc")
-		if err != nil {
-			logger.Errorf("[client] generate transportCredentials err: %v", err)
-			return nil, err
+		// var transportCredentials credentials.TransportCredentials
+		// transportCredentials, err = credentials.NewClientTLSFromFile(control.config.Client.TlsRCACertFile,
+		// 	"grpc")
+		// if err != nil {
+		// 	logger.Errorf("[client] generate transportCredentials err: %v", err)
+		// 	return nil, err
+		// }
+
+		tlsConfig := &tls.Config{
+			MinVersion: tls.VersionTLS12, // 设置最低TLS版本
+			MaxVersion: tls.VersionTLS13, // 设置最高TLS版本
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_AES_128_GCM_SHA256,       // secure 1.3
+				tls.TLS_AES_256_GCM_SHA384,       // secure 1.3
+				tls.TLS_CHACHA20_POLY1305_SHA256, // secure 1.3
+			},
+			CurvePreferences: []tls.CurveID{
+				tls.CurveP256, tls.X25519,
+			},
+			// PreferServerCipherSuites: true,  // 优先使用服务端加密套件
+			SessionTicketsDisabled: false, // 启用会话票据
+			NextProtos:             []string{"h2", "http/1.1"},
+			ServerName:             "grpc",
 		}
+		certificates, err := tls.LoadX509KeyPair(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
+		if err != nil {
+			control.logger.Errorf("[client] failed to load TLS certificate: %v", err)
+			return nil, err
+		} else {
+			tlsConfig.Certificates = []tls.Certificate{certificates}
+		}
+		// 如果配置了根证书，则启用客户端证书验证
+		rootCaCertFile := control.config.Server.TlsRCACertFile
+		if !stringer.IsBlank(rootCaCertFile) {
+			caCertPool := x509.NewCertPool()
+			caCert, err := os.ReadFile(rootCaCertFile)
+			if err == nil {
+				if ok := caCertPool.AppendCertsFromPEM(caCert); ok {
+					tlsConfig.ClientCAs = caCertPool
+					tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven // 根据需要验证客户端证书
+					control.logger.Debugf("[client] client certificate verification enabled with CA cert: %s", rootCaCertFile)
+				}
+			} else {
+				control.logger.Warnf("[client] failed to read CA cert file: %v", err)
+			}
+		}
+		transportCredentials := credentials.NewTLS(tlsConfig)
+
 		opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 		// opts = append(opts, grpc.WithPerRPCCredentials(new(customCredential)))
 
@@ -117,8 +175,8 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 		// transportCredentials := credentials.NewTLS(clientTlsConfig)
 		// opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
 
-		// gClient, err = grpc.NewClient(clientConfig.Host, opts...)
-		gClient, err = grpc.Dial(clientConfig.Host, opts...)
+		gClient, err = grpc.NewClient(control.config.Client.Host, opts...)
+		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
 			logger.Errorf("[client] generate tls client err: %v", err)
 			return nil, err
@@ -126,21 +184,21 @@ func NewClientControl(clientConfig *config.GrpcClientConfig, logger *zap.Sugared
 	} else {
 		logger.Debugf("[client] generate no tls client server...")
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		// gClient, err = grpc.NewClient(clientConfig.Host, opts...)
-		gClient, err = grpc.Dial(clientConfig.Host, opts...)
+		gClient, err = grpc.NewClient(control.config.Client.Host, opts...)
+		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
 			logger.Errorf("[client] generate no tls client server err: %v", err)
 			return nil, err
 		}
 	}
-	ctx := context.WithValue(context.Background(), "id", clientConfig.Host)
+	ctx := context.WithValue(context.Background(), "id", control.config.Client.Host)
 	mClient := pb.NewMessageServiceClient(gClient)
 	return &ClientControl{
-		Config:  clientConfig,
+		Config:  control.config.Client,
 		gClient: gClient,
 		mClient: mClient,
 		ctx:     ctx,
-		logger:  logger,
+		logger:  control.logger,
 	}, nil
 }
 
