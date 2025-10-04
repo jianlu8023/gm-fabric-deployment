@@ -12,6 +12,8 @@ replace (
 	github.com/gin-contrib/gzip => github.com/gin-contrib/gzip v1.2.2
 	github.com/gin-contrib/requestid => github.com/gin-contrib/requestid v1.0.4
 	github.com/gin-contrib/sse => github.com/gin-contrib/sse v1.0.0
+	github.com/go-logr/logr => github.com/go-logr/logr v1.4.3
+	github.com/go-logr/zapr => github.com/go-logr/zapr v1.3.0
 	github.com/go-ozzo/ozzo-validation/v4 => github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-playground/validator/v10 => github.com/go-playground/validator/v10 v10.24.0
 	github.com/golang-jwt/jwt/v5 => github.com/golang-jwt/jwt/v5 v5.3.0
@@ -68,6 +70,8 @@ require (
 	github.com/gin-contrib/sse v1.0.0
 	github.com/gin-gonic/gin v1.10.1
 	github.com/glebarez/sqlite v1.11.0
+	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/zapr v1.3.0 // logr 使用zapr
 	github.com/go-playground/validator/v10 v10.25.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/websocket v1.5.3
@@ -174,6 +178,9 @@ require (
 	// github.com/fsnotify/fsnotify v1.9.0 // 监听文件变化
 	// github.com/mitchellh/go-homedir v1.1.0 // 获取home目录 为什么不适用os/user(需要cgo交叉编译)
 	// github.com/gocolly/colly/v2 v2.1.0 // 爬虫
+	// github.com/go-logr/stdr 1.2.2 // logr 使用stdr
+	// github.com/go-logr/zerologr v1.2.3 // logr 使用zerologr
+	// github.com/go-logr/glogr v1.2.2
 	gorm.io/gorm v1.30.0
 	gorm.io/plugin/opentelemetry v0.1.16
 )
@@ -217,7 +224,6 @@ require (
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

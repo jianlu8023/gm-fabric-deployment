@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -60,6 +61,7 @@ type Control struct {
 	config         *config.TracerConfig
 	once           sync.Once
 	ctx            context.Context
+	traceLogger    logr.Logger
 	providerMutex  sync.RWMutex
 	tracerProvider shutdownTracerProvider
 	traceApi       traceapi.Tracer
@@ -90,9 +92,10 @@ func NewTracerControl(tracerConfig *config.TracerConfig, loggerControl *logger.C
 	}
 
 	control := &Control{
-		logger: tracerLogger,
-		config: tracerConfig,
-		ctx:    ctx,
+		logger:      tracerLogger,
+		config:      tracerConfig,
+		ctx:         ctx,
+		traceLogger: newTracerCustomLogger(loggerControl.GetConfig(), tracerConfig.LogInConsole),
 	}
 	if err := control.setProvider(); err != nil {
 		control.logger.Errorf("[control] set provider failed: %v", err)
@@ -260,6 +263,7 @@ func (c *Control) setProvider() error {
 		c.logger.Errorf("[control] new tracerProvider failed: %v", err)
 		return err
 	}
+	otel.SetLogger(c.traceLogger)
 	c.providerMutex.RLock()
 	otel.SetTracerProvider(c.tracerProvider)
 	c.traceApi = c.tracerProvider.Tracer(

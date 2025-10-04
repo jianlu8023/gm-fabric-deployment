@@ -560,6 +560,7 @@ type TracerConfig struct {
 	ExporterZipkinEndpoint string `json:"exporter_zipkin_endpoint,omitempty" yaml:"exporter_zipkin_endpoint,omitempty" mapstructure:"exporter_zipkin_endpoint"` // Zipkin端点
 	ExporterOTELEndpoint   string `json:"exporter_otel_endpoint,omitempty" yaml:"exporter_otel_endpoint,omitempty" mapstructure:"exporter_otel_endpoint"`       // OTEL端点
 	ExporterOTELProtocol   string `json:"exporter_otel_protocol,omitempty" yaml:"exporter_otel_protocol,omitempty" mapstructure:"exporter_otel_protocol"`       // OTEL协议
+	LogInConsole           bool   `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`                               // 是否在控制台打印日志
 }
 
 // Config 配置

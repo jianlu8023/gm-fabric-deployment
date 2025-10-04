@@ -85,3 +85,24 @@ ants_pool:
   pre_alloc: true
   # 是否非阻塞模式
   nonblocking: true
+mfa:
+  enabled: true
+  # google microsoft
+  default_provider: "google"
+  google:
+    issuer: "golang-example"
+  microsoft:
+    tenant_id: ""
+    client_id: ""
+    client_secret: ""
+tracer:
+  enabled: true
+  exporter_service_name: "golang-example"
+  exporter_file_path: "tracer.json"
+  exporter_otel_insecure: true
+  # file otlp stdout none  zipkin
+  traces_exporter: "file,none,otlp,"
+  exporter_zipkin_endpoint: ""
+  exporter_otel_endpoint: "http://127.0.0.1:4317"
+  exporter_otel_protocol: "grpc"
+  log_in_console: true
