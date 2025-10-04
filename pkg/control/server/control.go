@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -49,6 +50,7 @@ type Control struct {
 	logger            *zap.SugaredLogger
 	once              sync.Once
 	mutex             sync.RWMutex
+	ctx               context.Context
 }
 
 // NewServerControlFromFile 从配置文件创建服务器控制器
@@ -58,6 +60,7 @@ func NewServerControlFromFile() (*Control, error) {
 	control := new(Control)
 	// control.mutex.Lock()
 	// defer control.mutex.Unlock()
+	control.ctx = context.Background()
 
 	flagsControl := flags.NewFlagsControl(version.Version)
 	control.flagsControl = flagsControl
@@ -74,9 +77,9 @@ func NewServerControlFromFile() (*Control, error) {
 	})
 
 	// 检查Logger配置
-	if configControl.GetLoggerConfig() == nil {
-		return nil, fmt.Errorf("not found logger config")
-	}
+	// if configControl.GetLoggerConfig() == nil {
+	// 	return nil, fmt.Errorf("not found logger config")
+	// }
 
 	// 创建Logger控制器
 	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
@@ -85,7 +88,7 @@ func NewServerControlFromFile() (*Control, error) {
 
 	tracerConfig := configControl.GetTracerConfig()
 	if tracerConfig != nil && tracerConfig.Enabled {
-		tracerControl, err := tracer.NewTracerControl(tracerConfig, control.GetLoggerControl(), nil)
+		tracerControl, err := tracer.NewTracerControl(tracerConfig, control.GetLoggerControl(), control.ctx)
 		if err != nil {
 			control.logger.Errorf("[control] create tracer control failed: %v", err)
 			return nil, err
@@ -96,12 +99,22 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建GRPC控制器
 	grpcConfig := configControl.GetGrpcConfig()
 	if grpcConfig != nil && grpcConfig.Enabled {
-		grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl())
-		if err != nil {
-			control.logger.Errorf("[control] create grpc control failed: %v", err)
-			return nil, err
+		if control.tracerControl != nil {
+			grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl(), grpc.WithTracer(control.GetTracerControl()))
+			if err != nil {
+				control.logger.Errorf("[control] create grpc control failed: %v", err)
+				return nil, err
+			}
+			control.grpcControl = grpcControl
+		} else {
+			grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl())
+			if err != nil {
+				control.logger.Errorf("[control] create grpc control failed: %v", err)
+				return nil, err
+			}
+			control.grpcControl = grpcControl
 		}
-		control.grpcControl = grpcControl
+
 	}
 
 	// 检查并创建Libp2p控制器
