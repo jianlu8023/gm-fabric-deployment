@@ -6,6 +6,7 @@ import (
 	"fmt"
 	//	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	// "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -159,8 +160,27 @@ func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
 					opts = append(opts, otlptracehttp.WithInsecure())
 				}
 				if !stringer.IsBlank(c.config.ExporterOTELEndpoint) {
-					opts = append(opts, otlptracehttp.WithEndpoint(c.config.ExporterOTELEndpoint))
-					// opts = append(opts, otlptracehttp.WithEndpointURL(c.config.ExporterOTELEndpoint))
+					endpoint := c.config.ExporterOTELEndpoint
+
+					parsedURL, err := url.Parse(endpoint)
+					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
+						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
+						// 有schema
+						c.logger.Debugf("[control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
+						// 检查是否有path，如果没有则添加/v1/traces
+						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
+							if parsedURL.Path == "/" {
+								endpoint = endpoint + "v1/traces"
+							} else {
+								endpoint = endpoint + "/v1/traces"
+							}
+						}
+						opts = append(opts, otlptracehttp.WithEndpointURL(endpoint))
+					} else {
+						// 没有schema
+						c.logger.Debugf("[control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
+						opts = append(opts, otlptracehttp.WithEndpoint(endpoint))
+					}
 				}
 				exporter, err := otlptracehttp.New(c.ctx, opts...)
 				if err != nil {
@@ -181,7 +201,27 @@ func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
 					opts = append(opts, otlptracegrpc.WithInsecure())
 				}
 				if !stringer.IsBlank(c.config.ExporterOTELEndpoint) {
-					opts = append(opts, otlptracegrpc.WithEndpoint(c.config.ExporterOTELEndpoint))
+					endpoint := c.config.ExporterOTELEndpoint
+					// 直接使用url.Parse解析
+					parsedURL, err := url.Parse(endpoint)
+					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
+						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
+						// 有schema
+						c.logger.Debugf("[control] grpc protocol endpoint (with scheme): %v", endpoint)
+						// 检查是否有path，如果没有则添加/v1/traces
+						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
+							if parsedURL.Path == "/" {
+								endpoint = endpoint + "v1/traces"
+							} else {
+								endpoint = endpoint + "/v1/traces"
+							}
+						}
+						opts = append(opts, otlptracegrpc.WithEndpointURL(endpoint))
+					} else {
+						// 没有schema
+						c.logger.Debugf("[control] grpc protocol endpoint (without scheme): %v", endpoint)
+						opts = append(opts, otlptracegrpc.WithEndpoint(endpoint))
+					}
 				}
 				exporter, err := otlptracegrpc.New(c.ctx, opts...)
 				if err != nil {
