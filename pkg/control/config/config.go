@@ -551,16 +551,41 @@ func (m *MFAConfig) String() string {
 	return string(pretty)
 }
 
+// TracerConfig OTEL追踪配置
+// @description 统一管理OpenTelemetry的tracer、logger和meter配置
+// @type struct
+// @field Enabled bool 是否启用OTEL
+// @field ServiceName string 服务名称
+// @field LogInConsole bool 是否在控制台打印日志
+// 以下是tracer相关配置
+// TracerConfig OTEL追踪配置
+// @description 统一管理OpenTelemetry的tracer、logger和meter配置
 type TracerConfig struct {
-	Enabled                bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                                    // 是否启用
-	ExporterServiceName    string `json:"exporter_service_name,omitempty" yaml:"exporter_service_name,omitempty" mapstructure:"exporter_service_name"`          // OTEL服务名称
-	ExporterFilePath       string `json:"exporter_file_path,omitempty" yaml:"exporter_file_path,omitempty" mapstructure:"exporter_file_path"`                   // OTEL文件路径
-	ExporterOTELInsecure   bool   `json:"exporter_otel_insecure,omitempty" yaml:"exporter_otel_insecure,omitempty" mapstructure:"exporter_otel_insecure"`       // OTEL是否不安全
-	TracesExporter         string `json:"traces_exporter,omitempty" yaml:"traces_exporter,omitempty" mapstructure:"traces_exporter"`                            // 类型 otel,file
-	ExporterZipkinEndpoint string `json:"exporter_zipkin_endpoint,omitempty" yaml:"exporter_zipkin_endpoint,omitempty" mapstructure:"exporter_zipkin_endpoint"` // Zipkin端点
-	ExporterOTELEndpoint   string `json:"exporter_otel_endpoint,omitempty" yaml:"exporter_otel_endpoint,omitempty" mapstructure:"exporter_otel_endpoint"`       // OTEL端点
-	ExporterOTELProtocol   string `json:"exporter_otel_protocol,omitempty" yaml:"exporter_otel_protocol,omitempty" mapstructure:"exporter_otel_protocol"`       // OTEL协议
-	LogInConsole           bool   `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`                               // 是否在控制台打印日志
+	Enabled      bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用
+	ServiceName  string `json:"service_name,omitempty" yaml:"service_name,omitempty" mapstructure:"service_name"`       // 服务名称
+	LogInConsole bool   `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"` // 是否在控制台打印日志
+	Tracer       struct {
+		Exporters      string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
+		OTELProtocol   string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
+		OTELEndpoint   string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
+		OTELInsecure   bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
+		ZipkinEndpoint string `json:"zipkin_endpoint,omitempty" yaml:"zipkin_endpoint,omitempty" mapstructure:"zipkin_endpoint"`
+		FilePath       string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
+	} `json:"tracer,omitempty" yaml:"tracer,omitempty" mapstructure:"tracer"` // Tracer配置
+	Logger struct {
+		Exporters    string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
+		OTELProtocol string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
+		OTELEndpoint string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
+		OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
+		FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
+	} `json:"logger,omitempty" yaml:"logger,omitempty" mapstructure:"logger"` // Logger配置
+	Meter struct {
+		Exporters    string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
+		OTELProtocol string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
+		OTELEndpoint string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
+		OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
+		FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
+	} `json:"meter,omitempty" yaml:"meter,omitempty" mapstructure:"meter"` // Meter配置
 }
 
 // Config 配置

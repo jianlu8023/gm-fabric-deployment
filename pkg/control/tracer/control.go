@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	//	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	// "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -21,6 +19,10 @@ import (
 	"github.com/jianlu8023/golang-example/version"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
@@ -31,6 +33,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/exemplar"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
+
 	// semconv "go.opentelemetry.io/otel/semconv/v1.5.0"
 	// semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	traceapi "go.opentelemetry.io/otel/trace"
@@ -165,16 +168,16 @@ func (c *Control) MeterProvider() shutdownMeterProvider {
 
 func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 	var exporters []sdktrace.SpanExporter
-	for _, exporterStr := range strings.Split(c.config.TracesExporter, ",") {
+	for _, exporterStr := range strings.Split(c.config.Tracer.Exporters, ",") {
 		exporterStr = strings.TrimSpace(exporterStr)
 		switch exporterStr {
-		case "otlp":
-			protocol := "http/protobuf"
-			if !stringer.IsBlank(c.config.ExporterOTELProtocol) {
-				protocol = c.config.ExporterOTELProtocol
+		case ExporterOtlp:
+			protocol := ExporterOtlpProtocolHttp
+			if !stringer.IsBlank(c.config.Tracer.OTELProtocol) {
+				protocol = c.config.Tracer.OTELProtocol
 			}
 			switch protocol {
-			case "http/protobuf":
+			case ExporterOtlpProtocolHttp:
 				opts := []otlptracehttp.Option{
 					otlptracehttp.WithCompression(otlptracehttp.GzipCompression),
 					otlptracehttp.WithTimeout(10 * time.Second),
@@ -185,11 +188,11 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 						MaxElapsedTime:  5 * time.Minute,
 					}),
 				}
-				if c.config.ExporterOTELInsecure {
+				if c.config.Tracer.OTELInsecure {
 					opts = append(opts, otlptracehttp.WithInsecure())
 				}
-				if !stringer.IsBlank(c.config.ExporterOTELEndpoint) {
-					endpoint := c.config.ExporterOTELEndpoint
+				if !stringer.IsBlank(c.config.Tracer.OTELEndpoint) {
+					endpoint := c.config.Tracer.OTELEndpoint
 
 					parsedURL, err := url.Parse(endpoint)
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
@@ -216,7 +219,7 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 					return nil, fmt.Errorf("building OTLP HTTP exporter: %w", err)
 				}
 				exporters = append(exporters, exporter)
-			case "grpc":
+			case ExporterOtlpProtocolGrpc:
 				opts := []otlptracegrpc.Option{
 					otlptracegrpc.WithCompressor("gzip"),
 					otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{
@@ -226,11 +229,11 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 						MaxElapsedTime:  5 * time.Minute,
 					}),
 				}
-				if c.config.ExporterOTELInsecure {
+				if c.config.Tracer.OTELInsecure {
 					opts = append(opts, otlptracegrpc.WithInsecure())
 				}
-				if !stringer.IsBlank(c.config.ExporterOTELEndpoint) {
-					endpoint := c.config.ExporterOTELEndpoint
+				if !stringer.IsBlank(c.config.Tracer.OTELEndpoint) {
+					endpoint := c.config.Tracer.OTELEndpoint
 					// 直接使用url.Parse解析
 					parsedURL, err := url.Parse(endpoint)
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
@@ -260,32 +263,32 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 			default:
 				return nil, fmt.Errorf("unknown or unsupported OTLP exporter '%s'", exporterStr)
 			}
-		case "zipkin":
+		case ExporterZipkin:
 			var opts []zipkin.Option
 			opts = append(opts, zipkin.WithLogr(c.traceLogger))
-			exporter, err := zipkin.New(c.config.ExporterZipkinEndpoint, opts...)
+			exporter, err := zipkin.New(c.config.Tracer.ZipkinEndpoint, opts...)
 			if err != nil {
 				return nil, fmt.Errorf("building Zipkin exporter: %w", err)
 			}
 			exporters = append(exporters, exporter)
-		case "file":
-			if stringer.IsBlank(c.config.ExporterFilePath) {
+		case ExporterFile:
+			if stringer.IsBlank(c.config.Tracer.FilePath) {
 				wd, err := path.GetWorkDir()
 				if err != nil {
 					return nil, fmt.Errorf("finding working directory for the OpenTelemetry file exporter: %w", err)
 				}
-				c.config.ExporterFilePath = filepath.Join(wd, "traces.json")
+				c.config.Tracer.FilePath = filepath.Join(wd, "traces.json")
 			}
-			exporter, err := newFileTraceExporter(c.config.ExporterFilePath)
+			exporter, err := newFileTraceExporter(c.config.Tracer.FilePath)
 			if err != nil {
 				return nil, err
 			}
 			exporters = append(exporters, exporter)
-		case "none":
+		case ExporterNone:
 			continue
-		case "":
+		case ExporterBlack:
 			continue
-		case "stdout":
+		case ExporterStdout:
 			exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
 			if err != nil {
 				return nil, err
@@ -301,32 +304,120 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 
 func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
 	var exporters []sdklog.Exporter
-	for _, exporterStr := range strings.Split(c.config.TracesExporter, ",") {
+	for _, exporterStr := range strings.Split(c.config.Logger.Exporters, ",") {
 		exporterStr = strings.TrimSpace(exporterStr)
 		switch exporterStr {
-		case "file":
-			var filePath string
-			if stringer.IsBlank(c.config.ExporterFilePath) {
-				wd, err := path.GetWorkDir()
-				if err != nil {
-					return nil, fmt.Errorf("finding working directory for the OpenTelemetry file exporter: %w", err)
-				}
-				filePath = filepath.Join(wd, "logger.json")
-			} else {
-				dir := filepath.Dir(c.config.ExporterFilePath)
-				filePath = filepath.Clean(filepath.Join(dir, "logger.json"))
+		case ExporterOtlp:
+			protocol := ExporterOtlpProtocolHttp
+			if !stringer.IsBlank(c.config.Logger.OTELProtocol) {
+				protocol = c.config.Logger.OTELProtocol
 			}
-			exporter, err := newFileLoggerExporter(filePath)
+			switch protocol {
+			case ExporterOtlpProtocolHttp:
+				opts := []otlploghttp.Option{
+					otlploghttp.WithCompression(otlploghttp.GzipCompression),
+					otlploghttp.WithTimeout(10 * time.Second),
+					otlploghttp.WithRetry(otlploghttp.RetryConfig{
+						Enabled:         true,
+						InitialInterval: 10 * time.Second,
+						MaxInterval:     10 * time.Second,
+						MaxElapsedTime:  5 * time.Minute,
+					}),
+				}
+				if c.config.Logger.OTELInsecure {
+					opts = append(opts, otlploghttp.WithInsecure())
+				}
+				if !stringer.IsBlank(c.config.Logger.OTELEndpoint) {
+					endpoint := c.config.Logger.OTELEndpoint
+
+					parsedURL, err := url.Parse(endpoint)
+					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
+						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
+						// 有schema
+						c.logger.Debugf("[control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
+						// 检查是否有path，如果没有则添加/v1/logs
+						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
+							if parsedURL.Path == "/" {
+								endpoint = endpoint + "v1/logs"
+							} else {
+								endpoint = endpoint + "/v1/logs"
+							}
+						}
+						opts = append(opts, otlploghttp.WithEndpointURL(endpoint))
+					} else {
+						// 没有schema
+						c.logger.Debugf("[control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
+						opts = append(opts, otlploghttp.WithEndpoint(endpoint))
+					}
+				}
+				exporter, err := otlploghttp.New(c.ctx, opts...)
+				if err != nil {
+					return nil, fmt.Errorf("building OTLP HTTP exporter: %w", err)
+				}
+				exporters = append(exporters, exporter)
+			case ExporterOtlpProtocolGrpc:
+				opts := []otlploggrpc.Option{
+					otlploggrpc.WithCompressor("gzip"),
+					otlploggrpc.WithRetry(otlploggrpc.RetryConfig{
+						Enabled:         true,
+						InitialInterval: 10 * time.Second,
+						MaxInterval:     10 * time.Second,
+						MaxElapsedTime:  5 * time.Minute,
+					}),
+				}
+				if c.config.Logger.OTELInsecure {
+					opts = append(opts, otlploggrpc.WithInsecure())
+				}
+				if !stringer.IsBlank(c.config.Logger.OTELEndpoint) {
+					endpoint := c.config.Logger.OTELEndpoint
+					// 直接使用url.Parse解析
+					parsedURL, err := url.Parse(endpoint)
+					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
+						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
+						// 有schema
+						c.logger.Debugf("[control] grpc protocol endpoint (with scheme): %v", endpoint)
+						// 检查是否有path，如果没有则添加/v1/logs
+						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
+							if parsedURL.Path == "/" {
+								endpoint = endpoint + "v1/logs"
+							} else {
+								endpoint = endpoint + "/v1/logs"
+							}
+						}
+						opts = append(opts, otlploggrpc.WithEndpointURL(endpoint))
+					} else {
+						// 没有schema
+						c.logger.Debugf("[control] grpc protocol endpoint (without scheme): %v", endpoint)
+						opts = append(opts, otlploggrpc.WithEndpoint(endpoint))
+					}
+				}
+				exporter, err := otlploggrpc.New(c.ctx, opts...)
+				if err != nil {
+					return nil, fmt.Errorf("building OTLP gRPC exporter: %w", err)
+				}
+				exporters = append(exporters, exporter)
+			default:
+				return nil, fmt.Errorf("unknown or unsupported OTLP exporter '%s'", exporterStr)
+			}
+		case ExporterNone:
+			continue
+		case ExporterBlack:
+			continue
+		case ExporterStdout:
+			exporter, err := stdoutlog.New(stdoutlog.WithPrettyPrint())
 			if err != nil {
 				return nil, err
 			}
 			exporters = append(exporters, exporter)
-		case "none":
-			continue
-		case "":
-			continue
-		case "stdout":
-			exporter, err := stdoutlog.New(stdoutlog.WithPrettyPrint())
+		case ExporterFile:
+			if stringer.IsBlank(c.config.Logger.FilePath) {
+				wd, err := path.GetWorkDir()
+				if err != nil {
+					return nil, fmt.Errorf("finding working directory for the OpenTelemetry file exporter: %w", err)
+				}
+				c.config.Logger.FilePath = filepath.Join(wd, "logs.json")
+			}
+			exporter, err := newFileLoggerExporter(c.config.Logger.FilePath)
 			if err != nil {
 				return nil, err
 			}
@@ -341,32 +432,120 @@ func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
 
 func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 	var exporters []sdkmetric.Exporter
-	for _, exporterStr := range strings.Split(c.config.TracesExporter, ",") {
+	for _, exporterStr := range strings.Split(c.config.Meter.Exporters, ",") {
 		exporterStr = strings.TrimSpace(exporterStr)
 		switch exporterStr {
-		case "file":
-			var filePath string
-			if stringer.IsBlank(c.config.ExporterFilePath) {
-				wd, err := path.GetWorkDir()
-				if err != nil {
-					return nil, fmt.Errorf("finding working directory for the OpenTelemetry file exporter: %w", err)
-				}
-				filePath = filepath.Join(wd, "meter.json")
-			} else {
-				dir := filepath.Dir(c.config.ExporterFilePath)
-				filePath = filepath.Clean(filepath.Join(dir, "meter.json"))
+		case ExporterOtlp:
+			protocol := ExporterOtlpProtocolHttp
+			if !stringer.IsBlank(c.config.Meter.OTELProtocol) {
+				protocol = c.config.Meter.OTELProtocol
 			}
-			exporter, err := newFileMeterExporter(filePath)
+			switch protocol {
+			case ExporterOtlpProtocolHttp:
+				opts := []otlpmetrichttp.Option{
+					otlpmetrichttp.WithCompression(otlpmetrichttp.GzipCompression),
+					otlpmetrichttp.WithTimeout(10 * time.Second),
+					otlpmetrichttp.WithRetry(otlpmetrichttp.RetryConfig{
+						Enabled:         true,
+						InitialInterval: 10 * time.Second,
+						MaxInterval:     10 * time.Second,
+						MaxElapsedTime:  5 * time.Minute,
+					}),
+				}
+				if c.config.Meter.OTELInsecure {
+					opts = append(opts, otlpmetrichttp.WithInsecure())
+				}
+				if !stringer.IsBlank(c.config.Meter.OTELEndpoint) {
+					endpoint := c.config.Meter.OTELEndpoint
+
+					parsedURL, err := url.Parse(endpoint)
+					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
+						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
+						// 有schema
+						c.logger.Debugf("[control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
+						// 检查是否有path，如果没有则添加/v1/metrics
+						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
+							if parsedURL.Path == "/" {
+								endpoint = endpoint + "v1/metrics"
+							} else {
+								endpoint = endpoint + "/v1/metrics"
+							}
+						}
+						opts = append(opts, otlpmetrichttp.WithEndpointURL(endpoint))
+					} else {
+						// 没有schema
+						c.logger.Debugf("[control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
+						opts = append(opts, otlpmetrichttp.WithEndpoint(endpoint))
+					}
+				}
+				exporter, err := otlpmetrichttp.New(c.ctx, opts...)
+				if err != nil {
+					return nil, fmt.Errorf("building OTLP HTTP exporter: %w", err)
+				}
+				exporters = append(exporters, exporter)
+			case ExporterOtlpProtocolGrpc:
+				opts := []otlpmetricgrpc.Option{
+					otlpmetricgrpc.WithCompressor("gzip"),
+					otlpmetricgrpc.WithRetry(otlpmetricgrpc.RetryConfig{
+						Enabled:         true,
+						InitialInterval: 10 * time.Second,
+						MaxInterval:     10 * time.Second,
+						MaxElapsedTime:  5 * time.Minute,
+					}),
+				}
+				if c.config.Meter.OTELInsecure {
+					opts = append(opts, otlpmetricgrpc.WithInsecure())
+				}
+				if !stringer.IsBlank(c.config.Meter.OTELEndpoint) {
+					endpoint := c.config.Meter.OTELEndpoint
+					// 直接使用url.Parse解析
+					parsedURL, err := url.Parse(endpoint)
+					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
+						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
+						// 有schema
+						c.logger.Debugf("[control] grpc protocol endpoint (with scheme): %v", endpoint)
+						// 检查是否有path，如果没有则添加/v1/metrics
+						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
+							if parsedURL.Path == "/" {
+								endpoint = endpoint + "v1/metrics"
+							} else {
+								endpoint = endpoint + "/v1/metrics"
+							}
+						}
+						opts = append(opts, otlpmetricgrpc.WithEndpointURL(endpoint))
+					} else {
+						// 没有schema
+						c.logger.Debugf("[control] grpc protocol endpoint (without scheme): %v", endpoint)
+						opts = append(opts, otlpmetricgrpc.WithEndpoint(endpoint))
+					}
+				}
+				exporter, err := otlpmetricgrpc.New(c.ctx, opts...)
+				if err != nil {
+					return nil, fmt.Errorf("building OTLP gRPC exporter: %w", err)
+				}
+				exporters = append(exporters, exporter)
+			default:
+				return nil, fmt.Errorf("unknown or unsupported OTLP exporter '%s'", exporterStr)
+			}
+		case ExporterNone:
+			continue
+		case ExporterBlack:
+			continue
+		case ExporterStdout:
+			exporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
 			if err != nil {
 				return nil, err
 			}
 			exporters = append(exporters, exporter)
-		case "none":
-			continue
-		case "":
-			continue
-		case "stdout":
-			exporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
+		case ExporterFile:
+			if stringer.IsBlank(c.config.Meter.FilePath) {
+				wd, err := path.GetWorkDir()
+				if err != nil {
+					return nil, fmt.Errorf("finding working directory for the OpenTelemetry file exporter: %w", err)
+				}
+				c.config.Meter.FilePath = filepath.Join(wd, "metrics.json")
+			}
+			exporter, err := newFileMeterExporter(c.config.Meter.FilePath)
 			if err != nil {
 				return nil, err
 			}
@@ -381,7 +560,7 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 
 func (c *Control) GetServiceName() string {
 	c.logger.Debugf("[control] get service name...")
-	return c.config.ExporterServiceName
+	return c.config.ServiceName
 }
 
 func (c *Control) newProvider() error {
@@ -408,7 +587,7 @@ func (c *Control) newProvider() error {
 		resMid,
 		// resourceEnd.Default(),
 		resource.NewSchemaless(
-			semconv.ServiceNameKey.String(c.config.ExporterServiceName),
+			semconv.ServiceNameKey.String(c.config.ServiceName),
 			semconv.ServiceInstanceIDKey.String(uuid.GetUUID()),
 			semconv.ServiceVersionKey.String(version.Version),
 		),
@@ -511,7 +690,7 @@ func (c *Control) setProvider() error {
 	c.providerMutex.RLock()
 	otel.SetTracerProvider(c.tracerProvider)
 	c.traceApi = c.tracerProvider.Tracer(
-		c.config.ExporterServiceName,
+		c.config.ServiceName,
 		traceapi.WithInstrumentationVersion(version.Version),
 		traceapi.WithInstrumentationAttributes(
 			attribute.String("", ""),

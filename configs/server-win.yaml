@@ -121,16 +121,32 @@ mfa:
     client_secret: ""
 tracer:
   enabled: true
-  exporter_service_name: "golang-example"
-  exporter_file_path: "tracer.json"
-  exporter_otel_insecure: true
-  # file otlp stdout none  zipkin
-  traces_exporter: "file,none,otlp,"
-  # zipkin: http://localhost:9411/api/v2/spans
-  exporter_zipkin_endpoint: ""
-  # grpc: https://127.0.0.1:4317/v1/traces || 127.0.0.1:4317
-  # http/protobuf: 127.0.0.1:4318 ||
-  exporter_otel_endpoint: "https://10.10.10.110:4317/v1/traces"
-  # grpc http/protobuf
-  exporter_otel_protocol: "grpc"
+  service_name: "golang-example"
   log_in_console: true
+  # tracer配置
+  tracer:
+    # file otlp stdout none  zipkin
+    exporters: "file,none,otlp,"
+    # grpc http/protobuf
+    otel_protocol: "grpc"
+    # grpc: https://127.0.0.1:4317/v1/traces || 127.0.0.1:4317
+    # http/protobuf: 127.0.0.1:4318 ||
+    otel_endpoint: "https://10.10.10.110:4317/v1/traces"
+    otel_insecure: true
+    # zipkin: http://localhost:9411/api/v2/spans
+    zipkin_endpoint: ""
+    file_path: "tracer.json"
+  # logger配置
+  logger:
+    exporters: "file,none,otlp,"
+    otel_protocol: "grpc"
+    otel_endpoint: "https://10.10.10.110:4317/v1/logs"
+    otel_insecure: true
+    file_path: "logger.json"
+  # meter配置
+  meter:
+    exporters: "file,none,otlp,"
+    otel_protocol: "grpc"
+    otel_endpoint: "https://10.10.10.110:4317/v1/metrics"
+    otel_insecure: true
+    file_path: "meter.json"
