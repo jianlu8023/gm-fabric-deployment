@@ -224,7 +224,7 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 	if control.tracerControl != nil {
 		if err := control.dbConn.WithContext(control.ctx).Use(
 			tracing.NewPlugin(
-				tracing.WithTracerProvider(control.tracerControl.GetProvider()),
+				tracing.WithTracerProvider(control.tracerControl.TracerProvider()),
 				// tracing.WithoutQueryVariables(),
 				tracing.WithRecordStackTrace(),
 			),

@@ -79,7 +79,7 @@ func NewClientControl(control *Control) error {
 		opts = append(opts,
 			grpc.WithStatsHandler(
 				otelgrpc.NewClientHandler(
-					otelgrpc.WithTracerProvider(control.tracerControl.GetProvider()),
+					otelgrpc.WithTracerProvider(control.tracerControl.TracerProvider()),
 				),
 			),
 		)

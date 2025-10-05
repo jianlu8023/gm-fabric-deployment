@@ -215,7 +215,7 @@ func NewServerControl(control *Control) error {
 		control.logger.Debugf("[server] starting server with tracer...")
 		opts = append(opts, grpc.StatsHandler(
 			otelgrpc.NewServerHandler(
-				otelgrpc.WithTracerProvider(control.tracerControl.GetProvider()),
+				otelgrpc.WithTracerProvider(control.tracerControl.TracerProvider()),
 			),
 		))
 	}

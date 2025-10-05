@@ -23,17 +23,22 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/metric"
-
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/exporters/zipkin"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/metric/exemplar"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.30.0"
 	// semconv "go.opentelemetry.io/otel/semconv/v1.5.0"
+	// semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	traceapi "go.opentelemetry.io/otel/trace"
 
-	// semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	lognoop "go.opentelemetry.io/otel/log/noop"
+	meternoop "go.opentelemetry.io/otel/metric/noop"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 	"go.uber.org/zap"
@@ -64,8 +69,9 @@ type Control struct {
 	traceLogger    logr.Logger
 	providerMutex  sync.RWMutex
 	tracerProvider shutdownTracerProvider
+	meterProvider  shutdownMeterProvider
+	loggerProvider shutdownLoggerProvider
 	traceApi       traceapi.Tracer
-	meterProvider  metric.MeterProvider // 暂时没用上
 }
 
 // NewTracerControl 创建一个新的OTEL控制器并设置为全局单例
@@ -97,6 +103,7 @@ func NewTracerControl(tracerConfig *config.TracerConfig, loggerControl *logger.C
 		ctx:         ctx,
 		traceLogger: newTracerCustomLogger(loggerControl.GetConfig(), tracerConfig.LogInConsole),
 	}
+	otel.SetLogger(control.traceLogger)
 	if err := control.setProvider(); err != nil {
 		control.logger.Errorf("[control] set provider failed: %v", err)
 		return nil, err
@@ -105,7 +112,7 @@ func NewTracerControl(tracerConfig *config.TracerConfig, loggerControl *logger.C
 	// 自动设置为全局单例实例
 	// SetInstance内部使用了instanceOnce.Do，确保只会设置一次
 	control.logger.Debugf("[control] setting singleton instance...")
-	SetInstance(control)
+	setInstance(control)
 
 	return control, nil
 }
@@ -124,17 +131,39 @@ func (c *Control) Shutdown() error {
 		c.logger.Errorf("[control] shutting down tracer provider failed: %v", err)
 		return err
 	}
+	if err := c.loggerProvider.Shutdown(c.ctx); err != nil {
+		c.logger.Errorf("[control] shutting down logger provider failed: %v", err)
+		return err
+	}
+	if err := c.meterProvider.Shutdown(c.ctx); err != nil {
+		c.logger.Errorf("[control] shutting down meter provider failed: %v", err)
+		return err
+	}
 	return nil
 }
 
-func (c *Control) GetProvider() shutdownTracerProvider {
+func (c *Control) TracerProvider() shutdownTracerProvider {
 	c.logger.Debugf("[control] get tracer provider...")
 	c.providerMutex.RLock()
 	defer c.providerMutex.RUnlock()
 	return c.tracerProvider
 }
 
-func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
+func (c *Control) LoggerProvider() shutdownLoggerProvider {
+	c.logger.Debugf("[control] get logger provider...")
+	c.providerMutex.RLock()
+	defer c.providerMutex.RUnlock()
+	return c.loggerProvider
+}
+
+func (c *Control) MeterProvider() shutdownMeterProvider {
+	c.logger.Debugf("[control] get meter provider...")
+	c.providerMutex.RLock()
+	defer c.providerMutex.RUnlock()
+	return c.meterProvider
+}
+
+func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 	var exporters []sdktrace.SpanExporter
 	for _, exporterStr := range strings.Split(c.config.TracesExporter, ",") {
 		exporterStr = strings.TrimSpace(exporterStr)
@@ -247,7 +276,7 @@ func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
 				}
 				c.config.ExporterFilePath = filepath.Join(wd, "traces.json")
 			}
-			exporter, err := newFileExporter(c.config.ExporterFilePath)
+			exporter, err := newFileTraceExporter(c.config.ExporterFilePath)
 			if err != nil {
 				return nil, err
 			}
@@ -263,7 +292,88 @@ func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
 			}
 			exporters = append(exporters, exporter)
 		default:
-			return nil, fmt.Errorf("unknown or unsupported exporter '%s'", exporterStr)
+			c.logger.Warnf("[control] unknown or unsupported exporter '%s'", exporterStr)
+			// return nil, fmt.Errorf("unknown or unsupported exporter '%s'", exporterStr)
+		}
+	}
+	return exporters, nil
+}
+
+func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
+	var exporters []sdklog.Exporter
+	for _, exporterStr := range strings.Split(c.config.TracesExporter, ",") {
+		exporterStr = strings.TrimSpace(exporterStr)
+		switch exporterStr {
+		case "file":
+			var filePath string
+			if stringer.IsBlank(c.config.ExporterFilePath) {
+				wd, err := path.GetWorkDir()
+				if err != nil {
+					return nil, fmt.Errorf("finding working directory for the OpenTelemetry file exporter: %w", err)
+				}
+				filePath = filepath.Join(wd, "logger.json")
+			} else {
+				dir := filepath.Dir(c.config.ExporterFilePath)
+				filePath = filepath.Clean(filepath.Join(dir, "logger.json"))
+			}
+			exporter, err := newFileLoggerExporter(filePath)
+			if err != nil {
+				return nil, err
+			}
+			exporters = append(exporters, exporter)
+		case "none":
+			continue
+		case "":
+			continue
+		case "stdout":
+			exporter, err := stdoutlog.New(stdoutlog.WithPrettyPrint())
+			if err != nil {
+				return nil, err
+			}
+			exporters = append(exporters, exporter)
+		default:
+			c.logger.Warnf("[control] unknown or unsupported exporter '%s'", exporterStr)
+			// return nil, fmt.Errorf("unknown or unsupported exporter '%s'", exporterStr)
+		}
+	}
+	return exporters, nil
+}
+
+func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
+	var exporters []sdkmetric.Exporter
+	for _, exporterStr := range strings.Split(c.config.TracesExporter, ",") {
+		exporterStr = strings.TrimSpace(exporterStr)
+		switch exporterStr {
+		case "file":
+			var filePath string
+			if stringer.IsBlank(c.config.ExporterFilePath) {
+				wd, err := path.GetWorkDir()
+				if err != nil {
+					return nil, fmt.Errorf("finding working directory for the OpenTelemetry file exporter: %w", err)
+				}
+				filePath = filepath.Join(wd, "meter.json")
+			} else {
+				dir := filepath.Dir(c.config.ExporterFilePath)
+				filePath = filepath.Clean(filepath.Join(dir, "meter.json"))
+			}
+			exporter, err := newFileMeterExporter(filePath)
+			if err != nil {
+				return nil, err
+			}
+			exporters = append(exporters, exporter)
+		case "none":
+			continue
+		case "":
+			continue
+		case "stdout":
+			exporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
+			if err != nil {
+				return nil, err
+			}
+			exporters = append(exporters, exporter)
+		default:
+			c.logger.Warnf("[control] unknown or unsupported exporter '%s'", exporterStr)
+			// 	return nil, fmt.Errorf("unknown or unsupported exporter '%s'", exporterStr)
 		}
 	}
 	return exporters, nil
@@ -274,28 +384,13 @@ func (c *Control) GetServiceName() string {
 	return c.config.ExporterServiceName
 }
 
-func (c *Control) newTracerProvider() error {
-	c.logger.Debugf("[control] starting generate tracerProvider...")
-	exporters, err := c.initExporters()
-	if err != nil {
-		c.logger.Errorf("[control] init exporters failed: %v", err)
-		return err
-	}
-	if len(exporters) == 0 {
-		c.logger.Warnf("[control] no exporter found, using noop tracerProvider...")
-		c.tracerProvider = &noopShutdownTracerProvider{TracerProvider: noop.NewTracerProvider()}
-		return nil
-	}
+func (c *Control) newProvider() error {
+	c.logger.Debugf("[control] starting generate provider...")
 
-	var options []sdktrace.TracerProviderOption
-	for _, exporter := range exporters {
-		options = append(options, sdktrace.WithBatcher(exporter, sdktrace.WithBatchTimeout(time.Second)))
-	}
-
-	// 创建 resource
-	res, err := resource.New(
+	// 创建 resourceEnd
+	resMid, err := resource.New(
 		context.Background(),
-		// resource.WithAttributes(
+		// resourceEnd.WithAttributes(
 		// 	semconv.ServiceNameKey.String(serviceName), // 使用 semconv.ServiceNameKey
 		// ),
 		resource.WithOS(),
@@ -309,9 +404,9 @@ func (c *Control) newTracerProvider() error {
 		return err
 	}
 
-	r, err := resource.Merge(
-		res,
-		// resource.Default(),
+	resourceEnd, err := resource.Merge(
+		resMid,
+		// resourceEnd.Default(),
 		resource.NewSchemaless(
 			semconv.ServiceNameKey.String(c.config.ExporterServiceName),
 			semconv.ServiceInstanceIDKey.String(uuid.GetUUID()),
@@ -322,7 +417,37 @@ func (c *Control) newTracerProvider() error {
 		c.logger.Errorf("[control] merge resource failed: %v", err)
 		return err
 	}
-	options = append(options, sdktrace.WithResource(r))
+	if err = c.newTracerProvider(resourceEnd); err != nil {
+		c.logger.Errorf("[control] new tracer provider failed: %v", err)
+		return err
+	}
+	if err = c.newLoggerProvider(resourceEnd); err != nil {
+		c.logger.Errorf("[control] new logger provider failed: %v", err)
+		return err
+	}
+	if err = c.newMeterProvider(resourceEnd); err != nil {
+		c.logger.Errorf("[control] new meter provider failed: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (c *Control) newTracerProvider(resource *resource.Resource) error {
+	exporters, err := c.initTracerExporters()
+	if err != nil {
+		c.logger.Errorf("[control] init tracer exporters failed: %v", err)
+		return err
+	}
+	if len(exporters) == 0 {
+		c.logger.Warnf("[control] no exporter found, using noop tracerProvider...")
+		c.tracerProvider = &noopShutdownTracerProvider{TracerProvider: noop.NewTracerProvider()}
+		return nil
+	}
+	var options []sdktrace.TracerProviderOption
+	for _, exporter := range exporters {
+		options = append(options, sdktrace.WithBatcher(exporter, sdktrace.WithBatchTimeout(time.Second)))
+	}
+	options = append(options, sdktrace.WithResource(resource))
 	options = append(options, sdktrace.WithSampler(sdktrace.AlwaysSample())) // 或者自定义采样器
 	c.providerMutex.Lock()
 	c.tracerProvider = sdktrace.NewTracerProvider(options...)
@@ -330,10 +455,56 @@ func (c *Control) newTracerProvider() error {
 	return nil
 }
 
+func (c *Control) newLoggerProvider(resource *resource.Resource) error {
+	exporters, err := c.initLoggerExporters()
+	if err != nil {
+		c.logger.Errorf("[control] init logger exporters failed: %v", err)
+		return err
+	}
+	if len(exporters) == 0 {
+		c.logger.Warnf("[control] no exporter found, using noop loggerProvider...")
+		c.loggerProvider = &noopShutdownLoggerProvider{LoggerProvider: lognoop.NewLoggerProvider()}
+		return nil
+	}
+
+	var opts []sdklog.LoggerProviderOption
+	for _, exporter := range exporters {
+		opts = append(opts, sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)))
+	}
+	opts = append(opts, sdklog.WithResource(resource))
+	c.providerMutex.Lock()
+	c.loggerProvider = sdklog.NewLoggerProvider(opts...)
+	c.providerMutex.Unlock()
+	return nil
+}
+
+func (c *Control) newMeterProvider(resource *resource.Resource) error {
+	exporters, err := c.initMeterExporters()
+	if err != nil {
+		c.logger.Errorf("[control] init meter exporters failed: %v", err)
+		return err
+	}
+	if len(exporters) == 0 {
+		c.logger.Warnf("[control] no exporter found, using noop meterProvider...")
+		c.meterProvider = &noopShutdownMeterProvider{MeterProvider: meternoop.NewMeterProvider()}
+		return nil
+	}
+	var opts []sdkmetric.Option
+	for _, exporter := range exporters {
+		opts = append(opts, sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exporter)))
+	}
+	opts = append(opts, sdkmetric.WithResource(resource))
+	opts = append(opts, sdkmetric.WithExemplarFilter(exemplar.AlwaysOnFilter))
+	c.providerMutex.Lock()
+	c.meterProvider = sdkmetric.NewMeterProvider(opts...)
+	c.providerMutex.Unlock()
+	return nil
+}
+
 func (c *Control) setProvider() error {
 	c.logger.Debugf("[control] setting provider...")
-	if err := c.newTracerProvider(); err != nil {
-		c.logger.Errorf("[control] new tracerProvider failed: %v", err)
+	if err := c.newProvider(); err != nil {
+		c.logger.Errorf("[control] new provider failed: %v", err)
 		return err
 	}
 	otel.SetLogger(c.traceLogger)
@@ -348,6 +519,7 @@ func (c *Control) setProvider() error {
 		traceapi.WithSchemaURL(""),
 	)
 	c.providerMutex.RUnlock()
+	otel.SetMeterProvider(c.meterProvider)
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	// otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
 	return nil
@@ -387,20 +559,20 @@ func (c *Control) StartSpan(ctx context.Context, componentName string, spanName 
 	return c.Span(ctx, componentName, spanName, traceapi.WithAttributes(attributes...))
 }
 
-// GetInstance 获取tracer控制器的单例实例
+// getInstance 获取tracer控制器的单例实例
 // @description 获取全局唯一的tracer控制器实例，确保全链路追踪的一致性
 // @return *Control tracer控制器的单例实例
-func GetInstance() *Control {
+func getInstance() *Control {
 	instanceMu.RLock()
 	result := instance
 	instanceMu.RUnlock()
 	return result
 }
 
-// SetInstance 设置tracer控制器的单例实例
+// setInstance 设置tracer控制器的单例实例
 // @description 设置全局唯一的tracer控制器实例，通常在应用初始化时调用一次
 // @param control *Control tracer控制器实例
-func SetInstance(control *Control) {
+func setInstance(control *Control) {
 	instanceOnce.Do(func() {
 		instanceMu.Lock()
 		instance = control
@@ -410,7 +582,7 @@ func SetInstance(control *Control) {
 
 func Span(ctx context.Context, componentName string, spanName string, opts ...traceapi.SpanStartOption) (tCtx context.Context, span traceapi.Span) {
 	// 使用单例实例，如果单例实例不存在则从池中获取
-	control := GetInstance()
+	control := getInstance()
 	if control == nil {
 		// 如果单例还未初始化，使用池中的实例作为后备
 		control = pool.Get().(*Control)

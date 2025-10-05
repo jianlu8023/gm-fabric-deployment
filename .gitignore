@@ -36,3 +36,5 @@ uploads/
 
 ### tracer files ###
 tracer.json
+logger.json
+meter.json
