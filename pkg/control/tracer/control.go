@@ -4,6 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	//	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	// "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"path/filepath"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -18,12 +23,6 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/metric"
-
-	//	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	// "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"path/filepath"
-	"strings"
-	"sync"
 
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/exporters/zipkin"
@@ -146,13 +145,45 @@ func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
 			}
 			switch protocol {
 			case "http/protobuf":
-				exporter, err := otlptracehttp.New(c.ctx)
+				opts := []otlptracehttp.Option{
+					otlptracehttp.WithCompression(otlptracehttp.GzipCompression),
+					otlptracehttp.WithTimeout(10 * time.Second),
+					otlptracehttp.WithRetry(otlptracehttp.RetryConfig{
+						Enabled:         true,
+						InitialInterval: 10 * time.Second,
+						MaxInterval:     10 * time.Second,
+						MaxElapsedTime:  5 * time.Minute,
+					}),
+				}
+				if c.config.ExporterOTELInsecure {
+					opts = append(opts, otlptracehttp.WithInsecure())
+				}
+				if !stringer.IsBlank(c.config.ExporterOTELEndpoint) {
+					opts = append(opts, otlptracehttp.WithEndpoint(c.config.ExporterOTELEndpoint))
+					// opts = append(opts, otlptracehttp.WithEndpointURL(c.config.ExporterOTELEndpoint))
+				}
+				exporter, err := otlptracehttp.New(c.ctx, opts...)
 				if err != nil {
 					return nil, fmt.Errorf("building OTLP HTTP exporter: %w", err)
 				}
 				exporters = append(exporters, exporter)
 			case "grpc":
-				exporter, err := otlptracegrpc.New(c.ctx)
+				opts := []otlptracegrpc.Option{
+					otlptracegrpc.WithCompressor("gzip"),
+					otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{
+						Enabled:         true,
+						InitialInterval: 10 * time.Second,
+						MaxInterval:     10 * time.Second,
+						MaxElapsedTime:  5 * time.Minute,
+					}),
+				}
+				if c.config.ExporterOTELInsecure {
+					opts = append(opts, otlptracegrpc.WithInsecure())
+				}
+				if !stringer.IsBlank(c.config.ExporterOTELEndpoint) {
+					opts = append(opts, otlptracegrpc.WithEndpoint(c.config.ExporterOTELEndpoint))
+				}
+				exporter, err := otlptracegrpc.New(c.ctx, opts...)
 				if err != nil {
 					return nil, fmt.Errorf("building OTLP gRPC exporter: %w", err)
 				}
@@ -161,7 +192,9 @@ func (c *Control) initExporters() ([]sdktrace.SpanExporter, error) {
 				return nil, fmt.Errorf("unknown or unsupported OTLP exporter '%s'", exporterStr)
 			}
 		case "zipkin":
-			exporter, err := zipkin.New(c.config.ExporterZipkinEndpoint)
+			var opts []zipkin.Option
+			opts = append(opts, zipkin.WithLogr(c.traceLogger))
+			exporter, err := zipkin.New(c.config.ExporterZipkinEndpoint, opts...)
 			if err != nil {
 				return nil, fmt.Errorf("building Zipkin exporter: %w", err)
 			}

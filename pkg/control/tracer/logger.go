@@ -70,7 +70,8 @@ func newTracerCustomLogger(loggerConfig *config.LoggerConfig, logInConsole bool)
 	} else {
 		opts = append(opts, glog.WithOutConsoleOutPut())
 	}
-
+	logrLogger := zapr.NewLoggerWithOptions(glog.NewLogger(opts...))
+	// logrLogger.Info("info logger")
 	// logger.Debug("testing logger...")
-	return zapr.NewLoggerWithOptions(glog.NewLogger(opts...))
+	return logrLogger
 }
