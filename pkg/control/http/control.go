@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
 	// "github.com/hxx258456/ccgo/gmtls"
@@ -120,6 +120,12 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	}
 
 	webLogger.Info("[control] register gin middleware...")
+
+	// 0. Tracer中间件 - 用于请求追踪
+	if control.tracerControl != nil {
+		engine.Use(otelgin.Middleware(control.tracerControl.GetServiceName(), otelgin.WithTracerProvider(control.tracerControl.TracerProvider())))
+	}
+
 	// 1. 恢复中间件（Recovery Middleware）- 应在最前面注册，捕获所有后续中间件的panic
 	engine.Use(recovery.EnableRecovery(control.logger, true))
 
@@ -136,11 +142,6 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	if serverConfig.IPBlackList.Enabled && len(serverConfig.IPBlackList.IPs) > 0 {
 		webLogger.Debugf("[control] register IP black list middleware with %d IPs", len(serverConfig.IPBlackList.IPs))
 		engine.Use(ipblacklist.EnableIPBlackList(webLogger, serverConfig.IPBlackList.IPs))
-	}
-
-	// 5. Tracer中间件 - 用于请求追踪，在基础过滤后执行
-	if control.tracerControl != nil {
-		engine.Use(otelgin.Middleware(control.tracerControl.GetServiceName(), otelgin.WithTracerProvider(control.tracerControl.TracerProvider())))
 	}
 
 	// 6. TLS安全中间件 - 安全检查，在基础过滤和追踪后执行

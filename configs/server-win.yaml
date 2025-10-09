@@ -131,7 +131,7 @@ tracer:
     otel_protocol: "grpc"
     # grpc: https://127.0.0.1:4317/v1/traces || 127.0.0.1:4317
     # http/protobuf: 127.0.0.1:4318 ||
-    otel_endpoint: "https://10.10.10.110:4317/v1/traces"
+    otel_endpoint: "http://127.0.0.1:4317/v1/traces"
     otel_insecure: true
     # zipkin: http://localhost:9411/api/v2/spans
     zipkin_endpoint: ""
@@ -140,13 +140,13 @@ tracer:
   logger:
     exporters: "file,none,otlp,"
     otel_protocol: "grpc"
-    otel_endpoint: "https://10.10.10.110:4317/v1/logs"
+    otel_endpoint: "http://127.0.0.1:4317/v1/logs"
     otel_insecure: true
     file_path: "logger.json"
   # meter配置
   meter:
     exporters: "file,none,otlp,"
     otel_protocol: "grpc"
-    otel_endpoint: "https://10.10.10.110:4317/v1/metrics"
+    otel_endpoint: "http://127.0.0.1:4317/v1/metrics"
     otel_insecure: true
     file_path: "meter.json"
