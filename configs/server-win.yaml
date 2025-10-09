@@ -121,7 +121,7 @@ mfa:
     client_secret: ""
 tracer:
   enabled: true
-  service_name: "golang-example"
+  service_name: "example-server"
   log_in_console: true
   # tracer配置
   tracer:
