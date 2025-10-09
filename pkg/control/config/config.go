@@ -588,23 +588,36 @@ type TracerConfig struct {
 	} `json:"meter,omitempty" yaml:"meter,omitempty" mapstructure:"meter"` // Meter配置
 }
 
+type IpfsClusterConfig struct {
+	Enabled         bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
+	Strategy        string `json:"strategy,omitempty" yaml:"strategy,omitempty" mapstructure:"strategy"`                         // 策略
+	TimeOutInterval int    `json:"timeout_interval,omitempty" yaml:"timeout_interval,omitempty" mapstructure:"timeout_interval"` // 超时时间
+	Addresses       []struct {
+		Host     string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"` // host
+		Port     int    `json:"port,omitempty" yaml:"port,omitempty" mapstructure:"port"` // port
+		UserName string `json:"user_name,omitempty" yaml:"user_name,omitempty" mapstructure:"user_name"`
+		Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"`
+	} `json:"addresses,omitempty" yaml:"addresses,omitempty" mapstructure:"addresses"`
+}
+
 // Config 配置
 type Config struct {
-	GrpcConfig       *GrpcConfig       `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
-	LoggerConfig     *LoggerConfig     `json:"logger_config,omitempty" yaml:"logger_config,omitempty" mapstructure:"logger"`             // logger配置
-	HttpConfig       *HttpServerConfig `json:"http_config,omitempty" yaml:"http_config,omitempty" mapstructure:"http"`                   // http配置
-	Libp2pConfig     *Libp2pConfig     `json:"libp2p_config,omitempty" yaml:"libp2p_config,omitempty" mapstructure:"libp2p"`             // libp2p配置
-	DataSourceConfig *DataSourceConfig `json:"datasource_config,omitempty" yaml:"datasource_config,omitempty" mapstructure:"datasource"` // 数据源配置
-	DockerConfig     *DockerConfig     `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`             // docker配置
-	IpfsConfig       *IpfsConfig       `json:"ipfs_config,omitempty" yaml:"ipfs_config,omitempty" mapstructure:"ipfs"`                   // IPFS配置
-	CaptchaConfig    *CaptchaConfig    `json:"captcha_config,omitempty" yaml:"captcha_config,omitempty" mapstructure:"captcha"`          // 验证码配置
-	EmailConfig      *EmailConfig      `json:"email_config,omitempty" yaml:"email_config,omitempty" mapstructure:"email"`                // 邮件配置
-	AntsPoolConfig   *AntsPoolConfig   `json:"ants_pool_config,omitempty" yaml:"ants_pool_config,omitempty" mapstructure:"ants_pool"`    // Ants线程池配置
-	FabricCAConfig   *FabricCAConfig   `json:"fabric_ca_config,omitempty" yaml:"fabric_ca_config,omitempty" mapstructure:"fabric_ca"`    // Fabric CA配置
-	WebRTCConfig     *WebRTCConfig     `json:"webrtc_config,omitempty" yaml:"webrtc_config,omitempty" mapstructure:"webrtc"`             // WebRTC配置
-	AuthzConfig      *AuthzConfig      `json:"authz_config,omitempty" yaml:"authz_config,omitempty" mapstructure:"authz"`                // 权限控制配置
-	MFAConfig        *MFAConfig        `json:"mfa_config,omitempty" yaml:"mfa_config,omitempty" mapstructure:"mfa"`                      // MFA配置
-	TracerConfig     *TracerConfig     `json:"tracer_config,omitempty" yaml:"tracer_config,omitempty" mapstructure:"tracer"`
+	GrpcConfig        *GrpcConfig        `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
+	LoggerConfig      *LoggerConfig      `json:"logger_config,omitempty" yaml:"logger_config,omitempty" mapstructure:"logger"`             // logger配置
+	HttpConfig        *HttpServerConfig  `json:"http_config,omitempty" yaml:"http_config,omitempty" mapstructure:"http"`                   // http配置
+	Libp2pConfig      *Libp2pConfig      `json:"libp2p_config,omitempty" yaml:"libp2p_config,omitempty" mapstructure:"libp2p"`             // libp2p配置
+	DataSourceConfig  *DataSourceConfig  `json:"datasource_config,omitempty" yaml:"datasource_config,omitempty" mapstructure:"datasource"` // 数据源配置
+	DockerConfig      *DockerConfig      `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`             // docker配置
+	IpfsConfig        *IpfsConfig        `json:"ipfs_config,omitempty" yaml:"ipfs_config,omitempty" mapstructure:"ipfs"`                   // IPFS配置
+	CaptchaConfig     *CaptchaConfig     `json:"captcha_config,omitempty" yaml:"captcha_config,omitempty" mapstructure:"captcha"`          // 验证码配置
+	EmailConfig       *EmailConfig       `json:"email_config,omitempty" yaml:"email_config,omitempty" mapstructure:"email"`                // 邮件配置
+	AntsPoolConfig    *AntsPoolConfig    `json:"ants_pool_config,omitempty" yaml:"ants_pool_config,omitempty" mapstructure:"ants_pool"`    // Ants线程池配置
+	FabricCAConfig    *FabricCAConfig    `json:"fabric_ca_config,omitempty" yaml:"fabric_ca_config,omitempty" mapstructure:"fabric_ca"`    // Fabric CA配置
+	WebRTCConfig      *WebRTCConfig      `json:"webrtc_config,omitempty" yaml:"webrtc_config,omitempty" mapstructure:"webrtc"`             // WebRTC配置
+	AuthzConfig       *AuthzConfig       `json:"authz_config,omitempty" yaml:"authz_config,omitempty" mapstructure:"authz"`                // 权限控制配置
+	MFAConfig         *MFAConfig         `json:"mfa_config,omitempty" yaml:"mfa_config,omitempty" mapstructure:"mfa"`                      // MFA配置
+	TracerConfig      *TracerConfig      `json:"tracer_config,omitempty" yaml:"tracer_config,omitempty" mapstructure:"tracer"`
+	IpfsClusterConfig *IpfsClusterConfig `json:"ipfs_cluster_config,omitempty" yaml:"ipfs_cluster_config,omitempty" mapstructure:"ipfs_cluster"` // ipfs cluster配置
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 
