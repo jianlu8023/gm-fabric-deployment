@@ -93,6 +93,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/ipfs-cluster/ipfs-cluster v1.0.8
+	github.com/ipfs/boxo v0.27.2
 	// github.com/hxx258456/ccgo v0.0.3 // grpc v1.44.0 protoc-gen-go-grpc 版本v1.2.0 没有grpc.NewClient 需要使用 grpc.Dial
 	// github.com/hxx258456/fabric-sdk-go-gm v0.0.7
 	// github.com/hyperledger/fabric-sdk-go v1.0.0
@@ -273,7 +274,6 @@ require (
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
-	github.com/ipfs/boxo v0.27.2 // indirect
 	github.com/ipfs/go-datastore v0.6.0 // indirect
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
