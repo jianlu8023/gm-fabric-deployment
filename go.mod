@@ -109,7 +109,7 @@ require (
 	github.com/valyala/quicktemplate v1.8.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.60.0
 	// go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0 // 和现在这个分支的grpc有冲突
-	go.opentelemetry.io/otel v1.35.0
+	go.opentelemetry.io/otel v1.35.0 // grpc是1.44.0的otel版本是1.4.1 但是不能启用db和http的trace 暂时没做改动,在basic-develop分支进行了trace的适配
 	// go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.31.0 // 和现在这个分支的grpc有冲突
 	// go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.31.0 // 和现在这个分支的grpc有冲突
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.32.0
