@@ -11,14 +11,9 @@ import (
 )
 
 // RegisterUserResponse 用户注册响应
+//
 // @description 用户注册成功后的响应数据结构
 // @struct
-// @property Username string 用户名（唯一）
-// @property Email string 邮箱（唯一）
-// @property UserType string 用户类型
-// @property MFAEnabled sql.NullBool 是否启用MFA
-// @property IsDelete sql.NullBool 是否删除标记
-// @property LastLoginTime time.Time 最后登录时间
 type RegisterUserResponse struct {
 	Username      string       `json:"username" yaml:"username"`               // 用户名（唯一）
 	Email         string       `json:"email" yaml:"email"`                     // 邮箱（唯一）
@@ -29,6 +24,7 @@ type RegisterUserResponse struct {
 }
 
 // String 将RegisterUserResponse转换为字符串
+//
 // @description 将RegisterUserResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp RegisterUserResponse) String() string {
@@ -37,6 +33,7 @@ func (resp RegisterUserResponse) String() string {
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
 // @description 自定义RegisterUserResponse结构体的JSON序列化逻辑，将sql.NullBool类型的IsDelete字段转换为普通bool类型
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
@@ -55,6 +52,7 @@ func (resp RegisterUserResponse) MarshalJSON() ([]byte, error) {
 }
 
 // NewRegisterUserResponse 创建用户注册响应对象
+//
 // @description 创建一个新的用户注册响应对象
 // @param user *model.UserInfo 用户信息模型
 // @return RegisterUserResponse 用户注册响应
@@ -71,13 +69,9 @@ func NewRegisterUserResponse(user *model.UserInfo) (RegisterUserResponse, error)
 }
 
 // LoginUserResponse 用户登录响应
+//
 // @description 用户登录成功后的响应数据结构
 // @struct
-// @property Username string 用户名
-// @property UserType string 用户类型
-// @property Email string 邮箱
-// @property Token string 认证令牌
-// @property LastLoginTime time.Time 最后登录时间
 type LoginUserResponse struct {
 	Username      string    `json:"username" yaml:"username"`               // 用户名
 	UserType      string    `json:"user_type" yaml:"user_type"`             // 用户类型
@@ -87,6 +81,7 @@ type LoginUserResponse struct {
 }
 
 // String 将LoginUserResponse转换为字符串
+//
 // @description 将LoginUserResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp LoginUserResponse) String() string {
@@ -95,6 +90,7 @@ func (resp LoginUserResponse) String() string {
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
 // @description 自定义LoginUserResponse结构体的JSON序列化逻辑，处理time.Time类型
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
@@ -111,6 +107,7 @@ func (resp LoginUserResponse) MarshalJSON() ([]byte, error) {
 }
 
 // NewLoginUserResponse 创建用户登录响应对象
+//
 // @description 创建一个新的用户登录响应对象
 // @param user *model.UserInfo 用户信息模型
 // @param token string 认证令牌

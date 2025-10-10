@@ -21,14 +21,13 @@ import (
 // @description 处理节点相关的HTTP请求
 // @struct
 type Libp2pNodeHandler struct {
-	// Handler 基础处理器，提供日志功能
-	*Handler
-	// service 节点服务，处理节点相关的业务逻辑
-	service *service.Libp2pNodeService
+	*Handler                            // Handler 基础处理器，提供日志功能
+	service  *service.Libp2pNodeService // service 节点服务，处理节点相关的业务逻辑
 }
 
 // NewLibp2pNodeHandler 创建节点处理器
 //
+// @description 创建并返回一个新的节点处理器实例
 // @param handler *Handler 基础处理器
 // @param service *service.Libp2pNodeService 节点服务
 // @return *Libp2pNodeHandler 节点处理器实例
@@ -42,7 +41,8 @@ func NewLibp2pNodeHandler(handler *Handler, libp2pNodeService *service.Libp2pNod
 // Libp2pNodeServiceInterface 节点服务接口
 // @description 定义节点服务的接口
 // @interface
-// @method NodeList 获取节点列表
+// @method Libp2pNodeList 获取节点列表
+// @method Libp2pNodeMyself 获取本机节点信息
 type Libp2pNodeServiceInterface interface {
 	Libp2pNodeList(ctx *gin.Context, req *request.Libp2pNodeListRequest)
 	Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest)
@@ -50,12 +50,10 @@ type Libp2pNodeServiceInterface interface {
 
 // Libp2pNodeList 获取节点列表的处理函数
 //
-// @description 处理获取节点列表的HTTP请求
+// @description 处理获取节点列表的HTTP请求，验证参数并调用服务层获取节点列表
 // @method GET
-// @url /api/v1/node/list
-// @param page int 页码 (可选, 默认:1)
-// @param pageSize int 每页数量 (可选, 默认:10)
-// @return JSON 节点列表和分页信息
+// @url libp2p/list
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *Libp2pNodeHandler) Libp2pNodeList(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pHandler", "libp2pNodeList",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -114,6 +112,12 @@ func (h *Libp2pNodeHandler) Libp2pNodeList(ctx *gin.Context) {
 	span.SetStatus(codes.Ok, "success")
 }
 
+// Libp2pNodeMyself 获取本机节点信息的处理函数
+//
+// @description 处理获取本机节点信息的HTTP请求，验证参数并调用服务层获取本机节点信息
+// @method GET
+// @url libp2p/myself
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *Libp2pNodeHandler) Libp2pNodeMyself(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pHandler", "libp2pNodeMyself",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -156,7 +160,8 @@ func (h *Libp2pNodeHandler) Libp2pNodeMyself(ctx *gin.Context) {
 
 // Routers 获取节点相关路由列表
 //
-// @return []commonhttp.RouterHandler 节点路由处理器列表
+// @description 返回所有节点相关的HTTP路由配置，包括路由名称、URI、请求方法、处理函数、描述等信息
+// @return []commonhttp.RouterHandler 节点相关的路由配置列表
 func (h *Libp2pNodeHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{

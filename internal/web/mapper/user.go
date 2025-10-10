@@ -30,6 +30,7 @@ func NewUserMapper(baseMapper *Mapper) *UserMapper {
 
 // QueryExistUser 查询用户是否存在
 //
+// @description 查询指定条件的用户是否存在
 // @param query model.UserInfo 查询条件
 // @return bool 用户是否存在
 // @return error 错误信息
@@ -59,6 +60,7 @@ func (m *UserMapper) QueryExistUser(query model.UserInfo) (bool, error) {
 
 // InsertOneUser 插入一个用户
 //
+// @description 插入一条用户信息到数据库
 // @param user *model.UserInfo 用户信息
 // @return error 错误信息
 func (m *UserMapper) InsertOneUser(user *model.UserInfo) error {
@@ -76,6 +78,7 @@ func (m *UserMapper) InsertOneUser(user *model.UserInfo) error {
 
 // QueryUserByUsernameAndPassword 根据用户名和密码查询用户
 //
+// @description 根据用户名和密码查询用户信息
 // @param username string 用户名
 // @param password string 密码
 // @return *model.UserInfo 用户信息

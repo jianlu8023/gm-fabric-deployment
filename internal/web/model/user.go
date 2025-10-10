@@ -16,6 +16,10 @@ const (
 
 var columns = defaultColumns()
 
+// defaultColumns 初始化默认列映射
+//
+// @description 初始化UserInfo结构体字段到数据库列名的映射关系
+// @return *atomic.Value 包含字段到列名映射的原子值
 func defaultColumns() *atomic.Value {
 	v := &atomic.Value{}
 	taskType := reflect.TypeOf(NewUserInfo())
@@ -38,6 +42,7 @@ func defaultColumns() *atomic.Value {
 }
 
 // UserInfo 用户信息模型
+//
 // @description 定义系统用户的数据结构，包含用户的基本信息
 // @struct
 type UserInfo struct {
@@ -56,11 +61,16 @@ type UserInfo struct {
 	LastLoginTime     time.Time    `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty" gorm:"column:last_login_time;type:datetime;default:CURRENT_TIMESTAMP"`  // 最后登录时间（默认为当前时间戳）
 }
 
+// TableColumns 获取表列映射
+//
+// @description 获取UserInfo结构体字段到数据库列名的映射关系
+// @return map[string]string 字段到列名的映射
 func (model UserInfo) TableColumns() map[string]string {
 	return columns.Load().(map[string]string)
 }
 
 // String 将用户信息转换为字符串表示
+//
 // @description 将UserInfo结构体转换为JSON格式的字符串
 // @return string 用户信息的JSON格式字符串
 func (model UserInfo) String() string {
@@ -69,6 +79,7 @@ func (model UserInfo) String() string {
 }
 
 // TableName 返回数据库表名
+//
 // @description 实现gorm接口，指定UserInfo结构体对应的数据库表名
 // @return string 数据库表名
 func (UserInfo) TableName() string {
@@ -76,6 +87,7 @@ func (UserInfo) TableName() string {
 }
 
 // NewUserInfo 创建新的用户信息实例
+//
 // @description 初始化一个空的用户信息结构体指针
 // @return *UserInfo 用户信息结构体指针
 func NewUserInfo() *UserInfo {
