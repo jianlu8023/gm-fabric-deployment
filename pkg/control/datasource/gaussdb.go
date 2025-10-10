@@ -6,6 +6,7 @@ package datasource
 // )
 
 const (
+	// GaussDB GaussDB数据库类型标识
 	GaussDB = "gaussDB"
 )
 

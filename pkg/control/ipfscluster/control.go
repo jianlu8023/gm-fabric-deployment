@@ -20,15 +20,23 @@ import (
 	"go.uber.org/zap"
 )
 
+// Control IPFS集群控制器结构体
+// @description 管理IPFS集群客户端连接和操作的控制器
 type Control struct {
-	config *config.IpfsClusterConfig
-	logger *zap.SugaredLogger
-	ctx    context.Context
-	cancel context.CancelFunc
-	sdk    client.Client
-	once   sync.Once
+	config *config.IpfsClusterConfig // IPFS集群配置
+	logger *zap.SugaredLogger        // 日志记录器
+	ctx    context.Context           // 上下文
+	cancel context.CancelFunc        // 取消函数
+	sdk    client.Client             // IPFS集群客户端
+	once   sync.Once                 // 确保StartUp只执行一次
 }
 
+// NewIpfsClusterControl 创建IPFS集群控制器
+// @description 根据配置创建一个新的IPFS集群控制器实例
+// @param ipfsClusterConfig *config.IpfsClusterConfig IPFS集群配置
+// @param loggerControl *logger.Control 日志控制器
+// @return *Control IPFS集群控制器实例
+// @return error 创建过程中可能产生的错误
 func NewIpfsClusterControl(ipfsClusterConfig *config.IpfsClusterConfig, loggerControl *logger.Control) (*Control, error) {
 	if ipfsClusterConfig == nil {
 		ipfsClusterConfig = getDefaultConfig()
@@ -50,6 +58,9 @@ func NewIpfsClusterControl(ipfsClusterConfig *config.IpfsClusterConfig, loggerCo
 	return control, nil
 }
 
+// StartUp 启动IPFS集群控制器
+// @description 初始化SDK并获取IPFS集群版本信息
+// @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
@@ -74,12 +85,18 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	})
 }
 
+// Shutdown 关闭IPFS集群控制器
+// @description 关闭IPFS集群控制器并释放资源
+// @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 	c.logger.Debugf("[control] shutting down ipfs cluster control...")
 	c.cancel()
 	return nil
 }
 
+// initConfigs 初始化IPFS集群客户端配置
+// @description 根据配置信息初始化IPFS集群客户端配置列表
+// @return []*client.Config IPFS集群客户端配置列表
 func (c *Control) initConfigs() []*client.Config {
 	c.logger.Debugf("[control] init ipfs cluster clients configs...")
 	configs := make([]*client.Config, 0, len(c.config.Addresses))
@@ -102,6 +119,9 @@ func (c *Control) initConfigs() []*client.Config {
 	return configs
 }
 
+// initSDK 初始化IPFS集群SDK客户端
+// @description 根据配置和负载均衡策略初始化IPFS集群SDK客户端
+// @return error 初始化过程中可能产生的错误
 func (c *Control) initSDK() error {
 	c.logger.Debugf("[control] init ipfs cluster clients...")
 	configs := c.initConfigs()
@@ -139,6 +159,10 @@ func (c *Control) initSDK() error {
 	return nil
 }
 
+// Version 获取IPFS集群版本信息
+// @description 获取IPFS集群的版本信息
+// @return string IPFS集群版本号
+// @return error 获取过程中可能产生的错误
 func (c *Control) Version() (string, error) {
 	c.logger.Debugf("[control] get ipfs cluster version...")
 	version, err := c.sdk.Version(c.ctx)
@@ -149,6 +173,14 @@ func (c *Control) Version() (string, error) {
 	return version.Version, nil
 }
 
+// AddDirectory 添加目录到IPFS集群
+// @description 将指定目录下的所有文件添加到IPFS集群中
+// @param dir string 目录路径
+// @param replicationMin int 最小复制因子
+// @param replicationMax int 最大复制因子
+// @param expireAt time.Duration 过期时间
+// @return []api.AddedOutput 添加结果列表
+// @return error 添加过程中可能产生的错误
 func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, expireAt time.Duration) ([]api.AddedOutput, error) {
 	c.logger.Debugf("[control] add directory to ipfs cluster...")
 	
@@ -253,6 +285,15 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 	return results, nil
 }
 
+// AddOneFile 添加单个文件到IPFS集群
+// @description 将指定文件添加到IPFS集群中
+// @param fileName string 文件名
+// @param filePath string 文件路径
+// @param replicationMin int 最小复制因子
+// @param replicationMax int 最大复制因子
+// @param expireAt time.Duration 过期时间
+// @return api.AddedOutput 添加结果
+// @return error 添加过程中可能产生的错误
 func (c *Control) AddOneFile(fileName, filePath string, replicationMin, replicationMax int, expireAt time.Duration) (api.AddedOutput, error) {
 	c.logger.Debugf("[control] add one file to ipfs cluster...")
 	defaultParams := api.DefaultAddParams()
@@ -309,6 +350,11 @@ func (c *Control) AddOneFile(fileName, filePath string, replicationMin, replicat
 	}
 }
 
+// CatOneFile 获取IPFS集群中的文件内容
+// @description 根据CID获取IPFS集群中的文件内容
+// @param cid string 文件的CID
+// @return io.Reader 文件内容读取器
+// @return error 获取过程中可能产生的错误
 func (c *Control) CatOneFile(cid string) (io.Reader, error) {
 	c.logger.Debugf("[control] cat one file from ipfs cluster, cid: %s", cid)
 	sh := c.sdk.IPFS(c.ctx)
@@ -322,6 +368,10 @@ func (c *Control) CatOneFile(cid string) (io.Reader, error) {
 	return cat, nil
 }
 
+// DeleteOneFile 从IPFS集群中删除文件
+// @description 根据CID从IPFS集群中删除文件
+// @param cid string 文件的CID
+// @return error 删除过程中可能产生的错误
 func (c *Control) DeleteOneFile(cid string) error {
 	c.logger.Debugf("[control] delete one file from ipfs cluster, cid: %s", cid)
 	deleteCid, err := api.DecodeCid(cid)
@@ -338,6 +388,10 @@ func (c *Control) DeleteOneFile(cid string) error {
 	return nil
 }
 
+// RepoGC 执行仓库垃圾回收
+// @description 执行IPFS集群节点的仓库垃圾回收操作
+// @param local bool 是否只在本地执行
+// @return error 执行过程中可能产生的错误
 func (c *Control) RepoGC(local bool) error {
 	c.logger.Debugf("[control] repo gc...")
 	_, err := c.sdk.RepoGC(c.ctx, local)
@@ -354,6 +408,11 @@ func (c *Control) RepoGC(local bool) error {
 	return nil
 }
 
+// DownloadOneFile 从IPFS集群下载文件
+// @description 根据CID从IPFS集群下载文件到指定路径
+// @param cid string 文件的CID
+// @param outPath string 输出文件路径
+// @return error 下载过程中可能产生的错误
 func (c *Control) DownloadOneFile(cid string, outPath string) error {
 	c.logger.Debugf("[control] download one file from ipfs cluster, cid: %s, outPath: %s", cid, outPath)
 	ipfs := c.sdk.IPFS(c.ctx)

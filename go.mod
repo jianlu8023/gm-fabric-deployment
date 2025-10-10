@@ -24,8 +24,10 @@ replace (
 	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20250930144632-d6dbaeab0b42
 	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
-	github.com/mitchellh/mapstructure v1.4.2 => github.com/mitchellh/mapstructure v1.5.0
+	github.com/mitchellh/mapstructure => github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
+	github.com/redis/go-redis/extra/redisotel/v9 => github.com/redis/go-redis/extra/redisotel/v9 v9.15.1
+	github.com/redis/go-redis/v9 => github.com/redis/go-redis/v9 v9.15.1
 	// github.com/pion/webrtc/v4 v4.0.9 => github.com/pion/webrtc/v4 v4.1.1
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/skip2/go-qrcode => github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -53,8 +55,10 @@ replace (
 	golang.org/x/net => golang.org/x/net v0.35.0
 	golang.org/x/time => golang.org/x/time v0.10.0
 	google.golang.org/genproto/googleapis/api => google.golang.org/genproto/googleapis/api v0.0.0-20241007155032-5fefd90f89a9
+	gorm.io/driver/clickhouse => gorm.io/driver/clickhouse v0.7.0
 	gorm.io/driver/mysql => gorm.io/driver/mysql v1.5.7 // 原本是v1.5.1
 	gorm.io/driver/postgres => gorm.io/driver/postgres v1.5.11 // 原本是v1.4.5
+	gorm.io/driver/sqlserver => gorm.io/driver/sqlserver v1.6.1
 	gorm.io/gorm => gorm.io/gorm v1.30.0
 	gorm.io/plugin/opentelemetry => gorm.io/plugin/opentelemetry v0.1.16
 )
@@ -118,6 +122,9 @@ require (
 	github.com/pion/logging v0.2.3
 	github.com/pion/webrtc/v4 v4.0.9
 	github.com/pquerna/otp v1.5.0
+	github.com/redis/go-redis/extra/redisotel/v9 v9.15.1
+	// github.com/go-redis/redis/v8 v8.11.5
+	github.com/redis/go-redis/v9 v9.15.1
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/sony/sonyflake v1.1.0
@@ -154,8 +161,10 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.5
+	gorm.io/driver/clickhouse v0.7.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/postgres v1.5.11
+	gorm.io/driver/sqlserver v1.6.1
 	// github.com/Jeffail/tunny v0.1.4 // tunny 同步方式线程池
 	// github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	// github.com/gin-contrib/cache v1.3.1
@@ -238,6 +247,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
@@ -262,6 +272,8 @@ require (
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
+	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/gopacket v1.1.19 // indirect
@@ -314,6 +326,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/microsoft/go-mssqldb v1.8.2 // indirect
 	github.com/miekg/dns v1.1.63 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
@@ -373,6 +386,7 @@ require (
 	github.com/quic-go/quic-go v0.49.0 // indirect
 	github.com/quic-go/webtransport-go v0.8.1-0.20241018022711-4ac2c9250e66 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
+	github.com/redis/go-redis/extra/rediscmd/v9 v9.15.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
@@ -417,7 +431,6 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/driver/clickhouse v0.7.0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 	modernc.org/libc v1.22.5 // indirect
 	modernc.org/mathutil v1.5.0 // indirect

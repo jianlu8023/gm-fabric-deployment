@@ -5,8 +5,16 @@ import (
 	"gorm.io/gorm"
 )
 
-const Postgres = "postgres"
+const (
+	// Postgres PostgreSQL数据库类型标识
+	Postgres = "postgres"
+)
 
+// newPostgresConn 创建PostgreSQL数据库连接
+// @description 根据配置创建PostgreSQL数据库连接
+// @param dbControl *Control 数据源控制器实例
+// @return *gorm.DB GORM数据库连接实例
+// @return error 创建连接过程中可能产生的错误
 func newPostgresConn(dbControl *Control) (*gorm.DB, error) {
 	return gorm.Open(
 		postgres.New(postgres.Config{

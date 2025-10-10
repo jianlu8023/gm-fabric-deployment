@@ -10,6 +10,11 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// newDbLogger 创建数据库日志记录器
+// @description 创建用于记录数据库操作的日志记录器
+// @param loggerConfig *config.LoggerConfig 日志配置
+// @param logInConsole bool 是否在控制台输出日志
+// @return *dblogger.Logger 数据库日志记录器实例
 func newDbLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *dblogger.Logger {
 	fileName := "sql.log"
 	fileDir := filepath.Dir(loggerConfig.FilePath)

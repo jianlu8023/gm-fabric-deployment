@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/jianlu8023/golang-example/pkg/control/ipfscluster"
+	"github.com/jianlu8023/golang-example/pkg/control/redis"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
@@ -30,30 +32,35 @@ import (
 	"go.uber.org/zap"
 )
 
+// Control 服务器控制器结构体
+// @description 管理所有服务器组件的控制器，包含各种子控制器的引用
 type Control struct {
-	flagsControl      *flags.Control
-	configControl     *config.Control
-	loggerControl     *logger.Control
-	grpcControl       *grpc.Control
-	libp2pControl     *libp2p.Control
-	dockerControl     *docker.Control
-	datasourceControl *datasource.Control
-	httpControl       *http.Control
-	websocketControl  *websocket.Control
-	jobControl        *job.Control
-	captchaControl    *captcha.Control
-	antsControl       *ants.Control
-	authzControl      *authz.Control
-	ipfsControl       *ipfs.Control
-	mfaControl        *mfa.Control
-	tracerControl     *tracer.Control
-	logger            *zap.SugaredLogger
-	once              sync.Once
-	mutex             sync.RWMutex
-	ctx               context.Context
+	flagsControl       *flags.Control       // flags控制器
+	configControl      *config.Control      // 配置控制器
+	loggerControl      *logger.Control      // 日志控制器
+	grpcControl        *grpc.Control        // gRPC控制器
+	libp2pControl      *libp2p.Control      // Libp2p控制器
+	dockerControl      *docker.Control      // Docker控制器
+	datasourceControl  *datasource.Control  // 数据源控制器
+	httpControl        *http.Control        // HTTP控制器
+	websocketControl   *websocket.Control   // WebSocket控制器
+	jobControl         *job.Control         // 作业控制器
+	captchaControl     *captcha.Control     // 验证码控制器
+	antsControl        *ants.Control        // Ants线程池控制器
+	authzControl       *authz.Control       // 权限控制器
+	ipfsControl        *ipfs.Control        // IPFS控制器
+	mfaControl         *mfa.Control         // MFA控制器
+	tracerControl      *tracer.Control      // Tracer追踪控制器
+	ipfsClusterControl *ipfscluster.Control // IPFS集群控制器
+	redisControl       *redis.Control       // Redis控制器
+	logger             *zap.SugaredLogger   // 日志记录器
+	once               sync.Once            // 确保StartUp只执行一次
+	mutex              sync.RWMutex         // 读写锁，保护控制器访问
+	ctx                context.Context      // 上下文
 }
 
 // NewServerControlFromFile 从配置文件创建服务器控制器
+// @description 根据配置文件初始化所有启用的服务器组件控制器
 // @return *Control 服务器控制器实例
 // @return error 创建过程中可能产生的错误
 func NewServerControlFromFile() (*Control, error) {
@@ -99,22 +106,12 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建GRPC控制器
 	grpcConfig := configControl.GetGrpcConfig()
 	if grpcConfig != nil && grpcConfig.Enabled {
-		if control.tracerControl != nil {
-			grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl(), grpc.WithTracer(control.GetTracerControl()))
-			if err != nil {
-				control.logger.Errorf("[control] create grpc control failed: %v", err)
-				return nil, err
-			}
-			control.grpcControl = grpcControl
-		} else {
-			grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl())
-			if err != nil {
-				control.logger.Errorf("[control] create grpc control failed: %v", err)
-				return nil, err
-			}
-			control.grpcControl = grpcControl
+		grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl(), grpc.WithTracer(control.GetTracerControl()))
+		if err != nil {
+			control.logger.Errorf("[control] create grpc control failed: %v", err)
+			return nil, err
 		}
-
+		control.grpcControl = grpcControl
 	}
 
 	// 检查并创建Libp2p控制器
@@ -131,28 +128,34 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建DataSource控制器
 	dataSourceConfig := configControl.GetDataSourceConfig()
 	if dataSourceConfig != nil && dataSourceConfig.Enabled {
-		if control.tracerControl != nil {
-			dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl(), datasource.WithTracer(control.GetTracerControl()))
-			if err != nil {
-				control.logger.Errorf("[control] create data source control failed: %v", err)
-				return nil, err
-			}
-			control.datasourceControl = dataSourceControl
-		} else {
-			dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl())
-			if err != nil {
-				control.logger.Errorf("[control] create data source control failed: %v", err)
-				return nil, err
-			}
-			control.datasourceControl = dataSourceControl
+		dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl(), datasource.WithTracer(control.GetTracerControl()))
+		if err != nil {
+			control.logger.Errorf("[control] create data source control failed: %v", err)
+			return nil, err
 		}
+		control.datasourceControl = dataSourceControl
+	}
 
+	redisConfig := configControl.GetRedisConfig()
+	if redisConfig != nil && redisConfig.Enabled {
+		redisControl := redis.NewRedisControl(redisConfig, control.GetLoggerControl(), redis.WithTracer(control.GetTracerControl()))
+		control.redisControl = redisControl
 	}
 
 	ipfsConfig := configControl.GetIpfsConfig()
 	if ipfsConfig != nil && ipfsConfig.Enabled {
 		ipfsControl := ipfs.NewIpfsControl(ipfsConfig, control.GetLoggerControl())
 		control.ipfsControl = ipfsControl
+	}
+
+	ipfsClusterConfig := configControl.GetIpfsClusterConfig()
+	if ipfsClusterConfig != nil && ipfsClusterConfig.Enabled {
+		ipfsClusterControl, err := ipfscluster.NewIpfsClusterControl(ipfsClusterConfig, control.GetLoggerControl())
+		if err != nil {
+			control.logger.Errorf("[control] create ipfs cluster control failed: %v", err)
+			return nil, err
+		}
+		control.ipfsClusterControl = ipfsClusterControl
 	}
 
 	antsPoolConfig := configControl.GetAntsPoolConfig()
@@ -200,28 +203,16 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建HTTP控制器
 	webConfig := configControl.GetWebConfig()
 	if webConfig != nil && webConfig.Enabled {
-		if control.GetTracerControl() != nil {
-			webServerControl, err := http.NewWebServerControl(webConfig,
-				control.GetLoggerControl(),
-				http.WithTracer(control.GetTracerControl()),
-				http.WithDefaultStaticFiles(),
-			)
-			if err != nil {
-				control.logger.Errorf("[control] create http control failed: %v", err)
-				return nil, err
-			}
-			control.httpControl = webServerControl
-		} else {
-			webServerControl, err := http.NewWebServerControl(webConfig,
-				control.GetLoggerControl(),
-				http.WithDefaultStaticFiles(),
-			)
-			if err != nil {
-				control.logger.Errorf("[control] create http control failed: %v", err)
-				return nil, err
-			}
-			control.httpControl = webServerControl
+		webServerControl, err := http.NewWebServerControl(webConfig,
+			control.GetLoggerControl(),
+			http.WithTracer(control.GetTracerControl()),
+			http.WithDefaultStaticFiles(),
+		)
+		if err != nil {
+			control.logger.Errorf("[control] create http control failed: %v", err)
+			return nil, err
 		}
+		control.httpControl = webServerControl
 
 		websocketControl := websocket.NewWebsocketControl(webConfig, control.GetLoggerControl())
 		control.websocketControl = websocketControl
@@ -231,6 +222,7 @@ func NewServerControlFromFile() (*Control, error) {
 }
 
 // GetDockerControl 获取Docker控制器
+// @description 获取Docker控制器实例，如果未初始化则返回nil
 // @return *docker.Control Docker控制器实例
 func (c *Control) GetDockerControl() *docker.Control {
 	c.mutex.RLock()
@@ -239,6 +231,7 @@ func (c *Control) GetDockerControl() *docker.Control {
 }
 
 // GetConfigControl 获取配置控制器
+// @description 获取配置控制器实例，如果未初始化则返回nil
 // @return *config.Control 配置控制器实例
 func (c *Control) GetConfigControl() *config.Control {
 	c.mutex.RLock()
@@ -247,6 +240,7 @@ func (c *Control) GetConfigControl() *config.Control {
 }
 
 // GetLibp2pControl 获取Libp2p控制器
+// @description 获取Libp2p控制器实例，如果未初始化则返回nil
 // @return *libp2p.Control Libp2p控制器实例
 func (c *Control) GetLibp2pControl() *libp2p.Control {
 	c.mutex.RLock()
@@ -255,6 +249,7 @@ func (c *Control) GetLibp2pControl() *libp2p.Control {
 }
 
 // GetGrpcControl 获取gRPC控制器
+// @description 获取gRPC控制器实例，如果未初始化则返回nil
 // @return *grpc.Control gRPC控制器实例
 func (c *Control) GetGrpcControl() *grpc.Control {
 	c.mutex.RLock()
@@ -263,6 +258,7 @@ func (c *Control) GetGrpcControl() *grpc.Control {
 }
 
 // GetHttpControl 获取HTTP控制器
+// @description 获取HTTP控制器实例，如果未初始化则返回nil
 // @return *http.Control HTTP控制器实例
 func (c *Control) GetHttpControl() *http.Control {
 	c.mutex.RLock()
@@ -271,6 +267,7 @@ func (c *Control) GetHttpControl() *http.Control {
 }
 
 // GetDatasourceControl 获取数据源控制器
+// @description 获取数据源控制器实例，如果未初始化则返回nil
 // @return *datasource.Control 数据源控制器实例
 func (c *Control) GetDatasourceControl() *datasource.Control {
 	c.mutex.RLock()
@@ -279,6 +276,7 @@ func (c *Control) GetDatasourceControl() *datasource.Control {
 }
 
 // GetJobControl 获取作业控制器
+// @description 获取作业控制器实例，如果未初始化则返回nil
 // @return *job.Control 作业控制器实例
 func (c *Control) GetJobControl() *job.Control {
 	c.mutex.RLock()
@@ -287,6 +285,7 @@ func (c *Control) GetJobControl() *job.Control {
 }
 
 // GetLoggerControl 获取日志控制器
+// @description 获取日志控制器实例，如果未初始化则返回nil
 // @return *logger.Control 日志控制器实例
 func (c *Control) GetLoggerControl() *logger.Control {
 	c.mutex.RLock()
@@ -295,6 +294,7 @@ func (c *Control) GetLoggerControl() *logger.Control {
 }
 
 // GetWebsocketControl 获取WebSocket控制器
+// @description 获取WebSocket控制器实例，如果未初始化则返回nil
 // @return *websocket.Control WebSocket控制器实例
 func (c *Control) GetWebsocketControl() *websocket.Control {
 	c.mutex.RLock()
@@ -303,6 +303,7 @@ func (c *Control) GetWebsocketControl() *websocket.Control {
 }
 
 // GetCaptchaControl 获取验证码控制器
+// @description 获取验证码控制器实例，如果未初始化则返回nil
 // @return *captcha.Control 验证码控制器实例
 func (c *Control) GetCaptchaControl() *captcha.Control {
 	c.mutex.RLock()
@@ -311,6 +312,7 @@ func (c *Control) GetCaptchaControl() *captcha.Control {
 }
 
 // GetFlagsControl 获取flags控制器
+// @description 获取flags控制器实例，如果未初始化则返回nil
 // @return *flags.Control flags控制器
 func (c *Control) GetFlagsControl() *flags.Control {
 	c.mutex.RLock()
@@ -318,6 +320,9 @@ func (c *Control) GetFlagsControl() *flags.Control {
 	return c.flagsControl
 }
 
+// GetAntsPoolControl 获取Ants线程池控制器
+// @description 获取Ants线程池控制器实例，如果未初始化则返回nil
+// @return *ants.Control Ants线程池控制器实例
 func (c *Control) GetAntsPoolControl() *ants.Control {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -325,6 +330,7 @@ func (c *Control) GetAntsPoolControl() *ants.Control {
 }
 
 // GetAuthzControl 获取权限控制器
+// @description 获取权限控制器实例，如果未初始化则返回nil
 // @return *authz.Control 权限控制器实例
 func (c *Control) GetAuthzControl() *authz.Control {
 	c.mutex.RLock()
@@ -332,25 +338,53 @@ func (c *Control) GetAuthzControl() *authz.Control {
 	return c.authzControl
 }
 
+// GetIpfsControl 获取IPFS控制器
+// @description 获取IPFS控制器实例，如果未初始化则返回nil
+// @return *ipfs.Control IPFS控制器实例
 func (c *Control) GetIpfsControl() *ipfs.Control {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.ipfsControl
 }
 
+// GetIpfsClusterControl 获取IPFS集群控制器
+// @description 获取IPFS集群控制器实例，如果未初始化则返回nil
+// @return *ipfscluster.Control IPFS集群控制器实例
+func (c *Control) GetIpfsClusterControl() *ipfscluster.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.ipfsClusterControl
+}
+
+// GetMFAControl 获取MFA控制器
+// @description 获取MFA控制器实例，如果未初始化则返回nil
+// @return *mfa.Control MFA控制器实例
 func (c *Control) GetMFAControl() *mfa.Control {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.mfaControl
 }
 
+// GetTracerControl 获取Tracer追踪控制器
+// @description 获取Tracer追踪控制器实例，如果未初始化则返回nil
+// @return *tracer.Control Tracer追踪控制器实例
 func (c *Control) GetTracerControl() *tracer.Control {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.tracerControl
 }
 
+// GetRedisControl 获取Redis控制器
+// @description 获取Redis控制器实例，如果未初始化则返回nil
+// @return *redis.Control Redis控制器实例
+func (c *Control) GetRedisControl() *redis.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.redisControl
+}
+
 // NewServerControl 创建服务器控制器
+// @description 使用预初始化的各个子控制器创建服务器控制器实例
 // @param dockerControl *docker.Control Docker控制器
 // @param configControl *config.Control 配置控制器
 // @param libp2pControl *libp2p.Control Libp2p控制器
@@ -361,6 +395,14 @@ func (c *Control) GetTracerControl() *tracer.Control {
 // @param jobControl *job.Control 作业控制器
 // @param websocketControl *websocket.Control WebSocket控制器
 // @param flagsControl *flags.Control flags控制器
+// @param captchaControl *captcha.Control 验证码控制器
+// @param antsControl *ants.Control Ants线程池控制器
+// @param authzControl *authz.Control 权限控制器
+// @param ipfsControl *ipfs.Control IPFS控制器
+// @param mfaControl *mfa.Control MFA控制器
+// @param tracerControl *tracer.Control Tracer追踪控制器
+// @param ipfsClusterControl *ipfscluster.Control IPFS集群控制器
+// @param redisControl *redis.Control Redis控制器
 // @return *Control 服务器控制器实例
 func NewServerControl(dockerControl *docker.Control,
 	configControl *config.Control,
@@ -374,37 +416,41 @@ func NewServerControl(dockerControl *docker.Control,
 	flagsControl *flags.Control,
 	captchaControl *captcha.Control,
 	antsControl *ants.Control,
-
 	authzControl *authz.Control,
 	ipfsControl *ipfs.Control,
 	mfaControl *mfa.Control,
 	tracerControl *tracer.Control,
+	ipfsClusterControl *ipfscluster.Control,
+	redisControl *redis.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
 	return &Control{
-		logger:            serverLogger,
-		dockerControl:     dockerControl,
-		configControl:     configControl,
-		libp2pControl:     libp2pControl,
-		grpcControl:       grpcControl,
-		httpControl:       httpControl,
-		datasourceControl: datasourceControl,
-		loggerControl:     loggerControl,
-		jobControl:        jobControl,
-		websocketControl:  websocketControl,
-		flagsControl:      flagsControl,
-		captchaControl:    captchaControl,
-		antsControl:       antsControl,
-
-		authzControl:  authzControl,
-		ipfsControl:   ipfsControl,
-		mfaControl:    mfaControl,
-		tracerControl: tracerControl,
+		logger:             serverLogger,
+		ctx:                context.Background(),
+		dockerControl:      dockerControl,
+		configControl:      configControl,
+		libp2pControl:      libp2pControl,
+		grpcControl:        grpcControl,
+		httpControl:        httpControl,
+		datasourceControl:  datasourceControl,
+		loggerControl:      loggerControl,
+		jobControl:         jobControl,
+		websocketControl:   websocketControl,
+		flagsControl:       flagsControl,
+		captchaControl:     captchaControl,
+		antsControl:        antsControl,
+		authzControl:       authzControl,
+		ipfsControl:        ipfsControl,
+		mfaControl:         mfaControl,
+		tracerControl:      tracerControl,
+		ipfsClusterControl: ipfsClusterControl,
+		redisControl:       redisControl,
 	}
 }
 
 // StartUp 启动所有服务器组件
+// @description 按照依赖顺序启动所有已初始化的服务器组件
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
@@ -434,6 +480,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.datasourceControl.StartUp(failedFunc)
 		}
 
+		if c.redisControl != nil {
+			c.logger.Debugf("[control] starting up redis server...")
+			c.redisControl.StartUp(failedFunc)
+		}
+
 		if c.grpcControl != nil {
 			c.logger.Debugf("[control] starting up grpc server...")
 			c.grpcControl.StartUp(failedFunc)
@@ -446,6 +497,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.ipfsControl != nil {
 			c.logger.Debugf("[control] starting up ipfs server...")
 			c.ipfsControl.StartUp(failedFunc)
+		}
+
+		if c.ipfsClusterControl != nil {
+			c.logger.Debugf("[control] starting up ipfs cluster server...")
+			c.ipfsClusterControl.StartUp(failedFunc)
 		}
 
 		if c.dockerControl != nil {
@@ -504,6 +560,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 }
 
 // Shutdown 关闭所有服务器组件
+// @description 按照依赖顺序关闭所有已初始化的服务器组件
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 
@@ -562,6 +619,11 @@ func (c *Control) Shutdown() error {
 		_ = c.ipfsControl.Shutdown()
 	}
 
+	if c.ipfsClusterControl != nil {
+		c.logger.Debugf("[control] shutting down ipfs cluster server...")
+		_ = c.ipfsClusterControl.Shutdown()
+	}
+
 	if c.dockerControl != nil {
 		c.logger.Debugf("[control] shutting down docker server...")
 		if err := c.dockerControl.Shutdown(); err != nil {
@@ -574,6 +636,14 @@ func (c *Control) Shutdown() error {
 		c.logger.Debugf("[control] shutting down datasource server...")
 		if err := c.datasourceControl.Shutdown(); err != nil {
 			c.logger.Errorf("[control] shutdown datasource server err: %v", err)
+			return err
+		}
+	}
+
+	if c.redisControl != nil {
+		c.logger.Debugf("[control] shutting down redis server...")
+		if err := c.redisControl.Shutdown(); err != nil {
+			c.logger.Errorf("[control] shutdown redis server err: %v", err)
 			return err
 		}
 	}

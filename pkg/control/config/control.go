@@ -129,6 +129,12 @@ func (c *Control) GetIpfsConfig() *IpfsConfig {
 	return c.config.IpfsConfig
 }
 
+func (c *Control) GetIpfsClusterConfig() *IpfsClusterConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.IpfsClusterConfig
+}
+
 // GetMFAConfig 获取MFA配置
 // @return *MFAConfig MFA配置
 func (c *Control) GetMFAConfig() *MFAConfig {
@@ -141,6 +147,14 @@ func (c *Control) GetTracerConfig() *TracerConfig {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 	return c.config.TracerConfig
+}
+
+// GetRedisConfig 获取Redis配置
+// @return *RedisConfig Redis配置
+func (c *Control) GetRedisConfig() *RedisConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.RedisConfig
 }
 
 // GetTunnyPoolConfig 获取Tunny线程池配置

@@ -15,19 +15,22 @@ import (
 	"gorm.io/plugin/opentelemetry/tracing"
 )
 
+// Control 数据源控制器结构体
+// @description 管理数据库连接和操作的控制器
 type Control struct {
-	config           *config.DataSourceConfig
-	dbConn           *gorm.DB
-	logger           *zap.SugaredLogger
-	dbLogger         *dblogger.Logger
-	once             sync.Once
-	autoMigrateTable []interface{}
-	autoMigrateMutex sync.RWMutex
-	tracerControl    *tracer.Control
-	ctx              context.Context
+	config           *config.DataSourceConfig // 数据源配置
+	dbConn           *gorm.DB                 // 数据库连接实例
+	logger           *zap.SugaredLogger       // 日志记录器
+	dbLogger         *dblogger.Logger         // 数据库日志记录器
+	once             sync.Once                // 确保StartUp只执行一次
+	autoMigrateTable []interface{}            // 自动迁移的表结构列表
+	autoMigrateMutex sync.RWMutex             // 自动迁移表的读写锁
+	tracerControl    *tracer.Control          // 追踪控制器
+	ctx              context.Context          // 上下文
 }
 
 // RegisterAutoMigrateTable 注册自动迁移的表
+// @description 注册需要在启动时自动迁移的表结构
 // @param tables ...interface{} 要自动迁移的表结构
 func (c *Control) RegisterAutoMigrateTable(tables ...interface{}) {
 	c.logger.Debugf("[control] register auto migrate table...")
@@ -39,6 +42,7 @@ func (c *Control) RegisterAutoMigrateTable(tables ...interface{}) {
 }
 
 // autoMigrate 自动迁移表（内部方法）
+// @description 根据注册的表结构自动创建或更新数据库表
 // @return error 迁移过程中可能产生的错误
 func (c *Control) autoMigrate() error {
 	c.logger.Debugf("[control] auto migrate table...")
@@ -52,6 +56,7 @@ func (c *Control) autoMigrate() error {
 }
 
 // ReAutoMigrate 手动触发自动迁移
+// @description 手动触发已注册表结构的自动迁移操作
 // @return error 迁移过程中可能产生的错误
 func (c *Control) ReAutoMigrate() error {
 	c.logger.Debugf("[control] call auto migrate table by hand...")
@@ -65,6 +70,7 @@ func (c *Control) ReAutoMigrate() error {
 }
 
 // GetConn 获取数据库连接
+// @description 获取带上下文的数据库连接实例
 // @return *gorm.DB 数据库连接实例
 func (c *Control) GetConn() *gorm.DB {
 	return c.dbConn.WithContext(c.ctx)
@@ -83,6 +89,7 @@ func (c *Control) GetConn() *gorm.DB {
 // }
 
 // setConnPool 设置数据库连接池参数（内部方法）
+// @description 配置数据库连接池参数
 // @return error 设置过程中可能产生的错误
 func (c *Control) setConnPool() error {
 	sqlDB, err := c.dbConn.WithContext(c.ctx).DB()
@@ -98,6 +105,7 @@ func (c *Control) setConnPool() error {
 }
 
 // StartUp 启动数据源服务
+// @description 启动数据源服务，测试连接并执行自动迁移
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
@@ -132,6 +140,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 }
 
 // Shutdown 关闭数据源服务
+// @description 关闭数据库连接并释放相关资源
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 	c.logger.Debugf("[control] shutdown datasource...")
@@ -147,6 +156,9 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
+// initDBConn 初始化数据库连接（内部方法）
+// @description 根据配置初始化对应类型的数据库连接
+// @return error 初始化过程中可能产生的错误
 func (c *Control) initDBConn() error {
 	switch c.config.DataSourceType {
 	case Mysql:
@@ -176,6 +188,33 @@ func (c *Control) initDBConn() error {
 		}
 		c.logger.Debugf("[control] sqlite3 connection create success...")
 		c.dbConn = conn.WithContext(c.ctx)
+	case TiDB:
+		c.logger.Debugf("[control] using tidb data source...")
+		conn, err := newTiDBConn(c)
+		if err != nil {
+			c.logger.Error("[control] failed to create tidb connection: %v", err)
+			return err
+		}
+		c.logger.Debugf("[control] tidb connection create success...")
+		c.dbConn = conn.WithContext(c.ctx)
+	case SqlServer:
+		c.logger.Debugf("[control] using sqlserver data source...")
+		conn, err := newSqlServerConn(c)
+		if err != nil {
+			c.logger.Error("[control] failed to create sqlserver connection: %v", err)
+			return err
+		}
+		c.logger.Debugf("[control] sqlserver connection create success...")
+		c.dbConn = conn.WithContext(c.ctx)
+	case Clickhouse:
+		c.logger.Debugf("[control] using clickhouse data source...")
+		conn, err := newClickhouseConn(c)
+		if err != nil {
+			c.logger.Error("[control] failed to create clickhouse connection: %v", err)
+			return err
+		}
+		c.logger.Debugf("[control] clickhouse connection create success...")
+		c.dbConn = conn.WithContext(c.ctx)
 	default:
 		c.logger.Warnf("[control] unknown data source type: %s", c.config.DataSourceType)
 		return ErrUnknownDataSourceType
@@ -190,10 +229,12 @@ func (c *Control) initDBConn() error {
 }
 
 // NewDataSourceControl 创建数据源控制器
-// @param config *config.DataSourceConfig 数据源配置
+// @description 根据配置创建一个新的数据源控制器实例
+// @param dbConfig *config.DataSourceConfig 数据源配置
 // @param loggerControl *logger.Control 日志控制器
+// @param opts ...Option 可选的配置选项
 // @return *Control 数据源控制器实例
-// @return error 错误信息
+// @return error 创建过程中可能产生的错误
 func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control, opts ...Option) (*Control, error) {
 	if dbConfig == nil {
 		dbConfig = getDefaultConfig()

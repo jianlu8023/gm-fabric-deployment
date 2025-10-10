@@ -17,4 +17,5 @@ const (
 	ModuleMFA         = "MFA"
 	ModuleTracer      = "Tracer"
 	ModuleIpfsCluster = "IpfsCluster"
+	ModuleRedis       = "Redis"
 )

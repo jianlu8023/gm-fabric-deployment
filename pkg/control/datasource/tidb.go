@@ -6,9 +6,15 @@ import (
 )
 
 const (
+	// TiDB TiDB数据库类型标识
 	TiDB = "TiDB"
 )
 
+// newTiDBConn 创建TiDB数据库连接
+// @description 根据配置创建TiDB数据库连接（使用MySQL驱动）
+// @param dbControl *Control 数据源控制器实例
+// @return *gorm.DB GORM数据库连接实例
+// @return error 创建连接过程中可能产生的错误
 func newTiDBConn(dbControl *Control) (*gorm.DB, error) {
 	return gorm.Open(mysql.New(mysql.Config{
 		DSN:                       dbControl.config.GenTiDBDSN(), // DSN data source name

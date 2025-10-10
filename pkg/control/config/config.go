@@ -600,6 +600,23 @@ type IpfsClusterConfig struct {
 	} `json:"addresses,omitempty" yaml:"addresses,omitempty" mapstructure:"addresses"`
 }
 
+// RedisConfig Redis配置结构体
+type RedisConfig struct {
+	Enabled  bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`       // 是否启用
+	Host     string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                // Redis服务器地址
+	Port     int    `json:"port,omitempty" yaml:"port,omitempty" mapstructure:"port"`                // Redis服务器端口
+	Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"`    // Redis密码
+	DB       int    `json:"db,omitempty" yaml:"db,omitempty" mapstructure:"db"`                      // Redis数据库编号
+	PoolSize int    `json:"pool_size,omitempty" yaml:"pool_size,omitempty" mapstructure:"pool_size"` // 连接池大小
+}
+
+// String 返回RedisConfig的字符串表示
+// @return string RedisConfig的字符串表示
+func (r *RedisConfig) String() string {
+	pretty, _ := json.MarshalPretty(r)
+	return string(pretty)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig        *GrpcConfig        `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -618,6 +635,7 @@ type Config struct {
 	MFAConfig         *MFAConfig         `json:"mfa_config,omitempty" yaml:"mfa_config,omitempty" mapstructure:"mfa"`                      // MFA配置
 	TracerConfig      *TracerConfig      `json:"tracer_config,omitempty" yaml:"tracer_config,omitempty" mapstructure:"tracer"`
 	IpfsClusterConfig *IpfsClusterConfig `json:"ipfs_cluster_config,omitempty" yaml:"ipfs_cluster_config,omitempty" mapstructure:"ipfs_cluster"` // ipfs cluster配置
+	RedisConfig       *RedisConfig       `json:"redis_config,omitempty" yaml:"redis_config,omitempty" mapstructure:"redis"`                      // Redis配置
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 

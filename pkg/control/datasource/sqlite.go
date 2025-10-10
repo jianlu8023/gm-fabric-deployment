@@ -10,9 +10,15 @@ import (
 )
 
 const (
+	// Sqlite3 SQLite3数据库类型标识
 	Sqlite3 = "sqlite3"
 )
 
+// newSqlite3Conn 创建SQLite3数据库连接
+// @description 根据配置创建SQLite3数据库连接
+// @param dbControl *Control 数据源控制器实例
+// @return *gorm.DB GORM数据库连接实例
+// @return error 创建连接过程中可能产生的错误
 func newSqlite3Conn(dbControl *Control) (*gorm.DB, error) {
 	return gorm.Open(sqlite.Open(dbControl.config.GenSqlite3DSN()),
 		&gorm.Config{

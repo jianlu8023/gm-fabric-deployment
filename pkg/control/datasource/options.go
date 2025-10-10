@@ -4,8 +4,14 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 )
 
+// Option 定义用于配置 Control 的函数类型
+// @description 用于通过函数式选项模式配置 Control 结构体
 type Option func(control *Control)
 
+// WithTracer 设置 tracer 控制器
+// @description 设置数据源的追踪控制器
+// @param tracerControl *tracer.Control 追踪控制器实例
+// @return Option 配置函数
 func WithTracer(tracerControl *tracer.Control) Option {
 	return func(control *Control) {
 		control.tracerControl = tracerControl
