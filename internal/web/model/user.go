@@ -2,6 +2,9 @@ package model
 
 import (
 	"database/sql"
+	"reflect"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
@@ -10,6 +13,29 @@ import (
 const (
 	userInfoTableName = "t_user_info"
 )
+
+var columns = defaultColumns()
+
+func defaultColumns() *atomic.Value {
+	v := &atomic.Value{}
+	taskType := reflect.TypeOf(NewUserInfo())
+	m := make(map[string]string)
+	for i := 0; i < taskType.NumField(); i++ {
+		field := taskType.Field(i)
+		gormTag := field.Tag.Get("gorm")
+		split := strings.Split(gormTag, ";")
+		for j := 0; j < len(split); j++ {
+			if strings.Contains(split[i], "column") {
+				columnSplit := strings.Split(split[i], ":")
+				if len(columnSplit) == 2 {
+					m[field.Name] = columnSplit[1]
+				}
+			}
+		}
+	}
+	v.Store(m)
+	return v
+}
 
 // UserInfo 用户信息模型
 // @description 定义系统用户的数据结构，包含用户的基本信息
@@ -28,6 +54,10 @@ type UserInfo struct {
 	MFAOTPAuthURL     string       `json:"mfa_otp_auth_url,omitempty" yaml:"mfa_otp_auth_url,omitempty" gorm:"column:mfa_otp_auth_url;type:varchar(255);default:'';"`         // mfa的otp auth url
 	IsDelete          sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0"`                                  // 是否删除标记（默认为0）
 	LastLoginTime     time.Time    `json:"last_login_time,omitempty" yaml:"last_login_time,omitempty" gorm:"column:last_login_time;type:datetime;default:CURRENT_TIMESTAMP"`  // 最后登录时间（默认为当前时间戳）
+}
+
+func (model UserInfo) TableColumns() map[string]string {
+	return columns.Load().(map[string]string)
 }
 
 // String 将用户信息转换为字符串表示
