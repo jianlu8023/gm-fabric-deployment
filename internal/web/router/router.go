@@ -50,7 +50,7 @@ func NewRouter(loggerControl *logger.Control,
 
 	libp2pNodeHandler := handler.NewLibp2pNodeHandler(
 		baseHandler,
-		service.NeeNodeService(baseService,
+		service.NewLibp2pNodeService(baseService,
 			mapper.NewLibp2pNodeMapper(baseMapper),
 			libp2pControl,
 		),

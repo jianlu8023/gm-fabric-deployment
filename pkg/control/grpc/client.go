@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -99,10 +100,57 @@ func NewClientControl(control *Control) error {
 				},
 				SessionTicketsDisabled: false, // 启用会话票据
 				NextProtos:             []string{"h2", "http/1.1"},
-				ServerName:             "grpc", // 必须与服务器证书的Common Name匹配
+				ServerName:             "test.example.com", // 必须与服务器证书的Common Name匹配
 			}
 
-			// TODO 差 加载两套keypair 一套签名 一套加密
+			// GM模式需要两套keypair：一个签名，一个加密
+			// 使用逗号分割证书和密钥文件路径
+			certFiles := strings.Split(control.config.Client.TlsCertFile, ",")
+			keyFiles := strings.Split(control.config.Client.TlsKeyFile, ",")
+
+			// 检查是否提供了两套证书和密钥
+			if len(certFiles) != 2 || len(keyFiles) != 2 {
+				control.logger.Errorf("[client] GM模式必须提供两套keypair（签名和加密），当前证书文件数量: %d, 密钥文件数量: %d", len(certFiles), len(keyFiles))
+				return ErrNoCACert
+			}
+
+			// 去除文件路径的空格
+			for i := range certFiles {
+				certFiles[i] = strings.TrimSpace(certFiles[i])
+			}
+			for i := range keyFiles {
+				keyFiles[i] = strings.TrimSpace(keyFiles[i])
+			}
+
+			// 验证文件路径不为空
+			for i, file := range certFiles {
+				if stringer.IsBlank(file) {
+					control.logger.Errorf("[client] 第%d个证书文件路径为空", i+1)
+					return ErrNoCACert
+				}
+			}
+			for i, file := range keyFiles {
+				if stringer.IsBlank(file) {
+					control.logger.Errorf("[client] 第%d个密钥文件路径为空", i+1)
+					return ErrNoCACert
+				}
+			}
+
+			// 加载两套keypair
+			var certificates []gmtls.Certificate
+			for i := 0; i < 2; i++ {
+				cert, err := gmtls.LoadX509KeyPair(certFiles[i], keyFiles[i])
+				if err != nil {
+					control.logger.Errorf("[client] 加载第%d套GM TLS证书失败: %v", i+1, err)
+					return err
+				}
+				certificates = append(certificates, cert)
+				control.logger.Debugf("[client] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
+			}
+
+			// 设置证书到GM TLS配置
+			gmTlsConfig.Certificates = certificates
+			control.logger.Infof("[client] 成功加载GM模式两套keypair，签名证书: %s，加密证书: %s", certFiles[0], certFiles[1])
 
 			// 加载CA证书用于验证服务器证书
 			rootCaCertFile := control.config.Client.TlsRCACertFile

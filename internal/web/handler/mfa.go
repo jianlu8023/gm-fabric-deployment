@@ -20,8 +20,8 @@ import (
 // @description 处理MFA相关的HTTP请求
 // @struct
 type MFAHandler struct {
-	*Handler            // Handler 基础处理器
-	service *service.MFAService // service MFA服务
+	*Handler                     // Handler 基础处理器
+	service  *service.MFAService // service MFA服务
 }
 
 // NewMFAHandler 创建MFA处理器
@@ -44,6 +44,7 @@ func NewMFAHandler(baseHandler *Handler, mfaService *service.MFAService) *MFAHan
 // @url /mfa/recovery/secret
 // @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *MFAHandler) GenerateRecoverySecret(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "generateRecoverySecret",
 		attribute.String("requestId", requestid.Get(ctx)),
 	)
 	defer span.End()
@@ -90,6 +91,7 @@ func (h *MFAHandler) GenerateRecoverySecret(ctx *gin.Context) {
 // @url /mfa/verify
 // @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *MFAHandler) VerifyMfaCode(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "verifyMfaCode",
 		attribute.String("requestId", requestid.Get(ctx)),
 	)
 	defer span.End()
@@ -135,6 +137,7 @@ func (h *MFAHandler) VerifyMfaCode(ctx *gin.Context) {
 // @url /mfa/qrcode
 // @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *MFAHandler) GenerateQrCode(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "generateQrCode",
 		attribute.String("requestId", requestid.Get(ctx)),
 	)
 	defer span.End()
