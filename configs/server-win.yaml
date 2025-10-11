@@ -146,14 +146,14 @@ tracer:
     file_path: "tracer.json"
   # logger配置
   logger:
-    exporters: "file,none,otlp,"
+    exporters: "file,none,,"
     otel_protocol: "grpc"
     otel_endpoint: "http://127.0.0.1:4317/v1/logs"
     otel_insecure: true
     file_path: "logger.json"
   # meter配置
   meter:
-    exporters: "file,none,otlp,"
+    exporters: "file,none,,"
     otel_protocol: "grpc"
     otel_endpoint: "http://127.0.0.1:4317/v1/metrics"
     otel_insecure: true

@@ -301,6 +301,7 @@ func NewServerControl(control *Control) error {
 				// 要求并验证客户端证书 - 双向TLS的关键设置
 				gmTlsConfig.ClientCAs = caCertPool
 				gmTlsConfig.ClientAuth = gmtls.RequireAndVerifyClientCert
+				// gmTlsConfig.ClientAuth = gmtls.VerifyClientCertIfGiven
 				control.logger.Debugf("[server] mutual TLS enabled with client certificate verification")
 			} else {
 				control.logger.Warnf("[server] CA cert file is not configured for mutual TLS")
@@ -365,6 +366,7 @@ func NewServerControl(control *Control) error {
 				// 要求并验证客户端证书 - 双向TLS的关键设置
 				tlsConfig.ClientCAs = caCertPool
 				tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
+				// tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven
 				control.logger.Debugf("[server] mutual TLS enabled with client certificate verification")
 			} else {
 				control.logger.Warnf("[server] CA cert file is not configured for mutual TLS")

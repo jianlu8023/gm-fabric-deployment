@@ -231,6 +231,15 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 			// 	gmTLSConfig.Certificates = []gmtls.Certificate{certificates}
 			// }
 
+			// 根据HTTP/2配置决定是否启用HTTP/2协议协商
+			if serverConfig.Http2Enabled {
+				gmTLSConfig.NextProtos = []string{"h2", "http/1.1"}
+				webLogger.Infof("[control] HTTP/2 enabled for TLS connections")
+			} else {
+				gmTLSConfig.NextProtos = []string{"http/1.1"}
+				webLogger.Infof("[control] HTTP/2 disabled, using HTTP/1.1 only")
+			}
+
 			// GM模式需要两套keypair：一个签名，一个加密
 			// 使用逗号分割证书和密钥文件路径
 			certFiles := strings.Split(serverConfig.TlsCertFile, ",")
@@ -387,7 +396,15 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 
 						// 注意：GM TLS不支持HTTP/2，因为HTTP/2需要的ALPN协议协商和GM TLS不兼容
 						if c.config.Http2Enabled {
-							c.logger.Warnf("[control] HTTP/2 is not supported with GM TLS, falling back to HTTP/1.1")
+							// c.logger.Warnf("[control] HTTP/2 is not supported with GM TLS, falling back to HTTP/1.1")
+							if err := http2.ConfigureServer(c.server, &http2.Server{}); err != nil {
+								c.logger.Errorf("[control] failed to configure HTTP/2 server: %v", err)
+								if failedFunc != nil {
+									failedFunc(err)
+								}
+								return
+							}
+							c.logger.Info("[control] HTTP/2 server configured successfully")
 						}
 
 						defer func(listener net.Listener) {
