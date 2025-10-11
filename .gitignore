@@ -33,6 +33,7 @@ go.work.sum
 test/*
 testdata/*
 uploads/
+kvdatabase/
 
 ### tracer files ###
 tracer.json

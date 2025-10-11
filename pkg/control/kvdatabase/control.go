@@ -178,10 +178,7 @@ func (kc *Control) ensureDbPath() error {
 		return fmt.Errorf("db path is empty")
 	}
 
-	if _, err := path.CreateDir(kc.config.DbPath); err != nil {
-		kc.logger.Errorf("[control] failed to create db path %s: %v", kc.config.DbPath, err)
-		return err
-	}
+	_, _ = path.CreateDir(kc.config.DbPath)
 
 	return nil
 }
