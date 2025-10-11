@@ -216,6 +216,7 @@ func NewServerControl(control *Control) error {
 		opts = append(opts, grpc.StatsHandler(
 			otelgrpc.NewServerHandler(
 				otelgrpc.WithTracerProvider(control.tracerControl.TracerProvider()),
+				otelgrpc.WithMeterProvider(control.tracerControl.MeterProvider()),
 			),
 		))
 	}

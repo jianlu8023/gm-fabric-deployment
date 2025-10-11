@@ -80,6 +80,7 @@ func NewClientControl(control *Control) error {
 			grpc.WithStatsHandler(
 				otelgrpc.NewClientHandler(
 					otelgrpc.WithTracerProvider(control.tracerControl.TracerProvider()),
+					otelgrpc.WithMeterProvider(control.tracerControl.MeterProvider()),
 				),
 			),
 		)
