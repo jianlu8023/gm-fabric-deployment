@@ -89,3 +89,13 @@ ants_pool:
   pre_alloc: true
   # 是否非阻塞模式
   nonblocking: true
+# KvDatabase配置示例
+kvdatabase:
+  # 是否启用KvDatabase功能
+  enabled: true
+
+  # 数据库类型: leveldb, pebble, badger4
+  db_type: "leveldb"
+
+  # 数据库文件存储路径
+  db_path: "./data/kvdatabase"

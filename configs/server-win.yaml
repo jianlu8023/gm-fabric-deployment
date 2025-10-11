@@ -150,3 +150,8 @@ tracer:
     otel_endpoint: "http://127.0.0.1:4317/v1/metrics"
     otel_insecure: true
     file_path: "meter.json"
+kvdatabase:
+  enabled: true
+  # 数据库类型: leveldb, pebble, badger4
+  db_type: "leveldb"
+  db_path: "kvdatabase"

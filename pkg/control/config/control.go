@@ -157,6 +157,14 @@ func (c *Control) GetRedisConfig() *RedisConfig {
 	return c.config.RedisConfig
 }
 
+// GetKvDatabaseConfig 获取KvDatabase配置
+// @return *KvDatabaseConfig KvDatabase配置
+func (c *Control) GetKvDatabaseConfig() *KvDatabaseConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.KvDatabaseConfig
+}
+
 // GetTunnyPoolConfig 获取Tunny线程池配置
 // @return *TunnyPoolConfig Tunny线程池配置
 // func (c *Control) GetTunnyPoolConfig() *TunnyPoolConfig {

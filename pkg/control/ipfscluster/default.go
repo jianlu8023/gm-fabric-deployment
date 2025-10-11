@@ -4,18 +4,18 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 )
 
-// StrategyType 负载均衡策略类型
+// strategyType 负载均衡策略类型
 // @description 定义IPFS集群客户端的负载均衡策略类型
-type StrategyType string
+type strategyType string
 
 const (
-	// FailOver 故障转移策略
+	// failOver 故障转移策略
 	// @description 当前节点故障时自动切换到下一个可用节点
-	FailOver StrategyType = "failover"
-	
-	// RoundRobin 轮询策略
+	failOver strategyType = "failover"
+
+	// roundRobin 轮询策略
 	// @description 按顺序轮询使用各个节点
-	RoundRobin StrategyType = "roundrobin"
+	roundRobin strategyType = "roundrobin"
 )
 
 const (

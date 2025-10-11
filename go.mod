@@ -6,6 +6,8 @@ toolchain go1.22.10
 
 replace (
 	github.com/Jeffail/gabs/v2 => github.com/Jeffail/gabs/v2 v2.7.0
+	github.com/cockroachdb/pebble => github.com/cockroachdb/pebble v1.1.0
+	github.com/dgraph-io/badger/v4 => github.com/dgraph-io/badger/v4 v4.5.0
 	github.com/docker/docker => github.com/docker/docker v28.0.1+incompatible
 	github.com/docker/go-connections => github.com/docker/go-connections v0.5.0 // 原本是0.4.0
 	github.com/gin-contrib/cors => github.com/gin-contrib/cors v1.7.3
@@ -22,15 +24,18 @@ replace (
 	// github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
 	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
 	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20250930144632-d6dbaeab0b42
+	github.com/jinzhu/copier => github.com/jinzhu/copier v0.4.0
 	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
 	github.com/mitchellh/mapstructure => github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
+	github.com/pquerna/otp => github.com/pquerna/otp v1.5.0
 	github.com/redis/go-redis/extra/redisotel/v9 => github.com/redis/go-redis/extra/redisotel/v9 v9.15.1
 	github.com/redis/go-redis/v9 => github.com/redis/go-redis/v9 v9.15.1
 	// github.com/pion/webrtc/v4 v4.0.9 => github.com/pion/webrtc/v4 v4.1.1
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/skip2/go-qrcode => github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
+	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
 	github.com/ulule/limiter/v3 => github.com/ulule/limiter/v3 v3.11.2
 	github.com/unrolled/secure => github.com/unrolled/secure v1.17.0
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
@@ -81,95 +86,96 @@ replace (
 )
 
 require (
-	github.com/Jeffail/gabs/v2 v2.7.0
+	github.com/Jeffail/gabs/v2 v2.7.0 // json解析
 	github.com/casbin/casbin/v2 v2.122.0 // 权限控制
-	github.com/docker/docker v27.3.0+incompatible
+	github.com/cockroachdb/pebble v1.1.0 // kv数据库 pebble
+	github.com/dgraph-io/badger/v4 v4.5.0 // kv数据库 badger
+	github.com/docker/docker v27.3.0+incompatible // 连接docker
 	github.com/docker/go-connections v0.5.0 // create docker container 需要这个库
-	github.com/gin-contrib/cors v1.7.3
-	github.com/gin-contrib/gzip v1.2.2
-	github.com/gin-contrib/requestid v1.0.4
-	github.com/gin-contrib/sse v1.0.0
-	github.com/gin-gonic/gin v1.10.1
-	github.com/glebarez/sqlite v1.11.0
-	github.com/go-logr/logr v1.4.3
-	github.com/go-logr/zapr v1.3.0 // logr 使用zapr
-	github.com/go-playground/validator/v10 v10.25.0
-	github.com/golang-jwt/jwt/v5 v5.3.0
-	github.com/gorilla/websocket v1.5.3
-	github.com/ipfs-cluster/ipfs-cluster v1.0.8
-	github.com/ipfs/boxo v0.27.2
+	github.com/gin-contrib/cors v1.7.3 // gin cors中间件
+	github.com/gin-contrib/gzip v1.2.2 // gin gzip中间件
+	github.com/gin-contrib/requestid v1.0.4 // gin requestid中间件
+	github.com/gin-contrib/sse v1.0.0 // sse
+	github.com/gin-gonic/gin v1.10.1 // gin web框架
+	github.com/glebarez/sqlite v1.11.0 // sqlite 数据库 驱动 纯go
+	github.com/go-logr/logr v1.4.3 // logr 一些开源项目中使用的log抽象层
+	github.com/go-logr/zapr v1.3.0 // logr 使用zapr logr的zap实现
+	github.com/go-playground/validator/v10 v10.25.0 // 验证参数
+	github.com/golang-jwt/jwt/v5 v5.3.0 // jwt
+	github.com/gorilla/websocket v1.5.3 // websocket
+	github.com/ipfs-cluster/ipfs-cluster v1.0.8 // ipfs-cluster的sdk
+	github.com/ipfs/boxo v0.27.2 // boxo 简化的ipfs操作
 	// github.com/hxx258456/ccgo v0.0.3 // grpc v1.44.0 protoc-gen-go-grpc 版本v1.2.0 没有grpc.NewClient 需要使用 grpc.Dial
-	// github.com/hxx258456/fabric-sdk-go-gm v0.0.7
-	// github.com/hyperledger/fabric-sdk-go v1.0.0
+	// github.com/hxx258456/fabric-sdk-go-gm v0.0.7 // gmfabric的sdk gm基于2.2.5
+	// github.com/hyperledger/fabric-sdk-go v1.0.0 // fabric的sdk 目前仓库已经归档,貌似后面都在使用admin操作
 	// gitee.com/zhaochuninhefei/gmgo v0.1.1 // grpc升级到v1.63.2 protoc-gen-go-grpc 应该是v1.3.0
-	// github.com/ipfs/boxo v0.27.2
-	github.com/ipfs/go-cid v0.5.0
-	github.com/ipfs/go-ipfs-api v0.7.0
+	github.com/ipfs/go-cid v0.5.0 // cid
+	github.com/ipfs/go-ipfs-api v0.7.0 // ipfs的旧api 感觉比kubo的rpc/client好用
 	// github.com/ipfs/kubo v0.28.0
 	github.com/jessevdk/go-flags v1.6.1 // flags增强 `short:"-v" long:"--version"  required:"true" default:"default"`
-	github.com/jianlu8023/go-logger/v2 v2.0.0
-	github.com/jianlu8023/go-tools/v2 v2.0.0-20250921142734-6afed502d952
+	github.com/jianlu8023/go-logger/v2 v2.0.0 // 日志
+	github.com/jianlu8023/go-tools/v2 v2.0.0-20250921142734-6afed502d952 // 工具类
 	github.com/jinzhu/copier v0.4.0 // copy的功能 结构体 等值拷贝
 	github.com/juju/ratelimit v1.0.2 // juju 限流
-	github.com/libp2p/go-libp2p v0.40.0
-	github.com/libp2p/go-libp2p-kad-dht v0.29.0
-	github.com/mingrammer/commonregex v1.0.1
-	github.com/mitchellh/mapstructure v1.5.0
-	github.com/mojocn/base64Captcha v1.3.8
-	github.com/multiformats/go-multiaddr v0.14.0
+	github.com/libp2p/go-libp2p v0.40.0 // libp2p
+	github.com/libp2p/go-libp2p-kad-dht v0.29.0 // dht
+	github.com/mingrammer/commonregex v1.0.1 // 正则表达式
+	github.com/mitchellh/mapstructure v1.5.0 // mapstructure
+	github.com/mojocn/base64Captcha v1.3.8 // 验证码
+	github.com/multiformats/go-multiaddr v0.14.0 // multiaddr
 	github.com/panjf2000/ants/v2 v2.11.3 // ants 异步方式线程池
-	github.com/pion/interceptor v0.1.37
-	github.com/pion/logging v0.2.3
-	github.com/pion/webrtc/v4 v4.0.9
-	github.com/pquerna/otp v1.5.0
-	github.com/redis/go-redis/extra/redisotel/v9 v9.15.1
-	// github.com/go-redis/redis/v8 v8.11.5
-	github.com/redis/go-redis/v9 v9.15.1
-	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
-	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	github.com/sony/sonyflake v1.1.0
-	github.com/spf13/viper v1.10.1
-	github.com/stretchr/testify v1.10.0
-	github.com/tjfoc/gmsm v1.4.1
+	github.com/pion/interceptor v0.1.37 // pion 拦截器
+	github.com/pion/logging v0.2.3 // pion 日志
+	github.com/pion/webrtc/v4 v4.0.9 // webrtc
+	github.com/pquerna/otp v1.5.0 // totp 验证码
+	github.com/redis/go-redis/extra/redisotel/v9 v9.15.1 // redis9 opentelemetry
+	// github.com/go-redis/redis/v8 v8.11.5 // redis8
+	github.com/redis/go-redis/v9 v9.15.1 // redis9
+	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 // 终端表格样式输出
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // 二维码
+	github.com/sony/sonyflake v1.1.0 // 雪花算法 索尼的
+	github.com/spf13/viper v1.10.1 // 配置文件
+	github.com/stretchr/testify v1.10.0 // 测试框架
+	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // leveldb
+	github.com/tjfoc/gmsm v1.4.1 // 国密算法
 	github.com/ulule/limiter/v3 v3.11.2 // ulule 限流
-	github.com/unrolled/secure v0.0.0-00010101000000-000000000000
-	github.com/valyala/bytebufferpool v1.0.0
-	github.com/valyala/fasttemplate v1.2.2
-	github.com/valyala/quicktemplate v1.8.0
-	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.60.0
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
-	go.opentelemetry.io/otel v1.35.0
-	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.11.0
-	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.11.0
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.35.0
-	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.35.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.31.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.31.0
-	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.11.0
-	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.35.0
-	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.32.0
-	go.opentelemetry.io/otel/exporters/zipkin v1.31.0
-	go.opentelemetry.io/otel/log v0.11.0
-	go.opentelemetry.io/otel/metric v1.35.0
-	go.opentelemetry.io/otel/sdk v1.35.0
-	go.opentelemetry.io/otel/sdk/log v0.11.0
-	go.opentelemetry.io/otel/sdk/metric v1.35.0
-	go.opentelemetry.io/otel/trace v1.35.0
-	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.35.0
+	github.com/unrolled/secure v0.0.0-00010101000000-000000000000 // secure gin中间件
+	github.com/valyala/bytebufferpool v1.0.0 // bytebufferpool 构建json对象 没研究
+	github.com/valyala/fasttemplate v1.2.2 // fasttemplate 没研究
+	github.com/valyala/quicktemplate v1.8.0 // quicktemplate 没研究
+	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.60.0 // gin opentelemetry
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0 // grpc opentelemetry
+	go.opentelemetry.io/otel v1.35.0 // opentelemetry
+	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.11.0 // otlp exporter
+	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.11.0 // otlp exporter
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.35.0 // otlp exporter
+	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.35.0 // otlp exporter
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.31.0 // otlp exporter
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.31.0 // otlp exporter
+	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.11.0 // stdout exporter
+	go.opentelemetry.io/otel/exporters/stdout/stdoutmetric v1.35.0 // stdout exporter
+	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.32.0 // stdout exporter
+	go.opentelemetry.io/otel/exporters/zipkin v1.31.0 // zipkin exporter
+	go.opentelemetry.io/otel/log v0.11.0 // log
+	go.opentelemetry.io/otel/metric v1.35.0 // metric
+	go.opentelemetry.io/otel/sdk v1.35.0 // otel sdk
+	go.opentelemetry.io/otel/sdk/log v0.11.0 // log sdk
+	go.opentelemetry.io/otel/sdk/metric v1.35.0 // metric sdk
+	go.opentelemetry.io/otel/trace v1.35.0 // otel链路追踪
+	go.uber.org/zap v1.27.0 // zap 日志框架
+	golang.org/x/net v0.35.0 // net增强 为了http2的启用 go1.22 最高到这
 	golang.org/x/time v0.5.0 // time的限流
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
-	google.golang.org/grpc v1.71.0
-	google.golang.org/protobuf v1.36.5
-	gorm.io/driver/clickhouse v0.7.0
-	gorm.io/driver/mysql v1.5.7
-	gorm.io/driver/postgres v1.5.11
-	gorm.io/driver/sqlserver v1.6.1
+	google.golang.org/grpc v1.71.0 // grpc
+	google.golang.org/protobuf v1.36.5 // protobuf
+	gorm.io/driver/clickhouse v0.7.0 // clickhouse 数据库 驱动
+	gorm.io/driver/mysql v1.5.7 // mysql 数据库 驱动
+	gorm.io/driver/postgres v1.5.11 // postgres 数据库 驱动
+	gorm.io/driver/sqlserver v1.6.1 // sqlserver 数据库 驱动
 	// github.com/Jeffail/tunny v0.1.4 // tunny 同步方式线程池
 	// github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	// github.com/gin-contrib/cache v1.3.1
 	// github.com/gin-contrib/sessions v1.0.2
-	// github.com/pquerna/otp v1.5.0 // totp 验证码
 	// github.com/gin-contrib/secure v1.1.1
 	// github.com/gin-contrib/location v1.0.2
 	// github.com/gin-contrib/authz v1.0.3
@@ -180,8 +186,6 @@ require (
 	// github.com/sgoby/opencc v0.0.0-20181105060730-5b3b1de2620a // 翻译
 	// gorm.io/driver/sqlite v1.6.0
 	// gorm.io/driver/gaussdb v0.1.0 // toolchain go1.23.4 github.com/HuaweiCloudDeveloper/gaussdb-go
-	// gorm.io/driver/sqlserver v1.6.1
-	// gorm.io/driver/clickhouse v0.7.0
 	// github.com/facebookgo/atomicfile v0.0.0-20151019160806-2de1f203e7d5 // 原子创建文件
 	// github.com/RoaringBitmap/roaring/v2 v2.10.0 // bitmap
 	// github.com/gorilla/schema v1.4.1 // schema 表单处理
@@ -190,8 +194,7 @@ require (
 	// github.com/markbates/goth v1.81.0 // 第三方认证
 	// github.com/charmbracelet/bubbletea v1.3.4 // 控制台输出  spinner包 只显示文字
 	// github.com/reactivex/rxgo/v2 v2.5.0
-	// github.com/gin-contrib/pprof v1.4.0
-	// github.com/unrolled/secure v1.14.0
+	// github.com/gin-contrib/pprof v1.4.0 // gin pprof中间件 不如直接net/http/pprof 这个也是调用的pprof
 	// github.com/PuerkitoBio/goquery v1.9.3 //类似于jquery
 	// github.com/bamzi/jobrunner v1.0.0 // 运行job
 	// github.com/robfig/cron/v3 v3.0.1 // cron 定时运行
@@ -203,7 +206,6 @@ require (
 	// gonum.org/v1/plot v0.15.2 // plot 画图库
 	// gopkg.in/h2non/gentleman.v2 // http库 https://github.com/h2non/gentleman
 	// https://github.com/Knetic/govaluate // eval功能
-	// github.com/jinzhu/copier v0.4.0 // copy的功能 结构体 等值拷贝
 	// github.com/dave/jennifer v1.7.1 // 代码生成 链式调用
 	// github.com/google/go-cmp v0.7.0 // 比较方法
 	// github.com/golang-module/carbon/v2 v2.5.9 // 时间格式化
@@ -217,15 +219,18 @@ require (
 	// github.com/gocolly/colly/v2 v2.1.0 // 爬虫
 	// github.com/go-logr/stdr 1.2.2 // logr 使用stdr
 	// github.com/go-logr/zerologr v1.2.3 // logr 使用zerologr
-	// github.com/go-logr/glogr v1.2.2
-	gorm.io/gorm v1.30.0
-	gorm.io/plugin/opentelemetry v0.1.16
+	// github.com/go-logr/glogr v1.2.2 // logr的go log实现
+	// github.com/dgraph-io/badger v1.6.2
+	// github.com/dgraph-io/badger/v3 v3.2103.5
+	gorm.io/gorm v1.30.0 // gorm数据库orm
+	gorm.io/plugin/opentelemetry v0.1.16 // gorm的opentelemetry插件
 )
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/ClickHouse/ch-go v0.61.5 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.30.0 // indirect
+	github.com/DataDog/zstd v1.4.5 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
@@ -241,12 +246,17 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
+	github.com/cockroachdb/errors v1.11.1 // indirect
+	github.com/cockroachdb/logtags v0.0.0-20230118201751-21c54148d20b // indirect
+	github.com/cockroachdb/redact v1.1.5 // indirect
+	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20241020182519-7843d2ba8fdf // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.0.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -259,6 +269,7 @@ require (
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
+	github.com/getsentry/sentry-go v0.18.0 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
@@ -276,6 +287,8 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -302,6 +315,8 @@ require (
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/koron/go-ssdp v0.0.5 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible // indirect
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
@@ -389,6 +404,7 @@ require (
 	github.com/redis/go-redis/extra/rediscmd/v9 v9.15.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.24.10 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
@@ -427,7 +443,7 @@ require (
 	golang.org/x/tools v0.30.0 // indirect
 	gonum.org/v1/gonum v0.15.1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
-	gopkg.in/ini.v1 v1.66.2 // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

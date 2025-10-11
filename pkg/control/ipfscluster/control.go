@@ -130,8 +130,8 @@ func (c *Control) initSDK() error {
 		return errors.New("no valid ipfs cluster address")
 	}
 
-	switch StrategyType(strings.ToLower(c.config.Strategy)) {
-	case RoundRobin:
+	switch strategyType(strings.ToLower(c.config.Strategy)) {
+	case roundRobin:
 		// 使用节点轮询的方式
 		sdk, err := client.NewLBClient(&client.RoundRobin{}, configs, 5)
 		if err != nil {
@@ -139,7 +139,7 @@ func (c *Control) initSDK() error {
 			return err
 		}
 		c.sdk = sdk
-	case FailOver:
+	case failOver:
 		// 使用节点故障转移的方式
 		sdk, err := client.NewLBClient(&client.Failover{}, configs, 5)
 		if err != nil {
@@ -183,10 +183,10 @@ func (c *Control) Version() (string, error) {
 // @return error 添加过程中可能产生的错误
 func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, expireAt time.Duration) ([]api.AddedOutput, error) {
 	c.logger.Debugf("[control] add directory to ipfs cluster...")
-	
+
 	var results []api.AddedOutput
 	var errors []error
-	
+
 	// 遍历目录，收集所有文件
 	var files []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -194,28 +194,28 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 			c.logger.Errorf("[control] access path %s failed: %s", path, err)
 			return err
 		}
-		
+
 		// 如果是文件而不是目录，则添加到文件列表
 		if !info.IsDir() {
 			files = append(files, path)
 		}
-		
+
 		return nil
 	})
-	
+
 	if err != nil {
 		c.logger.Errorf("[control] walk directory %s failed: %s", dir, err)
 		return nil, err
 	}
-	
+
 	c.logger.Debugf("[control] found %d files in directory %s", len(files), dir)
-	
+
 	// 使用带缓冲的通道来控制并发数
 	const maxWorkers = 5
 	fileChan := make(chan string, len(files))
 	resultChan := make(chan api.AddedOutput, len(files))
 	errorChan := make(chan error, len(files))
-	
+
 	// 启动工作协程
 	var wg sync.WaitGroup
 	for i := 0; i < maxWorkers; i++ {
@@ -230,7 +230,7 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 					errorChan <- err
 					continue
 				}
-				
+
 				// 调用 AddOneFile 方法添加单个文件
 				result, err := c.AddOneFile(relPath, filePath, replicationMin, replicationMax, expireAt)
 				if err != nil {
@@ -238,12 +238,12 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 					errorChan <- err
 					continue
 				}
-				
+
 				resultChan <- result
 			}
 		}()
 	}
-	
+
 	// 发送文件到工作协程
 	go func() {
 		defer close(fileChan)
@@ -251,14 +251,14 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 			fileChan <- file
 		}
 	}()
-	
+
 	// 关闭结果和错误通道
 	go func() {
 		wg.Wait()
 		close(resultChan)
 		close(errorChan)
 	}()
-	
+
 	// 收集结果和错误
 	for i := 0; i < len(files); i++ {
 		select {
@@ -272,16 +272,16 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 			return results, c.ctx.Err()
 		}
 	}
-	
+
 	c.logger.Debugf("[control] add directory completed. Success: %d, Failures: %d", len(results), len(errors))
-	
+
 	// 如果有错误，返回部分结果和错误信息
 	if len(errors) > 0 {
 		// 可以根据需要决定是否返回错误
 		// 这里选择记录错误但返回已成功添加的文件
 		c.logger.Warnf("[control] add directory completed with %d errors", len(errors))
 	}
-	
+
 	return results, nil
 }
 

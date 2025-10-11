@@ -617,6 +617,20 @@ func (r *RedisConfig) String() string {
 	return string(pretty)
 }
 
+// KvDatabaseConfig KV数据库配置结构体
+type KvDatabaseConfig struct {
+	Enabled  bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`   // 是否启用
+	DbType   string `json:"db_type,omitempty" yaml:"db_type,omitempty" mapstructure:"db_type"`    // 数据库类型 (leveldb, pebble, badger)
+	DbPath   string `json:"db_path,omitempty" yaml:"db_path,omitempty" mapstructure:"db_path"`    // 数据库文件路径
+}
+
+// String 返回KvDatabaseConfig的字符串表示
+// @return string KvDatabaseConfig的字符串表示
+func (k *KvDatabaseConfig) String() string {
+	pretty, _ := json.MarshalPretty(k)
+	return string(pretty)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig        *GrpcConfig        `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -636,6 +650,7 @@ type Config struct {
 	TracerConfig      *TracerConfig      `json:"tracer_config,omitempty" yaml:"tracer_config,omitempty" mapstructure:"tracer"`
 	IpfsClusterConfig *IpfsClusterConfig `json:"ipfs_cluster_config,omitempty" yaml:"ipfs_cluster_config,omitempty" mapstructure:"ipfs_cluster"` // ipfs cluster配置
 	RedisConfig       *RedisConfig       `json:"redis_config,omitempty" yaml:"redis_config,omitempty" mapstructure:"redis"`                      // Redis配置
+	KvDatabaseConfig  *KvDatabaseConfig  `json:"kvdatabase_config,omitempty" yaml:"kvdatabase_config,omitempty" mapstructure:"kvdatabase"`       // KV数据库配置
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }
 
