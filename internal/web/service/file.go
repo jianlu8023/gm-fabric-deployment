@@ -29,25 +29,24 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// FileService 文件服务
+// FileService 文件服务结构体
+//
 // @description 提供文件相关的服务功能，如文件上传、下载、管理等
 // @struct
-// @property *Service 基础服务
-// @property mapper *mapper.FileMapper 文件映射器
-// @property uploadDir string 上传文件保存目录
-// @property tempDir string 临时文件保存目录
 type FileService struct {
-	*Service
-	mapper    *mapper.FileMapper
-	uploadDir string // 上传文件保存目录
-	tempDir   string // 临时文件保存目录
+	*Service   // Service 基础服务，提供日志功能
+	mapper    *mapper.FileMapper // mapper 文件映射器，用于数据访问
+	uploadDir string // uploadDir 上传文件保存目录
+	tempDir   string // tempDir 临时文件保存目录
 }
 
 // NewFileService 创建文件服务实例
+//
 // @description 创建并返回一个新的文件服务实例
 // @param baseService *Service 基础服务
 // @param fileMapper *mapper.FileMapper 文件映射器
-// @param httpConfig *config.HttpServerConfig HTTP服务器配置（用于获取上传路径）
+// @param uploadDir string 上传目录
+// @param uploadCacheDir string 上传缓存目录
 // @return *FileService 文件服务实例
 func NewFileService(baseService *Service, fileMapper *mapper.FileMapper, uploadDir, uploadCacheDir string) *FileService {
 	if stringer.IsBlank(uploadDir) {
@@ -70,14 +69,18 @@ func NewFileService(baseService *Service, fileMapper *mapper.FileMapper, uploadD
 }
 
 // ensureDir 确保目录存在，如果不存在则创建
+//
+// @description 确保指定的目录路径存在，如果不存在则创建该目录
 // @param dir string 目录路径
 func ensureDir(dir string) {
 	_, _ = path.CreateDir(dir)
 }
 
 // CleanupTempDir 清理临时文件夹
+//
 // @description 删除临时文件夹下的所有内容，用于清理上传过程中产生的临时文件
 // @param ctx *gin.Context Gin上下文
+// @param req *request.CleanUpTempDirRequest 清理临时文件夹请求参数
 func (s *FileService) CleanupTempDir(ctx *gin.Context, req *request.CleanUpTempDirRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "cleanupTempDir",
 		attribute.String("requestParam", req.String()),
@@ -121,6 +124,7 @@ func (s *FileService) CleanupTempDir(ctx *gin.Context, req *request.CleanUpTempD
 }
 
 // InitUpload 初始化文件上传服务
+//
 // @description 初始化文件上传，为文件生成唯一ID并创建必要的存储结构
 // @param ctx *gin.Context Gin上下文
 // @param req *request.FileInitUploadRequest 初始化上传请求参数
@@ -211,6 +215,7 @@ func (s *FileService) InitUpload(ctx *gin.Context, req *request.FileInitUploadRe
 }
 
 // UploadChunk 上传文件分片服务
+//
 // @description 上传文件分片，支持大文件的分片上传
 // @param ctx *gin.Context Gin上下文
 // @param req *request.FileUploadChunkRequest 上传分片请求参数
@@ -472,6 +477,7 @@ func (s *FileService) UploadChunk(ctx *gin.Context, req *request.FileUploadChunk
 }
 
 // CompleteUpload 完成文件上传服务
+//
 // @description 合并所有分片文件，完成文件上传过程
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CompleteUploadRequest 完成上传请求参数
@@ -720,6 +726,11 @@ func (s *FileService) CompleteUpload(ctx *gin.Context, req *request.CompleteUplo
 }
 
 // CheckExistingUpload 检查现有上传记录
+//
+// @description 检查指定文件名和文件大小的现有上传记录
+// @param ctx *gin.Context HTTP上下文
+// @param fileName string 文件名
+// @param fileSize float64 文件大小
 func (s *FileService) CheckExistingUpload(ctx *gin.Context, fileName string, fileSize float64) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "checkExistingUpload")
 	defer span.End()
@@ -775,6 +786,7 @@ func (s *FileService) CheckExistingUpload(ctx *gin.Context, fileName string, fil
 }
 
 // GetUploadStatus 获取文件上传状态服务
+//
 // @description 获取指定文件的上传进度、已上传分片信息和当前状态
 // @param ctx *gin.Context Gin上下文
 // @param req *request.GetUploadStatusRequest 获取上传状态请求参数
@@ -865,6 +877,7 @@ func (s *FileService) GetUploadStatus(ctx *gin.Context, req *request.GetUploadSt
 }
 
 // cleanupFailedUpload 清理失败的上传记录
+//
 // @description 当文件合并失败时，逻辑删除相关的文件信息和分片记录
 // @param ctx context.Context 上下文
 // @param uploadID string 上传ID
@@ -930,6 +943,11 @@ func (s *FileService) cleanupFailedUpload(ctx context.Context, uploadID string, 
 }
 
 // calculateFileHash 计算文件的MD5哈希值
+//
+// @description 计算指定文件的MD5哈希值
+// @param filePath string 文件路径
+// @return string 文件的MD5哈希值
+// @return error 错误信息
 func calculateFileHash(filePath string) (string, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -946,6 +964,7 @@ func calculateFileHash(filePath string) (string, error) {
 }
 
 // DownloadFile 下载文件服务
+//
 // @description 获取文件的下载路径和文件名，用于客户端下载文件
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DownloadFileRequest 下载文件请求参数
@@ -1021,6 +1040,7 @@ func (s *FileService) DownloadFile(ctx *gin.Context, req *request.DownloadFileRe
 }
 
 // ListFiles 列出文件服务
+//
 // @description 分页获取文件列表，支持关键词搜索
 // @param ctx *gin.Context Gin上下文
 // @param req *request.ListFilesRequest 列出文件请求参数
@@ -1060,6 +1080,7 @@ func (s *FileService) ListFiles(ctx *gin.Context, req *request.ListFilesRequest)
 }
 
 // DeleteFile 删除文件服务
+//
 // @description 删除指定的文件，包括文件实体和数据库记录
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DeleteFileRequest 删除文件请求参数
@@ -1153,6 +1174,7 @@ func (s *FileService) DeleteFile(ctx *gin.Context, req *request.DeleteFileReques
 }
 
 // ResumeUpload 恢复上传服务
+//
 // @description 根据uploadID恢复上传，获取已上传的分片信息
 // @param ctx *gin.Context Gin上下文
 // @param req *request.ResumeUploadRequest 恢复上传请求参数
@@ -1234,6 +1256,7 @@ func (s *FileService) ResumeUpload(ctx *gin.Context, req *request.ResumeUploadRe
 }
 
 // GetFileMetadata 获取文件元数据服务
+//
 // @description 获取指定文件的详细元数据信息
 // @param ctx *gin.Context Gin上下文
 // @param req *request.GetFileMetadataRequest 获取文件元数据请求参数

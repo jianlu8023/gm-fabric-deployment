@@ -19,18 +19,16 @@ import (
 //
 // @description 处理gRPC相关的HTTP请求
 // @struct
-// @property *Handler 基础处理器，提供日志功能
-// @property service *service.GrpcService gRPC服务，处理gRPC相关的业务逻辑
 type GrpcHandler struct {
-	*Handler
-	service *service.GrpcService
+	*Handler               // Handler 基础处理器，提供日志功能
+	service *service.GrpcService // service gRPC服务，处理gRPC相关的业务逻辑
 }
 
 // NewGrpcHandler 创建gRPC处理器
 //
 // @description 创建并返回一个新的gRPC处理器实例
 // @param baseHandler *Handler 基础处理器
-// @param service *service.GrpcService gRPC服务
+// @param grpcService *service.GrpcService gRPC服务
 // @return *GrpcHandler gRPC处理器实例
 func NewGrpcHandler(baseHandler *Handler, grpcService *service.GrpcService) *GrpcHandler {
 	return &GrpcHandler{
@@ -43,9 +41,8 @@ func NewGrpcHandler(baseHandler *Handler, grpcService *service.GrpcService) *Grp
 //
 // @description 处理发送gRPC Ping消息的HTTP请求
 // @method GET
-// @url /api/v1/grpc/send/message/ping
-// @param peer_id string 节点ID (可选)
-// @return JSON gRPC Ping消息发送结果
+// @url /grpc/send/message/ping
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *GrpcHandler) SendGrpcPingMessage(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "grpcHandler", "sendGrpcPingMessage",
 		attribute.String("requestId", requestid.Get(ctx)),

@@ -12,13 +12,9 @@ import (
 )
 
 // Libp2pNodeListResponse Libp2p节点列表响应结构体
+//
 // @description 用于返回Libp2p节点列表信息
 // @struct
-// @property NodeId string 节点ID（唯一标识）
-// @property NodeIp string 节点IP
-// @property LastAliveMessageTime time.Time 最后一次收到心跳时间
-// @property IsAlive sql.NullBool 是否存活状态
-// @property IsMySelf sql.NullBool 是否是本机节点
 type Libp2pNodeListResponse struct {
 	NodeId               string       `json:"node_id" yaml:"node_id"`                                 // 节点ID（唯一标识）
 	NodeIp               string       `json:"node_ip" yaml:"node_ip"`                                 // 节点ip
@@ -28,6 +24,7 @@ type Libp2pNodeListResponse struct {
 }
 
 // String 将Libp2p节点列表响应转换为字符串表示
+//
 // @description 将Libp2pNodeListResponse结构体转换为JSON格式的字符串
 // @return string 响应数据的JSON格式字符串
 func (resp Libp2pNodeListResponse) String() string {
@@ -36,6 +33,7 @@ func (resp Libp2pNodeListResponse) String() string {
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
 // @description 自定义Libp2pNodeListResponse结构体的JSON序列化逻辑，处理sql.NullBool和time.Time类型
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
@@ -57,6 +55,7 @@ func (resp Libp2pNodeListResponse) MarshalJSON() ([]byte, error) {
 }
 
 // ToLibp2pNodeListResponse 将模型转换为响应结构体
+//
 // @description 将model.Libp2pNode的分页结果转换为Libp2pNodeListResponse的分页结果
 // @param page dbpage.Info[model.Libp2pNode] 模型的分页结果
 // @return *dbpage.Info[Libp2pNodeListResponse] 响应的分页结果
@@ -81,13 +80,9 @@ func ToLibp2pNodeListResponse(page dbpage.Info[model.Libp2pNode]) (*dbpage.Info[
 }
 
 // Libp2pNodeMyselfResponse 当前Libp2p节点信息响应结构体
+//
 // @description 用于返回当前节点自身的Libp2p信息
 // @struct
-// @property NodeId string 节点ID（唯一标识）
-// @property NodeIp string 节点IP
-// @property LastAliveMessageTime time.Time 最后一次收到心跳时间
-// @property IsAlive sql.NullBool 是否存活状态
-// @property IsMySelf sql.NullBool 是否是本机节点
 type Libp2pNodeMyselfResponse struct {
 	NodeId               string       `json:"node_id" yaml:"node_id"`                                 // 节点ID（唯一标识）
 	NodeIp               string       `json:"node_ip" yaml:"node_ip"`                                 // 节点ip
@@ -97,6 +92,7 @@ type Libp2pNodeMyselfResponse struct {
 }
 
 // String 将当前Libp2p节点信息响应转换为字符串表示
+//
 // @description 将Libp2pNodeMyselfResponse结构体转换为JSON格式的字符串
 // @return string 响应数据的JSON格式字符串
 func (resp Libp2pNodeMyselfResponse) String() string {
@@ -105,6 +101,7 @@ func (resp Libp2pNodeMyselfResponse) String() string {
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
 // @description 自定义Libp2pNodeMyselfResponse结构体的JSON序列化逻辑，处理sql.NullBool和time.Time类型
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
@@ -126,6 +123,7 @@ func (resp Libp2pNodeMyselfResponse) MarshalJSON() ([]byte, error) {
 }
 
 // ToLibp2pNodeMyselfResponse 将模型转换为响应结构体
+//
 // @description 将model.Libp2pNode转换为Libp2pNodeMyselfResponse
 // @param node model.Libp2pNode 节点模型
 // @return Libp2pNodeMyselfResponse 节点响应

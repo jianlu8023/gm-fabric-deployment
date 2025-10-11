@@ -14,44 +14,54 @@ import (
 	controlwebsocket "github.com/jianlu8023/golang-example/pkg/control/websocket"
 )
 
-// WebSocketServiceInterface 定义WebSocket服务的接口
+// WebSocketServiceInterface WebSocket服务接口
+//
 // @description 定义WebSocket服务的接口规范
 // @interface
-// @method ConnectService 处理WebSocket连接请求
-// @method DisconnectService 处理WebSocket断开连接请求
-// @method SendMessageService 处理发送WebSocket消息请求
-// @method GetConnectionListService 获取连接列表
 type WebSocketServiceInterface interface {
 	// ConnectService 处理WebSocket连接请求
+	//
+	// @param ctx *gin.Context HTTP上下文
+	// @param req *request.WSConnectRequest WebSocket连接请求参数
+	// @param userId any 用户ID
 	ConnectService(ctx *gin.Context, req *request.WSConnectRequest, userId any)
 
 	// DisconnectService 处理WebSocket断开连接请求
+	//
+	// @param ctx *gin.Context HTTP上下文
+	// @param req *request.WSDisconnectRequest WebSocket断开连接请求参数
 	DisconnectService(ctx *gin.Context, req *request.WSDisconnectRequest)
 
 	// SendMessageService 处理发送WebSocket消息请求
+	//
+	// @param ctx *gin.Context HTTP上下文
+	// @param req *request.WSMessageRequest WebSocket消息请求参数
 	SendMessageService(ctx *gin.Context, req *request.WSMessageRequest)
 
 	// GetConnectionListService 获取连接列表
+	//
+	// @param ctx *gin.Context HTTP上下文
+	// @param req *request.WSConnectionListRequest 连接列表请求参数
+	// @param userID string 用户ID
 	GetConnectionListService(ctx *gin.Context, req *request.WSConnectionListRequest, userID string)
 }
 
-// WebSocketService 实现WebSocketServiceInterface接口
+// WebSocketService WebSocket服务结构体
+//
 // @description WebSocket服务的具体实现，处理WebSocket相关的业务逻辑
 // @struct
-// @property *Service 基础服务
-// @property wsMapper *mapper.WebSocketMapper WebSocket映射器
-// @property wsControl *websocket.Control WebSocket控制器
 type WebSocketService struct {
-	*Service
-	wsMapper  *mapper.WebSocketMapper
-	wsControl *controlwebsocket.Control
+	*Service                 // Service 基础服务，提供日志功能
+	wsMapper  *mapper.WebSocketMapper       // wsMapper WebSocket映射器，用于数据访问
+	wsControl *controlwebsocket.Control     // wsControl WebSocket控制器，用于WebSocket操作
 }
 
 // NewWebSocketService 创建一个新的WebSocketService实例
+//
 // @description 创建并返回一个新的WebSocket服务实例
 // @param service *Service 基础服务
 // @param wsMapper *mapper.WebSocketMapper WebSocket映射器
-// @param wsControl *websocket.Control WebSocket控制器
+// @param wsControl *controlwebsocket.Control WebSocket控制器
 // @return *WebSocketService WebSocket服务实例
 func NewWebSocketService(service *Service, wsMapper *mapper.WebSocketMapper, wsControl *controlwebsocket.Control) *WebSocketService {
 	ws := &WebSocketService{
@@ -67,6 +77,8 @@ func NewWebSocketService(service *Service, wsMapper *mapper.WebSocketMapper, wsC
 }
 
 // initializeMessageHandling 初始化消息处理功能
+//
+// @description 初始化WebSocket消息处理功能，设置各种回调函数
 func (s *WebSocketService) initializeMessageHandling() {
 	if s.wsControl == nil {
 		s.logger.Warnf("[websocket service] wsControl is nil, skipping message handling initialization")
@@ -97,6 +109,8 @@ func (s *WebSocketService) initializeMessageHandling() {
 }
 
 // registerDefaultMessageHandlers 注册默认消息处理器
+//
+// @description 注册默认的WebSocket消息处理器
 func (s *WebSocketService) registerDefaultMessageHandlers() {
 	// 注册文本消息处理器
 
@@ -104,6 +118,9 @@ func (s *WebSocketService) registerDefaultMessageHandlers() {
 }
 
 // onConnectionEstablished 连接建立回调
+//
+// @description WebSocket连接建立时的回调函数，发送欢迎消息
+// @param conn *controlwebsocket.Connection 连接对象
 func (s *WebSocketService) onConnectionEstablished(conn *controlwebsocket.Connection) {
 	s.logger.Infof("[websocket service] new connection established: %s", conn.NodeID)
 
@@ -131,6 +148,7 @@ func (s *WebSocketService) onConnectionEstablished(conn *controlwebsocket.Connec
 }
 
 // SendMessageService 处理发送WebSocket消息请求
+//
 // @description 处理发送WebSocket消息请求，根据目标类型进行不同的消息发送处理
 // @param ctx *gin.Context Gin上下文
 // @param req *request.WSMessageRequest WebSocket消息请求参数
@@ -182,6 +200,9 @@ func (s *WebSocketService) SendMessageService(ctx *gin.Context, req *request.WSM
 }
 
 // onConnectionClosed 连接关闭回调
+//
+// @description WebSocket连接关闭时的回调函数
+// @param conn *controlwebsocket.Connection 连接对象
 func (s *WebSocketService) onConnectionClosed(conn *controlwebsocket.Connection) {
 	s.logger.Infof("[websocket service] connection closed: %s", conn.NodeID)
 
@@ -190,6 +211,10 @@ func (s *WebSocketService) onConnectionClosed(conn *controlwebsocket.Connection)
 }
 
 // onMessageReceived 通用消息接收回调
+//
+// @description 接收WebSocket消息的通用回调函数
+// @param conn *controlwebsocket.Connection 连接对象
+// @param message controlwebsocket.Message 消息对象
 func (s *WebSocketService) onMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received message from %s: %s", conn.NodeID, string(message.Content))
 
@@ -198,6 +223,10 @@ func (s *WebSocketService) onMessageReceived(conn *controlwebsocket.Connection, 
 }
 
 // onTextMessageReceived 文本消息接收回调
+//
+// @description 接收WebSocket文本消息的回调函数
+// @param conn *controlwebsocket.Connection 连接对象
+// @param message controlwebsocket.Message 消息对象
 func (s *WebSocketService) onTextMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received text message from %s: %s", conn.NodeID, string(message.Content))
 
@@ -206,6 +235,10 @@ func (s *WebSocketService) onTextMessageReceived(conn *controlwebsocket.Connecti
 }
 
 // onBinaryMessageReceived 二进制消息接收回调
+//
+// @description 接收WebSocket二进制消息的回调函数
+// @param conn *controlwebsocket.Connection 连接对象
+// @param message controlwebsocket.Message 消息对象
 func (s *WebSocketService) onBinaryMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received binary message from %s: %d bytes", conn.NodeID, len(message.Content))
 
@@ -214,31 +247,51 @@ func (s *WebSocketService) onBinaryMessageReceived(conn *controlwebsocket.Connec
 }
 
 // onPingMessageReceived ping消息接收回调
+//
+// @description 接收WebSocket ping消息的回调函数
+// @param conn *controlwebsocket.Connection 连接对象
+// @param message controlwebsocket.Message 消息对象
 func (s *WebSocketService) onPingMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received ping from %s", conn.NodeID)
 	// ping消息通常用于心跳检测，一般不需要特殊处理
 }
 
 // onPongMessageReceived pong消息接收回调
+//
+// @description 接收WebSocket pong消息的回调函数
+// @param conn *controlwebsocket.Connection 连接对象
+// @param message controlwebsocket.Message 消息对象
 func (s *WebSocketService) onPongMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received pong from %s", conn.NodeID)
 	// pong消息用于响应ping，表示连接正常
 }
 
 // onCloseMessageReceived 关闭消息接收回调
+//
+// @description 接收WebSocket关闭消息的回调函数
+// @param conn *controlwebsocket.Connection 连接对象
+// @param message controlwebsocket.Message 消息对象
 func (s *WebSocketService) onCloseMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received close message from %s", conn.NodeID)
 	// 处理关闭消息，可以在这里进行最后的资源清理
 }
 
 // marshalMessage 序列化消息
+//
+// @description 将消息对象序列化为字节数据
+// @param message interface{} 消息对象
+// @return []byte 序列化后的字节数据
+// @return error 错误信息
 func (s *WebSocketService) marshalMessage(message interface{}) ([]byte, error) {
 	return json.Marshal(message)
 }
 
 // ConnectService 处理WebSocket连接请求
+//
 // @description 处理WebSocket连接请求，验证参数，从上下文获取用户信息，升级连接
 // @param ctx *gin.Context Gin上下文
+// @param req *request.WSConnectRequest WebSocket连接请求参数
+// @param userId any 用户ID
 func (s *WebSocketService) ConnectService(ctx *gin.Context, req *request.WSConnectRequest, userId any) {
 	s.logger.Debugf("starting websocket connect service...")
 	s.logger.Debugf("request: %v", req)
@@ -261,6 +314,7 @@ func (s *WebSocketService) ConnectService(ctx *gin.Context, req *request.WSConne
 }
 
 // DisconnectService 处理WebSocket断开连接请求
+//
 // @description 处理WebSocket断开连接请求，验证用户权限，更新连接状态，移除连接
 // @param ctx *gin.Context Gin上下文
 // @param req *request.WSDisconnectRequest WebSocket断开连接请求参数
@@ -284,6 +338,7 @@ func (s *WebSocketService) DisconnectService(ctx *gin.Context, req *request.WSDi
 }
 
 // GetConnectionListService 获取连接列表
+//
 // @description 获取指定用户的WebSocket连接列表
 // @param ctx *gin.Context Gin上下文
 // @param req *request.WSConnectionListRequest 连接列表请求参数

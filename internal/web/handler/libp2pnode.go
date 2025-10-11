@@ -39,12 +39,19 @@ func NewLibp2pNodeHandler(handler *Handler, libp2pNodeService *service.Libp2pNod
 }
 
 // Libp2pNodeServiceInterface 节点服务接口
-// @description 定义节点服务的接口
+//
+// @description 定义节点服务需要实现的方法
 // @interface
-// @method Libp2pNodeList 获取节点列表
-// @method Libp2pNodeMyself 获取本机节点信息
 type Libp2pNodeServiceInterface interface {
+	// Libp2pNodeList 获取节点列表
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.Libp2pNodeListRequest 节点列表请求参数
 	Libp2pNodeList(ctx *gin.Context, req *request.Libp2pNodeListRequest)
+	// Libp2pNodeMyself 获取本机节点信息
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.Libp2pNodeMyselfRequest 本机节点信息请求参数
 	Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest)
 }
 

@@ -7,12 +7,9 @@ import (
 )
 
 // GrpcSendPingMessageResponse gRPC发送Ping消息响应
+//
 // @description gRPC发送Ping消息后的响应数据结构
 // @struct
-// @property Success bool 操作是否成功
-// @property ResponseCode int32 响应代码
-// @property ResponseMessage string 响应消息
-// @property Message []byte 消息内容
 type GrpcSendPingMessageResponse struct {
 	Success         bool   `json:"success" yaml:"success"`                   // 操作是否成功
 	ResponseCode    int32  `json:"response_code" yaml:"response_code"`       // 响应代码
@@ -21,6 +18,7 @@ type GrpcSendPingMessageResponse struct {
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
 // @description 将GrpcSendPingMessageResponse结构体转换为JSON格式，特别处理Message字段为字符串
 // @return []byte JSON字节数组
 // @return error 错误信息
@@ -37,6 +35,7 @@ func (resp GrpcSendPingMessageResponse) MarshalJSON() ([]byte, error) {
 }
 
 // String 将GrpcSendPingMessageResponse转换为字符串
+//
 // @description 将GrpcSendPingMessageResponse结构体转换为JSON格式的字符串
 // @return string 格式化的JSON字符串
 func (resp GrpcSendPingMessageResponse) String() string {
@@ -45,6 +44,7 @@ func (resp GrpcSendPingMessageResponse) String() string {
 }
 
 // NewGrpcSendPingMessageResponse 创建gRPC发送Ping消息响应对象
+//
 // @description 创建一个新的gRPC发送Ping消息响应对象
 // @param response *pb.BaseResponse gRPC基础响应对象
 // @return *GrpcSendPingMessageResponse gRPC发送Ping消息响应对象
@@ -59,3 +59,4 @@ func NewGrpcSendPingMessageResponse(response *pb.BaseResponse) (*GrpcSendPingMes
 	}
 	return &convert, nil
 }
+

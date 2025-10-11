@@ -13,17 +13,17 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// SystemService 系统服务
+// SystemService 系统服务结构体
+//
 // @description 提供系统相关的服务功能，如获取系统概览信息
 // @struct
-// @property Service *Service 基础服务
-// @property mapper *mapper.SystemMapper 系统映射器
 type SystemService struct {
-	*Service
-	mapper *mapper.SystemMapper
+	*Service          // Service 基础服务，提供日志功能
+	mapper *mapper.SystemMapper // mapper 系统映射器，用于数据访问
 }
 
 // NewSystemService 创建系统服务实例
+//
 // @description 创建并返回一个新的系统服务实例
 // @param service *Service 基础服务
 // @param mapper *mapper.SystemMapper 系统映射器
@@ -36,6 +36,7 @@ func NewSystemService(service *Service, mapper *mapper.SystemMapper) *SystemServ
 }
 
 // GetSystemOverview 获取系统概览信息
+//
 // @description 获取系统的基本信息，包括操作系统、CPU、磁盘和内存信息
 // @param ctx *gin.Context Gin上下文
 // @param req *request.SystemOverviewRequest 系统概览请求参数
@@ -84,6 +85,7 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemO
 }
 
 // GetSystemInitStatus 获取系统初始化状态
+//
 // @description 检查系统是否已经完成初始化配置
 // @param ctx *gin.Context Gin上下文
 // @param req *request.SystemInitStatusRequest 系统初始化状态请求参数

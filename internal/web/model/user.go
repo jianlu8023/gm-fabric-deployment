@@ -22,15 +22,15 @@ var columns = defaultColumns()
 // @return *atomic.Value 包含字段到列名映射的原子值
 func defaultColumns() *atomic.Value {
 	v := &atomic.Value{}
-	taskType := reflect.TypeOf(NewUserInfo())
+	taskType := reflect.TypeOf(UserInfo{})
 	m := make(map[string]string)
 	for i := 0; i < taskType.NumField(); i++ {
 		field := taskType.Field(i)
 		gormTag := field.Tag.Get("gorm")
 		split := strings.Split(gormTag, ";")
 		for j := 0; j < len(split); j++ {
-			if strings.Contains(split[i], "column") {
-				columnSplit := strings.Split(split[i], ":")
+			if strings.Contains(split[j], "column") {
+				columnSplit := strings.Split(split[j], ":")
 				if len(columnSplit) == 2 {
 					m[field.Name] = columnSplit[1]
 				}

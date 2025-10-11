@@ -21,14 +21,13 @@ import (
 // @description 处理WebSocket相关的HTTP请求和连接管理
 // @struct
 type WebSocketHandler struct {
-	// Handler 基础处理器，提供日志功能
-	*Handler
-	// service WebSocket服务，处理WebSocket相关的业务逻辑
-	service *service.WebSocketService
+	*Handler                 // Handler 基础处理器，提供日志功能
+	service *service.WebSocketService // service WebSocket服务，处理WebSocket相关的业务逻辑
 }
 
 // NewWebSocketHandler 创建WebSocket处理器
 //
+// @description 创建并返回一个新的WebSocket处理器实例
 // @param handler *Handler 基础处理器
 // @param service *service.WebSocketService WebSocket服务
 // @return *WebSocketHandler WebSocket处理器实例
@@ -43,9 +42,8 @@ func NewWebSocketHandler(handler *Handler, service *service.WebSocketService) *W
 //
 // @description 将HTTP连接升级为WebSocket连接，是WebSocket通信的核心入口
 // @method GET
-// @url /api/v1/ws
-// @param nodeID string 目标节点ID (必需)
-// @return WebSocket连接 成功后建立WebSocket双向通信通道
+// @url /ws
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "websocketHandler", "upgradeHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -112,9 +110,8 @@ func (h *WebSocketHandler) UpgradeHandler(ctx *gin.Context) {
 //
 // @description 处理WebSocket连接断开请求
 // @method POST
-// @url /api/v1/ws/disconnect
-// @param connID string 连接ID (必需)
-// @return JSON 断开连接结果
+// @url /ws/disconnect
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "websocketHandler", "disconnectHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -179,11 +176,8 @@ func (h *WebSocketHandler) DisconnectHandler(ctx *gin.Context) {
 //
 // @description 处理通过WebSocket发送消息的请求
 // @method POST
-// @url /api/v1/ws/message
-// @param connID string 连接ID (必需)
-// @param message string 消息内容 (必需)
-// @param messageType string 消息类型 (可选, 默认:text)
-// @return JSON 消息发送结果
+// @url /ws/message
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *WebSocketHandler) SendMessageHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "websocketHandler", "sendMessageHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -248,11 +242,8 @@ func (h *WebSocketHandler) SendMessageHandler(ctx *gin.Context) {
 //
 // @description 获取当前系统中的WebSocket连接列表
 // @method GET
-// @url /api/v1/ws/connections
-// @param pageNo int 页码 (可选, 默认:1)
-// @param pageSize int 每页数量 (可选, 默认:10)
-// @param isPage bool 是否分页 (可选, 默认:true)
-// @return JSON 连接列表和分页信息
+// @url /ws/connections
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *WebSocketHandler) GetConnectionListHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "websocketHandler", "getConnectionListHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -309,6 +300,7 @@ func (h *WebSocketHandler) GetConnectionListHandler(ctx *gin.Context) {
 
 // Routers 获取WebSocket相关路由列表
 //
+// @description 返回WebSocket相关的所有HTTP路由定义
 // @return []commonhttp.RouterHandler WebSocket路由处理器列表
 func (h *WebSocketHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
@@ -320,7 +312,7 @@ func (h *WebSocketHandler) Routers() []commonhttp.RouterHandler {
 			HandlerFunc:     h.UpgradeHandler,
 			Enabled:         true,
 			EnableJWtVerify: true,
-			Desc:            "websocket connection upgrade",
+			Desc:            "WebSocket连接升级",
 		},
 		// WebSocket断开连接路由
 		&commonhttp.MyRouter{
@@ -330,7 +322,7 @@ func (h *WebSocketHandler) Routers() []commonhttp.RouterHandler {
 			HandlerFunc:     h.DisconnectHandler,
 			Enabled:         true,
 			EnableJWtVerify: true,
-			Desc:            "websocket disconnect request",
+			Desc:            "WebSocket断开连接请求",
 		},
 		// WebSocket发送消息路由
 		&commonhttp.MyRouter{
@@ -340,7 +332,7 @@ func (h *WebSocketHandler) Routers() []commonhttp.RouterHandler {
 			HandlerFunc:     h.SendMessageHandler,
 			Enabled:         true,
 			EnableJWtVerify: true,
-			Desc:            "send websocket message",
+			Desc:            "发送WebSocket消息",
 		},
 		// 获取WebSocket连接列表路由
 		&commonhttp.MyRouter{
@@ -350,7 +342,7 @@ func (h *WebSocketHandler) Routers() []commonhttp.RouterHandler {
 			HandlerFunc:     h.GetConnectionListHandler,
 			Enabled:         true,
 			EnableJWtVerify: true,
-			Desc:            "get websocket connection list",
+			Desc:            "获取WebSocket连接列表",
 		},
 	}
 }

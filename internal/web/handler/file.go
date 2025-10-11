@@ -20,17 +20,16 @@ import (
 //
 // @description 处理文件相关的HTTP请求
 // @struct
-// @property *Handler 基础处理器，提供日志功能
-// @property service *service.FileService 文件服务，处理文件相关的业务逻辑
 type FileHandler struct {
-	*Handler
-	service *service.FileService
+	*Handler            // Handler 基础处理器，提供日志功能
+	service *service.FileService // service 文件服务，处理文件相关的业务逻辑
 }
 
 // NewFileHandler 创建文件处理器
 //
+// @description 创建并返回一个新的文件处理器实例
 // @param baseHandler *Handler 基础处理器
-// @param service *service.FileService 文件服务
+// @param fileService *service.FileService 文件服务
 // @return *FileHandler 文件处理器实例
 func NewFileHandler(baseHandler *Handler,
 	fileService *service.FileService) *FileHandler {
@@ -44,11 +43,8 @@ func NewFileHandler(baseHandler *Handler,
 //
 // @description 初始化文件上传，为文件生成唯一ID并创建必要的存储结构
 // @method POST
-// @url /api/v1/files/init
-// @param filename string 文件名 (必需)
-// @param file_size int64 文件大小 (必需)
-// @param chunk_size int64 分片大小 (必需)
-// @return JSON 初始化结果，包含文件ID和分片信息
+// @url /files/init
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) InitUpload(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "initUpload",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -95,13 +91,8 @@ func (h *FileHandler) InitUpload(ctx *gin.Context) {
 //
 // @description 上传文件分片，支持大文件的分片上传
 // @method POST
-// @url /api/v1/files/chunk
-// @param file_id int64 文件ID (必需)
-// @param chunk_index int 分片索引 (必需)
-// @param total_chunks int 总分片数 (必需)
-// @param chunk_hash string 分片哈希值 (可选)
-// @param file file 分片文件数据 (必需)
-// @return JSON 上传结果
+// @url /files/chunk
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) UploadChunk(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "uploadChunk",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -148,9 +139,8 @@ func (h *FileHandler) UploadChunk(ctx *gin.Context) {
 //
 // @description 完成文件上传，合并所有已上传的分片生成最终文件
 // @method POST
-// @url /api/v1/files/complete
-// @param file_id int64 文件ID (必需)
-// @return JSON 完成上传结果
+// @url /files/complete
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) CompleteUpload(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "completeUpload",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -197,9 +187,8 @@ func (h *FileHandler) CompleteUpload(ctx *gin.Context) {
 //
 // @description 获取文件上传进度和已上传分片信息
 // @method GET
-// @url /api/v1/files/status
-// @param file_id int64 文件ID (必需)
-// @return JSON 上传状态信息
+// @url /files/status
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) GetUploadStatus(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "getUploadStatus",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -246,9 +235,8 @@ func (h *FileHandler) GetUploadStatus(ctx *gin.Context) {
 //
 // @description 获取文件详细信息
 // @method GET
-// @url /api/v1/files/metadata
-// @param file_id int64 文件ID (必需)
-// @return JSON 文件元数据信息
+// @url /files/metadata
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) GetFileMetadata(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "getFileMetadata",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -295,9 +283,8 @@ func (h *FileHandler) GetFileMetadata(ctx *gin.Context) {
 //
 // @description 获取已上传分片信息，支持断点续传
 // @method GET
-// @url /api/v1/files/resume
-// @param file_id int64 文件ID (必需)
-// @return JSON 断点续传信息
+// @url /files/resume
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) ResumeUpload(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "resumeUpload",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -341,6 +328,11 @@ func (h *FileHandler) ResumeUpload(ctx *gin.Context) {
 }
 
 // CheckExistingUpload 检查现有上传记录
+//
+// @description 检查是否存在相同文件的上传记录
+// @method GET
+// @url /files/check-existing
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) CheckExistingUpload(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "checkExistingUpload",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -378,9 +370,8 @@ func (h *FileHandler) CheckExistingUpload(ctx *gin.Context) {
 //
 // @description 提供文件下载功能
 // @method GET
-// @url /api/v1/files/:id/download
-// @param id int64 文件ID (路径参数)
-// @return 文件下载流
+// @url /files/:id/download
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) DownloadFile(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "downloadFile",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -413,11 +404,8 @@ func (h *FileHandler) DownloadFile(ctx *gin.Context) {
 //
 // @description 列出所有文件
 // @method GET
-// @url /api/v1/files
-// @param page int 页码 (可选)
-// @param page_size int 每页数量 (可选)
-// @param file_name string 文件名关键词搜索 (可选)
-// @return JSON 文件列表
+// @url /files
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) ListFiles(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "listFiles",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -464,9 +452,8 @@ func (h *FileHandler) ListFiles(ctx *gin.Context) {
 //
 // @description 删除指定文件
 // @method DELETE
-// @url /api/v1/files/:id
-// @param id int64 文件ID (路径参数)
-// @return JSON 删除结果
+// @url /files/:id
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) DeleteFile(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "deleteFile",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -499,8 +486,8 @@ func (h *FileHandler) DeleteFile(ctx *gin.Context) {
 //
 // @description 清理上传过程中产生的临时文件，释放存储空间
 // @method DELETE
-// @url /api/v1/files/temp
-// @return JSON 清理结果
+// @url /files/temp
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *FileHandler) CleanupTempDir(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "fileHandler", "cleanupTempDir",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -544,6 +531,7 @@ func (h *FileHandler) CleanupTempDir(ctx *gin.Context) {
 
 // Routers 获取文件相关路由列表
 //
+// @description 返回所有文件相关的HTTP路由配置
 // @return []commonhttp.RouterHandler 文件路由处理器列表
 func (h *FileHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{

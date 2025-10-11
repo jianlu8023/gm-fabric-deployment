@@ -16,18 +16,20 @@ import (
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
-// CaptchaHandler 验证码处理器
+// CaptchaHandler 验证码处理器结构体
+//
 // @description 处理验证码相关的HTTP请求
-// @property *Handler 基础处理器
-// @property service *service.CaptchaService 验证码服务
+// @struct
 type CaptchaHandler struct {
-	*Handler
-	service *service.CaptchaService
+	*Handler              // Handler 基础处理器，提供日志功能
+	service *service.CaptchaService // service 验证码服务，处理验证码相关的业务逻辑
 }
 
 // NewCaptchaHandler 创建验证码处理器
-// @param baseHandler 基础处理器
-// @param service 验证码服务
+//
+// @description 创建并返回一个新的验证码处理器实例
+// @param baseHandler *Handler 基础处理器
+// @param captchaService *service.CaptchaService 验证码服务
 // @return *CaptchaHandler 验证码处理器实例
 func NewCaptchaHandler(baseHandler *Handler, captchaService *service.CaptchaService) *CaptchaHandler {
 	return &CaptchaHandler{
@@ -36,19 +38,29 @@ func NewCaptchaHandler(baseHandler *Handler, captchaService *service.CaptchaServ
 	}
 }
 
+// CaptchaServiceInterface 验证码服务接口
+//
+// @description 定义验证码服务需要实现的方法
+// @interface
 type CaptchaServiceInterface interface {
+	// GenerateCaptcha 生成验证码
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.CaptchaGenerateRequest 验证码生成请求
 	GenerateCaptcha(ctx *gin.Context, req *request.CaptchaGenerateRequest)
+	// ValidateCaptcha 验证验证码
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.CaptchaValidateRequest 验证码验证请求
 	ValidateCaptcha(ctx *gin.Context, req *request.CaptchaValidateRequest)
 }
 
 // GenerateCaptchaHandler 生成验证码的处理函数
+//
 // @description 处理生成验证码的HTTP请求
 // @method GET
-// @url /api/v1/captcha/generate
-// @param captchaType string 验证码类型 (可选, 默认:string)
-// @param width int 验证码图片宽度 (可选, 默认:240)
-// @param height int 验证码图片高度 (可选, 默认:80)
-// @return JSON 验证码信息和图片
+// @url /captcha/generate
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *CaptchaHandler) GenerateCaptchaHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "generateCaptchaHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -93,12 +105,11 @@ func (h *CaptchaHandler) GenerateCaptchaHandler(ctx *gin.Context) {
 }
 
 // ValidateCaptchaHandler 验证验证码的处理函数
+//
 // @description 处理验证验证码的HTTP请求
 // @method POST
-// @url /api/v1/captcha/validate
-// @param captchaId string 验证码ID (必需)
-// @param code string 用户输入的验证码 (必需)
-// @return JSON 验证结果
+// @url /captcha/validate
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "validateCaptchaHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -143,13 +154,11 @@ func (h *CaptchaHandler) ValidateCaptchaHandler(ctx *gin.Context) {
 }
 
 // RefreshCaptchaHandler 刷新验证码的处理函数
+//
 // @description 处理刷新验证码的HTTP请求
 // @method GET
-// @url /api/v1/captcha/refresh
-// @param captchaType string 验证码类型 (可选, 默认:string)
-// @param width int 验证码图片宽度 (可选, 默认:240)
-// @param height int 验证码图片高度 (可选, 默认:80)
-// @return JSON 新的验证码信息和图片
+// @url /captcha/refresh
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *CaptchaHandler) RefreshCaptchaHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaHandler", "refreshCaptchaHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -194,7 +203,9 @@ func (h *CaptchaHandler) RefreshCaptchaHandler(ctx *gin.Context) {
 }
 
 // Routers 注册验证码相关路由
+//
 // @description 注册所有验证码相关的HTTP路由
+// @return []commonhttp.RouterHandler 验证码路由处理器列表
 func (h *CaptchaHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		// 验证码相关路由

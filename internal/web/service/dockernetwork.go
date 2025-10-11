@@ -13,17 +13,14 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// DockerNetworkService Docker网络服务
+// DockerNetworkService Docker网络服务结构体
 //
 // @description 提供Docker网络相关的服务功能，如获取Docker网络列表
 // @struct
-// @property Service *Service 基础服务
-// @property mapper *mapper.DockerNetworkMapper Docker网络映射器
-// @property dockerControl *docker.Control Docker控制器
 type DockerNetworkService struct {
-	*Service
-	mapper        *mapper.DockerNetworkMapper
-	dockerControl *docker.Control
+	*Service       // Service 基础服务，提供日志功能
+	mapper        *mapper.DockerNetworkMapper // mapper Docker网络映射器，用于数据访问
+	dockerControl *docker.Control // dockerControl Docker控制器，用于Docker操作
 }
 
 // NewDockerNetworkService 创建Docker网络服务实例

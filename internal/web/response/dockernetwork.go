@@ -11,20 +11,9 @@ import (
 )
 
 // DockerNetworkListResponse Docker网络列表响应结构体
+//
 // @description 用于返回Docker网络列表的响应数据
 // @struct
-// @property network_name string 网络名称
-// @property network_id string 网络ID（Docker生成的唯一标识）
-// @property network_create_time time.Time 网络创建时间
-// @property network_scope string 网络作用域（local, global, swarm）
-// @property network_driver string 网络驱动类型（bridge, overlay, macvlan等）
-// @property network_enable_ipv6 bool 是否启用IPv6
-// @property network_ipam string 网络IP地址管理配置（JSON格式）
-// @property network_internal bool 是否为内部网络
-// @property network_attachable bool 是否可附加到独立容器
-// @property network_ingress bool 是否为入口网络（Swarm模式）
-// @property network_location_peer_id string 网络所在节点的PeerID
-// @property is_delete bool 删除标记（默认false）
 type DockerNetworkListResponse struct {
 	NetworkName           string       `json:"network_name" yaml:"network_name"`                         // 网络名称
 	NetworkID             string       `json:"network_id" yaml:"network_id"`                             // 网络ID（Docker生成的唯一标识）
@@ -41,6 +30,7 @@ type DockerNetworkListResponse struct {
 }
 
 // String 将Docker网络列表响应转换为字符串表示
+//
 // @description 将DockerNetworkListResponse结构体转换为JSON格式的字符串
 // @return string 响应数据的JSON格式字符串
 func (resp DockerNetworkListResponse) String() string {
@@ -49,6 +39,7 @@ func (resp DockerNetworkListResponse) String() string {
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
 // @description 自定义DockerNetworkListResponse结构体的JSON序列化逻辑，处理sql.NullBool类型
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
@@ -73,6 +64,7 @@ func (resp DockerNetworkListResponse) MarshalJSON() ([]byte, error) {
 }
 
 // NewDockerNetworkListResponse 创建Docker网络列表响应对象
+//
 // @description 将数据库模型转换为API响应对象，并创建分页信息
 // @param page dbpage.Info[model.DockerNetwork] 数据库查询得到的分页网络数据
 // @return *dbpage.Info[DockerNetworkListResponse] 转换后的分页响应数据
@@ -95,3 +87,4 @@ func NewDockerNetworkListResponse(page dbpage.Info[model.DockerNetwork]) (*dbpag
 		convert,
 	), nil
 }
+

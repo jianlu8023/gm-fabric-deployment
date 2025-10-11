@@ -23,23 +23,17 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// DockerImageService Docker镜像服务
+// DockerImageService Docker镜像服务结构体
 //
 // @description 提供Docker镜像相关的服务功能，如镜像列表查询、镜像拉取等
 // @struct
-// @property *Service 基础服务
-// @property mapper *mapper.DockerImageMapper Docker镜像映射器
-// @property dockerControl *docker.Control Docker控制器
-// @property websocketControl *websocket.Control WebSocket控制器
-// @property libp2pControl *libp2p.Control libp2p控制器
-// @property antsPoolControl *ants.Control 线程池控制器
 type DockerImageService struct {
-	*Service
-	mapper           *mapper.DockerImageMapper
-	dockerControl    *docker.Control
-	websocketControl *websocket.Control
-	libp2pControl    *libp2p.Control
-	antsPoolControl  *ants.Control
+	*Service          // Service 基础服务，提供日志功能
+	mapper           *mapper.DockerImageMapper // mapper Docker镜像映射器，用于数据访问
+	dockerControl    *docker.Control // dockerControl Docker控制器，用于Docker操作
+	websocketControl *websocket.Control // websocketControl WebSocket控制器，用于消息推送
+	libp2pControl    *libp2p.Control // libp2pControl libp2p控制器，用于节点通信
+	antsPoolControl  *ants.Control // antsPoolControl 线程池控制器，用于异步任务
 }
 
 // NewDockerImageService 创建Docker镜像服务实例

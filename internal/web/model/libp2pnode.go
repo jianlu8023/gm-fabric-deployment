@@ -21,6 +21,7 @@ type Libp2pNode struct {
 }
 
 // TableName 返回表名
+//
 // @description 实现gorm接口，指定结构体对应的数据库表名
 // @return string 数据库表名
 func (Libp2pNode) TableName() string {
@@ -28,6 +29,7 @@ func (Libp2pNode) TableName() string {
 }
 
 // String 返回json格式字符串
+//
 // @description 将节点信息转换为JSON格式字符串
 // @return string 节点信息的JSON格式字符串
 func (model Libp2pNode) String() string {
@@ -36,8 +38,9 @@ func (model Libp2pNode) String() string {
 }
 
 // NewLibp2pNode 创建新的节点信息实例
+//
 // @description 初始化一个空的节点信息结构体指针
-// @return *Info 节点信息结构体指针
+// @return *Libp2pNode 节点信息结构体指针
 func NewLibp2pNode() *Libp2pNode {
 	return &Libp2pNode{}
 }

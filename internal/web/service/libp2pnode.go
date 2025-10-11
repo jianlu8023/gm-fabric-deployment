@@ -13,24 +13,24 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// Libp2pNodeService 节点服务实现
+// Libp2pNodeService 节点服务结构体
+//
 // @description 实现NodeServiceInterface接口，处理节点相关业务逻辑
 // @struct
-// @property *Service 基础服务
-// @property mapper *mapper.Libp2pNodeMapper 节点映射器
 type Libp2pNodeService struct {
-	*Service
-	mapper        *mapper.Libp2pNodeMapper
-	libp2pControl *libp2p.Control
+	*Service              // Service 基础服务，提供日志功能
+	mapper               *mapper.Libp2pNodeMapper  // mapper 节点映射器，用于数据访问
+	libp2pControl        *libp2p.Control           // libp2pControl libp2p控制器，用于节点操作
 }
 
-// NeeNodeService 创建节点服务实例
+// NewLibp2pNodeService 创建新的节点服务实例
+//
 // @description 创建并返回一个新的节点服务实例
 // @param service *Service 基础服务
-// @param mapper *mapper.Libp2pNodeMapper 节点映射器
+// @param nodeMapper *mapper.Libp2pNodeMapper 节点映射器
 // @param libp2pControl *libp2p.Control libp2p控制器
 // @return *Libp2pNodeService 节点服务实例
-func NeeNodeService(service *Service,
+func NewLibp2pNodeService(service *Service,
 	nodeMapper *mapper.Libp2pNodeMapper,
 	libp2pControl *libp2p.Control,
 ) *Libp2pNodeService {
@@ -42,6 +42,7 @@ func NeeNodeService(service *Service,
 }
 
 // Libp2pNodeList 获取节点列表服务
+//
 // @description 查询节点列表并返回分页结果
 // @param ctx *gin.Context Gin上下文
 // @param req *request.Libp2pNodeListRequest 节点列表请求参数
@@ -73,6 +74,11 @@ func (s *Libp2pNodeService) Libp2pNodeList(ctx *gin.Context, req *request.Libp2p
 	span.SetStatus(codes.Ok, "success")
 }
 
+// Libp2pNodeMyself 获取当前节点信息
+//
+// @description 查询当前节点信息并返回结果
+// @param ctx *gin.Context HTTP上下文
+// @param req *request.Libp2pNodeMyselfRequest 当前节点信息请求参数
 func (s *Libp2pNodeService) Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "libp2pNodeService", "libp2pNodeMyself",
 		attribute.String("requestParam", req.String()),

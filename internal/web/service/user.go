@@ -18,7 +18,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 )
 
-// UserService 用户服务
+// UserService 用户服务结构体
 //
 // @description 提供用户相关的服务功能，如用户注册、登录等
 // @struct

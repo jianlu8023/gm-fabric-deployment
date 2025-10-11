@@ -20,17 +20,15 @@ import (
 // @description 处理系统相关的HTTP请求
 // @struct
 type SystemHandler struct {
-	// Handler 基础处理器，提供日志功能
-	*Handler
-	// service 系统服务，处理系统相关的业务逻辑
-	service *service.SystemService
+	*Handler              // Handler 基础处理器，提供日志功能
+	service *service.SystemService // service 系统服务，处理系统相关的业务逻辑
 }
 
 // NewSystemHandler 创建系统处理器
 //
 // @description 创建并返回一个新的系统处理器实例
-// @param handler *Handler 基础handler
-// @param service *service.SystemService 系统相关服务
+// @param handler *Handler 基础处理器
+// @param service *service.SystemService 系统服务
 // @return *SystemHandler 系统处理器实例
 func NewSystemHandler(handler *Handler, service *service.SystemService) *SystemHandler {
 	return &SystemHandler{
@@ -43,8 +41,8 @@ func NewSystemHandler(handler *Handler, service *service.SystemService) *SystemH
 //
 // @description 获取系统的整体运行状态和关键指标
 // @method GET
-// @url /api/v1/system/overview
-// @return JSON 系统概览信息，包括节点数量、容器状态、资源使用情况等
+// @url /system/overview
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "systemHandler", "getSystemOverview",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -90,8 +88,8 @@ func (h *SystemHandler) GetSystemOverview(ctx *gin.Context) {
 //
 // @description 检查系统是否已经完成初始化配置
 // @method GET
-// @url /api/v1/system/init
-// @return JSON 系统初始化状态信息
+// @url /system/init
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *SystemHandler) GetSystemInitStatus(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "systemHandler", "getSystemInitStatus",
 		attribute.String("requestId", requestid.Get(ctx)),

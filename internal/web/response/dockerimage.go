@@ -12,14 +12,9 @@ import (
 )
 
 // DockerImageListResponse Docker镜像列表响应结构体
+//
 // @description 用于返回Docker镜像列表的响应数据
 // @struct
-// @property image_name string 镜像名称
-// @property image_created string 镜像创建时间
-// @property image_labels string 镜像标签
-// @property image_id string 镜像id
-// @property image_location_peer_id string 镜像所在peer
-// @property is_delete bool 是否删除
 type DockerImageListResponse struct {
 	ImageName           string       `json:"image_name" yaml:"image_name"`                         // 镜像名称
 	ImageCreated        time.Time    `json:"image_created" yaml:"image_created"`                   // 镜像创建时间
@@ -30,6 +25,7 @@ type DockerImageListResponse struct {
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
 // @description 自定义DockerImageListResponse结构体的JSON序列化逻辑，处理时间格式和sql.NullBool类型
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
@@ -48,6 +44,7 @@ func (resp DockerImageListResponse) MarshalJSON() ([]byte, error) {
 }
 
 // String 将Docker镜像列表响应转换为字符串表示
+//
 // @description 将DockerImageListResponse结构体转换为JSON格式的字符串
 // @return string 响应数据的JSON格式字符串
 func (resp DockerImageListResponse) String() string {
@@ -56,6 +53,7 @@ func (resp DockerImageListResponse) String() string {
 }
 
 // NewDockerImageListResponse 创建Docker镜像列表响应对象
+//
 // @description 将数据库模型转换为API响应对象，并创建分页信息
 // @param page dbpage.Info[model.DockerImage] 数据库查询得到的分页镜像数据
 // @return *dbpage.Info[DockerImageListResponse] 转换后的分页响应数据
@@ -80,14 +78,15 @@ func NewDockerImageListResponse(page dbpage.Info[model.DockerImage]) (*dbpage.In
 }
 
 // DockerImagePullResponse Docker镜像拉取响应结构体
+//
 // @description 用于返回Docker镜像拉取操作的响应数据
 // @struct
-// @property msg string 操作结果消息
 type DockerImagePullResponse struct {
 	Msg string `json:"msg" yaml:"msg"` // 操作结果消息
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
 // @description 自定义DockerImagePullResponse结构体的JSON序列化逻辑
 // @return []byte JSON字节数组
 // @return error 序列化错误信息
@@ -102,6 +101,7 @@ func (resp DockerImagePullResponse) MarshalJSON() ([]byte, error) {
 }
 
 // String 将Docker镜像拉取响应转换为字符串表示
+//
 // @description 将DockerImagePullResponse结构体转换为JSON格式的字符串
 // @return string 响应数据的JSON格式字符串
 func (resp DockerImagePullResponse) String() string {
@@ -110,6 +110,7 @@ func (resp DockerImagePullResponse) String() string {
 }
 
 // NewDockerImagePullResponse 创建Docker镜像拉取响应对象
+//
 // @description 创建一个新的Docker镜像拉取响应对象
 // @param msg string 操作结果消息
 // @return *DockerImagePullResponse 镜像拉取响应对象

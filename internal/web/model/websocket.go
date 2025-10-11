@@ -5,6 +5,7 @@ import (
 )
 
 // ConnectionInfo WebSocket连接信息模型
+//
 // @description 表示WebSocket连接的基本信息，用于存储和管理WebSocket连接状态
 // @struct
 type ConnectionInfo struct {
@@ -18,6 +19,7 @@ type ConnectionInfo struct {
 }
 
 // TableName 返回数据库表名
+//
 // @description 实现gorm接口，指定ConnectionInfo结构体对应的数据库表名
 // @return string 数据库表名
 func (ConnectionInfo) TableName() string {
@@ -25,6 +27,7 @@ func (ConnectionInfo) TableName() string {
 }
 
 // NewConnectionInfo 创建一个新的WebSocket连接信息实例
+//
 // @description 初始化WebSocket连接信息，设置初始状态为connected
 // @param id string 连接唯一标识符
 // @param userID string 用户ID

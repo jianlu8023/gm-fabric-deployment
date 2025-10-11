@@ -20,8 +20,8 @@ import (
 // @description 处理Docker镜像相关的HTTP请求
 // @struct
 type DockerImageHandler struct {
-	*Handler
-	service *service.DockerImageService
+	*Handler               // Handler 基础处理器，提供日志功能
+	service *service.DockerImageService // service Docker镜像服务，处理Docker镜像相关的业务逻辑
 }
 
 // NewDockerImageHandler 创建Docker镜像处理器
@@ -43,7 +43,15 @@ func NewDockerImageHandler(baseHandler *Handler,
 // @description 定义Docker镜像服务需要实现的方法
 // @interface
 type DockerImageServiceInterface interface {
+	// DockerImageList 获取Docker镜像列表
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.DockerImageListRequest Docker镜像列表请求参数
 	DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest)
+	// DockerImagePull 拉取Docker镜像
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.DockerImagePullRequest Docker镜像拉取请求参数
 	DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest)
 }
 
@@ -51,12 +59,8 @@ type DockerImageServiceInterface interface {
 //
 // @description 处理获取Docker镜像列表的HTTP请求
 // @method GET
-// @url /api/v1/docker/image/list
-// @param peer_id string 节点ID (可选)
-// @param is_page bool 是否分页 (可选)
-// @param page_no int 页码 (可选，当is_page为true时必填)
-// @param page_size int 每页大小 (可选，当is_page为true时必填)
-// @return JSON 镜像列表数据
+// @url /docker/image/list
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *DockerImageHandler) DockerImageList(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageHandler", "dockerImageList",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -102,10 +106,8 @@ func (h *DockerImageHandler) DockerImageList(ctx *gin.Context) {
 //
 // @description 处理拉取Docker镜像的HTTP请求
 // @method POST
-// @url /api/v1/docker/image/pull
-// @param peer_id string 节点ID (必需)
-// @param image_name string 镜像名称 (必需)
-// @return JSON 镜像拉取结果
+// @url /docker/image/pull
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *DockerImageHandler) DockerImagePull(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageHandler", "dockerImagePull",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -147,6 +149,7 @@ func (h *DockerImageHandler) DockerImagePull(ctx *gin.Context) {
 
 // Routers 获取Docker镜像相关路由列表
 //
+// @description 返回Docker镜像相关的所有HTTP路由定义
 // @return []commonhttp.RouterHandler Docker镜像路由处理器列表
 func (h *DockerImageHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{

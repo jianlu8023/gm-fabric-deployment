@@ -15,16 +15,21 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// MFAHandler MFA处理器
+// MFAHandler MFA处理器结构体
+//
 // @description 处理MFA相关的HTTP请求
 // @struct
-// @property Handler 基础处理器
-// @property service *service.MFAService MFA服务
 type MFAHandler struct {
-	*Handler
-	service *service.MFAService
+	*Handler            // Handler 基础处理器
+	service *service.MFAService // service MFA服务
 }
 
+// NewMFAHandler 创建MFA处理器
+//
+// @description 创建并返回一个新的MFA处理器实例
+// @param baseHandler *Handler 基础处理器
+// @param mfaService *service.MFAService MFA服务
+// @return *MFAHandler MFA处理器实例
 func NewMFAHandler(baseHandler *Handler, mfaService *service.MFAService) *MFAHandler {
 	return &MFAHandler{
 		Handler: baseHandler,
@@ -32,8 +37,13 @@ func NewMFAHandler(baseHandler *Handler, mfaService *service.MFAService) *MFAHan
 	}
 }
 
+// GenerateRecoverySecret 生成MFA恢复密钥处理函数
+//
+// @description 处理生成MFA恢复密钥的HTTP请求
+// @method POST
+// @url /mfa/recovery/secret
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *MFAHandler) GenerateRecoverySecret(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "generateRecoverySecret",
 		attribute.String("requestId", requestid.Get(ctx)),
 	)
 	defer span.End()
@@ -73,8 +83,13 @@ func (h *MFAHandler) GenerateRecoverySecret(ctx *gin.Context) {
 	span.SetStatus(codes.Ok, "success")
 }
 
+// VerifyMfaCode 验证MFA代码处理函数
+//
+// @description 处理验证MFA代码的HTTP请求
+// @method POST
+// @url /mfa/verify
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *MFAHandler) VerifyMfaCode(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "verifyMfaCode",
 		attribute.String("requestId", requestid.Get(ctx)),
 	)
 	defer span.End()
@@ -113,8 +128,13 @@ func (h *MFAHandler) VerifyMfaCode(ctx *gin.Context) {
 	span.SetStatus(codes.Ok, "success")
 }
 
+// GenerateQrCode 生成MFA二维码处理函数
+//
+// @description 处理生成MFA二维码的HTTP请求
+// @method GET
+// @url /mfa/qrcode
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *MFAHandler) GenerateQrCode(ctx *gin.Context) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaHandler", "generateQrCode",
 		attribute.String("requestId", requestid.Get(ctx)),
 	)
 	defer span.End()
@@ -153,6 +173,7 @@ func (h *MFAHandler) GenerateQrCode(ctx *gin.Context) {
 }
 
 // Routers 获取MFA相关的路由列表
+//
 // @description 获取所有MFA相关的HTTP路由
 // @return []commonhttp.RouterHandler 路由处理器列表
 func (h *MFAHandler) Routers() []commonhttp.RouterHandler {

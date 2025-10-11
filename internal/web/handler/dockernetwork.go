@@ -20,10 +20,8 @@ import (
 // @description 处理Docker网络相关的HTTP请求
 // @struct
 type DockerNetworkHandler struct {
-	// Handler 基础处理器，提供日志功能
-	*Handler
-	// service Docker网络服务，处理Docker网络相关的业务逻辑
-	service *service.DockerNetworkService
+	*Handler                      // Handler 基础处理器，提供日志功能
+	service *service.DockerNetworkService // service Docker网络服务，处理Docker网络相关的业务逻辑
 }
 
 // NewDockerNetworkHandler 创建Docker网络处理器
@@ -56,8 +54,8 @@ type DockerNetworkServiceInterface interface {
 //
 // @description 获取Docker网络列表信息
 // @method GET
-// @url /api/v1/docker/network/list
-// @return JSON Docker网络列表信息
+// @url /docker/network/list
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerNetworkHandler", "dockerNetworkList",
 		attribute.String("requestId", requestid.Get(ctx)),

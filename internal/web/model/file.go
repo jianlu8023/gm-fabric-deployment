@@ -26,26 +26,9 @@ const (
 )
 
 // FileInfo 文件信息模型
+//
 // @description 文件信息表模型
 // @struct
-// @property ID int 文件ID
-// @property FileName string 文件名
-// @property FileSize int64 文件大小
-// @property FilePath string 文件路径
-// @property FileHash string 文件哈希值
-// @property FileType string 文件类型
-// @property Uploader string 上传者
-// @property UploadTime time.Time 上传时间
-// @property Status string 文件状态
-// @property ChunkSize int64 分片大小
-// @property TotalChunks int 总分片数
-// @property UploadedChunks int 已上传分片数
-// @property LastChunkTime time.Time 最后分片上传时间
-// @property ExpireTime time.Time 过期时间
-// @property DownloadCount int 下载次数
-// @property Description string 文件描述
-// @property StorageType string 存储类型
-// @property Extra map[string]interface{} 额外信息
 type FileInfo struct {
 	AutoUid        int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                      // 自增id
 	UploadID       string       `json:"upload_id,omitempty" yaml:"upload_id,omitempty" gorm:"column:upload_id;type:varchar(255);default:'';not null"`         // 上传ID
@@ -71,28 +54,35 @@ type FileInfo struct {
 	IsRemove       sql.NullBool `json:"is_remove,omitempty" yaml:"is_remove,omitempty" gorm:"column:is_remove;type:tinyint(1);default:0;"`                    // 是否移除
 }
 
+// TableName 返回数据库表名
+//
+// @description 实现gorm接口，指定FileInfo结构体对应的数据库表名
+// @return string 数据库表名
 func (model FileInfo) TableName() string {
 	return fileInfoTableName
 }
 
+// String 将文件信息转换为字符串表示
+//
+// @description 将FileInfo结构体转换为JSON格式的字符串
+// @return string 文件信息的JSON格式字符串
 func (model FileInfo) String() string {
 	str, _ := json.MarshalString(model)
 	return str
 }
 
+// NewFileInfo 创建新的文件信息实例
+//
+// @description 初始化一个空的文件信息结构体指针
+// @return *FileInfo 文件信息结构体指针
 func NewFileInfo() *FileInfo {
 	return &FileInfo{}
 }
 
 // FileChunk 文件分片模型
+//
 // @description 文件分片信息
 // @struct
-// @property FileID int64 文件ID
-// @property ChunkIndex int 分片索引
-// @property ChunkSize int64 分片大小
-// @property ChunkHash string 分片哈希值
-// @property UploadTime time.Time 上传时间
-// @property Status string 分片状态
 const (
 	fileChunkTableName = "t_file_chunk"
 )
@@ -110,15 +100,27 @@ type FileChunk struct {
 	IsDelete      sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0;"`
 }
 
+// String 将文件分片信息转换为字符串表示
+//
+// @description 将FileChunk结构体转换为JSON格式的字符串
+// @return string 文件分片信息的JSON格式字符串
 func (model FileChunk) String() string {
 	str, _ := json.MarshalString(model)
 	return str
 }
 
+// TableName 返回数据库表名
+//
+// @description 实现gorm接口，指定FileChunk结构体对应的数据库表名
+// @return string 数据库表名
 func (model FileChunk) TableName() string {
 	return fileChunkTableName
 }
 
+// NewFileChunk 创建新的文件分片信息实例
+//
+// @description 初始化一个空的文件分片信息结构体指针
+// @return *FileChunk 文件分片信息结构体指针
 func NewFileChunk() *FileChunk {
 	return &FileChunk{}
 }
