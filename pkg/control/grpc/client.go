@@ -13,6 +13,9 @@ import (
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
+	"github.com/tjfoc/gmsm/gmtls"
+	"github.com/tjfoc/gmsm/gmtls/gmcredentials"
+	gmx509 "github.com/tjfoc/gmsm/x509"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -87,76 +90,124 @@ func NewClientControl(control *Control) error {
 	}
 
 	if control.config.Client.TlsEnabled {
-		control.logger.Debugf("[client] generate tls client server...")
+		if control.config.Client.TlsGM {
+			control.logger.Debugf("[client] generate gm tls grpc client...")
 
-		// var transportCredentials credentials.TransportCredentials
-		// transportCredentials, err = credentials.NewClientTLSFromFile(control.config.Client.TlsRCACertFile,
-		// 	"grpc")
-		// if err != nil {
-		// 	logger.Errorf("[client] generate transportCredentials err: %v", err)
-		// 	return nil, err
-		// }
+			gmTlsConfig := &gmtls.Config{
+				GMSupport: &gmtls.GMSupport{
+					WorkMode: gmtls.ModeGMSSLOnly,
+				},
+				SessionTicketsDisabled: false, // 启用会话票据
+				NextProtos:             []string{"h2", "http/1.1"},
+				ServerName:             "grpc", // 必须与服务器证书的Common Name匹配
+			}
 
-		// 为双向TLS验证创建正确的客户端配置
-		tlsConfig := &tls.Config{
-			MinVersion: tls.VersionTLS12, // 设置最低TLS版本
-			MaxVersion: tls.VersionTLS13, // 设置最高TLS版本
-			CipherSuites: []uint16{
-				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-				tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-				tls.TLS_AES_128_GCM_SHA256,       // secure 1.3
-				tls.TLS_AES_256_GCM_SHA384,       // secure 1.3
-				tls.TLS_CHACHA20_POLY1305_SHA256, // secure 1.3
-			},
-			CurvePreferences: []tls.CurveID{
-				tls.CurveP256, tls.X25519,
-			},
-			SessionTicketsDisabled: false, // 启用会话票据
-			NextProtos:             []string{"h2", "http/1.1"},
-			ServerName:             "grpc", // 必须与服务器证书的Common Name匹配
-		}
+			// TODO 差 加载两套keypair 一套签名 一套加密
 
-		// 加载客户端证书（注意：应该使用客户端自己的证书，而不是服务端证书）
-		certificates, err := tls.LoadX509KeyPair(control.config.Client.TlsCertFile, control.config.Client.TlsKeyFile)
-		if err != nil {
-			control.logger.Errorf("[client] failed to load client TLS certificate: %v", err)
-			return err
-		}
-		tlsConfig.Certificates = []tls.Certificate{certificates}
+			// 加载CA证书用于验证服务器证书
+			rootCaCertFile := control.config.Client.TlsRCACertFile
+			if !stringer.IsBlank(rootCaCertFile) {
+				caCertPool := gmx509.NewCertPool()
+				caCert, err := os.ReadFile(rootCaCertFile)
+				if err != nil {
+					control.logger.Errorf("[client] failed to read CA cert file: %v", err)
+					return err
+				}
+				if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+					control.logger.Errorf("[client] failed to append CA cert to pool")
+					return ErrFailAppendCert
+				}
+				gmTlsConfig.RootCAs = caCertPool
+				control.logger.Debugf("[client] mutual TLS enabled, server certificate will be verified")
+			} else {
+				control.logger.Warnf("[client] CA cert file is not configured for mutual TLS")
+				return ErrNoCACert
+			}
 
-		// 加载CA证书用于验证服务器证书
-		rootCaCertFile := control.config.Client.TlsRCACertFile
-		if !stringer.IsBlank(rootCaCertFile) {
-			caCertPool := x509.NewCertPool()
-			caCert, err := os.ReadFile(rootCaCertFile)
+			// 创建凭证
+			transportCredentials := gmcredentials.NewTLS(gmTlsConfig)
+
+			opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
+			// opts = append(opts, grpc.WithPerRPCCredentials(new(customCredential)))
+
+			gClient, err = grpc.NewClient(control.config.Client.Host, opts...)
+			// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 			if err != nil {
-				control.logger.Errorf("[client] failed to read CA cert file: %v", err)
+				control.logger.Errorf("[client] generate tls client err: %v", err)
 				return err
 			}
-			if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-				control.logger.Errorf("[client] failed to append CA cert to pool")
-				return ErrFailAppendCert
-			}
-			tlsConfig.RootCAs = caCertPool
-			control.logger.Debugf("[client] mutual TLS enabled, server certificate will be verified")
 		} else {
-			control.logger.Warnf("[client] CA cert file is not configured for mutual TLS")
-			return ErrNoCACert
-		}
+			control.logger.Debugf("[client] generate tls client client...")
 
-		// 创建凭证
-		transportCredentials := credentials.NewTLS(tlsConfig)
+			// var transportCredentials credentials.TransportCredentials
+			// transportCredentials, err = credentials.NewClientTLSFromFile(control.config.Client.TlsRCACertFile,
+			// 	"grpc")
+			// if err != nil {
+			// 	logger.Errorf("[client] generate transportCredentials err: %v", err)
+			// 	return nil, err
+			// }
 
-		opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
-		// opts = append(opts, grpc.WithPerRPCCredentials(new(customCredential)))
+			// 为双向TLS验证创建正确的客户端配置
+			tlsConfig := &tls.Config{
+				MinVersion: tls.VersionTLS12, // 设置最低TLS版本
+				MaxVersion: tls.VersionTLS13, // 设置最高TLS版本
+				CipherSuites: []uint16{
+					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+					tls.TLS_AES_128_GCM_SHA256,       // secure 1.3
+					tls.TLS_AES_256_GCM_SHA384,       // secure 1.3
+					tls.TLS_CHACHA20_POLY1305_SHA256, // secure 1.3
+				},
+				CurvePreferences: []tls.CurveID{
+					tls.CurveP256, tls.X25519,
+				},
+				SessionTicketsDisabled: false, // 启用会话票据
+				NextProtos:             []string{"h2", "http/1.1"},
+				ServerName:             "grpc", // 必须与服务器证书的Common Name匹配
+			}
 
-		gClient, err = grpc.NewClient(control.config.Client.Host, opts...)
-		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
-		if err != nil {
-			control.logger.Errorf("[client] generate tls client err: %v", err)
-			return err
+			// 加载客户端证书（注意：应该使用客户端自己的证书，而不是服务端证书）
+			certificates, err := tls.LoadX509KeyPair(control.config.Client.TlsCertFile, control.config.Client.TlsKeyFile)
+			if err != nil {
+				control.logger.Errorf("[client] failed to load client TLS certificate: %v", err)
+				return err
+			}
+			tlsConfig.Certificates = []tls.Certificate{certificates}
+
+			// 加载CA证书用于验证服务器证书
+			rootCaCertFile := control.config.Client.TlsRCACertFile
+			if !stringer.IsBlank(rootCaCertFile) {
+				caCertPool := x509.NewCertPool()
+				caCert, err := os.ReadFile(rootCaCertFile)
+				if err != nil {
+					control.logger.Errorf("[client] failed to read CA cert file: %v", err)
+					return err
+				}
+				if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+					control.logger.Errorf("[client] failed to append CA cert to pool")
+					return ErrFailAppendCert
+				}
+				tlsConfig.RootCAs = caCertPool
+				control.logger.Debugf("[client] mutual TLS enabled, server certificate will be verified")
+			} else {
+				control.logger.Warnf("[client] CA cert file is not configured for mutual TLS")
+				return ErrNoCACert
+			}
+
+			// 创建凭证
+			transportCredentials := credentials.NewTLS(tlsConfig)
+
+			opts = append(opts, grpc.WithTransportCredentials(transportCredentials))
+			// opts = append(opts, grpc.WithPerRPCCredentials(new(customCredential)))
+
+			gClient, err = grpc.NewClient(control.config.Client.Host, opts...)
+			// gClient, err = grpc.Dial(clientConfig.Host, opts...)
+			if err != nil {
+				control.logger.Errorf("[client] generate tls client err: %v", err)
+				return err
+			}
 		}
 	} else {
 		control.logger.Debugf("[client] generate no tls client server...")

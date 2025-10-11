@@ -197,6 +197,7 @@ type GrpcServerConfig struct {
 	MaxSendMsgSize int    `json:"max_send_msg_size,omitempty" yaml:"max_send_msg_size,omitempty" mapstructure:"max_send_msg_size"` // 最大发送消息大小
 	ChunkSize      int    `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" mapstructure:"chunk_size"`                      // 分块大小
 	TlsEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                   // 是否启用TLS
+	TlsGM          bool   `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                  // 是否启用国密TLS
 	TlsCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`             // TLS证书文件
 	TlsKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
 	TlsRCACertFile string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
@@ -217,6 +218,7 @@ type GrpcClientConfig struct {
 	ChunkSize          int    `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" mapstructure:"chunk_size"`                                      // 分块大小
 	CallTimeout        int    `json:"call_timeout,omitempty" yaml:"call_timeout,omitempty" mapstructure:"call_timeout" `                               // 调用超时时间
 	TlsEnabled         bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                                   // 是否启用TLS
+	TlsGM              bool   `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                                  // 是否启用国密TLS
 	TlsCertFile        string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`                             // TLS证书文件
 	TlsKeyFile         string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                                // TLS私钥文件
 	TlsRCACertFile     string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`                 // TLS根证书文件
@@ -619,9 +621,9 @@ func (r *RedisConfig) String() string {
 
 // KvDatabaseConfig KV数据库配置结构体
 type KvDatabaseConfig struct {
-	Enabled  bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`   // 是否启用
-	DbType   string `json:"db_type,omitempty" yaml:"db_type,omitempty" mapstructure:"db_type"`    // 数据库类型 (leveldb, pebble, badger)
-	DbPath   string `json:"db_path,omitempty" yaml:"db_path,omitempty" mapstructure:"db_path"`    // 数据库文件路径
+	Enabled bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用
+	DbType  string `json:"db_type,omitempty" yaml:"db_type,omitempty" mapstructure:"db_type"` // 数据库类型 (leveldb, pebble, badger)
+	DbPath  string `json:"db_path,omitempty" yaml:"db_path,omitempty" mapstructure:"db_path"` // 数据库文件路径
 }
 
 // String 返回KvDatabaseConfig的字符串表示
