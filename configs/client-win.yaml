@@ -21,13 +21,13 @@ grpc:
     max_send_msg_size: 5242880
     chunk_size: 4194304
     tls_enabled: true
-    tls_gm: false
-    #tls_cert_file: "certs/gmssl/sign.cert,certs/gmssl/encrypt.cert"
-    #tls_key_file: "certs/gmssl/sign.key,certs/gmssl/encrypt.key"
-    #tls_rca_cert_file: "certs/gmssl/ca.cert"
-    tls_cert_file: certs/normal/gserver.crt
-    tls_key_file: certs/normal/gserver.key
-    tls_rca_cert_file: certs/normal/root-ca.crt
+    tls_gm: true
+    tls_cert_file: "certs/tongsuossl/server_sign.crt,certs/tongsuossl/server_enc.crt"
+    tls_key_file: "certs/tongsuossl/server_sign.key,certs/tongsuossl/server_enc.key"
+    tls_rca_cert_file: "certs/tongsuossl/subca.crt"
+    #tls_cert_file: certs/normal/gserver.crt
+    #tls_key_file: certs/normal/gserver.key
+    #tls_rca_cert_file: certs/normal/root-ca.crt
   client:
     host: 127.0.0.1:65534
     max_call_recv_msg_size: 5242880
@@ -35,13 +35,13 @@ grpc:
     chunk_size: 4194304
     call_timeout: 99999
     tls_enabled: true
-    tls_gm: false
-    #tls_cert_file: "certs/gmssl/sign.cert,certs/gmssl/encrypt.cert"
-    #tls_key_file: "certs/gmssl/sign.key,certs/gmssl/encrypt.key"
-    #tls_rca_cert_file: "certs/gmssl/ca.cert"
-    tls_cert_file: certs/normal/gclient.crt
-    tls_key_file: certs/normal/gclient.key
-    tls_rca_cert_file: certs/normal/root-ca.crt
+    tls_gm: true
+    tls_cert_file: "certs/tongsuossl/client_sign.crt,certs/tongsuossl/client_enc.crt"
+    tls_key_file: "certs/tongsuossl/client_sign.key,certs/tongsuossl/client_enc.key"
+    tls_rca_cert_file: "certs/tongsuossl/subca.crt"
+    #tls_cert_file: certs/normal/gclient.crt
+    #tls_key_file: certs/normal/gclient.key
+    #tls_rca_cert_file: certs/normal/root-ca.crt
 http:
   enabled: false
   address: :8080
