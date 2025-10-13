@@ -144,12 +144,15 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		engine.Use(ipblacklist.EnableIPBlackList(webLogger, serverConfig.IPBlackList.IPs))
 	}
 
-	// 6. TLS安全中间件 - 安全检查，在基础过滤和追踪后执行
-	// 判断是否为开发环境（根据Gin模式）
-	isDevelopment := gin.Mode() == gin.DebugMode
-	// 使用成熟的unrolled/secure包实现的TLS安全中间件
-	// 推荐在生产环境使用，提供完整的TLS安全保护功能
-	engine.Use(secure.EnableSecurePackageTLS(serverConfig.Address, isDevelopment))
+	if !serverConfig.TlsGM {
+		// TODO gm模式下 会出现一直301的情况
+		// 6. TLS安全中间件 - 安全检查，在基础过滤和追踪后执行
+		// 判断是否为开发环境（根据Gin模式）
+		isDevelopment := gin.Mode() == gin.DebugMode
+		// 使用成熟的unrolled/secure包实现的TLS安全中间件
+		// 推荐在生产环境使用，提供完整的TLS安全保护功能
+		engine.Use(secure.EnableSecurePackageTLS(serverConfig.Address, isDevelopment))
+	}
 
 	// 如果需要使用不依赖外部包的版本，可以取消注释下面这行
 	// engine.Use(secure.EnableUnrolledTLS(webLogger, isDevelopment, serverConfig.Address))
@@ -231,6 +234,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 			// 	gmTLSConfig.Certificates = []gmtls.Certificate{certificates}
 			// }
 
+			// TODO 目前 没找到支持http2的方法 暂时注释掉
 			// 根据HTTP/2配置决定是否启用HTTP/2协议协商
 			// if serverConfig.Http2Enabled {
 			// 	gmTLSConfig.NextProtos = []string{"h2", "http/1.1"}
@@ -312,16 +316,17 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 				MinVersion: tls.VersionTLS12, // 设置最低TLS版本
 				MaxVersion: tls.VersionTLS13, // 设置最高TLS版本
 				CipherSuites: []uint16{
-					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+					// tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+					// tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+					tls.TLS_CHACHA20_POLY1305_SHA256, // secure 1.3
 					tls.TLS_AES_128_GCM_SHA256,       // secure 1.3
 					tls.TLS_AES_256_GCM_SHA384,       // secure 1.3
-					tls.TLS_CHACHA20_POLY1305_SHA256, // secure 1.3
 				},
 				CurvePreferences: []tls.CurveID{
-					tls.CurveP256, tls.X25519,
+					tls.X25519, // 优先使用X25519椭圆曲线
+					tls.CurveP256,
 				},
 				// PreferServerCipherSuites: true,  // 优先使用服务端加密套件
 				SessionTicketsDisabled: false, // 启用会话票据

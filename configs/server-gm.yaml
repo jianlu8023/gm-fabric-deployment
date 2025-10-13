@@ -54,17 +54,17 @@ http:
   upload_dir: "uploads"
   # IP白名单配置
   ip_white_list:
-    enabled: true
+    enabled: false
     ips: ["127.0.0.1", "192.168.1.0/24"]
   # IP黑名单配置
   ip_black_list:
-    enabled: true
+    enabled: false
     ips: ["10.0.0.1", "172.16.0.0/16"]
   # 限流配置
   rate_limit:
     enabled: true
-    rps: 1       # 每秒请求数限制
-    burst: 2     # 令牌桶突发大小
+    rps: 100       # 每秒请求数限制
+    burst: 200     # 令牌桶突发大小
     type: "juju"   # 限流实现类型：time, ulule, ants, custom, juju
 libp2p:
   enabled: true
