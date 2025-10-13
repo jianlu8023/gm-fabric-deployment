@@ -26,9 +26,13 @@ grpc:
     max_send_msg_size: 5242880
     chunk_size: 4194304
     tls_enabled: true
-    tls_cert_file: certs/normal/gserver.crt
-    tls_key_file: certs/normal/gserver.key
-    tls_rca_cert_file: certs/normal/root-ca.crt
+    tls_gm: true
+    tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
+    tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
+    tls_rca_cert_file: "certs/tongsuo/subca.crt"
+    #tls_cert_file: certs/normal/gserver.crt
+    #tls_key_file: certs/normal/gserver.key
+    #tls_rca_cert_file: certs/normal/root-ca.crt
   client:
     host: 127.0.0.1:65533
     max_call_recv_msg_size: 5242880
@@ -36,19 +40,45 @@ grpc:
     chunk_size: 4194304
     call_timeout: 99999
     tls_enabled: true
-    tls_cert_file: certs/normal/gclient.crt
-    tls_key_file: certs/normal/gclient.key
-    tls_rca_cert_file: certs/normal/root-ca.crt
+    tls_gm: true
+    tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
+    tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
+    tls_rca_cert_file: "certs/tongsuo/subca.crt"
+    #tls_cert_file: certs/normal/gclient.crt
+    #tls_key_file: certs/normal/gclient.key
+    #tls_rca_cert_file: certs/normal/root-ca.crt
 http:
   enabled: true
   address: :8080
   context_path: example
   run_mode: release
   tls_enabled: true
-  tls_cert_file: certs/normal/hserver.crt
-  tls_key_file: certs/normal/hserver.key
-  tls_rca_cert_file: certs/normal/root-ca.crt
-  http2_enabled: true  # 启用HTTP/2支持
+  tls_gm: true
+  # gm模式需要两套 签名密钥,加密密钥
+  #tls_key_file: "certs/tjfoc/sm2_sign_key.pem,certs/tjfoc/sm2_enc_key.pem"
+  # gm模式需要两套 签名证书,加密证书
+  #tls_cert_file: "certs/tjfoc/sm2_sign_cert.cer,certs/tjfoc/sm2_enc_cert.cer"
+  #tls_rca_cert_file: certs/tjfoc/SM2_CA.cer
+  tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
+  tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
+  tls_rca_cert_file: "certs/tongsuo/subca.crt"
+  http2_enabled: true  # 国密TLS模式不支持HTTP/2
+  pprof: true
+  upload_dir: "uploads"
+  # IP白名单配置
+  ip_white_list:
+    enabled: false
+    ips: ["127.0.0.1", "192.168.1.0/24"]
+  # IP黑名单配置
+  ip_black_list:
+    enabled: false
+    ips: ["10.0.0.1", "172.16.0.0/16"]
+  # 限流配置
+  rate_limit:
+    enabled: true
+    rps: 100       # 每秒请求数限制
+    burst: 200     # 令牌桶突发大小
+    type: "juju"   # 限流实现类型：time, ulule, ants, custom, juju
 libp2p:
   enabled: true
   listen_addr:
@@ -77,6 +107,15 @@ logger:
     grpc: debug
     libp2p: info
     main: info
+captcha:
+  enabled: true
+  max_age: 300  # 验证码有效期5分钟
+  width: 240    # 验证码图片宽度
+  height: 80    # 验证码图片高度
+  max_skew: 0.7 # 最大倾斜度
+  dot_count: 20 # 干扰点数量
+  line_count: 3 # 干扰线数量
+  default_type: "number" # 默认验证码类型：string, number, math, chinese
 ants_pool:
   enabled: true
   # 线程池大小
@@ -89,13 +128,21 @@ ants_pool:
   pre_alloc: true
   # 是否非阻塞模式
   nonblocking: true
+mfa:
+  enabled: true
+  # google microsoft
+  default_provider: "google"
+  google:
+    issuer: "golang-example"
+  microsoft:
+    tenant_id: ""
+    client_id: ""
+    client_secret: ""
 # KvDatabase配置示例
 kvdatabase:
   # 是否启用KvDatabase功能
   enabled: true
-
   # 数据库类型: leveldb, pebble, badger4
   db_type: "leveldb"
-
   # 数据库文件存储路径
   db_path: "./data/kvdatabase"
