@@ -75,6 +75,11 @@ paths = [
 ]
 
 [linters.settings]
+[staticcheck]
+checks = [
+    "all",
+    "-SA5008" # unknown JSON option "required"
+]
 
 [[linters.exclusions.rules]]
 path = ".*"

@@ -1,4 +1,8 @@
-VERSION:=$(shell git branch --show-current)-$(shell git describe --tags --always --dirty)
+# 设置使用bash执行
+SHELL := /bin/bash
+
+# VERSION:=$(shell git branch --show-current)-$(shell git describe --tags --always --dirty)
+VERSION:=$(shell git rev-parse --abbrev-ref HEAD)-$(shell git describe --tags --always --dirty)
 BUILDTIME=$(shell date +"%Y-%m-%d %H:%M:%S")
 
 server:
