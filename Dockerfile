@@ -21,9 +21,6 @@ ARG VERSION
 
 ENV VERSION=${VERSION}
 
-
-
-
 COPY . .
 
 RUN echo "starting build server.bin" && \
@@ -87,6 +84,7 @@ RUN mkdir -p /myapp/logs && \
 
 # 需要docker.sock
 USER root
+#USER appuser
 
 EXPOSE 8080/tcp \
     65534/tcp \
@@ -102,7 +100,25 @@ VOLUME /myapp/logs \
 
 ENTRYPOINT ["/usr/bin/tini","--","/docker-entrypoint.sh"]
 
-HEALTHCHECK --interval=60s --timeout=5s --retries=3 --start-period=30s CMD curl -ksS https://localhost:8080/example/health || exit 1
-# HEALTHCHECK --start-period=60s --interval=60s --timeout=3s --retries=3 CMD grpcurl -d '{"message_type":"ping"}' -proto pkg/control/grpc/pb/message.proto -plaintext 127.0.0.1:65534 pkg/control/grpc/pb.MessageService/SendMessageBidi || exit 1
+HEALTHCHECK --interval=60s \
+            --timeout=5s \
+            --retries=3 \
+            --start-period=30s CMD \
+            curl -ksS https://localhost:8080/example/health || exit 1
+
+#HEALTHCHECK --start-period=60s \
+#            --interval=60s \
+#            --timeout=3s \
+#            --retries=3 CMD \
+#            grpcurl \
+#            -insecure \
+#            -key certs/normal/gclient.key \
+#            -cert certs/normal/gclient.crt \
+#            -cacert certs/normal/root-ca.crt \
+#            -servername grpc \
+#            -d '{"message_type":"base/ping"}' \
+#            -proto pkg/control/grpc/pb/message.proto \
+#            -plaintext 127.0.0.1:65534 \
+#            pb.MessageService/SendMessageBidi || exit 1
 
 CMD ["server","--config","/myapp/configs/server.yaml","--type","dev"]
