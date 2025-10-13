@@ -46,9 +46,9 @@ http:
   # gm模式需要两套 签名证书,加密证书
   tls_cert_file: "certs/tjfoc/sm2_sign_cert.cer,certs/tjfoc/sm2_enc_cert.cer"
   tls_rca_cert_file: certs/tjfoc/SM2_CA.cer
-  #tls_cert_file: "certs/tongsuossl/server_sign.crt,certs/tongsuossl/server_enc.crt"
-  #tls_key_file: "certs/tongsuossl/server_sign.key,certs/tongsuossl/server_enc.key"
-  #tls_rca_cert_file: "certs/tongsuossl/subca.crt"
+  #tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
+  #tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
+  #tls_rca_cert_file: "certs/tongsuo/subca.crt"
   http2_enabled: true  # 国密TLS模式不支持HTTP/2
   pprof: true
   upload_dir: "uploads"

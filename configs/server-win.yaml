@@ -22,9 +22,9 @@ grpc:
     chunk_size: 4194304
     tls_enabled: true
     tls_gm: true
-    tls_cert_file: "certs/tongsuossl/server_sign.crt,certs/tongsuossl/server_enc.crt"
-    tls_key_file: "certs/tongsuossl/server_sign.key,certs/tongsuossl/server_enc.key"
-    tls_rca_cert_file: "certs/tongsuossl/subca.crt"
+    tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
+    tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
+    tls_rca_cert_file: "certs/tongsuo/subca.crt"
     #tls_cert_file: certs/normal/gserver.crt
     #tls_key_file: certs/normal/gserver.key
     #tls_rca_cert_file: certs/normal/root-ca.crt
@@ -36,9 +36,9 @@ grpc:
     call_timeout: 99999
     tls_enabled: true
     tls_gm: true
-    tls_cert_file: "certs/tongsuossl/client_sign.crt,certs/tongsuossl/client_enc.crt"
-    tls_key_file: "certs/tongsuossl/client_sign.key,certs/tongsuossl/client_enc.key"
-    tls_rca_cert_file: "certs/tongsuossl/subca.crt"
+    tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
+    tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
+    tls_rca_cert_file: "certs/tongsuo/subca.crt"
     #tls_cert_file: certs/normal/gclient.crt
     #tls_key_file: certs/normal/gclient.key
     #tls_rca_cert_file: certs/normal/root-ca.crt
