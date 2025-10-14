@@ -526,12 +526,38 @@ func (c *Control) registerDefaultRouter() {
 		c.ginRouter.NoMethod(func(ctx *gin.Context) {
 			_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noMethod")
 			defer span.End()
-			c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
-			ctx.JSON(http.StatusMethodNotAllowed, gin.H{
-				"code":    http.StatusMethodNotAllowed,
-				"message": "Method Not Allowed",
-				"data":    nil,
-			})
+			var routeInfo struct {
+				Method string `json:"method"`
+				Path   string `json:"path"`
+			}
+
+			for _, r := range c.ginRouter.Routes() {
+				if stringer.CompareIgnoreCase(r.Path, ctx.Request.URL.Path) {
+					routeInfo.Path = r.Path
+					routeInfo.Method = r.Method
+				}
+			}
+			if stringer.IsBlank(routeInfo.Path) {
+				// 路由不存在
+				c.logger.Warnf("[control] 404 404 Not Found: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
+				msg := fmt.Sprintf("Route %s Not Found", ctx.Request.URL.Path)
+				ctx.JSON(http.StatusNotFound, commonhttp.BaseResponse{
+					Code:    http.StatusNotFound,
+					Data:    msg,
+					Success: false,
+					Message: "业务处理失败",
+				})
+			} else {
+				// 路由存在，但请求方法不匹配
+				c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
+				msg := fmt.Sprintf("Route %s Not Allow %s Method", ctx.Request.URL.Path, ctx.Request.Method)
+				ctx.JSON(http.StatusMethodNotAllowed, commonhttp.BaseResponse{
+					Code:    http.StatusMethodNotAllowed,
+					Data:    msg,
+					Success: false,
+					Message: "业务处理失败",
+				})
+			}
 		})
 	}
 
@@ -541,10 +567,11 @@ func (c *Control) registerDefaultRouter() {
 			_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noRouter")
 			defer span.End()
 			c.logger.Warnf("[control] 404 Not Found: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
-			ctx.JSON(http.StatusNotFound, gin.H{
-				"code":    http.StatusNotFound,
-				"message": "Not Found",
-				"data":    nil,
+			ctx.JSON(http.StatusNotFound, commonhttp.BaseResponse{
+				Code:    http.StatusNotFound,
+				Message: "业务处理失败",
+				Data:    "Not Found",
+				Success: false,
 			})
 
 		})
@@ -559,7 +586,7 @@ func (c *Control) registerDefaultRouter() {
 				Uri:    allRouterUri,
 				Method: http.MethodGet,
 				HandlerFunc: func(ctx *gin.Context) {
-					_, span := tracer.StartSpan(ctx.Request.Context(), "ceshiComponentName", "ceshiSpanName")
+					_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "routers")
 					defer span.End()
 					commonhttp.SuccessResponse(ctx, gin.H{
 						"routers": c.routers,

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/unrolled/secure"
 	"go.opentelemetry.io/otel/codes"
@@ -20,8 +21,13 @@ import (
 // @return gin.HandlerFunc Gin中间件函数
 func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
+		savedCtx := ctx.Request.Context()
+		defer func() {
+			ctx.Request = ctx.Request.WithContext(savedCtx)
+		}()
+		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
 		defer span.End()
+		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 设置HSTS头，强制客户端使用HTTPS
 		if !isDevelopment {
 			// 315360000秒 = 10年
@@ -63,8 +69,13 @@ func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool) gin.Hand
 // @return gin.HandlerFunc Gin中间件函数
 func RedirectToHTTPS(httpsPort int) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
+		savedCtx := ctx.Request.Context()
+		defer func() {
+			ctx.Request = ctx.Request.WithContext(savedCtx)
+		}()
+		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
 		defer span.End()
+		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 检查是否为HTTPS连接
 		if ctx.Request.TLS == nil {
 			// 构建HTTPS URL
@@ -93,8 +104,13 @@ func RedirectToHTTPS(httpsPort int) gin.HandlerFunc {
 // @return gin.HandlerFunc Gin中间件函数
 func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
+		savedCtx := ctx.Request.Context()
+		defer func() {
+			ctx.Request = ctx.Request.WithContext(savedCtx)
+		}()
+		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
 		defer span.End()
+		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 设置HSTS头，强制客户端使用HTTPS
 		if !isDevelopment {
 			// 315360000秒 = 10年
@@ -134,8 +150,51 @@ func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost st
 // @return gin.HandlerFunc Gin中间件函数
 func EnableSecurePackageTLS(sslHost string, isDevelopment bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
+		savedCtx := ctx.Request.Context()
+		defer func() {
+			ctx.Request = ctx.Request.WithContext(savedCtx)
+		}()
+		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
 		defer span.End()
+		ctx.Request = ctx.Request.WithContext(tCtx)
+
+		// 处理sslHost，确保正确解析主机名和端口
+		host := ctx.Request.Host
+
+		// 如果sslHost为空，则直接使用请求的主机
+		if stringer.IsBlank(sslHost) {
+			sslHost = host
+		} else {
+			// 解析当前请求的主机名和端口
+			requestHost, requestPort, err := net.SplitHostPort(host)
+			if err != nil {
+				// 如果无法分割，说明没有端口号或者格式异常
+				requestHost = host
+				requestPort = ""
+			}
+
+			// 解析sslHost参数
+			sslHostWithoutPort, sslPort, sslErr := net.SplitHostPort(sslHost)
+			if sslErr != nil {
+				// 如果sslHost无法分割，说明不包含端口号
+				sslHostWithoutPort = sslHost
+				sslPort = ""
+			}
+
+			// 如果sslHost只有端口号（如":8080"），则使用请求的主机名
+			if stringer.IsBlank(sslHostWithoutPort) && !stringer.IsBlank(sslPort) {
+				if !stringer.IsBlank(requestHost) {
+					sslHost = net.JoinHostPort(requestHost, sslPort)
+				}
+			}
+			// 如果sslHost有主机名但没有端口，而请求有端口，则保留请求的端口
+			if !stringer.IsBlank(sslHostWithoutPort) &&
+				stringer.IsBlank(sslPort) &&
+				!stringer.IsBlank(requestPort) {
+				sslHost = net.JoinHostPort(sslHostWithoutPort, requestPort)
+			}
+		}
+
 		secureMiddleware := secure.New(secure.Options{
 			SSLRedirect:           true,
 			SSLHost:               sslHost,

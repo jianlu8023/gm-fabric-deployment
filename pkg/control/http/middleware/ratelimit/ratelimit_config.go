@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.uber.org/zap"
 )
 
@@ -38,8 +39,15 @@ func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config) gin.Handle
 	if config.RPS <= 0 {
 		logger.Warnf("[RateLimit] Invalid RPS value, rate limiting disabled")
 		// 返回一个空中间件，不做任何处理
-		return func(c *gin.Context) {
-			c.Next()
+		return func(ctx *gin.Context) {
+			savedCtx := ctx.Request.Context()
+			defer func() {
+				ctx.Request = ctx.Request.WithContext(savedCtx)
+			}()
+			tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimit")
+			defer span.End()
+			ctx.Request = ctx.Request.WithContext(tCtx)
+			ctx.Next()
 		}
 	}
 

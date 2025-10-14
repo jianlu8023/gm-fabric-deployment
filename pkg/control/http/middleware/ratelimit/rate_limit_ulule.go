@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/ulule/limiter/v3"
 	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
@@ -43,18 +44,23 @@ func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int) gin.H
 		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitUlule")
 		defer span.End()
 		ctx.Header("X-RateLimit-Type", "ulule")
-		ctx.JSON(http.StatusTooManyRequests, gin.H{
-			"code":    http.StatusTooManyRequests,
-			"message": "Too many requests",
-			"data":    nil,
-			"success": false,
+		ctx.JSON(http.StatusTooManyRequests, commonhttp.BaseResponse{
+			Code:    http.StatusTooManyRequests,
+			Message: "业务处理失败",
+			Data:    "Too many requests",
+			Success: false,
 		})
 		span.SetStatus(codes.Error, "Too many requests")
 	}))
 
 	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitUlule")
+		savedCtx := ctx.Request.Context()
+		defer func() {
+			ctx.Request = ctx.Request.WithContext(savedCtx)
+		}()
+		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitUlule")
 		defer span.End()
+		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 确保正确处理代理后的客户端IP
 		ctx.Request.Header.Set("X-Forwarded-For", ctx.ClientIP())
 

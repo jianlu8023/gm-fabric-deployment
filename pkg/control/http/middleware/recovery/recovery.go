@@ -17,8 +17,13 @@ import (
 // EnableRecovery recover掉项目可能出现的panic
 func EnableRecovery(webLogger *zap.SugaredLogger, stack bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "recovery")
+		savedCtx := ctx.Request.Context()
+		defer func() {
+			ctx.Request = ctx.Request.WithContext(savedCtx)
+		}()
+		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "recovery")
 		defer span.End()
+		ctx.Request = ctx.Request.WithContext(tCtx)
 		defer func() {
 			if err := recover(); err != nil {
 				// Check for a broken connection, as it is not really a

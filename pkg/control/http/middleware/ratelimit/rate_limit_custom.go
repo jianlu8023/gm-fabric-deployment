@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
@@ -74,8 +75,13 @@ func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int) gin.
 	limitersMutex := sync.RWMutex{}
 
 	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitCustom")
+		savedCtx := ctx.Request.Context()
+		defer func() {
+			ctx.Request = ctx.Request.WithContext(savedCtx)
+		}()
+		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitCustom")
 		defer span.End()
+		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 获取客户端IP
 		clientIP := iphelper.GetClientIP(ctx)
 
@@ -102,11 +108,11 @@ func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int) gin.
 		} else {
 			logger.Warnf("[CustomRateLimit] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.Header("X-RateLimit-Type", "custom")
-			ctx.JSON(http.StatusTooManyRequests, gin.H{
-				"code":    http.StatusTooManyRequests,
-				"message": "Too many requests",
-				"data":    nil,
-				"success": false,
+			ctx.JSON(http.StatusTooManyRequests, commonhttp.BaseResponse{
+				Code:    http.StatusTooManyRequests,
+				Message: "业务处理失败",
+				Data:    "Too many requests",
+				Success: false,
 			})
 			span.SetStatus(codes.Error, "Too may requests")
 			ctx.Abort()

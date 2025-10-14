@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
@@ -19,8 +20,13 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.Handle
 	// 如果白名单为空，则不进行过滤
 	if len(whiteList) == 0 {
 		return func(ctx *gin.Context) {
-			_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
+			savedCtx := ctx.Request.Context()
+			defer func() {
+				ctx.Request = ctx.Request.WithContext(savedCtx)
+			}()
+			tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
 			defer span.End()
+			ctx.Request = ctx.Request.WithContext(tCtx)
 			ctx.Next()
 			span.SetStatus(codes.Ok, "success")
 		}
@@ -32,14 +38,19 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.Handle
 		logger.Errorf("[IP WhiteList] Failed to create CIDR list: %v", err)
 		// 如果解析失败，默认拒绝所有请求
 		return func(ctx *gin.Context) {
-			_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
+			savedCtx := ctx.Request.Context()
+			defer func() {
+				ctx.Request = ctx.Request.WithContext(savedCtx)
+			}()
+			tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
 			defer span.End()
+			ctx.Request = ctx.Request.WithContext(tCtx)
 			logger.Warnf("[IP WhiteList] Blocked due to invalid CIDR configuration, Path: %s", ctx.Request.URL.Path)
-			ctx.JSON(http.StatusForbidden, gin.H{
-				"code":    http.StatusForbidden,
-				"message": "Access forbidden: Invalid IP white list configuration",
-				"data":    nil,
-				"success": false,
+			ctx.JSON(http.StatusForbidden, commonhttp.BaseResponse{
+				Code:    http.StatusForbidden,
+				Message: "业务处理失败",
+				Data:    "Access forbidden: Invalid IP white list configuration",
+				Success: false,
 			})
 			ctx.Abort()
 			span.SetStatus(codes.Error, "Access forbidden: Invalid IP white list configuration")
@@ -47,18 +58,23 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.Handle
 	}
 
 	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
+		savedCtx := ctx.Request.Context()
+		defer func() {
+			ctx.Request = ctx.Request.WithContext(savedCtx)
+		}()
+		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
 		defer span.End()
+		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 获取客户端IP
 		clientIP := iphelper.GetClientIP(ctx)
 		parsedIP := net.ParseIP(clientIP)
 		if parsedIP == nil {
 			logger.Warnf("[IP WhiteList] Invalid IP address: %s, Path: %s", clientIP, ctx.Request.URL.Path)
-			ctx.JSON(http.StatusForbidden, gin.H{
-				"code":    http.StatusForbidden,
-				"message": "Access forbidden: Invalid IP address",
-				"data":    nil,
-				"success": false,
+			ctx.JSON(http.StatusForbidden, commonhttp.BaseResponse{
+				Code:    http.StatusForbidden,
+				Message: "业务处理失败",
+				Data:    "Access forbidden: Invalid IP address",
+				Success: false,
 			})
 			ctx.Abort()
 			span.SetStatus(codes.Error, "Access forbidden: Invalid IP address")
@@ -72,11 +88,11 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.Handle
 			span.SetStatus(codes.Ok, "success")
 		} else {
 			logger.Warnf("[IP WhiteList] Forbidden IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
-			ctx.JSON(http.StatusForbidden, gin.H{
-				"code":    http.StatusForbidden,
-				"message": "Access forbidden: IP not in white list",
-				"data":    nil,
-				"success": false,
+			ctx.JSON(http.StatusForbidden, commonhttp.BaseResponse{
+				Code:    http.StatusForbidden,
+				Message: "业务处理失败",
+				Data:    "Access forbidden: IP not in white list",
+				Success: false,
 			})
 			ctx.Abort()
 			span.SetStatus(codes.Error, "Access forbidden: IP not in white list")
