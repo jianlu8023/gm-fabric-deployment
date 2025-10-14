@@ -526,6 +526,22 @@ func (c *Control) registerDefaultRouter() {
 		c.ginRouter.NoMethod(func(ctx *gin.Context) {
 			_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noMethod")
 			defer span.End()
+			c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
+			ctx.JSON(http.StatusMethodNotAllowed, commonhttp.BaseResponse{
+				Code:    http.StatusMethodNotAllowed,
+				Message: "业务处理失败",
+				Data:    "Method Not Allowed",
+				Success: false,
+			})
+		})
+	}
+
+	{
+		// 然后注册NoRoute处理器（路径不存在）
+		c.ginRouter.NoRoute(func(ctx *gin.Context) {
+			_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noRouter")
+			defer span.End()
+
 			var routeInfo struct {
 				Method string `json:"method"`
 				Path   string `json:"path"`
@@ -539,8 +555,8 @@ func (c *Control) registerDefaultRouter() {
 			}
 			if stringer.IsBlank(routeInfo.Path) {
 				// 路由不存在
-				c.logger.Warnf("[control] 404 404 Not Found: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
-				msg := fmt.Sprintf("Route %s Not Found", ctx.Request.URL.Path)
+				c.logger.Warnf("[control] 404 Not Found: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
+				msg := fmt.Sprintf("Router %s Not Found", ctx.Request.URL.Path)
 				ctx.JSON(http.StatusNotFound, commonhttp.BaseResponse{
 					Code:    http.StatusNotFound,
 					Data:    msg,
@@ -550,7 +566,7 @@ func (c *Control) registerDefaultRouter() {
 			} else {
 				// 路由存在，但请求方法不匹配
 				c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
-				msg := fmt.Sprintf("Route %s Not Allow %s Method", ctx.Request.URL.Path, ctx.Request.Method)
+				msg := fmt.Sprintf("Router %s Not Allow %s Method", ctx.Request.URL.Path, ctx.Request.Method)
 				ctx.JSON(http.StatusMethodNotAllowed, commonhttp.BaseResponse{
 					Code:    http.StatusMethodNotAllowed,
 					Data:    msg,
@@ -558,22 +574,6 @@ func (c *Control) registerDefaultRouter() {
 					Message: "业务处理失败",
 				})
 			}
-		})
-	}
-
-	{
-		// 然后注册NoRoute处理器（路径不存在）
-		c.ginRouter.NoRoute(func(ctx *gin.Context) {
-			_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noRouter")
-			defer span.End()
-			c.logger.Warnf("[control] 404 Not Found: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
-			ctx.JSON(http.StatusNotFound, commonhttp.BaseResponse{
-				Code:    http.StatusNotFound,
-				Message: "业务处理失败",
-				Data:    "Not Found",
-				Success: false,
-			})
-
 		})
 	}
 
