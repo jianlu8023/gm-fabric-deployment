@@ -36,6 +36,7 @@ replace (
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/skip2/go-qrcode => github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
+	github.com/tuneinsight/lattigo/v6 => github.com/tuneinsight/lattigo/v6 v6.1.1
 	github.com/ulule/limiter/v3 => github.com/ulule/limiter/v3 v3.11.2
 	github.com/unrolled/secure => github.com/unrolled/secure v1.17.0
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
@@ -138,6 +139,7 @@ require (
 	github.com/stretchr/testify v1.10.0 // 测试框架
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // leveldb
 	github.com/tjfoc/gmsm v1.4.1 // 国密算法
+	github.com/tuneinsight/lattigo/v6 v6.1.1 // go实现的同态加密 bfv bgv ckks
 	github.com/ulule/limiter/v3 v3.11.2 // ulule 限流
 	github.com/unrolled/secure v0.0.0-00010101000000-000000000000 // secure gin中间件
 	github.com/valyala/bytebufferpool v1.0.0 // bytebufferpool 构建json对象 没研究
@@ -227,6 +229,7 @@ require (
 )
 
 require (
+	github.com/ALTree/bigfloat v0.0.0-20220102081255-38c8b72a9924 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/ClickHouse/ch-go v0.61.5 // indirect
 	github.com/ClickHouse/clickhouse-go/v2 v2.30.0 // indirect
@@ -289,6 +292,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20250208200701-d0013a598941 // indirect
 	github.com/google/uuid v1.6.0 // indirect
