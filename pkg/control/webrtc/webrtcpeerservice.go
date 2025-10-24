@@ -183,12 +183,13 @@ func (ps *PeerService) CreatePeerConnection(connConfig *webrtc.Configuration, id
 	// 使用WebRTC API创建对等连接
 	// 现在直接在WebRTCPeerConnection中初始化所有需要的字段，包括Send通道和closeMux互斥锁
 	wpc := &PeerConnection{
-		Connection:  nil,
-		ID:          id,
-		PeerID:      id, // 设置PeerID与连接ID相同
-		MediaTracks: make(map[string]*MediaTrack),
-		Send:        make(chan []byte, 100), // 初始化发送通道
-		closeMux:    sync.Mutex{},           // 初始化互斥锁
+		Connection:    nil,
+		ID:            id,
+		PeerID:        id, // 设置PeerID与连接ID相同
+		MediaTracks:   make(map[string]*MediaTrack),
+		Send:          make(chan []byte, 100),             // 初始化发送通道
+		closeMux:      sync.Mutex{},                       // 初始化互斥锁
+		iceCandidates: make([]webrtc.ICECandidateInit, 0), // 初始化ICE候选存储
 	}
 
 	var err error
@@ -461,6 +462,15 @@ func (ps *PeerService) handleTrack(conn *PeerConnection, track *webrtc.TrackRemo
 
 func (ps *PeerService) handleICECandidate(conn *PeerConnection, candidate *webrtc.ICECandidate) {
 	ps.logger.Debugf("[webrtcpeerservice] received ICE candidate, peer connection id: %s", conn.ID)
+
+	// 存储ICE候选到PeerConnection中
+	if candidate != nil {
+		// 将ICECandidate转换为ICECandidateInit并存储
+		candidateInit := candidate.ToJSON()
+		conn.iceCandidatesMux.Lock()
+		conn.iceCandidates = append(conn.iceCandidates, candidateInit)
+		conn.iceCandidatesMux.Unlock()
+	}
 
 	// 调用ICE候选回调
 	if ps.onICECandidate != nil && candidate != nil {

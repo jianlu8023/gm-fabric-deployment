@@ -97,6 +97,7 @@ func main() {
 			serverControl.GetCaptchaControl(),
 			serverControl.GetAntsPoolControl(),
 			serverControl.GetMFAControl(),
+			serverControl.GetWebRTCControl(),
 		))
 	}
 

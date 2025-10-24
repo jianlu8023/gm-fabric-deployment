@@ -163,3 +163,13 @@ kvdatabase:
   # 数据库类型: leveldb, pebble, badger4
   db_type: "leveldb"
   db_path: "kvdatabase"
+webrtc:
+  enabled: true
+  #listen_addr: ""
+  ice_servers: [ "stun:stun.l.google.com:19302" ]
+  #max_message_size: 1
+  min_port: 50000
+  max_port: 65500
+  turn_username: ""
+  turn_password: ""
+  log_in_console: false

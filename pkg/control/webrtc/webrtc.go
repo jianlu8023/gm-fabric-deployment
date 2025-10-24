@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/encoding/base64"
 	"github.com/pion/webrtc/v4"
 )
 
@@ -51,6 +52,10 @@ type PeerConnection struct {
 	OnICECandidate             func(candidate *webrtc.ICECandidate)
 	OnICEConnectionStateChange func(state webrtc.ICEConnectionState)
 	OnDataChannel              func(dc *webrtc.DataChannel)
+
+	// ICE候选存储
+	iceCandidates    []webrtc.ICECandidateInit
+	iceCandidatesMux sync.RWMutex
 
 	// 整合客户端连接功能
 	Send     chan []byte // 用于向客户端发送消息的通道
@@ -119,7 +124,23 @@ func (wpc *PeerConnection) SetRemoteDescription(desc webrtc.SessionDescription) 
 
 // AddICECandidate 添加ICE候选
 func (wpc *PeerConnection) AddICECandidate(candidate webrtc.ICECandidateInit) error {
+	// 存储ICE候选
+	wpc.iceCandidatesMux.Lock()
+	wpc.iceCandidates = append(wpc.iceCandidates, candidate)
+	wpc.iceCandidatesMux.Unlock()
+
 	return wpc.Connection.AddICECandidate(candidate)
+}
+
+// GetICECandidates 获取存储的ICE候选列表
+func (wpc *PeerConnection) GetICECandidates() []webrtc.ICECandidateInit {
+	wpc.iceCandidatesMux.RLock()
+	defer wpc.iceCandidatesMux.RUnlock()
+
+	// 返回副本以避免外部修改
+	candidates := make([]webrtc.ICECandidateInit, len(wpc.iceCandidates))
+	copy(candidates, wpc.iceCandidates)
+	return candidates
 }
 
 // CreateDataChannel 创建数据通道
@@ -198,16 +219,35 @@ func getMediaType(kind string) MediaType {
 
 // ParseICECandidate 解析ICE候选字符串
 func ParseICECandidate(candidate string) (webrtc.ICECandidateInit, error) {
+	bytes, err := base64.ToByte(candidate)
+	if err != nil {
+		return webrtc.ICECandidateInit{}, err
+	}
+
 	var iceCandidate webrtc.ICECandidateInit
-	err := json.Unmarshal([]byte(candidate), &iceCandidate)
+	err = json.Unmarshal(bytes, &iceCandidate)
 	return iceCandidate, err
 }
 
 // ParseSessionDescription 解析SDP描述
 func ParseSessionDescription(sdp string) (webrtc.SessionDescription, error) {
+	bytes, err := base64.ToByte(sdp)
+	if err != nil {
+		return webrtc.SessionDescription{}, err
+	}
+	// 首先尝试解析JSON格式
 	var desc webrtc.SessionDescription
-	err := json.Unmarshal([]byte(sdp), &desc)
-	return desc, err
+	err = json.Unmarshal(bytes, &desc)
+	if err == nil {
+		return desc, nil
+	}
+
+	// 如果JSON解析失败，假设是纯SDP字符串
+	desc = webrtc.SessionDescription{
+		Type: webrtc.SDPTypeOffer,
+		SDP:  sdp,
+	}
+	return desc, nil
 }
 
 // CreateConfiguration 创建WebRTC配置

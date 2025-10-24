@@ -14,6 +14,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/jianlu8023/golang-example/pkg/control/mfa"
+	"github.com/jianlu8023/golang-example/pkg/control/webrtc"
 	"github.com/jianlu8023/golang-example/pkg/control/websocket"
 )
 
@@ -42,9 +43,14 @@ func NewRouter(loggerControl *logger.Control,
 	captchaControl *captcha.Control,
 	antsPoolControl *ants.Control,
 	mfaControl *mfa.Control,
+	webrtcControl *webrtc.Control,
 ) []commonhttp.RouterHandler {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
+
+	result := make([]commonhttp.RouterHandler, 0, 64)
 	baseHandler := handler.NewHandler(webLogger)
+	result = append(result, baseHandler.Routers()...)
+
 	baseService := service.NewService(webLogger)
 	baseMapper := mapper.NewMapper(webLogger, datasourceControl.GetConn())
 
@@ -55,6 +61,8 @@ func NewRouter(loggerControl *logger.Control,
 			libp2pControl,
 		),
 	)
+	result = append(result, libp2pNodeHandler.Routers()...)
+
 	userHandler := handler.NewUserHandler(
 		baseHandler,
 		service.NewUserService(baseService,
@@ -62,6 +70,7 @@ func NewRouter(loggerControl *logger.Control,
 			httpControl.GetSessionManager(),
 		),
 	)
+	result = append(result, userHandler.Routers()...)
 
 	websocketHandler := handler.NewWebSocketHandler(
 		baseHandler,
@@ -71,6 +80,7 @@ func NewRouter(loggerControl *logger.Control,
 			websocketControl,
 		),
 	)
+	result = append(result, websocketHandler.Routers()...)
 
 	sseHandler := handler.NewSSEHandler(
 		baseHandler,
@@ -79,6 +89,7 @@ func NewRouter(loggerControl *logger.Control,
 			mapper.NewSSEMapper(baseMapper),
 		),
 	)
+	result = append(result, sseHandler.Routers()...)
 
 	systemHandler := handler.NewSystemHandler(
 		baseHandler,
@@ -87,6 +98,7 @@ func NewRouter(loggerControl *logger.Control,
 			mapper.NewSystemMapper(baseMapper),
 		),
 	)
+	result = append(result, systemHandler.Routers()...)
 
 	// 创建验证码handler
 	captchaHandler := handler.NewCaptchaHandler(
@@ -94,6 +106,7 @@ func NewRouter(loggerControl *logger.Control,
 		service.NewCaptchaService(baseService,
 			captchaControl),
 	)
+	result = append(result, captchaHandler.Routers()...)
 
 	dockerImageHandler := handler.NewDockerImageHandler(
 		baseHandler,
@@ -106,6 +119,8 @@ func NewRouter(loggerControl *logger.Control,
 			antsPoolControl,
 		),
 	)
+	result = append(result, dockerImageHandler.Routers()...)
+
 	dockerNetworkHandler := handler.NewDockerNetworkHandler(
 		baseHandler,
 		service.NewDockerNetworkService(
@@ -114,6 +129,7 @@ func NewRouter(loggerControl *logger.Control,
 			dockerControl,
 		),
 	)
+	result = append(result, dockerNetworkHandler.Routers()...)
 
 	grpcHandler := handler.NewGrpcHandler(
 		baseHandler,
@@ -123,6 +139,7 @@ func NewRouter(loggerControl *logger.Control,
 			grpcControl,
 		),
 	)
+	result = append(result, grpcHandler.Routers()...)
 
 	fileHandler := handler.NewFileHandler(baseHandler,
 		service.NewFileService(
@@ -132,6 +149,7 @@ func NewRouter(loggerControl *logger.Control,
 			httpControl.GetUploadCacheDir(),
 		),
 	)
+	result = append(result, fileHandler.Routers()...)
 
 	mfaHandler := handler.NewMFAHandler(baseHandler,
 		service.NewMFAService(baseService,
@@ -139,20 +157,14 @@ func NewRouter(loggerControl *logger.Control,
 			mfaControl,
 		),
 	)
-
-	result := make([]commonhttp.RouterHandler, 0, 64)
-	result = append(result, baseHandler.Routers()...)
-	result = append(result, userHandler.Routers()...)
-	result = append(result, captchaHandler.Routers()...)
-	result = append(result, libp2pNodeHandler.Routers()...)
-	result = append(result, sseHandler.Routers()...)
-	result = append(result, systemHandler.Routers()...)
-	result = append(result, websocketHandler.Routers()...)
-	result = append(result, dockerImageHandler.Routers()...)
-	result = append(result, dockerNetworkHandler.Routers()...)
-	result = append(result, grpcHandler.Routers()...)
-	result = append(result, fileHandler.Routers()...)
 	result = append(result, mfaHandler.Routers()...)
+
+	webRTCHandler := handler.NewWebRTCHandler(baseHandler,
+		service.NewWebRTCService(baseService,
+			webrtcControl,
+		),
+	)
+	result = append(result, webRTCHandler.Routers()...)
 
 	return result
 }

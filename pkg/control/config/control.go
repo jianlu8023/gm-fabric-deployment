@@ -165,6 +165,12 @@ func (c *Control) GetKvDatabaseConfig() *KvDatabaseConfig {
 	return c.config.KvDatabaseConfig
 }
 
+func (c *Control) GetWebRTCConfig() *WebRTCConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.WebRTCConfig
+}
+
 // GetTunnyPoolConfig 获取Tunny线程池配置
 // @return *TunnyPoolConfig Tunny线程池配置
 // func (c *Control) GetTunnyPoolConfig() *TunnyPoolConfig {

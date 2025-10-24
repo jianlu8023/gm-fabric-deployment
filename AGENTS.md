@@ -118,3 +118,7 @@ configs/          # 配置文件
 - **安全认证**: JWT、Casbin、MFA
 - **容器技术**: Docker API
 - **序列化**: JSON
+
+## 更多项目规则
+
+- 查看.rules文件夹了解更多项目规则和项目信息

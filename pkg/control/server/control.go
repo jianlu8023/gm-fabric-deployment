@@ -25,6 +25,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/mfa"
 	"github.com/jianlu8023/golang-example/pkg/control/redis"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"github.com/jianlu8023/golang-example/pkg/control/webrtc"
 	"github.com/jianlu8023/golang-example/pkg/control/websocket"
 	"github.com/jianlu8023/golang-example/version"
 	"go.uber.org/zap"
@@ -52,6 +53,7 @@ type Control struct {
 	ipfsClusterControl *ipfscluster.Control // IPFS集群控制器
 	redisControl       *redis.Control       // Redis控制器
 	kvDatabaseControl  *kvdatabase.Control  // KvDatabase控制器
+	webRTCControl      *webrtc.Control      // WebRTC控制器
 	logger             *zap.SugaredLogger   // 日志记录器
 	once               sync.Once            // 确保StartUp只执行一次
 	mutex              sync.RWMutex         // 读写锁，保护控制器访问
@@ -204,6 +206,16 @@ func NewServerControlFromFile() (*Control, error) {
 	if kvDatabaseConfig != nil && kvDatabaseConfig.Enabled {
 		kvDatabaseControl := kvdatabase.NewKvDatabaseControl(kvDatabaseConfig, control.GetLoggerControl())
 		control.kvDatabaseControl = kvDatabaseControl
+	}
+
+	webRTCConfig := configControl.GetWebRTCConfig()
+	if webRTCConfig != nil && webRTCConfig.Enabled {
+		webRTCControl, err := webrtc.NewWebRTCControl(webRTCConfig, control.GetLoggerControl())
+		if err != nil {
+			control.logger.Errorf("[control] create webrtc control failed: %v", err)
+			return nil, err
+		}
+		control.webRTCControl = webRTCControl
 	}
 
 	// 检查并创建HTTP控制器
@@ -398,6 +410,12 @@ func (c *Control) GetKvDatabaseControl() *kvdatabase.Control {
 	return c.kvDatabaseControl
 }
 
+func (c *Control) GetWebRTCControl() *webrtc.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.webRTCControl
+}
+
 // NewServerControl 创建服务器控制器
 // @description 使用预初始化的各个子控制器创建服务器控制器实例
 // @param dockerControl *docker.Control Docker控制器
@@ -439,6 +457,7 @@ func NewServerControl(dockerControl *docker.Control,
 	ipfsClusterControl *ipfscluster.Control,
 	redisControl *redis.Control,
 	kvDatabaseControl *kvdatabase.Control,
+	webRTCControl *webrtc.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -464,6 +483,7 @@ func NewServerControl(dockerControl *docker.Control,
 		ipfsClusterControl: ipfsClusterControl,
 		redisControl:       redisControl,
 		kvDatabaseControl:  kvDatabaseControl,
+		webRTCControl:      webRTCControl,
 	}
 }
 
@@ -559,6 +579,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.websocketControl != nil {
 			c.logger.Debugf("[control] starting up websocket server...")
 			c.websocketControl.StartUp(failedFunc)
+		}
+
+		if c.webRTCControl != nil {
+			c.logger.Debugf("[control] starting up webrtc server...")
+			c.webRTCControl.StartUp(failedFunc)
 		}
 
 		if c.httpControl != nil {
@@ -704,6 +729,14 @@ func (c *Control) Shutdown() error {
 		c.logger.Debugf("[control] shutting down kvdatabase server...")
 		if err := c.kvDatabaseControl.Shutdown(); err != nil {
 			c.logger.Errorf("[control] shutdown kvdatabase server err: %v", err)
+			errs = append(errs, err)
+		}
+	}
+
+	if c.webRTCControl != nil {
+		c.logger.Debugf("[control] shutting down webrtc server...")
+		if err := c.webRTCControl.Shutdown(); err != nil {
+			c.logger.Errorf("[control] shutdown webrtc server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
