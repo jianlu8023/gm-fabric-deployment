@@ -1,11 +1,13 @@
 package service
 
 import (
+	"math/rand/v2"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/encoding/base64"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
@@ -101,7 +103,7 @@ func (s *WebRTCService) SdpOffer(ctx *gin.Context, req *request.WebRTCOfferReque
 	// 处理随Offer一起发送的ICE候选
 	s.logger.Debugf("Processing ICE candidates from offer, count: %d", len(req.Candidates))
 	for i, candidateStr := range req.Candidates {
-		if candidateStr != "" {
+		if !stringer.IsBlank(candidateStr) {
 			s.logger.Debugf("Processing ICE candidate %d: %s", i, candidateStr)
 			candidateInit, err := webrtc.ParseICECandidate(candidateStr)
 			if err != nil {
@@ -237,10 +239,14 @@ func (s *WebRTCService) GetICECandidates(ctx *gin.Context, connectionID string) 
 		return
 	}
 
+	rand.Shuffle(len(candidates), func(i, j int) {
+		candidates[i], candidates[j] = candidates[j], candidates[i]
+	})
+
 	// 只返回第一个有效的候选
 	var firstCandidate webrtcoffical.ICECandidateInit
 	for _, candidate := range candidates {
-		if candidate.Candidate != "" {
+		if !stringer.IsBlank(candidate.Candidate) {
 			firstCandidate = candidate
 			s.logger.Debugf("found valid ice candidate: %s", candidate.Candidate)
 			break
@@ -248,7 +254,7 @@ func (s *WebRTCService) GetICECandidates(ctx *gin.Context, connectionID string) 
 	}
 
 	// 如果没有有效的候选
-	if firstCandidate.Candidate == "" {
+	if stringer.IsBlank(firstCandidate.Candidate) {
 		s.logger.Debugf("no valid ice candidates found for connection: %s", connectionID)
 		resp := &response.WebRTCSingleICECandidateResponse{
 			Success: true,
