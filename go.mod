@@ -23,7 +23,7 @@ replace (
 	github.com/ipfs-cluster/ipfs-cluster => github.com/ipfs-cluster/ipfs-cluster v1.0.8
 	// github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
 	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
-	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20251021051946-525c216bcecd
+	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20251027135212-f020a7bd16e6
 	github.com/jinzhu/copier => github.com/jinzhu/copier v0.4.0
 	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
@@ -31,11 +31,10 @@ replace (
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
 	github.com/pion/interceptor => github.com/pion/interceptor v0.1.41
 	github.com/pion/logging => github.com/pion/logging v0.2.4
-	github.com/pion/randutil => github.com/pion/randutil v0.1.0
 	github.com/pion/webrtc/v4 => github.com/pion/webrtc/v4 v4.1.6
 	github.com/pquerna/otp => github.com/pquerna/otp v1.5.0
-	github.com/redis/go-redis/extra/redisotel/v9 => github.com/redis/go-redis/extra/redisotel/v9 v9.15.1
-	github.com/redis/go-redis/v9 => github.com/redis/go-redis/v9 v9.15.1
+	github.com/redis/go-redis/extra/redisotel/v9 => github.com/redis/go-redis/extra/redisotel/v9 v9.16.0
+	github.com/redis/go-redis/v9 => github.com/redis/go-redis/v9 v9.16.0
 	github.com/scylladb/termtables => github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4
 	github.com/skip2/go-qrcode => github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/syndtr/goleveldb => github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7
@@ -130,12 +129,11 @@ require (
 	github.com/panjf2000/ants/v2 v2.11.3 // ants 异步方式线程池
 	github.com/pion/interceptor v0.1.41 // pion 拦截器
 	github.com/pion/logging v0.2.4 // pion 日志
-	github.com/pion/randutil v0.1.0
 	github.com/pion/webrtc/v4 v4.0.9 // webrtc
 	github.com/pquerna/otp v1.5.0 // totp 验证码
 	github.com/redis/go-redis/extra/redisotel/v9 v9.15.1 // redis9 opentelemetry
 	// github.com/go-redis/redis/v8 v8.11.5 // redis8
-	github.com/redis/go-redis/v9 v9.15.1 // redis9
+	github.com/redis/go-redis/v9 v9.16.0 // redis9
 	github.com/scylladb/termtables v0.0.0-20191203121021-c4c0b6d42ff4 // 终端表格样式输出
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // 二维码
 	github.com/sony/sonyflake v1.1.0 // 雪花算法 索尼的
@@ -386,6 +384,7 @@ require (
 	github.com/pion/dtls/v3 v3.0.7 // indirect
 	github.com/pion/ice/v4 v4.0.10 // indirect
 	github.com/pion/mdns/v2 v2.0.7 // indirect
+	github.com/pion/randutil v0.1.0 // indirect
 	github.com/pion/rtcp v1.2.15 // indirect
 	github.com/pion/rtp v1.8.23 // indirect
 	github.com/pion/sctp v1.8.40 // indirect
@@ -408,7 +407,7 @@ require (
 	github.com/quic-go/quic-go v0.49.0 // indirect
 	github.com/quic-go/webtransport-go v0.8.1-0.20241018022711-4ac2c9250e66 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
-	github.com/redis/go-redis/extra/rediscmd/v9 v9.15.1 // indirect
+	github.com/redis/go-redis/extra/rediscmd/v9 v9.16.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect

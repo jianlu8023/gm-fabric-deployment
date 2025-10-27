@@ -1,19 +1,18 @@
 package service
 
 import (
-	"math/rand/v2"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/encoding/base64"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/rand"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/response"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/jianlu8023/golang-example/pkg/control/webrtc"
-	"github.com/pion/randutil"
 	webrtcoffical "github.com/pion/webrtc/v4"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -61,7 +60,7 @@ func (s *WebRTCService) SdpOffer(ctx *gin.Context, req *request.WebRTCOfferReque
 
 			defer ticker.Stop()
 			for range ticker.C {
-				message, sendErr := randutil.GenerateCryptoRandomString(15, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+				message, sendErr := rand.GenerateCryptoRandomString(15, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 				if sendErr != nil {
 					s.logger.Errorf("Failed to generate random string: %v", sendErr)
 					continue
@@ -239,7 +238,7 @@ func (s *WebRTCService) GetICECandidates(ctx *gin.Context, connectionID string) 
 		return
 	}
 
-	rand.Shuffle(len(candidates), func(i, j int) {
+	rand.NewMathRandomGenerator().Shuffle(len(candidates), func(i, j int) {
 		candidates[i], candidates[j] = candidates[j], candidates[i]
 	})
 
