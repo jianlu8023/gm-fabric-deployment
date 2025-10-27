@@ -67,7 +67,7 @@ func newWebRTCLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *webr
 	fileDir := filepath.Dir(loggerConfig.FilePath)
 	fileName = filepath.Clean(filepath.Join(fileDir, fileName))
 	opts := []glog.Option{
-		// glog.WithModuleName("Sdk"),
+		glog.WithModuleName("webrtc.log"),
 		glog.WithCaller(),
 		glog.WithCallerSkip(0),
 		glog.WithConsoleConfig(zapcore.EncoderConfig{
@@ -113,6 +113,7 @@ func newWebRTCLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *webr
 		}),
 		glog.WithFileLogLevel("debug"),
 		glog.WithDefaultLogLevel(loggerConfig.DefaultLogLevel),
+		glog.WithStackLogLevel(loggerConfig.StackLogLevel),
 	}
 
 	if logInConsole {

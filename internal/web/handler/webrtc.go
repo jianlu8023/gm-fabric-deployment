@@ -15,11 +15,13 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+// WebRTCHandler WebRTC处理器
 type WebRTCHandler struct {
 	*Handler
 	service *service.WebRTCService
 }
 
+// NewWebRTCHandler 创建新的WebRTC处理器
 func NewWebRTCHandler(baseHandler *Handler, webRTCService *service.WebRTCService) *WebRTCHandler {
 	return &WebRTCHandler{
 		Handler: baseHandler,
@@ -27,6 +29,7 @@ func NewWebRTCHandler(baseHandler *Handler, webRTCService *service.WebRTCService
 	}
 }
 
+// sdpOfferHandler 处理SDP Offer请求
 func (h *WebRTCHandler) sdpOfferHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCHandler", "sdpOfferHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -65,6 +68,7 @@ func (h *WebRTCHandler) sdpOfferHandler(ctx *gin.Context) {
 	span.SetStatus(codes.Ok, "success")
 }
 
+// iceCandidateHandler 处理ICE候选请求
 func (h *WebRTCHandler) iceCandidateHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCHandler", "iceCandidateHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -124,6 +128,28 @@ func (h *WebRTCHandler) getICECandidatesHandler(ctx *gin.Context) {
 	span.SetStatus(codes.Ok, "success")
 }
 
+// closeConnectionHandler 处理关闭连接的请求
+func (h *WebRTCHandler) closeConnectionHandler(ctx *gin.Context) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCHandler", "closeConnectionHandler",
+		attribute.String("requestId", requestid.Get(ctx)),
+	)
+	defer span.End()
+	h.logger.Debugf("received close connection handler...")
+
+	// 从URL参数获取连接ID
+	connectionID := ctx.Param("connectionId")
+	if stringer.IsBlank(connectionID) {
+		h.logger.Errorf("connection id is required")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "Connection ID is required")
+		span.SetStatus(codes.Error, "Connection ID is required")
+		return
+	}
+
+	h.service.CloseConnection(ctx, connectionID)
+	span.SetStatus(codes.Ok, "success")
+}
+
+// Routers 返回路由处理器列表
 func (h *WebRTCHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
@@ -160,6 +186,15 @@ func (h *WebRTCHandler) Routers() []commonhttp.RouterHandler {
 			HandlerFunc:     h.getICECandidatesHandler,
 			Enabled:         true,
 			Desc:            "get webrtc ice candidates",
+			EnableJWtVerify: false,
+		},
+		&commonhttp.MyRouter{
+			Name:            "WebRTC Close Connection",
+			Uri:             "webrtc/close/:connectionId",
+			Method:          http.MethodPost,
+			HandlerFunc:     h.closeConnectionHandler,
+			Enabled:         true,
+			Desc:            "close webrtc connection",
 			EnableJWtVerify: false,
 		},
 	}

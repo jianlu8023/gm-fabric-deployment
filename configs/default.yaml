@@ -150,10 +150,14 @@ kvdatabase:
 webrtc:
   enabled: false
   #listen_addr: ""
-  ice_servers: [ ]
+  ice_servers:
+    - url: "stun:stun.l.google.com:19302"
+      username: ""
+      password: ""
+    - url: "turn:turn.example.com:3478"
+      username: "user"
+      password: "password"
   #max_message_size: 1
   min_port: 50000
   max_port: 65500
-  turn_username: ""
-  turn_password: ""
   log_in_console: true

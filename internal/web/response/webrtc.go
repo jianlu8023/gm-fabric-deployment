@@ -14,9 +14,9 @@ type WebRTCICECandidateResponse struct {
 
 // WebRTCICECandidateListResponse ICE候选列表响应结构
 type WebRTCICECandidateListResponse struct {
-	Success    bool                    `json:"success"`
+	Success    bool                     `json:"success"`
 	Candidates []WebRTCICECandidateInfo `json:"candidates,omitempty"`
-	Message    string                  `json:"message,omitempty"`
+	Message    string                   `json:"message,omitempty"`
 }
 
 // WebRTCICECandidateInfo ICE候选信息结构
@@ -25,4 +25,11 @@ type WebRTCICECandidateInfo struct {
 	SdpMid           string `json:"sdpMid,omitempty"`
 	SdpMLineIndex    uint16 `json:"sdpMLineIndex,omitempty"`
 	UsernameFragment string `json:"usernameFragment,omitempty"`
+}
+
+// WebRTCSingleICECandidateResponse 单个ICE候选响应结构
+type WebRTCSingleICECandidateResponse struct {
+	Success   bool   `json:"success"`
+	Candidate string `json:"candidate,omitempty"`
+	Message   string `json:"message,omitempty"`
 }

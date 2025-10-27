@@ -166,10 +166,14 @@ kvdatabase:
 webrtc:
   enabled: true
   #listen_addr: ""
-  ice_servers: [ "stun:stun.l.google.com:19302" ]
+  ice_servers:
+    - url: "stun:192.168.58.110:3478"
+      username: "tlrtcfile"
+      password: "tlrtcfile"
+    - url: "turn:192.168.58.110:3478?transport=udp"
+      username: "tlrtcfile"
+      password: "tlrtcfile"
   #max_message_size: 1
   min_port: 50000
   max_port: 65500
-  turn_username: ""
-  turn_password: ""
   log_in_console: false

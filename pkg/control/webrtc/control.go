@@ -113,7 +113,7 @@ func (c *Control) Shutdown() error {
 // - connConfig: WebRTC连接配置，如果为nil则使用默认配置
 // 返回值：
 // - string: 创建的连接ID
-// - *WebRTCPeerConnection: 创建的对等连接实例
+// - *PeerConnection: 创建的对等连接实例
 // - error: 如果创建过程中发生错误，则返回错误信息
 func (c *Control) CreatePeerConnection(connConfig *webrtc.Configuration) (string, *PeerConnection, error) {
 	c.logger.Debugf("[control] creating peer connection")
@@ -136,14 +136,14 @@ func (c *Control) CreatePeerConnection(connConfig *webrtc.Configuration) (string
 // 参数：
 // - id: 连接ID
 // 返回值：
-// - *WebRTCPeerConnection: 如果找到对应的连接，则返回该连接实例；否则返回nil
+// - *PeerConnection: 如果找到对应的连接，则返回该连接实例；否则返回nil
 func (c *Control) GetPeerConnection(id string) *PeerConnection {
 	return c.peerService.GetPeerConnection(id)
 }
 
 // GetAllPeerConnections 获取所有的WebRTC对等连接
 // 返回值：
-// - []*WebRTCPeerConnection: 所有对等连接的列表
+// - []*PeerConnection: 所有对等连接的列表
 func (c *Control) GetAllPeerConnections() []*PeerConnection {
 	return c.peerService.GetAllPeerConnections()
 }
@@ -176,13 +176,6 @@ func (c *Control) Close() {
 	c.cancel()
 
 	c.logger.Info("[control] WebRTC control closed")
-}
-
-// Broadcast 向所有连接广播消息
-// 参数：
-// - message: 要广播的消息内容
-func (c *Control) Broadcast(message []byte) {
-	c.peerService.Broadcast(message)
 }
 
 // SendTo 向指定ID的连接发送消息
