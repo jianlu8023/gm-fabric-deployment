@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/docker/docker/api/types/network"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 )
 
@@ -23,7 +24,7 @@ type DockerNetwork struct {
 	NetworkScope          string       `json:"network_scope,omitempty" yaml:"network_scope,omitempty" gorm:"column:network_scope;type:varchar(255);not null;"`                         // 网络作用域（local, global, swarm）
 	NetworkDriver         string       `json:"network_driver,omitempty" yaml:"network_driver,omitempty" gorm:"column:network_driver;type:varchar(255);not null;"`                      // 网络驱动类型（bridge, overlay, macvlan等）
 	NetworkEnableIPv6     sql.NullBool `json:"network_enable_ipv6,omitempty" yaml:"network_enable_ipv6,omitempty" gorm:"column:network_enable_ipv6;type:bool;not null;"`               // 是否启用IPv6
-	NetworkIpam           string       `json:"network_ipam,omitempty" yaml:"network_ipam,omitempty" gorm:"column:network_ipam;type:text;not null;"`                                    // 网络IP地址管理配置（JSON格式）
+	NetworkIpam           network.IPAM `json:"network_ipam,omitempty" yaml:"network_ipam,omitempty" gorm:"column:network_ipam;type:text;not null;serializer:json"`                     // 网络IP地址管理配置（JSON格式）
 	NetworkInternal       sql.NullBool `json:"network_internal,omitempty" yaml:"network_internal,omitempty" gorm:"column:network_internal;type:bool;not null;"`                        // 是否为内部网络
 	NetworkAttachable     sql.NullBool `json:"network_attachable,omitempty" yaml:"network_attachable,omitempty" gorm:"column:network_attachable;type:bool;not null;"`                  // 是否可附加到独立容器
 	NetworkIngress        sql.NullBool `json:"network_ingress,omitempty" yaml:"network_ingress,omitempty" gorm:"column:network_ingress;type:bool;not null;"`                           // 是否为入口网络（Swarm模式）

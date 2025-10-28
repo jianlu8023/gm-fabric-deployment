@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/internal/web/request"
@@ -28,12 +26,12 @@ import (
 // @description 提供Docker镜像相关的服务功能，如镜像列表查询、镜像拉取等
 // @struct
 type DockerImageService struct {
-	*Service          // Service 基础服务，提供日志功能
+	*Service                                   // Service 基础服务，提供日志功能
 	mapper           *mapper.DockerImageMapper // mapper Docker镜像映射器，用于数据访问
-	dockerControl    *docker.Control // dockerControl Docker控制器，用于Docker操作
-	websocketControl *websocket.Control // websocketControl WebSocket控制器，用于消息推送
-	libp2pControl    *libp2p.Control // libp2pControl libp2p控制器，用于节点通信
-	antsPoolControl  *ants.Control // antsPoolControl 线程池控制器，用于异步任务
+	dockerControl    *docker.Control           // dockerControl Docker控制器，用于Docker操作
+	websocketControl *websocket.Control        // websocketControl WebSocket控制器，用于消息推送
+	libp2pControl    *libp2p.Control           // libp2pControl libp2p控制器，用于节点通信
+	antsPoolControl  *ants.Control             // antsPoolControl 线程池控制器，用于异步任务
 }
 
 // NewDockerImageService 创建Docker镜像服务实例
@@ -166,22 +164,10 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			// 4. 保存镜像信息
 			s.logger.Debugf("save docker image info...")
 			image := model.NewDockerImage()
-			image.ImageName = summary.RepoTags[0]
+			image.ImageName = summary.RepoTags
 			image.ImageId = summary.ID
-			datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", summary.Created))
-			if err != nil {
-				s.logger.Errorf("parse time on local failed: %v", err)
-				span.RecordError(err)
-				return
-			}
-			image.ImageCreated = datetime
-			labels, err := json.MarshalString(summary.Labels)
-			if err != nil {
-				s.logger.Errorf("get docker image info marshal failed: %v", err)
-				span.RecordError(err)
-				return
-			}
-			image.ImageLabels = labels
+			image.ImageCreated = summary.Created
+			image.ImageLabels = summary.Labels
 			image.IsDelete = sql.NullBool{Bool: false, Valid: true}
 			image.ImageLocationPeerId = req.PeerId
 			if err := s.mapper.InsertOneWithCheck(image); err != nil {

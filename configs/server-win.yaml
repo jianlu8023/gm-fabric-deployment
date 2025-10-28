@@ -11,7 +11,7 @@ datasource:
   log_in_console: true
 docker:
   enabled: false
-  host: tcp://192.168.58.110:2375
+  host: unix:///var/run/docker.sock
   default_timeout: 5
 grpc:
   enabled: true

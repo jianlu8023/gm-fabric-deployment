@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/router"
 	"github.com/jianlu8023/golang-example/pkg/control/job"
 	"github.com/jianlu8023/golang-example/version"
@@ -206,12 +205,7 @@ func main() {
 						info.NetworkScope = net.Scope
 						info.NetworkDriver = net.Driver
 						info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
-						ipamBytes, err := json.MarshalString(net.IPAM)
-						if err != nil {
-							mainLogger.Errorf("marshal network ipam failed: %v", err)
-							continue
-						}
-						info.NetworkIpam = ipamBytes
+						info.NetworkIpam = net.IPAM
 						info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
 						info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
 						info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
@@ -246,20 +240,10 @@ func main() {
 
 					for _, img := range imageList {
 						info := model.NewDockerImage()
-						info.ImageName = img.RepoTags[0]
+						info.ImageName = img.RepoTags
 						info.ImageId = img.ID
-						datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", img.Created))
-						if err != nil {
-							mainLogger.Errorf("parse time on local failed: %v", err)
-							continue
-						}
-						info.ImageCreated = datetime
-						labels, err := json.MarshalString(img.Labels)
-						if err != nil {
-							mainLogger.Errorf("marshal image labels failed: %v", err)
-							continue
-						}
-						info.ImageLabels = labels
+						info.ImageCreated = img.Created
+						info.ImageLabels = img.Labels
 						info.IsDelete = sql.NullBool{Bool: false, Valid: true}
 						info.ImageLocationPeerId = msg.From.String()
 						if err := imageMapper.InsertOrUpdateOne(info); err != nil {
@@ -348,21 +332,11 @@ func main() {
 			} else {
 				for _, img := range imageList {
 					info := model.NewDockerImage()
-					info.ImageName = img.RepoTags[0]
+					info.ImageName = img.RepoTags
 					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
 					info.ImageId = img.ID
-					datetime, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", img.Created))
-					if err != nil {
-						mainLogger.Errorf("parse time on local failed: %v", err)
-						continue
-					}
-					info.ImageCreated = datetime
-					labels, err := json.MarshalString(img.Labels)
-					if err != nil {
-						mainLogger.Errorf("marshal image labels failed: %v", err)
-						continue
-					}
-					info.ImageLabels = labels
+					info.ImageCreated = img.Created
+					info.ImageLabels = img.Labels
 					info.ImageLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
 					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
 						mainLogger.Errorf("insert or update image info failed: %v", err)
@@ -390,12 +364,7 @@ func main() {
 					info.NetworkScope = net.Scope
 					info.NetworkDriver = net.Driver
 					info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
-					ipamBytes, err := json.MarshalString(net.IPAM)
-					if err != nil {
-						mainLogger.Errorf("marshal network ipam failed: %v", err)
-						continue
-					}
-					info.NetworkIpam = string(ipamBytes)
+					info.NetworkIpam = net.IPAM
 					info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
 					info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
 					info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
