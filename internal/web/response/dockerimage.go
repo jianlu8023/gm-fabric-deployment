@@ -2,6 +2,7 @@ package response
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
@@ -16,12 +17,12 @@ import (
 // @description 用于返回Docker镜像列表的响应数据
 // @struct
 type DockerImageListResponse struct {
-	ImageName           string       `json:"image_name" yaml:"image_name"`                         // 镜像名称
-	ImageCreated        time.Time    `json:"image_created" yaml:"image_created"`                   // 镜像创建时间
-	ImageLabels         string       `json:"image_labels" yaml:"image_labels"`                     // 镜像标签
-	ImageId             string       `json:"image_id" yaml:"image_id"`                             // 镜像id
-	ImageLocationPeerId string       `json:"image_location_peer_id" yaml:"image_location_peer_id"` // 镜像所在peer
-	IsDelete            sql.NullBool `json:"is_delete" yaml:"is_delete"`                           // 是否删除
+	ImageName           []string          `json:"image_name" yaml:"image_name"`                         // 镜像名称
+	ImageCreated        time.Time         `json:"image_created" yaml:"image_created"`                   // 镜像创建时间
+	ImageLabels         map[string]string `json:"image_labels" yaml:"image_labels"`                     // 镜像标签
+	ImageId             string            `json:"image_id" yaml:"image_id"`                             // 镜像id
+	ImageLocationPeerId string            `json:"image_location_peer_id" yaml:"image_location_peer_id"` // 镜像所在peer
+	IsDelete            sql.NullBool      `json:"is_delete" yaml:"is_delete"`                           // 是否删除
 }
 
 // MarshalJSON 自定义JSON序列化方法
@@ -61,9 +62,49 @@ func (resp DockerImageListResponse) String() string {
 func NewDockerImageListResponse(page dbpage.Info[model.DockerImage]) (*dbpage.Info[DockerImageListResponse], error) {
 	var convert []DockerImageListResponse
 
+	var src1 int64 = 0
+	// src2 := []string{""}
 	err := copier.CopyWithOption(&convert, page.GetRecords(), copier.Option{
 		IgnoreEmpty: true,
 		DeepCopy:    true,
+		Converters: []copier.TypeConverter{
+			{
+				SrcType: src1,
+				DstType: time.Time{},
+				Fn: func(src interface{}) (dst interface{}, err error) {
+					if src == nil {
+						return nil, nil
+					}
+					timeInt, ok := src.(int64)
+					if !ok {
+						return nil, nil
+					}
+					local, err := humantime.ParseTimeLocal(fmt.Sprintf("%v", timeInt))
+					if err != nil {
+						return nil, err
+					}
+					return local, nil
+				},
+			},
+			// {
+			// 	SrcType: src2,
+			// 	DstType: copier.String,
+			// 	Fn: func(src interface{}) (dst interface{}, err error) {
+			// 		if src == nil {
+			// 			return nil, nil
+			// 		}
+			// 		imageNameSrc, ok := src.([]string)
+			// 		if !ok {
+			// 			return nil, nil
+			// 		}
+			// 		imageNameDst, err := json.MarshalString(imageNameSrc)
+			// 		if err != nil {
+			// 			return nil, err
+			// 		}
+			// 		return imageNameDst, nil
+			// 	},
+			// },
+		},
 	})
 	if err != nil {
 		return nil, err

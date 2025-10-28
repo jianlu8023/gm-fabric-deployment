@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/docker/docker/api/types/network"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/dbpage"
 	"github.com/jinzhu/copier"
@@ -21,7 +23,7 @@ type DockerNetworkListResponse struct {
 	NetworkScope          string       `json:"network_scope" yaml:"network_scope"`                       // 网络作用域（local, global, swarm）
 	NetworkDriver         string       `json:"network_driver" yaml:"network_driver"`                     // 网络驱动类型（bridge, overlay, macvlan等）
 	NetworkEnableIPv6     sql.NullBool `json:"network_enable_ipv6" yaml:"network_enable_ipv6"`           // 是否启用IPv6
-	NetworkIpam           string       `json:"network_ipam" yaml:"network_ipam"`                         // 网络IP地址管理配置（JSON格式）
+	NetworkIpam           network.IPAM `json:"network_ipam" yaml:"network_ipam"`                         // 网络IP地址管理配置（JSON格式）
 	NetworkInternal       sql.NullBool `json:"network_internal" yaml:"network_internal"`                 // 是否为内部网络
 	NetworkAttachable     sql.NullBool `json:"network_attachable" yaml:"network_attachable"`             // 是否可附加到独立容器
 	NetworkIngress        sql.NullBool `json:"network_ingress" yaml:"network_ingress"`                   // 是否为入口网络（Swarm模式）
@@ -47,11 +49,12 @@ func (resp DockerNetworkListResponse) MarshalJSON() ([]byte, error) {
 	type Alias DockerNetworkListResponse
 	aux := struct {
 		*Alias
-		NetworkEnableIPv6 bool `json:"network_enable_ipv6"`
-		NetworkInternal   bool `json:"network_internal"`
-		NetworkAttachable bool `json:"network_attachable"`
-		NetworkIngress    bool `json:"network_ingress"`
-		IsDelete          bool `json:"is_delete"`
+		NetworkEnableIPv6 bool   `json:"network_enable_ipv6"`
+		NetworkInternal   bool   `json:"network_internal"`
+		NetworkAttachable bool   `json:"network_attachable"`
+		NetworkIngress    bool   `json:"network_ingress"`
+		IsDelete          bool   `json:"is_delete"`
+		NetworkCreateTime string `json:"network_create_time"` // 网络创建时间
 	}{
 		Alias:             (*Alias)(&resp),
 		NetworkEnableIPv6: resp.NetworkEnableIPv6.Bool,
@@ -59,6 +62,7 @@ func (resp DockerNetworkListResponse) MarshalJSON() ([]byte, error) {
 		NetworkAttachable: resp.NetworkAttachable.Bool,
 		NetworkIngress:    resp.NetworkIngress.Bool,
 		IsDelete:          resp.IsDelete.Bool,
+		NetworkCreateTime: humantime.HumanTime(resp.NetworkCreateTime, "unknown"),
 	}
 	return json.Marshal(aux)
 }
@@ -87,4 +91,3 @@ func NewDockerNetworkListResponse(page dbpage.Info[model.DockerNetwork]) (*dbpag
 		convert,
 	), nil
 }
-
