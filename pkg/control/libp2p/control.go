@@ -506,11 +506,11 @@ func (lc *Control) defaultStreamHandler(stream network.Stream) {
 			// 只记录关闭流读取端的错误，不影响消息处理结果
 			lc.logger.Debugf("[control] stream read closed from peer %s: %v (non-critical)", peerID, err)
 		}
-		// 然后关闭整个流
-		if err := stream.Close(); err != nil {
-			// 只记录关闭流的错误，不影响消息处理结果
-			lc.logger.Debugf("[control] stream fully closed from peer %s: %v (non-critical)", peerID, err)
-		}
+		// 接收端不关闭stream
+		// if err := stream.Close(); err != nil {
+		// 	// 只记录关闭流的错误，不影响消息处理结果
+		// 	lc.logger.Debugf("[control] stream fully closed from peer %s: %v (non-critical)", peerID, err)
+		// }
 	}()
 
 	lc.logger.Debugf("[control] received stream from peer %s using protocol %s", peerID, protocolID)
