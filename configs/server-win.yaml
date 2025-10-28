@@ -176,4 +176,4 @@ webrtc:
   #max_message_size: 1
   min_port: 50000
   max_port: 65500
-  log_in_console: false
+  log_in_console: true

@@ -46,6 +46,7 @@ type Libp2pNodeServiceInterface interface {
 ```
 
 * web部分的handler
+
 ```text
 // RegisterUserHandler 用户注册处理函数
 //

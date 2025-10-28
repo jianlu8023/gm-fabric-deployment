@@ -11,63 +11,63 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type webrtcLogger struct {
+type webrtcCustomLogger struct {
 	logger *zap.SugaredLogger
 }
 
-func (w *webrtcLogger) Trace(msg string) {
+func (w *webrtcCustomLogger) Trace(msg string) {
 	w.logger.Debug(msg)
 }
 
-func (w *webrtcLogger) Tracef(format string, args ...interface{}) {
+func (w *webrtcCustomLogger) Tracef(format string, args ...interface{}) {
 	w.logger.Debugf(format, args...)
 }
 
-func (w *webrtcLogger) Debug(msg string) {
+func (w *webrtcCustomLogger) Debug(msg string) {
 	w.logger.Debug(msg)
 }
 
-func (w *webrtcLogger) Debugf(format string, args ...interface{}) {
+func (w *webrtcCustomLogger) Debugf(format string, args ...interface{}) {
 	w.logger.Debugf(format, args...)
 }
 
-func (w *webrtcLogger) Info(msg string) {
+func (w *webrtcCustomLogger) Info(msg string) {
 	w.logger.Info(msg)
 }
 
-func (w *webrtcLogger) Infof(format string, args ...interface{}) {
+func (w *webrtcCustomLogger) Infof(format string, args ...interface{}) {
 	w.logger.Infof(format, args...)
 }
 
-func (w *webrtcLogger) Warn(msg string) {
+func (w *webrtcCustomLogger) Warn(msg string) {
 	w.logger.Warn(msg)
 }
 
-func (w *webrtcLogger) Warnf(format string, args ...interface{}) {
+func (w *webrtcCustomLogger) Warnf(format string, args ...interface{}) {
 	w.logger.Warnf(format, args...)
 }
 
-func (w *webrtcLogger) Error(msg string) {
+func (w *webrtcCustomLogger) Error(msg string) {
 	w.logger.Error(msg)
 }
 
-func (w *webrtcLogger) Errorf(format string, args ...interface{}) {
+func (w *webrtcCustomLogger) Errorf(format string, args ...interface{}) {
 	w.logger.Errorf(format, args...)
 }
 
-func (w *webrtcLogger) NewLogger(scope string) logging.LeveledLogger {
+func (w *webrtcCustomLogger) NewLogger(scope string) logging.LeveledLogger {
 	named := w.logger.Named(scope)
-	return &webrtcLogger{
+	return &webrtcCustomLogger{
 		logger: named,
 	}
 }
 
-func newWebRTCLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *webrtcLogger {
+func newWebRTCLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *webrtcCustomLogger {
 	fileName := "webrtc.log"
 	fileDir := filepath.Dir(loggerConfig.FilePath)
 	fileName = filepath.Clean(filepath.Join(fileDir, fileName))
 	opts := []glog.Option{
-		glog.WithModuleName("webrtc.log"),
+		glog.WithModuleName("webrtc.sdk"),
 		glog.WithCaller(),
 		glog.WithCallerSkip(0),
 		glog.WithConsoleConfig(zapcore.EncoderConfig{
@@ -125,7 +125,7 @@ func newWebRTCLogger(loggerConfig *config.LoggerConfig, logInConsole bool) *webr
 	logger := glog.NewSugaredLogger(opts...)
 	// logger.Debug("testing logger...")
 
-	return &webrtcLogger{
+	return &webrtcCustomLogger{
 		logger: logger,
 	}
 }

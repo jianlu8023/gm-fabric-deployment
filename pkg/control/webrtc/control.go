@@ -13,32 +13,17 @@ import (
 )
 
 // Control 是WebRTC控制器的主要接口
-// 它封装了WebRTC相关的所有功能，提供给上层应用使用
-// Control不直接管理连接，而是将所有连接管理委托给PeerService
-// 只对外提供调用方法，简化API接口
-// 支持创建、关闭和管理WebRTC对等连接
-// 提供各种回调函数，用于处理连接状态变化、媒体轨道等事件
-// 内部使用PeerService来实现实际的功能
-// Control是线程安全的，可以在多个goroutine中并发调用
+//
+// @description 封装了WebRTC相关的所有功能，提供给上层应用使用。Control不直接管理连接，而是将所有连接管理委托给PeerService，只对外提供调用方法，简化API接口。支持创建、关闭和管理WebRTC对等连接，提供各种回调函数，用于处理连接状态变化、媒体轨道等事件。内部使用PeerService来实现实际的功能。Control是线程安全的，可以在多个goroutine中并发调用
+// @struct
 type Control struct {
-	// 上下文，用于控制生命周期
-	ctx    context.Context
-	cancel context.CancelFunc
-
-	// 配置信息
-	webRTCConfig *config.WebRTCConfig
-
-	// 日志记录器
-	logger *zap.SugaredLogger
-
-	// 内部使用的对等连接服务
-	peerService *PeerService
-
-	// 同步互斥锁，用于保证并发安全
-	mux sync.RWMutex
-
-	// 确保StartUp只执行一次
-	once sync.Once
+	ctx          context.Context      // ctx 上下文，用于控制生命周期
+	cancel       context.CancelFunc   // cancel 上下文取消函数，用于取消所有子goroutine
+	webRTCConfig *config.WebRTCConfig // webRTCConfig WebRTC配置信息，包含ICE服务器等配置
+	logger       *zap.SugaredLogger   // logger 日志记录器，用于记录WebRTC相关日志
+	peerService  *PeerService         // peerService 内部使用的对等连接服务
+	mux          sync.RWMutex         // mux 同步互斥锁，用于保证并发安全
+	once         sync.Once            // once 确保StartUp只执行一次
 }
 
 // NewWebRTCControl 创建一个新的WebRTC控制器
@@ -155,13 +140,30 @@ func (c *Control) GetAllPeerConnections() []*PeerConnection {
 // - error: 如果关闭过程中发生错误，则返回错误信息
 func (c *Control) ClosePeerConnection(id string) error {
 	c.logger.Debugf("[control] closing peer connection, id: %s", id)
-	return c.peerService.ClosePeerConnection(id)
+	err := c.peerService.ClosePeerConnection(id)
+	if err != nil {
+		c.logger.Errorf("[control] close peer connection failed: %v", err)
+		return err
+	}
+	c.logger.Debugf("[control] peer connection closed, id: %s", id)
+	return nil
 }
 
 // CloseAllPeerConnections 关闭所有的WebRTC对等连接
 func (c *Control) CloseAllPeerConnections() {
 	c.logger.Info("[control] closing all peer connections")
-	c.peerService.CloseAllPeerConnections()
+	// 获取所有连接ID
+	connections := c.peerService.GetAllPeerConnections()
+	c.logger.Debugf("[control] found %d connections to close", len(connections))
+
+	// 关闭每个连接
+	for _, conn := range connections {
+		if err := c.peerService.ClosePeerConnection(conn.ID); err != nil {
+			c.logger.Errorf("[control] failed to close peer connection %s: %v", conn.ID, err)
+		} else {
+			c.logger.Debugf("[control] peer connection closed successfully: %s", conn.ID)
+		}
+	}
 }
 
 // Close 关闭WebRTC控制器

@@ -289,6 +289,10 @@ func (s *WebRTCService) CloseConnection(ctx *gin.Context, connectionID string) {
 	)
 	defer span.End()
 	s.logger.Debugf("received close connection request for connection: %s", connectionID)
+	
+	// 获取当前所有连接
+	connections := s.webrtcControl.GetAllPeerConnections()
+	s.logger.Debugf("current active connections count: %d", len(connections))
 
 	// 关闭PeerConnection
 	if err := s.webrtcControl.ClosePeerConnection(connectionID); err != nil {
