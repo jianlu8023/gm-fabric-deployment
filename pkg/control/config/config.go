@@ -592,16 +592,28 @@ type TracerConfig struct {
 	} `json:"meter,omitempty" yaml:"meter,omitempty" mapstructure:"meter"` // Meter配置
 }
 
+func (c TracerConfig) String() string {
+	pretty, _ := json.MarshalPretty(c)
+	return string(pretty)
+}
+
 type IpfsClusterConfig struct {
 	Enabled         bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
 	Strategy        string `json:"strategy,omitempty" yaml:"strategy,omitempty" mapstructure:"strategy"`                         // 策略
 	TimeOutInterval int    `json:"timeout_interval,omitempty" yaml:"timeout_interval,omitempty" mapstructure:"timeout_interval"` // 超时时间
+	LogLevel        string `json:"log_level,omitempty" yaml:"log_level,omitempty" mapstructure:"log_level"`                      // 日志级别
+	ReTries         int    `json:"retries,omitempty" yaml:"retries,omitempty" mapstructure:"retries"`                            // 重试次数
 	Addresses       []struct {
 		Host     string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"` // host
 		Port     int    `json:"port,omitempty" yaml:"port,omitempty" mapstructure:"port"` // port
 		UserName string `json:"user_name,omitempty" yaml:"user_name,omitempty" mapstructure:"user_name"`
 		Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"`
 	} `json:"addresses,omitempty" yaml:"addresses,omitempty" mapstructure:"addresses"`
+}
+
+func (c IpfsClusterConfig) String() string {
+	pretty, _ := json.MarshalPretty(c)
+	return string(pretty)
 }
 
 // RedisConfig Redis配置结构体

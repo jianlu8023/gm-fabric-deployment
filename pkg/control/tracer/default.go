@@ -28,7 +28,7 @@ func getDefaultConfig() *config.TracerConfig {
 			ZipkinEndpoint string `json:"zipkin_endpoint,omitempty" yaml:"zipkin_endpoint,omitempty" mapstructure:"zipkin_endpoint"`
 			FilePath       string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
 		}{
-			Exporters:      "none,file",
+			Exporters:      "none",
 			OTELProtocol:   "grpc",
 			OTELEndpoint:   "http://127.0.0.1:4317",
 			OTELInsecure:   true,
@@ -42,7 +42,7 @@ func getDefaultConfig() *config.TracerConfig {
 			OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
 			FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
 		}{
-			Exporters:    "none,file",
+			Exporters:    "none",
 			OTELProtocol: "http/protobuf",
 			OTELEndpoint: "http://127.0.0.1:4318",
 			OTELInsecure: true,
@@ -55,7 +55,7 @@ func getDefaultConfig() *config.TracerConfig {
 			OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
 			FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
 		}{
-			Exporters:    "none,file",
+			Exporters:    "none",
 			OTELProtocol: "http/protobuf",
 			OTELEndpoint: "http://127.0.0.1:4318",
 			OTELInsecure: true,

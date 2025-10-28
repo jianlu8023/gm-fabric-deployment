@@ -94,8 +94,21 @@ logger:
   rotation_time: 1
   logger_level:
     grpc: debug
-    libp2p: info
-    main: info
+    libp2p: debug
+    main: debug
+    job: debug
+    web: debug
+    ants: debug
+    control: debug
+    ipfscluster: debug
+    ipfs: debug
+    datasource: debug
+    websocket: debug
+    tracer: debug
+    captcha: debug
+    kvdatabase: debug
+    webrtc: debug
+    mfa: debug
 captcha:
   enabled: true
   max_age: 300  # 验证码有效期5分钟

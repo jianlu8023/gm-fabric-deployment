@@ -113,7 +113,7 @@ func (c *Control) initConfigs() []*client.Config {
 			Password:          address.Password,
 			Timeout:           time.Duration(c.config.TimeOutInterval) * time.Second,
 			DisableKeepAlives: true,
-			LogLevel:          "info",
+			LogLevel:          c.config.LogLevel,
 		})
 	}
 	return configs
@@ -133,7 +133,7 @@ func (c *Control) initSDK() error {
 	switch strategyType(strings.ToLower(c.config.Strategy)) {
 	case roundRobin:
 		// 使用节点轮询的方式
-		sdk, err := client.NewLBClient(&client.RoundRobin{}, configs, 5)
+		sdk, err := client.NewLBClient(&client.RoundRobin{}, configs, c.config.ReTries)
 		if err != nil {
 			c.logger.Errorf("[control] init ipfs cluster client failed: %s", err)
 			return err
@@ -141,13 +141,14 @@ func (c *Control) initSDK() error {
 		c.sdk = sdk
 	case failOver:
 		// 使用节点故障转移的方式
-		sdk, err := client.NewLBClient(&client.Failover{}, configs, 5)
+		sdk, err := client.NewLBClient(&client.Failover{}, configs, c.config.ReTries)
 		if err != nil {
 			c.logger.Errorf("[control] init ipfs cluster client failed: %s", err)
 			return err
 		}
 		c.sdk = sdk
 	default:
+		c.logger.Warnf("unknown strategy type: %s, use address[0] create default sdk...", c.config.Strategy)
 		sdk, err := client.NewDefaultClient(configs[0])
 		if err != nil {
 			c.logger.Errorf("[control] init ipfs cluster client failed: %s", err)

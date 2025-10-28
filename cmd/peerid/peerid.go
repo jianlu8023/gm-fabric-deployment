@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-
+	
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -34,9 +34,12 @@ func main() {
 	var rsaKeyLen int
 	flag.StringVar(&algorithm, "algorithm", "ed25519", "algorithm rsa or ed25519")
 	flag.IntVar(&rsaKeyLen, "rsakeylen", 2048, "rsakeylen 2048")
+	flag.Parse()
 
 	var sk crypto.PrivKey
 	var pk crypto.PubKey
+	
+	fmt.Printf("use algorithm: %s, rsa key len: %d\n", algorithm, rsaKeyLen)
 
 	switch algorithm {
 	case "rsa":

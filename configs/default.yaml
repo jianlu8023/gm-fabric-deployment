@@ -1,5 +1,5 @@
 datasource:
-  enabled: true
+  enabled: false
   data_source_type: sqlite3
   db_username: username
   db_password: password
@@ -11,7 +11,7 @@ datasource:
   max_open_conn: 50
   log_in_console: true
 docker:
-  enabled: true
+  enabled: false
   host: unix:///var/run/docker.sock
   api_version: ""
   tls_enabled: false
@@ -20,7 +20,7 @@ docker:
   tls_ca_file: certs/normal/root-ca.crt
   default_timeout: 5
 grpc:
-  enabled: true
+  enabled: false
   server:
     host: 127.0.0.1:65534
     max_recv_msg_size: 5242880
@@ -49,7 +49,7 @@ grpc:
     # tls_key_file: certs/normal/gclient.key
     # tls_rca_cert_file: certs/normal/root-ca.crt
 http:
-  enabled: true
+  enabled: false
   address: :8080
   context_path: example
   run_mode: release
@@ -81,7 +81,7 @@ http:
     burst: 200     # 令牌桶突发大小
     type: "juju"   # 限流实现类型：time, ulule, ants, custom, juju
 libp2p:
-  enabled: true
+  enabled: false
   listen_addr:
     - /ip4/0.0.0.0/tcp/2000
     - /ip6/::1/tcp/2000
@@ -100,6 +100,7 @@ libp2p:
 logger:
   default_log_level: debug
   stack_log_level: fatal
+  # 输出格式 (date level xxx) => console  ({"date":"","level":"info"}) => json
   print_format: console
   file_path: logs/app.log
   max_age: 7
@@ -109,7 +110,7 @@ logger:
     libp2p: info
     main: info
 captcha:
-  enabled: true
+  enabled: false
   max_age: 300  # 验证码有效期5分钟
   width: 240    # 验证码图片宽度
   height: 80    # 验证码图片高度
@@ -118,7 +119,7 @@ captcha:
   line_count: 3 # 干扰线数量
   default_type: "number" # 默认验证码类型：string, number, math, chinese
 ants_pool:
-  enabled: true
+  enabled: false
   # 线程池大小
   pool_size: 8
   # 最大线程池
@@ -130,7 +131,7 @@ ants_pool:
   # 是否非阻塞模式
   nonblocking: true
 mfa:
-  enabled: true
+  enabled: false
   # google microsoft
   default_provider: "google"
   google:
@@ -142,7 +143,7 @@ mfa:
 # KvDatabase配置示例
 kvdatabase:
   # 是否启用KvDatabase功能
-  enabled: true
+  enabled: false
   # 数据库类型: leveldb, pebble, badger4
   db_type: "leveldb"
   # 数据库文件存储路径
@@ -161,3 +162,87 @@ webrtc:
   min_port: 50000
   max_port: 65500
   log_in_console: true
+ipfs:
+  enabled: false
+  gateway_address: "127.0.0.1:8080"
+  api_address: "/ip4/127.0.0.1/tcp/5001"
+email:
+  enabled: false
+  smtp_host: ""
+  smtp_port: 467
+  username: ""
+  password: ""
+  sender_address: ""
+  sender_name: ""
+  tls_enabled: false
+  debug: true
+fabric_ca:
+  image_name: ""
+  ca_name: ""
+  enabled_tls: false
+  ca_admin_user: "admin"
+  ca_admin_password: "adminpw"
+  ca_server_port: 7054
+  join_docker_network: ""
+  docker_network_ip_addr: ""
+  local_abs_path: ""
+  log_in_console: false
+  test_mode: true
+authz:
+  enabled: false
+  model_file: ""
+  policy_file: ""
+  auto_create_file: ""
+  default_allow: ""
+  log_enabled: false
+tracer:
+  enabled: false
+  service_name: "example-server"
+  log_in_console: true
+  # tracer配置
+  tracer:
+    # file otlp stdout none  zipkin
+    exporters: "file,none,otlp,"
+    # grpc http/protobuf
+    otel_protocol: "grpc"
+    # grpc: https://127.0.0.1:4317/v1/traces || 127.0.0.1:4317
+    # http/protobuf: 127.0.0.1:4318 ||
+    otel_endpoint: "http://127.0.0.1:4317/v1/traces"
+    otel_insecure: true
+    # zipkin: http://localhost:9411/api/v2/spans
+    zipkin_endpoint: ""
+    file_path: "tracer.json"
+  # logger配置
+  logger:
+    exporters: "file,none,,"
+    otel_protocol: "grpc"
+    otel_endpoint: "http://127.0.0.1:4317/v1/logs"
+    otel_insecure: true
+    file_path: "logger.json"
+  # meter配置
+  meter:
+    exporters: "file,none,,"
+    otel_protocol: "grpc"
+    otel_endpoint: "http://127.0.0.1:4317/v1/metrics"
+    otel_insecure: true
+    file_path: "meter.json"
+ipfs_cluster:
+  enabled: false
+  # roundrobin failover
+  strategy: "roundrobin"
+  timeout_interval: 60
+  log_level: "info"
+  retries: 5
+  addresses:
+    - host: "127.0.0.1"
+      port: 9094
+      user_name: ""
+      password: ""
+redis:
+  enabled: false
+  host: "127.0.0.1"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 10
+
