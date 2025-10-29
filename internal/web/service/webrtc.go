@@ -207,28 +207,28 @@ func (s *WebRTCService) AddICECandidate(ctx *gin.Context, req *request.WebRTCIce
 }
 
 // GetICECandidates 获取指定连接的ICE候选列表
-func (s *WebRTCService) GetICECandidates(ctx *gin.Context, connectionID string) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "GetICECandidates",
-		attribute.String("connectionId", connectionID),
+func (s *WebRTCService) GetICECandidates(ctx *gin.Context, req *request.GetICECandidatesRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "GetICECandidatesRequest",
+		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
-	s.logger.Debugf("received get ice candidates request for connection: %s", connectionID)
+	s.logger.Debugf("received get ice candidates request for connection: %s", req.ConnectionID)
 
 	// 获取PeerConnection
-	peerConnection := s.webrtcControl.GetPeerConnection(connectionID)
+	peerConnection := s.webrtcControl.GetPeerConnection(req.ConnectionID)
 	if peerConnection == nil {
-		s.logger.Errorf("peer connection not found: %s", connectionID)
+		s.logger.Errorf("peer connection not found: %s", req.ConnectionID)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "Connection not found")
 		return
 	}
 
 	// 获取存储的ICE候选
 	candidates := peerConnection.GetICECandidates()
-	s.logger.Debugf("found %d ice candidates for connection: %s", len(candidates), connectionID)
+	s.logger.Debugf("found %d ice candidates for connection: %s", len(candidates), req.ConnectionID)
 
 	// 如果没有候选，返回空响应
 	if len(candidates) == 0 {
-		s.logger.Debugf("no ice candidates found for connection: %s", connectionID)
+		s.logger.Debugf("no ice candidates found for connection: %s", req.ConnectionID)
 		resp := &response.WebRTCSingleICECandidateResponse{
 			Success: true,
 			Message: "No ICE candidates available",
@@ -254,7 +254,7 @@ func (s *WebRTCService) GetICECandidates(ctx *gin.Context, connectionID string) 
 
 	// 如果没有有效的候选
 	if stringer.IsBlank(firstCandidate.Candidate) {
-		s.logger.Debugf("no valid ice candidates found for connection: %s", connectionID)
+		s.logger.Debugf("no valid ice candidates found for connection: %s", req.ConnectionID)
 		resp := &response.WebRTCSingleICECandidateResponse{
 			Success: true,
 			Message: "No valid ICE candidates available",
@@ -283,25 +283,25 @@ func (s *WebRTCService) GetICECandidates(ctx *gin.Context, connectionID string) 
 }
 
 // CloseConnection 关闭指定的WebRTC连接
-func (s *WebRTCService) CloseConnection(ctx *gin.Context, connectionID string) {
+func (s *WebRTCService) CloseConnection(ctx *gin.Context, req *request.CloseConnectionRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "CloseConnection",
-		attribute.String("connectionId", connectionID),
+		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
-	s.logger.Debugf("received close connection request for connection: %s", connectionID)
-	
+	s.logger.Debugf("received close connection request for connection: %s", req.ConnectionID)
+
 	// 获取当前所有连接
 	connections := s.webrtcControl.GetAllPeerConnections()
 	s.logger.Debugf("current active connections count: %d", len(connections))
 
 	// 关闭PeerConnection
-	if err := s.webrtcControl.ClosePeerConnection(connectionID); err != nil {
+	if err := s.webrtcControl.ClosePeerConnection(req.ConnectionID); err != nil {
 		s.logger.Errorf("close peer connection failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "Failed to close connection")
 		return
 	}
 
-	s.logger.Debugf("connection closed successfully: %s", connectionID)
+	s.logger.Debugf("connection closed successfully: %s", req.ConnectionID)
 	resp := &response.WebRTCICECandidateResponse{
 		Success: true,
 		Message: "Connection closed successfully",

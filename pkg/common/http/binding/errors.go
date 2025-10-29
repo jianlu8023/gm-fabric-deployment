@@ -2,9 +2,10 @@ package binding
 
 import (
 	"errors"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"strings"
 )
 
 // InvalidValidationError 定义参数验证错误类型

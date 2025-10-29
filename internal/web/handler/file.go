@@ -21,8 +21,8 @@ import (
 // @description 处理文件相关的HTTP请求
 // @struct
 type FileHandler struct {
-	*Handler            // Handler 基础处理器，提供日志功能
-	service *service.FileService // service 文件服务，处理文件相关的业务逻辑
+	*Handler                      // Handler 基础处理器，提供日志功能
+	service  *service.FileService // service 文件服务，处理文件相关的业务逻辑
 }
 
 // NewFileHandler 创建文件处理器
@@ -31,8 +31,7 @@ type FileHandler struct {
 // @param baseHandler *Handler 基础处理器
 // @param fileService *service.FileService 文件服务
 // @return *FileHandler 文件处理器实例
-func NewFileHandler(baseHandler *Handler,
-	fileService *service.FileService) *FileHandler {
+func NewFileHandler(baseHandler *Handler, fileService *service.FileService) *FileHandler {
 	return &FileHandler{
 		Handler: baseHandler,
 		service: fileService,
@@ -379,12 +378,25 @@ func (h *FileHandler) DownloadFile(ctx *gin.Context) {
 	defer span.End()
 	h.logger.Debugf("received file download file handler...")
 
-	// 从路径参数中获取文件ID
-	fileIDStr := ctx.Param("id")
-
-	// 创建请求对象
-	req := &request.DownloadFileRequest{
-		UploadID: fileIDStr,
+	req := new(request.DownloadFileRequest)
+	if err := binding.BindURI(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
+		return
 	}
 
 	// 验证参数合法性
@@ -461,12 +473,25 @@ func (h *FileHandler) DeleteFile(ctx *gin.Context) {
 	defer span.End()
 	h.logger.Debugf("received delete file handler...")
 
-	// 从路径参数中获取文件ID
-	uploadIdStr := ctx.Param("id")
-
-	// 创建请求对象
-	req := &request.DeleteFileRequest{
-		UploadID: uploadIdStr,
+	req := new(request.DeleteFileRequest)
+	if err := binding.BindURI(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
+		return
 	}
 
 	// 验证参数合法性

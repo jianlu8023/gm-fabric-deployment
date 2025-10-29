@@ -1,9 +1,10 @@
 package binding
 
 import (
+	"reflect"
+
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-	"reflect"
 )
 
 // https://segmentfault.com/a/1190000023725115 validator 使用 还可以加上i18n

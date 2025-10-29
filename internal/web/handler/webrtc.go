@@ -115,16 +115,35 @@ func (h *WebRTCHandler) getICECandidatesHandler(ctx *gin.Context) {
 	defer span.End()
 	h.logger.Debugf("received get ice candidates handler...")
 
-	// 从URL参数获取连接ID
-	connectionID := ctx.Param("connectionId")
-	if stringer.IsBlank(connectionID) {
-		h.logger.Errorf("connection id is required")
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "Connection ID is required")
-		span.SetStatus(codes.Error, "Connection ID is required")
+	req := new(request.GetICECandidatesRequest)
+	if err := binding.BindURI(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
+		return
+	}
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("get ice candidates request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
-	h.service.GetICECandidates(ctx, connectionID)
+	h.service.GetICECandidates(ctx, req)
 	span.SetStatus(codes.Ok, "success")
 }
 
@@ -137,15 +156,35 @@ func (h *WebRTCHandler) closeConnectionHandler(ctx *gin.Context) {
 	h.logger.Debugf("received close connection handler...")
 
 	// 从URL参数获取连接ID
-	connectionID := ctx.Param("connectionId")
-	if stringer.IsBlank(connectionID) {
-		h.logger.Errorf("connection id is required")
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, "Connection ID is required")
-		span.SetStatus(codes.Error, "Connection ID is required")
+	req := new(request.CloseConnectionRequest)
+	if err := binding.BindURI(ctx, req); err != nil {
+		messages := binding.GetValidationErrorMessages(err)
+		h.logger.Errorf("binding request params failed: %v message: %v",
+			err, messages)
+		msg := make([]string, 0, len(messages))
+		for _, message := range messages {
+			msg = append(msg, message)
+		}
+		if len(msg) == 0 {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, err.Error())
+			span.RecordError(err)
+			span.SetStatus(codes.Error, err.Error())
+		} else {
+			commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, stringer.Join(msg, ","))
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stringer.Join(msg, ","))
+		}
+		return
+	}
+	if !req.IsLegal() {
+		// 验证失败
+		h.logger.Errorf("close connection request is legal...")
+		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InvalidParameter, commonhttp.ErrMsgInvalidParameter)
+		span.SetStatus(codes.Error, commonhttp.ErrMsgInvalidParameter)
 		return
 	}
 
-	h.service.CloseConnection(ctx, connectionID)
+	h.service.CloseConnection(ctx, req)
 	span.SetStatus(codes.Ok, "success")
 }
 
