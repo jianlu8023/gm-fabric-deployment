@@ -4,6 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/golang-example/pkg/common/i18n"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/language"
 )
 
 // IsHttpErrServerClosed 判断错误是否是HTTP服务器关闭错误
@@ -132,73 +136,182 @@ func IsFileNotFoundError(err error) bool {
 
 //nolint:unused
 const (
-	// 通用错误信息
+	// 通用错误信息键
 
-	ErrMsgNormalFailed        = "通用业务处理失败"
-	ErrMsgInternalServerError = "服务器内部错误，请稍后再试"
-	ErrMsgInvalidParameter    = "请求参数无效，请检查参数"
-	ErrMsgUnauthorized        = "未授权，请先登录"
-	ErrMsgForbidden           = "禁止访问，权限不足"
-	ErrMsgTooManyRequests     = "请求过于频繁，请稍后再试"
+	ErrMsgNormalFailed        = "failed"
+	ErrMsgInternalServerError = "internal_error"
+	ErrMsgInvalidParameter    = "invalid_parameter"
+	ErrMsgUnauthorized        = "unauthorized"
+	ErrMsgForbidden           = "forbidden"
+	ErrMsgTooManyRequests     = "too_many_requests"
 
-	// 文件相关错误信息
+	// 文件相关错误信息键
 
-	ErrMsgFileNotFound    = "文件未找到"
-	ErrMsgFileTooLarge    = "文件过大，请上传较小的文件"
-	ErrMsgFileTypeError   = "文件类型错误，请上传正确的文件类型"
-	ErrMsgFileWriteError  = "文件写入失败，请检查磁盘空间或权限"
-	ErrMsgFileReadError   = "文件读取失败，请检查文件是否损坏"
-	ErrMsgFileDeleteError = "文件删除失败，请检查权限"
+	ErrMsgFileNotFound    = "file_not_found"
+	ErrMsgFileTooLarge    = "file_too_large"
+	ErrMsgFileTypeError   = "file_type_error"
+	ErrMsgFileWriteError  = "file_write_error"
+	ErrMsgFileReadError   = "file_read_error"
+	ErrMsgFileDeleteError = "file_delete_error"
 
-	// 数据库相关错误信息
+	// 数据库相关错误信息键
 
-	ErrMsgDatabaseError           = "数据库操作失败，请稍后再试"
-	ErrMsgRecordNotFound          = "记录未找到"
-	ErrMsgDuplicateRecord         = "记录已存在"
-	ErrMsgDatabaseTimeout         = "数据库操作超时，请稍后再试"
-	ErrMsgDatabaseConnectionError = "数据库连接失败，请检查数据库配置"
+	ErrMsgDatabaseError           = "database_error"
+	ErrMsgRecordNotFound          = "record_not_found"
+	ErrMsgDuplicateRecord         = "duplicate_record"
+	ErrMsgDatabaseTimeout         = "database_timeout"
+	ErrMsgDatabaseConnectionError = "database_connection_error"
 
-	// 用户相关错误信息
+	// 用户相关错误信息键
 
-	ErrMsgUserNotFound          = "用户不存在"
-	ErrMsgInvalidPassword       = "密码错误"
-	ErrMsgUserDisabled          = "用户已被禁用"
-	ErrMsgUsernameAlreadyExists = "用户名已存在"
-	ErrMsgEmailAlreadyExists    = "邮箱已存在"
-	ErrMsgInvalidToken          = "无效的 Token"
-	ErrMsgTokenExpired          = "Token 已过期，请重新登录"
-	ErrMsgPasswordResetFailed   = "密码重置失败，请稍后再试"
+	ErrMsgUserNotFound          = "user_not_found"
+	ErrMsgInvalidPassword       = "invalid_password"
+	ErrMsgUserDisabled          = "user_disabled"
+	ErrMsgUsernameAlreadyExists = "username_already_exists"
+	ErrMsgEmailAlreadyExists    = "email_already_exists"
+	ErrMsgInvalidToken          = "invalid_token"
+	ErrMsgTokenExpired          = "token_expired"
+	ErrMsgPasswordResetFailed   = "password_reset_failed"
 
-	// 认证授权相关错误信息
+	// 认证授权相关错误信息键
 
-	ErrMsgAuthenticationFailed = "认证失败，请检查用户名和密码"
-	ErrMsgPermissionDenied     = "权限不足，无法访问该资源"
-	ErrMsgInvalidCredentials   = "无效的凭证"
-	ErrMsgSessionExpired       = "会话已过期，请重新登录"
+	ErrMsgAuthenticationFailed = "authentication_failed"
+	ErrMsgPermissionDenied     = "permission_denied"
+	ErrMsgInvalidCredentials   = "invalid_credentials"
+	ErrMsgSessionExpired       = "session_expired"
 
-	// 网络相关错误信息
+	// 网络相关错误信息键
 
-	ErrMsgNetworkError       = "网络错误，请检查网络连接"
-	ErrMsgTimeoutError       = "请求超时，请稍后再试"
-	ErrMsgServiceUnavailable = "服务不可用，请稍后再试"
-	ErrMsgConnectionRefused  = "连接被拒绝，请检查服务是否启动"
+	ErrMsgNetworkError       = "network_error"
+	ErrMsgTimeoutError       = "timeout_error"
+	ErrMsgServiceUnavailable = "service_unavailable"
+	ErrMsgConnectionRefused  = "connection_refused"
 
-	// 业务逻辑错误信息
+	// 业务逻辑错误信息键
 
-	ErrMsgBusinessLogicError  = "业务逻辑错误"
-	ErrMsgInvalidInput        = "无效的输入"
-	ErrMsgInsufficientFunds   = "余额不足"
-	ErrMsgResourceUnavailable = "资源不可用"
-	ErrMsgDataConflict        = "数据冲突，请稍后再试"
+	ErrMsgBusinessLogicError  = "business_logic_error"
+	ErrMsgInvalidInput        = "invalid_input"
+	ErrMsgInsufficientFunds   = "insufficient_funds"
+	ErrMsgResourceUnavailable = "resource_unavailable"
+	ErrMsgDataConflict        = "data_conflict"
 
-	// 验证码相关错误信息
+	// 验证码相关错误信息键
 
-	ErrMsgInvalidCaptcha          = "验证码不正确"
-	ErrMsgCaptchaExpired          = "验证码已过期，请刷新"
-	ErrMsgCaptchaGenerationFailed = "验证码生成失败，请稍后再试"
+	ErrMsgInvalidCaptcha          = "invalid_captcha"
+	ErrMsgCaptchaExpired          = "captcha_expired"
+	ErrMsgCaptchaGenerationFailed = "captcha_generation_failed"
 
-	// 第三方服务错误信息
+	// 第三方服务错误信息键
 
-	ErrMsgThirdPartyServiceError = "第三方服务错误，请稍后再试"
-	ErrMsgThirdPartyAPIFailed    = "调用第三方 API 失败，请检查配置"
+	ErrMsgThirdPartyServiceError = "third_party_service_error"
+	ErrMsgThirdPartyAPIFailed    = "third_party_api_failed"
 )
+
+// convertErrorMessage 获取错误信息（支持国际化）
+// @param code ErrCode 错误码
+// @param lang string 语言代码
+// @return string 错误信息
+func convertErrorMessage(code ErrCode, lang string) string {
+	var key string
+
+	switch code {
+	case NormalFailed:
+		key = ErrMsgNormalFailed
+	case InternalServerError:
+		key = ErrMsgInternalServerError
+	case InvalidParameter:
+		key = ErrMsgInvalidParameter
+	case Unauthorized:
+		key = ErrMsgUnauthorized
+	case Forbidden:
+		key = ErrMsgForbidden
+	case TooManyRequests:
+		key = ErrMsgTooManyRequests
+	case FileNotFound:
+		key = ErrMsgFileNotFound
+	case FileTooLarge:
+		key = ErrMsgFileTooLarge
+	case FileTypeError:
+		key = ErrMsgFileTypeError
+	case FileWriteError:
+		key = ErrMsgFileWriteError
+	case FileReadError:
+		key = ErrMsgFileReadError
+	case FileDeleteError:
+		key = ErrMsgFileDeleteError
+	case DatabaseError:
+		key = ErrMsgDatabaseError
+	case RecordNotFound:
+		key = ErrMsgRecordNotFound
+	case DuplicateRecord:
+		key = ErrMsgDuplicateRecord
+	case DatabaseTimeout:
+		key = ErrMsgDatabaseTimeout
+	case DatabaseConnectionError:
+		key = ErrMsgDatabaseConnectionError
+	case UserNotFound:
+		key = ErrMsgUserNotFound
+	case InvalidPassword:
+		key = ErrMsgInvalidPassword
+	case UserDisabled:
+		key = ErrMsgUserDisabled
+	case UsernameAlreadyExists:
+		key = ErrMsgUsernameAlreadyExists
+	case EmailAlreadyExists:
+		key = ErrMsgEmailAlreadyExists
+	case InvalidToken:
+		key = ErrMsgInvalidToken
+	case TokenExpired:
+		key = ErrMsgTokenExpired
+	case PasswordResetFailed:
+		key = ErrMsgPasswordResetFailed
+	case AuthenticationFailed:
+		key = ErrMsgAuthenticationFailed
+	case PermissionDenied:
+		key = ErrMsgPermissionDenied
+	case InvalidCredentials:
+		key = ErrMsgInvalidCredentials
+	case SessionExpired:
+		key = ErrMsgSessionExpired
+	case NetworkError:
+		key = ErrMsgNetworkError
+	case TimeoutError:
+		key = ErrMsgTimeoutError
+	case ServiceUnavailable:
+		key = ErrMsgServiceUnavailable
+	case ConnectionRefused:
+		key = ErrMsgConnectionRefused
+	case BusinessLogicError:
+		key = ErrMsgBusinessLogicError
+	case InvalidInput:
+		key = ErrMsgInvalidInput
+	case InsufficientFunds:
+		key = ErrMsgInsufficientFunds
+	case ResourceUnavailable:
+		key = ErrMsgResourceUnavailable
+	case DataConflict:
+		key = ErrMsgDataConflict
+	case InvalidCaptcha:
+		key = ErrMsgInvalidCaptcha
+	case CaptchaExpired:
+		key = ErrMsgCaptchaExpired
+	case CaptchaGenerationFailed:
+		key = ErrMsgCaptchaGenerationFailed
+	case ThirdPartyServiceError:
+		key = ErrMsgThirdPartyServiceError
+	case ThirdPartyAPIFailed:
+		key = ErrMsgThirdPartyAPIFailed
+	default:
+		key = "unknown_error"
+	}
+
+	return i18n.Translate(lang, key)
+}
+
+// GetErrorMessageWithContext 从Gin上下文中获取错误信息（支持国际化）
+// @param ctx *gin.Context Gin上下文
+// @param code ErrCode 错误码
+// @return string 错误信息
+func GetErrorMessageWithContext(ctx *gin.Context, code ErrCode) string {
+	return convertErrorMessage(code, language.GetLanguageFromContext(ctx))
+}

@@ -181,6 +181,8 @@ type HttpServerConfig struct {
 		Burst   int    `json:"burst,omitempty" yaml:"burst,omitempty" mapstructure:"burst"`       // 令牌桶突发大小
 		Type    string `json:"type,omitempty" yaml:"type,omitempty" mapstructure:"type"`          // 限流类型，可选值：time, ulule, ants, custom, juju
 	} `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`
+	// 国际化配置
+	Language string `json:"language,omitempty" yaml:"language,omitempty" mapstructure:"language"` // 默认语言设置，支持zh,en等
 }
 
 // String 返回配置的字符串表示

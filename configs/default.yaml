@@ -65,6 +65,7 @@ http:
   tls_rca_cert_file: "certs/tongsuo/subca.crt"
   http2_enabled: true  # 国密TLS模式不支持HTTP/2
   pprof: true
+  language: "zh"  # 默认语言设置，优先使用请求携带的header中的accept-language 如果没有 会采用这里的 支持zh,en
   upload_dir: "uploads"
   # IP白名单配置
   ip_white_list:

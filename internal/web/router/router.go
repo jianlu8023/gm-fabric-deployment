@@ -166,5 +166,13 @@ func NewRouter(loggerControl *logger.Control,
 	)
 	result = append(result, webRTCHandler.Routers()...)
 
+	// 创建国际化示例处理器
+	exampleI18nHandler := handler.NewExampleI18nHandler(baseHandler,
+		service.NewSystemService(
+			baseService,
+			mapper.NewSystemMapper(baseMapper),
+		),
+	)
+	result = append(result, exampleI18nHandler.Routers()...)
 	return result
 }

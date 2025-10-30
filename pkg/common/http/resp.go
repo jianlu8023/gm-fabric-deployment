@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/golang-example/pkg/common/i18n"
 )
 
 // BaseResponse HTTP基础响应结构体
@@ -50,7 +51,10 @@ func (b BaseResponse) String() string {
 // @param ctx *gin.Context Gin上下文
 // @param data interface{} 响应数据
 func SuccessResponse(ctx *gin.Context, data interface{}) {
-	SuccessResponseWithMessage(ctx, data, "业务处理成功")
+	// 翻译消息
+	message := i18n.TranslateAuto(ctx, "success")
+
+	SuccessResponseWithMessage(ctx, data, message)
 }
 
 // SuccessResponseWithMessage 发送带自定义消息的成功响应
@@ -74,11 +78,14 @@ func SuccessResponseWithMessage(ctx *gin.Context, data interface{}, message stri
 // @param ctx *gin.Context Gin上下文
 // @param err Error 错误结构体
 func FailedResponse(ctx *gin.Context, err Error) {
+	// 翻译消息
+	message := i18n.TranslateAuto(ctx, "failed")
+
 	ctx.JSON(http.StatusOK, BaseResponse{
 		Code:    int(err.Code),
 		Data:    err.Message,
 		Success: false,
-		Message: "业务处理失败",
+		Message: message,
 	})
 }
 
@@ -89,6 +96,7 @@ func FailedResponse(ctx *gin.Context, err Error) {
 // @param errCode ErrCode 错误码
 // @param message string 自定义错误消息
 func FailedResponseWithMessage(ctx *gin.Context, errCode ErrCode, message string) {
+	message = i18n.TranslateAuto(ctx, message)
 	FailedResponse(ctx, NewError(errCode, message))
 }
 
@@ -122,7 +130,10 @@ func isSafePath(filePath string) bool {
 func fileDownload(ctx *gin.Context, filepath, fileName string) {
 	// 检查文件路径的安全性 (非常重要!)
 	if !isSafePath(filepath) {
-		FailedResponseWithMessage(ctx, NormalFailed, "非法文件路径")
+		// 翻译消息
+		message := i18n.TranslateAuto(ctx, "invalid_parameter")
+
+		FailedResponseWithMessage(ctx, NormalFailed, message)
 		return
 	}
 
@@ -158,7 +169,10 @@ func fileDownload(ctx *gin.Context, filepath, fileName string) {
 	// 将文件内容传输到响应体
 	_, err = io.Copy(ctx.Writer, file)
 	if err != nil && err != io.EOF {
-		FailedResponseWithMessage(ctx, NormalFailed, "文件下载失败")
+		// 翻译消息
+		message := i18n.TranslateAuto(ctx, "file_read_error")
+
+		FailedResponseWithMessage(ctx, NormalFailed, message)
 		return
 	}
 }
@@ -172,7 +186,10 @@ func fileDownload(ctx *gin.Context, filepath, fileName string) {
 func DownloadFile(ctx *gin.Context, filePath, filename string) {
 	// 检查文件是否存在（可选）
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		FailedResponseWithMessage(ctx, FileNotFound, "文件不存在")
+		// 翻译消息
+		message := i18n.TranslateAuto(ctx, "file_not_found")
+
+		FailedResponseWithMessage(ctx, FileNotFound, message)
 		return
 	}
 
@@ -189,7 +206,10 @@ func DownloadFile(ctx *gin.Context, filePath, filename string) {
 func DownloadFileWithDisposition(ctx *gin.Context, filePath, filename string) {
 	// 检查文件是否存在（可选）
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		FailedResponseWithMessage(ctx, FileNotFound, "文件不存在")
+		// 翻译消息
+		message := i18n.TranslateAuto(ctx, "file_not_found")
+
+		FailedResponseWithMessage(ctx, FileNotFound, message)
 		return
 	}
 

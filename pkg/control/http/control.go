@@ -26,11 +26,13 @@ import (
 	// "github.com/hxx258456/ccgo/gmtls"
 	// gmx509 "github.com/hxx258456/ccgo/x509"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipblacklist"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipwhitelist"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/language"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ratelimit"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/recovery"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
@@ -41,7 +43,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"go.uber.org/zap"
 )
 
@@ -128,6 +129,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	// 1. 恢复中间件（Recovery Middleware）- 应在最前面注册，捕获所有后续中间件的panic
 	engine.Use(recovery.EnableRecovery(control.logger, true))
+
+	// 添加语言支持中间件
+	engine.Use(language.EnableLanguageSupport(serverConfig.Language))
 
 	// 2. 请求ID中间件 - 为每个请求生成唯一标识
 	engine.Use(requestid.EnableRequestID(webLogger))
