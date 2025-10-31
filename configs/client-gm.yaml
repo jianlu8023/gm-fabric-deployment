@@ -39,6 +39,7 @@ grpc:
     tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
     tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
     tls_rca_cert_file: "certs/tongsuo/subca.crt"
+    tls_server_name: "grpc"
     #tls_cert_file: certs/normal/gclient.crt
     #tls_key_file: certs/normal/gclient.key
     #tls_rca_cert_file: certs/normal/root-ca.crt

@@ -100,7 +100,7 @@ func NewClientControl(control *Control) error {
 				},
 				SessionTicketsDisabled: false, // 启用会话票据
 				NextProtos:             []string{"h2", "http/1.1"},
-				ServerName:             "grpc", // 必须与服务器证书的Common Name匹配
+				ServerName:             control.config.Client.TlsServerName, // 必须与服务器证书的Common Name匹配
 			}
 
 			// GM模式需要两套keypair：一个签名，一个加密
@@ -213,7 +213,7 @@ func NewClientControl(control *Control) error {
 				},
 				SessionTicketsDisabled: false, // 启用会话票据
 				NextProtos:             []string{"h2", "http/1.1"},
-				ServerName:             "grpc", // 必须与服务器证书的Common Name匹配
+				ServerName:             control.config.Client.TlsServerName, // 必须与服务器证书的Common Name匹配
 			}
 
 			// 加载客户端证书（注意：应该使用客户端自己的证书，而不是服务端证书）

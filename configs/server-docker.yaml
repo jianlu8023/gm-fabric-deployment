@@ -35,6 +35,7 @@ grpc:
     tls_cert_file: certs/normal/gclient.crt
     tls_key_file: certs/normal/gclient.key
     tls_rca_cert_file: certs/normal/root-ca.crt
+    tls_server_name: "grpc"
 http:
   enabled: true
   address: :8080
