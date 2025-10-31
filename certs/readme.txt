@@ -1,3 +1,230 @@
+##### openssl 证书链
+
+openssl genrsa -out root.key 4096
+# 编写 root.conf
+```
+# openssl-root.cnf
+[ req ]
+default_bits = 4096
+default_md = sha256
+prompt = no
+encrypt_key = no
+distinguished_name = req_distinguished_name
+x509_extensions = v3_ca # 指定使用 v3_ca 扩展
+
+[ req_distinguished_name ]
+C = CN
+ST = Xinjiang
+L = Urumqi
+O = The Self-Signed Root Certificate
+OU = Certificate Authority
+CN = jianlu Self-Signed Root Certificate Authority
+
+[ v3_ca ]
+# Extensions for a root CA
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer # 对于自签名证书，issuer就是自己
+basicConstraints = critical, CA:TRUE, pathlen:2 # pathlen:1 允许其签发一个中间CA和实体证书。如果是0，则只能签发实体证书。对于根CA，通常可以不指定pathlen或设为较大值。
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+# extendedKeyUsage = serverAuth, clientAuth # 根CA通常不直接用于服务器/客户端认证，所以通常不加。如果加了，它也可以直接用于终端实体证书的功能
+
+```
+
+openssl req -new -x509 -nodes -key root.key -sha256 -days 3650 -out root.crt -config root.conf
+
+-------------------------------------------------------------
+
+openssl genrsa -out intermediate.key 4096
+# 编写 intermediate.conf
+```
+# openssl-intermediate.cnf
+
+[ req ]
+default_bits = 4096
+default_md = sha256
+prompt = no
+encrypt_key = no
+distinguished_name = req_distinguished_name
+# x509_extensions = v3_intermediate_ca # 注意：这一行只在 openssl req -x509 时才有效，生成CSR时不使用
+
+[ req_distinguished_name ]
+C = CN
+ST = Xinjiang
+L = Urumqi
+O = The Self-Signed Intermediate Certificate
+OU = Intermediate Certificate Authority
+CN = jianlu Self-Signed Intermediate Certificate Authority # 中间CA的Common Name
+
+[ v3_intermediate_ca ]
+# Extensions for intermediate CA certificate when signed by the root CA
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:TRUE, pathlen:0 # pathlen:0 表示这个中间CA只能签署实体证书，不能再签署其他中间CA
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+
+```
+
+openssl req -new -key intermediate.key -sha256 -out intermediate.csr -config intermediate.conf
+openssl x509 -req -in intermediate.csr -CA root.crt -CAkey root.key -CAcreateserial -out intermediate.crt -days 1825 -sha256 -extfile intermediate.conf -extensions v3_intermediate_ca
+
+
+---------------------------------------------------------------------
+
+http证书
+openssl genrsa -out hserver.key 4096
+
+```
+# openssl-http.conf
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+
+[req_distinguished_name]
+countryName = CN
+stateOrProvinceName = Xinjiang
+localityName = Urumqi
+organizationName = The Self-Signed Http Certificate
+organizationalUnitName = Http Certificate Authority
+commonName = www.jianlu.site
+# emailAddress = jianlu8023@gmail.com
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = *.jianlu.site
+DNS.2 = jianlu.site
+DNS.3 = localhost
+IP.1 = 127.0.0.1
+IP.2 = 192.168.58.110
+
+# =========================================================
+# 新增部分：用于最终HTTP服务器证书的扩展
+# =========================================================
+[v3_http_cert]
+# 基本约束：这是一个终端实体证书，不能用于签发其他证书
+basicConstraints = critical, CA:FALSE
+# 定义此证书的主题公钥标识符
+subjectKeyIdentifier = hash
+# 定义签发此证书的CA的公钥标识符
+authorityKeyIdentifier = keyid:always,issuer
+# 密钥用途：指定此证书的私钥可以用于哪些操作
+# digitalSignature: 用于TLS握手中的数字签名
+# keyEncipherment: 用于加密TLS会话密钥
+keyUsage = critical, digitalSignature, keyEncipherment
+# 扩展密钥用途：指定此证书的具体用途
+# serverAuth: 允许作为TLS服务器进行身份验证
+# clientAuth: 允许作为TLS客户端进行身份验证 (可选，但通常也加上)
+extendedKeyUsage = serverAuth, clientAuth
+# 主题备用名称：非常重要，现代浏览器强制要求使用SANs，并且它必须在最终证书中
+subjectAltName = @alt_names
+
+```
+
+openssl req -new -key hserver.key -sha256 -out hserver.csr -config hserver.conf
+openssl x509 -req -in hserver.csr -CA intermediate.crt -CAkey intermediate.key -CAcreateserial -out hserver.crt -days 365 -sha256 -extfile hserver.conf -extensions v3_http_cert
+
+-------------------------------------------------------------------------
+
+grpc server
+openssl genrsa -out gserver.key 4096
+# 编写 gserver.conf
+```
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+
+[req_distinguished_name]
+countryName = CN
+stateOrProvinceName = Xinjiang
+localityName = Urumqi
+organizationName = The Self-Signed Grpc Server Certificate
+organizationalUnitName = Grpc Server Certificate Authority
+commonName = gserver.jianlu.site
+# emailAddress = jianlu8023@gmail.com
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = gserver.jianlu.site
+DNS.2 = *.jianlu.site
+DNS.4 = jianlu.site
+DNS.3 = localhost
+IP.1 = 127.0.0.1
+IP.2 = 192.168.58.110
+
+# =========================================================
+# 用于最终 gRPC 服务器证书的扩展
+# =========================================================
+[v3_grpc_server_cert]
+basicConstraints = critical, CA:FALSE # 这是一个终端实体证书，不能签发其他证书
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+keyUsage = critical, digitalSignature, keyEncipherment # 数字签名和密钥加密是TLS服务器必需的
+extendedKeyUsage = serverAuth # 明确指定此证书用于TLS服务器认证
+subjectAltName = @alt_names # 确保SANs最终包含在签发的证书中
+
+```
+
+后续步骤和http一样 最后x509的那步骤 extensions v3_grpc_server_cert
+
+-------------------------------------------------------------------------
+
+grpc client
+
+```
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+
+[req_distinguished_name]
+countryName = CN
+stateOrProvinceName = Xinjiang
+localityName = Urumqi
+organizationName = The Self-Signed Grpc Client Certificate
+organizationalUnitName = Grpc Client Certificate Authority
+commonName = gclient.jianlu.site
+# emailAddress = jianlu8023@gmail.com
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = gclient.jianlu.site
+DNS.2 = *.jianlu.site
+DNS.3 = localhost
+DNS.4 = jianlu.site
+IP.1 = 127.0.0.1
+IP.2 = 192.168.58.110
+
+# =========================================================
+# 用于最终 gRPC 客户端证书的扩展
+# =========================================================
+[v3_grpc_client_cert]
+basicConstraints = critical, CA:FALSE # 这是一个终端实体证书
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+keyUsage = critical, digitalSignature # 数字签名是TLS客户端必需的
+extendedKeyUsage = clientAuth # 明确指定此证书用于TLS客户端认证
+# 如果客户端也需要SANs，则取消注释以下一行
+subjectAltName = @alt_names
+
+```
+
+-extensions v3_grpc_client_cert
+
+
+##### 生成客户端证书
 1. cp gserver.conf lclient.conf
 2. 修改lclient.conf 中的commonName dns信息
 3. openssl genrsa -out lclient.key 2048
