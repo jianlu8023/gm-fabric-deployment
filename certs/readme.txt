@@ -16,9 +16,9 @@ x509_extensions = v3_ca # 指定使用 v3_ca 扩展
 C = CN
 ST = Xinjiang
 L = Urumqi
-O = The Self-Signed Root Certificate
-OU = Certificate Authority
-CN = jianlu Self-Signed Root Certificate Authority
+O = The Self-Signed Certificate Authority
+# OU = Certificate Authority
+CN = Self-Signed Root Certificate Authority
 
 [ v3_ca ]
 # Extensions for a root CA
@@ -45,21 +45,20 @@ default_md = sha256
 prompt = no
 encrypt_key = no
 distinguished_name = req_distinguished_name
-# x509_extensions = v3_intermediate_ca # 注意：这一行只在 openssl req -x509 时才有效，生成CSR时不使用
+x509_extensions = v3_intermediate_ca # 注意：这一行只在 openssl req -x509 时才有效，生成CSR时不使用
 
 [ req_distinguished_name ]
 C = CN
 ST = Xinjiang
 L = Urumqi
-O = The Self-Signed Intermediate Certificate
+O = The Self-Signed Intermediate Certificate Authority
 OU = Intermediate Certificate Authority
-CN = jianlu Self-Signed Intermediate Certificate Authority # 中间CA的Common Name
+CN = Self-Signed Intermediate Certificate Authority # 中间CA的Common Name
 
 [ v3_intermediate_ca ]
-# Extensions for intermediate CA certificate when signed by the root CA
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always,issuer
-basicConstraints = critical, CA:TRUE, pathlen:0 # pathlen:0 表示这个中间CA只能签署实体证书，不能再签署其他中间CA
+basicConstraints = critical, CA:TRUE, pathlen:1 # pathlen:0 表示这个中间CA只能签署实体证书，不能再签署其他中间CA
 keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
 ```
@@ -67,6 +66,36 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 openssl req -new -key intermediate.key -sha256 -out intermediate.csr -config intermediate.conf
 openssl x509 -req -in intermediate.csr -CA root.crt -CAkey root.key -CAcreateserial -out intermediate.crt -days 1825 -sha256 -extfile intermediate.conf -extensions v3_intermediate_ca
 
+
+---------------------------------------------------------------------
+
+```
+# openssl-applications-authority.cnf
+
+[ req ]
+default_bits = 4096
+default_md = sha256
+prompt = no
+encrypt_key = no
+distinguished_name = req_distinguished_name
+x509_extensions = v3_application_ca # 注意：这一行只在 openssl req -x509 时才有效，生成CSR时不使用
+
+[ req_distinguished_name ]
+C = CN
+ST = Xinjiang
+L = Urumqi
+O = The Self-Signed Applications Certificate Authority
+OU = Applications Certificate Authority
+CN = Self-Signed Applications Certificate Authority # 中间CA的Common Name
+
+[ v3_application_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:TRUE, pathlen:0 # pathlen:0 表示这个中间CA只能签署实体证书，不能再签署其他中间CA
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+extendedKeyUsage = serverAuth, clientAuth  # 允许签发服务器和客户端证书
+
+```
 
 ---------------------------------------------------------------------
 
