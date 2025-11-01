@@ -15,9 +15,9 @@ docker:
   host: unix:///var/run/docker.sock
   api_version: ""
   tls_enabled: false
-  tls_cert_file: certs/normal/dserver.crt
-  tls_key_file: certs/normal/dserver.key
-  tls_ca_file: certs/normal/root-ca.crt
+  tls_cert_file: certs/openssl/dclient.crt
+  tls_key_file: certs/openssl/dclient.key
+  tls_ca_file: certs/openssl/docker-authority.crt
   default_timeout: 5
 grpc:
   enabled: false

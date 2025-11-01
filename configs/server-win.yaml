@@ -21,13 +21,14 @@ grpc:
     max_send_msg_size: 5242880
     chunk_size: 4194304
     tls_enabled: true
+#    tls_gm: true
+#    tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
+#    tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
+#    tls_rca_cert_file: "certs/tongsuo/subca.crt"
     tls_gm: false
-    #tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
-    #tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
-    #tls_rca_cert_file: "certs/tongsuo/subca.crt"
-    tls_cert_file: certs/normal/gserver.crt
-    tls_key_file: certs/normal/gserver.key
-    tls_rca_cert_file: certs/normal/root-ca.crt
+    tls_cert_file: certs/openssl/gserver.crt
+    tls_key_file: certs/openssl/gserver.key
+    tls_rca_cert_file: certs/openssl/grpc-authority.crt
   client:
     host: 127.0.0.1:65533
     max_call_recv_msg_size: 5242880
@@ -35,23 +36,30 @@ grpc:
     chunk_size: 4194304
     call_timeout: 99999
     tls_enabled: true
+#    tls_gm: true
+#    tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
+#    tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
+#    tls_rca_cert_file: "certs/tongsuo/subca.crt"
+#    tls_server_name: "grpc"
     tls_gm: false
-    #tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
-    #tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
-    #tls_rca_cert_file: "certs/tongsuo/subca.crt"
-    tls_cert_file: certs/normal/gclient.crt
-    tls_key_file: certs/normal/gclient.key
-    tls_rca_cert_file: certs/normal/root-ca.crt
-    tls_server_name: "grpc"
+    tls_cert_file: certs/openssl/gclient.crt
+    tls_key_file: certs/openssl/gclient.key
+    tls_rca_cert_file: certs/openssl/grpc-authority.crt
+    tls_server_name: "gserver.jianlu.site"
 http:
   enabled: true
   address: :8080
   context_path: example
   run_mode: release
   tls_enabled: true
-  tls_cert_file: certs/normal/hserver.crt
-  tls_key_file: certs/normal/hserver.key
-  tls_rca_cert_file: certs/normal/root-ca.crt
+  tls_gm: false
+  tls_cert_file: certs/openssl/hserver.crt
+  tls_key_file: certs/openssl/hserver.key
+  tls_rca_cert_file: certs/openssl/http-authority.crt
+  #tls_gm: true
+  #tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
+  #tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
+  #tls_rca_cert_file: "certs/tongsuo/subca.crt"
   http2_enabled: true  # 启用HTTP/2支持
   pprof: true
   language: "zh"  # 默认语言设置，支持zh,en

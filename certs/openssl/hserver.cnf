@@ -1,0 +1,47 @@
+# openssl-http.conf
+[req]
+default_bits = 2048
+prompt = no
+default_md = sha256
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+
+[req_distinguished_name]
+countryName = CN
+stateOrProvinceName = Xinjiang
+localityName = Urumqi
+organizationName = HTTP Certificate Authority
+organizationalUnitName = HTTP Certificate
+commonName = www.jianlu.site
+# emailAddress = jianlu8023@gmail.com
+
+[v3_req]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = *.jianlu.site
+DNS.2 = jianlu.site
+DNS.3 = localhost
+IP.1 = 127.0.0.1
+IP.2 = 192.168.58.110
+
+# =========================================================
+# 新增部分：用于最终HTTP服务器证书的扩展
+# =========================================================
+[v3_http_cert]
+# 基本约束：这是一个终端实体证书，不能用于签发其他证书
+basicConstraints = critical, CA:FALSE
+# 定义此证书的主题公钥标识符
+subjectKeyIdentifier = hash
+# 定义签发此证书的CA的公钥标识符
+authorityKeyIdentifier = keyid:always,issuer
+# 密钥用途：指定此证书的私钥可以用于哪些操作
+# digitalSignature: 用于TLS握手中的数字签名
+# keyEncipherment: 用于加密TLS会话密钥
+keyUsage = critical, digitalSignature, keyEncipherment
+# 扩展密钥用途：指定此证书的具体用途
+# serverAuth: 允许作为TLS服务器进行身份验证
+# clientAuth: 允许作为TLS客户端进行身份验证 (可选，但通常也加上)
+extendedKeyUsage = serverAuth, clientAuth
+# 主题备用名称：非常重要，现代浏览器强制要求使用SANs，并且它必须在最终证书中
+subjectAltName = @alt_names

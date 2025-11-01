@@ -25,9 +25,6 @@ grpc:
     tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
     tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
     tls_rca_cert_file: "certs/tongsuo/subca.crt"
-    #tls_cert_file: certs/normal/gserver.crt
-    #tls_key_file: certs/normal/gserver.key
-    #tls_rca_cert_file: certs/normal/root-ca.crt
   client:
     host: 127.0.0.1:65533
     max_call_recv_msg_size: 5242880
@@ -40,9 +37,6 @@ grpc:
     tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
     tls_rca_cert_file: "certs/tongsuo/subca.crt"
     tls_server_name: "grpc"
-    #tls_cert_file: certs/normal/gclient.crt
-    #tls_key_file: certs/normal/gclient.key
-    #tls_rca_cert_file: certs/normal/root-ca.crt
 http:
   enabled: true
   address: :8080

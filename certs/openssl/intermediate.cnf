@@ -1,0 +1,22 @@
+# openssl-intermediate.cnf
+[ req ]
+default_bits = 4096
+default_md = sha256
+prompt = no
+encrypt_key = no
+distinguished_name = req_distinguished_name
+x509_extensions = v3_intermediate_ca # 注意：这一行只在 openssl req -x509 时才有效，生成CSR时不使用
+
+[ req_distinguished_name ]
+C = CN
+ST = Xinjiang
+L = Urumqi
+O = The Self-Signed Intermediate Certificate Authority
+OU = Intermediate Certificate Authority
+CN = Self-Signed Intermediate Certificate Authority
+
+[ v3_intermediate_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:TRUE, pathlen:1 # pathlen:0 表示这个中间CA只能签署实体证书，不能再签署其他中间CA
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign

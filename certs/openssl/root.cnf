@@ -1,0 +1,24 @@
+# openssl-root.cnf
+[ req ]
+default_bits = 4096
+default_md = sha256
+prompt = no
+encrypt_key = no
+distinguished_name = req_distinguished_name
+x509_extensions = v3_ca # 指定使用 v3_ca 扩展
+
+[ req_distinguished_name ]
+C = CN
+ST = Xinjiang
+L = Urumqi
+O = The Self-Signed Certificate Authority
+# OU = Certificate Authority
+CN = Self-Signed Root Certificate Authority
+
+[ v3_ca ]
+# Extensions for a root CA
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer # 对于自签名证书，issuer就是自己
+basicConstraints = critical, CA:TRUE, pathlen:2 # pathlen:1 允许其签发一个中间CA和实体证书。如果是0，则只能签发实体证书。对于根CA，通常可以不指定pathlen或设为较大值。
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign
+# extendedKeyUsage = serverAuth, clientAuth # 根CA通常不直接用于服务器/客户端认证，所以通常不加。如果加了，它也可以直接用于终端实体证书的功能
