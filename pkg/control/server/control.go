@@ -7,6 +7,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/jianlu8023/golang-example/pkg/control/ai"
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
 	"github.com/jianlu8023/golang-example/pkg/control/authz"
 	"github.com/jianlu8023/golang-example/pkg/control/captcha"
@@ -54,6 +55,7 @@ type Control struct {
 	redisControl       *redis.Control       // Redis控制器
 	kvDatabaseControl  *kvdatabase.Control  // KvDatabase控制器
 	webRTCControl      *webrtc.Control      // WebRTC控制器
+	aiControl          *ai.Control          // AI控制器
 	logger             *zap.SugaredLogger   // 日志记录器
 	once               sync.Once            // 确保StartUp只执行一次
 	mutex              sync.RWMutex         // 读写锁，保护控制器访问
@@ -191,6 +193,17 @@ func NewServerControlFromFile() (*Control, error) {
 			return nil, err
 		}
 		control.mfaControl = mfaControl
+	}
+
+	// 检查并创建AI控制器
+	aiConfig := configControl.GetAIConfig()
+	if aiConfig != nil && aiConfig.Enabled {
+		aiControl, err := ai.NewAIControl(configControl, control.GetLoggerControl())
+		if err != nil {
+			control.logger.Errorf("[control] create ai control failed: %v", err)
+		} else {
+			control.aiControl = aiControl
+		}
 	}
 
 	// 检查并创建权限控制器
@@ -416,6 +429,14 @@ func (c *Control) GetWebRTCControl() *webrtc.Control {
 	return c.webRTCControl
 }
 
+// GetAIControl 获取AI控制器
+// @return *ai.Control AI控制器
+func (c *Control) GetAIControl() *ai.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.aiControl
+}
+
 // NewServerControl 创建服务器控制器
 // @description 使用预初始化的各个子控制器创建服务器控制器实例
 // @param dockerControl *docker.Control Docker控制器
@@ -437,6 +458,8 @@ func (c *Control) GetWebRTCControl() *webrtc.Control {
 // @param ipfsClusterControl *ipfscluster.Control IPFS集群控制器
 // @param redisControl *redis.Control Redis控制器
 // @param kvDatabaseControl *kvdatabase.Control KvDatabase控制器
+// @param webRTCControl *webrtc.Control WebRTC控制器
+// @param aiControl *ai.Control AI控制器
 // @return *Control 服务器控制器实例
 func NewServerControl(dockerControl *docker.Control,
 	configControl *config.Control,
@@ -458,6 +481,7 @@ func NewServerControl(dockerControl *docker.Control,
 	redisControl *redis.Control,
 	kvDatabaseControl *kvdatabase.Control,
 	webRTCControl *webrtc.Control,
+	aiControl *ai.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -484,6 +508,7 @@ func NewServerControl(dockerControl *docker.Control,
 		redisControl:       redisControl,
 		kvDatabaseControl:  kvDatabaseControl,
 		webRTCControl:      webRTCControl,
+		aiControl:          aiControl,
 	}
 }
 
@@ -584,6 +609,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.webRTCControl != nil {
 			c.logger.Debugf("[control] starting up webrtc server...")
 			c.webRTCControl.StartUp(failedFunc)
+		}
+
+		if c.aiControl != nil {
+			c.logger.Debugf("[control] starting up ai server...")
+			c.aiControl.StartUp(failedFunc)
 		}
 
 		if c.httpControl != nil {
@@ -737,6 +767,14 @@ func (c *Control) Shutdown() error {
 		c.logger.Debugf("[control] shutting down webrtc server...")
 		if err := c.webRTCControl.Shutdown(); err != nil {
 			c.logger.Errorf("[control] shutdown webrtc server err: %v", err)
+			errs = append(errs, err)
+		}
+	}
+
+	if c.aiControl != nil {
+		c.logger.Debugf("[control] shutting down ai server...")
+		if err := c.aiControl.Shutdown(); err != nil {
+			c.logger.Errorf("[control] shutdown ai server err: %v", err)
 			errs = append(errs, err)
 		}
 	}

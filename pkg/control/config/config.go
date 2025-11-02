@@ -650,6 +650,24 @@ func (k *KvDatabaseConfig) String() string {
 	return string(pretty)
 }
 
+// AIConfig AI配置结构体
+type AIConfig struct {
+	Enabled            bool              `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                        // 是否启用
+	APIKey             string            `json:"api_key,omitempty" yaml:"api_key,omitempty" mapstructure:"api_key"`                                        // API密钥
+	APIEndpoint        string            `json:"api_endpoint,omitempty" yaml:"api_endpoint,omitempty" mapstructure:"api_endpoint"`                         // API端点
+	DefaultModel       string            `json:"default_model,omitempty" yaml:"default_model,omitempty" mapstructure:"default_model"`                      // 默认模型
+	Timeout            int               `json:"timeout,omitempty" yaml:"timeout,omitempty" mapstructure:"timeout"`                                        // 超时时间(秒)
+	InsecureSkipVerify bool              `json:"insecure_skip_verify,omitempty" yaml:"insecure_skip_verify,omitempty" mapstructure:"insecure_skip_verify"` // 是否跳过证书验证
+	Headers            map[string]string `json:"headers,omitempty" yaml:"headers,omitempty" mapstructure:"headers"`                                        // 自定义请求头
+}
+
+// String 返回AIConfig的字符串表示
+// @return string AIConfig的字符串表示
+func (a *AIConfig) String() string {
+	pretty, _ := json.MarshalPretty(a)
+	return string(pretty)
+}
+
 // Config 配置
 type Config struct {
 	GrpcConfig        *GrpcConfig        `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
@@ -671,6 +689,7 @@ type Config struct {
 	RedisConfig       *RedisConfig       `json:"redis_config,omitempty" yaml:"redis_config,omitempty" mapstructure:"redis"`                      // Redis配置
 	KvDatabaseConfig  *KvDatabaseConfig  `json:"kvdatabase_config,omitempty" yaml:"kvdatabase_config,omitempty" mapstructure:"kvdatabase"`       // KV数据库配置
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
+	AIConfig *AIConfig `json:"ai_config,omitempty" yaml:"ai_config,omitempty" mapstructure:"ai"` // AI配置
 }
 
 // String 返回配置的字符串表示

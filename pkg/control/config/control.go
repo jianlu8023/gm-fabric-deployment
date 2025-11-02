@@ -171,6 +171,14 @@ func (c *Control) GetWebRTCConfig() *WebRTCConfig {
 	return c.config.WebRTCConfig
 }
 
+// GetAIConfig 获取AI配置
+// @return *AIConfig AI配置
+func (c *Control) GetAIConfig() *AIConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.AIConfig
+}
+
 // GetTunnyPoolConfig 获取Tunny线程池配置
 // @return *TunnyPoolConfig Tunny线程池配置
 // func (c *Control) GetTunnyPoolConfig() *TunnyPoolConfig {
