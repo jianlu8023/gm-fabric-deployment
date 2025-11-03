@@ -18,6 +18,7 @@ func TestNewAIControl(t *testing.T) {
 		DefaultModel:       "qwen3-32b",
 		Timeout:            9999,
 		InsecureSkipVerify: false,
+		UseToonFormat:      true, // 默认不使用TOON格式
 	}, logger.NewLoggerControl(nil))
 	if err != nil {
 		t.Fatal(err)

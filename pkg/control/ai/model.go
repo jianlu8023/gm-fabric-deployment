@@ -12,6 +12,17 @@ type Request struct {
 	ExtraParams map[string]interface{} `json:"extra_params,omitempty"` // 额外参数
 }
 
+type RequestTOON struct {
+	Model       string                 `json:"model,omitempty"`        // 模型名称
+	Prompt      string                 `json:"prompt,omitempty"`       // 提示词
+	Messages    string                 `json:"messages,omitempty"`     // 聊天消息列表
+	Temperature float64                `json:"temperature,omitempty"`  // 温度参数
+	MaxTokens   int                    `json:"max_tokens,omitempty"`   // 最大token数
+	TopP        float64                `json:"top_p,omitempty"`        // top_p参数
+	Stream      bool                   `json:"stream,omitempty"`       // 是否流式输出
+	ExtraParams map[string]interface{} `json:"extra_params,omitempty"` // 额外参数
+}
+
 // ChatMessage AI聊天消息结构体
 type ChatMessage struct {
 	Role    string `json:"role,omitempty"`    // 角色 (system, user, assistant)

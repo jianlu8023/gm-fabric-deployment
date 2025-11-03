@@ -198,9 +198,10 @@ func NewServerControlFromFile() (*Control, error) {
 	// 检查并创建AI控制器
 	aiConfig := configControl.GetAIConfig()
 	if aiConfig != nil && aiConfig.Enabled {
-		aiControl, err := ai.NewAIControl(configControl, control.GetLoggerControl())
+		aiControl, err := ai.NewAIControl(aiConfig, control.GetLoggerControl())
 		if err != nil {
 			control.logger.Errorf("[control] create ai control failed: %v", err)
+			return nil, err
 		} else {
 			control.aiControl = aiControl
 		}

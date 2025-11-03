@@ -6,6 +6,7 @@ toolchain go1.22.10
 
 replace (
 	github.com/Jeffail/gabs/v2 => github.com/Jeffail/gabs/v2 v2.7.0
+	github.com/alpkeskin/gotoon => ./third_partys/gotoon
 	github.com/cockroachdb/pebble => github.com/cockroachdb/pebble v1.1.0
 	github.com/dgraph-io/badger/v4 => github.com/dgraph-io/badger/v4 v4.5.0
 	github.com/docker/docker => github.com/docker/docker v28.0.1+incompatible
@@ -90,6 +91,7 @@ replace (
 
 require (
 	github.com/Jeffail/gabs/v2 v2.7.0 // json解析
+	github.com/alpkeskin/gotoon v0.1.0
 	github.com/casbin/casbin/v2 v2.122.0 // 权限控制
 	github.com/cockroachdb/pebble v1.1.0 // kv数据库 pebble
 	github.com/dgraph-io/badger/v4 v4.5.0 // kv数据库 badger

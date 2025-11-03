@@ -254,6 +254,7 @@ ai:
   default_model: "gpt-3.5-turbo"
   timeout: 30
   insecure_skip_verify: false
+  use_toon_format: false
   headers: {}
   #  headers:
   #    X-API-Key: "your-custom-header"

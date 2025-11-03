@@ -659,6 +659,7 @@ type AIConfig struct {
 	Timeout            int               `json:"timeout,omitempty" yaml:"timeout,omitempty" mapstructure:"timeout"`                                        // 超时时间(秒)
 	InsecureSkipVerify bool              `json:"insecure_skip_verify,omitempty" yaml:"insecure_skip_verify,omitempty" mapstructure:"insecure_skip_verify"` // 是否跳过证书验证
 	Headers            map[string]string `json:"headers,omitempty" yaml:"headers,omitempty" mapstructure:"headers"`                                        // 自定义请求头
+	UseToonFormat      bool              `json:"use_toon_format,omitempty" yaml:"use_toon_format,omitempty" mapstructure:"use_toon_format"`                // 是否使用TOON格式减少token使用
 }
 
 // String 返回AIConfig的字符串表示

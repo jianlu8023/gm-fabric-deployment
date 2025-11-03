@@ -17,10 +17,11 @@ import (
 
 // Control AI控制器
 type Control struct {
-	aiConfig *config.AIConfig
-	logger   *zap.SugaredLogger
-	once     sync.Once
-	client   *http.Client
+	aiConfig   *config.AIConfig
+	logger     *zap.SugaredLogger
+	once       sync.Once
+	client     *http.Client
+	toonEncode *ToonEncoder
 }
 
 // NewAIControl 创建AI控制器
@@ -32,7 +33,7 @@ func NewAIControl(aiConfig *config.AIConfig, loggerControl *logger.Control) (*Co
 		return nil, errors.New("ai is disabled")
 	}
 
-	aiLogger := loggerControl.GenLogger("ai")
+	aiLogger := loggerControl.GenLogger(logger.ModuleAI)
 	aiLogger.Infof("[control] starting new ai control...")
 
 	// 创建HTTP客户端
@@ -41,10 +42,14 @@ func NewAIControl(aiConfig *config.AIConfig, loggerControl *logger.Control) (*Co
 		SetTLSClientConfig(&tls.Config{InsecureSkipVerify: aiConfig.InsecureSkipVerify}).
 		SetRetry(3, 500, 2000)
 
+	// 创建TOON编码器
+	toonEncoder := NewToonEncoder(loggerControl.GenLogger("Toon"))
+
 	ctl := &Control{
-		aiConfig: aiConfig,
-		logger:   aiLogger,
-		client:   client,
+		aiConfig:   aiConfig,
+		logger:     aiLogger,
+		client:     client,
+		toonEncode: toonEncoder,
 	}
 
 	return ctl, nil
@@ -88,8 +93,96 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 		headers[k] = v
 	}
 
+	// 根据是否启用TOON格式决定使用哪种请求结构体
+	var requestBody []byte
+	var sendRequest interface{}
+
+	if c.aiConfig.UseToonFormat {
+		// 启用TOON格式，使用RequestTOON结构体
+		toonRequest := &Request{
+			Model:       request.Model,
+			Prompt:      request.Prompt,
+			Temperature: request.Temperature,
+			MaxTokens:   request.MaxTokens,
+			TopP:        request.TopP,
+			Stream:      request.Stream,
+			ExtraParams: request.ExtraParams,
+		}
+
+		// 处理聊天模式请求 - 只转换Messages中的Content为TOON格式
+		if len(request.Messages) > 0 {
+			// 创建新的Messages副本，只转换Content字段
+			convertedMessages := make([]ChatMessage, len(request.Messages))
+			for i, msg := range request.Messages {
+				convertedMessages[i] = ChatMessage{
+					Role: msg.Role,
+				}
+
+				// 尝试将Content转换为TOON格式
+				var contentData interface{}
+				if err := json.Unmarshal([]byte(msg.Content), &contentData); err == nil {
+					// Content是JSON格式，可以转换为TOON
+					toonStr, err := c.toonEncode.EncodeToToon(contentData)
+					if err != nil {
+						c.logger.Warnf("[control] failed to encode message content to TOON format, using original: %v", err)
+						convertedMessages[i].Content = msg.Content
+					} else {
+						// 记录大小差异
+						contentJSON, _ := json.Marshal(contentData)
+						jsonSize := len(contentJSON)
+						toonSize := len(toonStr)
+						reduction := float64(jsonSize-toonSize) / float64(jsonSize) * 100
+
+						c.logger.Infof("[control] message content token usage reduction - JSON: %d bytes, TOON: %d bytes, reduction: %.2f%%",
+							jsonSize, toonSize, reduction)
+
+						convertedMessages[i].Content = toonStr
+					}
+				} else {
+					// Content是普通文本，不需要转换
+					convertedMessages[i].Content = msg.Content
+					c.logger.Debugf("[control] message content is plain text, no TOON conversion needed")
+				}
+			}
+			toonRequest.Messages = convertedMessages
+
+		} else if !stringer.IsBlank(request.Prompt) {
+			// 处理补全模式请求 - 转换Prompt为TOON格式
+			var promptData interface{}
+			// 尝试解析Prompt为JSON对象，如果失败则作为普通字符串处理
+			if err := json.Unmarshal([]byte(request.Prompt), &promptData); err == nil {
+				// Prompt是JSON格式，可以转换为TOON
+				toonStr, err := c.toonEncode.EncodeToToon(promptData)
+				if err != nil {
+					c.logger.Warnf("[control] failed to encode prompt to TOON format, using JSON: %v", err)
+				} else {
+					// 记录大小差异
+					promptJSON, _ := json.Marshal(promptData)
+					jsonSize := len(promptJSON)
+					toonSize := len(toonStr)
+					reduction := float64(jsonSize-toonSize) / float64(jsonSize) * 100
+
+					c.logger.Infof("[control] prompt token usage reduction - JSON: %d bytes, TOON: %d bytes, reduction: %.2f%%",
+						jsonSize, toonSize, reduction)
+
+					// 将TOON格式的内容设置到Prompt字段
+					toonRequest.Prompt = toonStr
+				}
+			} else {
+				// Prompt是普通字符串，不需要转换
+				c.logger.Debugf("[control] prompt is plain text, no TOON conversion needed")
+			}
+		}
+
+		sendRequest = toonRequest
+	} else {
+		// 未启用TOON格式，使用原始Request结构体
+		sendRequest = request
+	}
+
 	// 构建请求体
-	requestBody, err := json.Marshal(request)
+	var err error
+	requestBody, err = json.Marshal(sendRequest)
 	if err != nil {
 		c.logger.Errorf("[control] failed to marshal request: %v", err)
 		return nil, err
@@ -110,7 +203,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 		headers["Cache-Control"] = "no-cache"
 		headers["Connection"] = "keep-alive"
 
-		return nil, c.sendStreamRequest(url, headers, request, callback)
+		return nil, c.sendStreamRequest(url, headers, requestBody, callback)
 	} else {
 		// 普通请求
 		if callback != nil {
@@ -147,7 +240,7 @@ func (c *Control) sendNormalRequest(url string, headers map[string]string, body 
 }
 
 // sendStreamRequest 发送流式请求
-func (c *Control) sendStreamRequest(url string, headers map[string]string, request *Request, callback StreamCallback) error {
+func (c *Control) sendStreamRequest(url string, headers map[string]string, requestBody []byte, callback StreamCallback) error {
 	// 定义流式回调函数
 	streamCallback := func(data []byte, err error) bool {
 		if err != nil {
@@ -170,7 +263,7 @@ func (c *Control) sendStreamRequest(url string, headers map[string]string, reque
 	}
 
 	// 发送流式请求
-	err := c.client.SetHeaders(headers).StreamPOST(url, request, streamCallback)
+	err := c.client.SetHeaders(headers).StreamPOST(url, requestBody, streamCallback)
 	if err != nil {
 		return err
 	}
@@ -186,7 +279,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		// 验证配置
 		if c.aiConfig.Enabled {
 			// if stringer.IsBlank(c.aiConfig.APIKey) {
-			// 	c.logger.Errorf("[control] ai service enabled but api key is empty")
+			// 	c.logger.Errorf("[control] Ai service enabled but api key is empty")
 			// 	if failedFunc != nil {
 			// 		failedFunc(ErrMissingAPIKey)
 			// 	}
