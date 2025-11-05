@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"math/rand/v2"
 	"os"
@@ -114,7 +115,29 @@ func main() {
 				Name:     "http-request",
 				Interval: time.Duration(rand.IntN(10-5)+5) * time.Second,
 				Task: func() {
-					client := http.NewClient().SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+
+					certPool := x509.NewCertPool()
+					rootPem, err := os.ReadFile("certs/openssl/root.crt")
+					if err != nil {
+						mainLogger.Errorf("read root.crt err: %v", err)
+						return
+					}
+					if ok := certPool.AppendCertsFromPEM(rootPem); !ok {
+						mainLogger.Errorf("append root.crt err")
+						return
+					}
+
+					keyPair, err := tls.LoadX509KeyPair("certs/openssl/hclient-chain.crt", "certs/openssl/hclient.key")
+					if err != nil {
+						mainLogger.Errorf("load key pair err: %v", err)
+						return
+					}
+
+					client := http.NewClient().SetTLSClientConfig(&tls.Config{
+						InsecureSkipVerify: false,
+						RootCAs:            certPool,
+						Certificates:       []tls.Certificate{keyPair},
+					})
 					var objJson interface{}
 					code, err := client.
 						GetJSON("https://127.0.0.1:8080/example/routers", map[string]interface{}{}, &objJson)

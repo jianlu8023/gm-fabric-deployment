@@ -1,7 +1,15 @@
-##### openssl 证书链
+# openssl 证书链 (root-> intermediate -> {http-authority,grpc-authority,docker-authority} -> {hserver,hclient,gserver,gclient})
 
+## 生成 root 证书
+
+* 生成 root 证书私钥
+
+```shell
 openssl genrsa -out root.key 4096
-# 编写 root.conf
+```
+
+* 编写 root.conf
+
 ```
 # openssl-root.cnf
 [ req ]
@@ -30,12 +38,22 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
 ```
 
+* 生成 root 证书
+
+```shell
 openssl req -new -x509 -nodes -key root.key -sha256 -days 3650 -out root.crt -config root.conf
+```
 
--------------------------------------------------------------
+## 生成 intermediate 证书 (作为中间证书)
 
+* 生成 intermediate 证书私钥
+
+```shell
 openssl genrsa -out intermediate.key 4096
-# 编写 intermediate.conf
+```
+
+* 编写 intermediate.conf
+
 ```
 # openssl-intermediate.cnf
 
@@ -63,11 +81,22 @@ keyUsage = critical, digitalSignature, cRLSign, keyCertSign
 
 ```
 
+* 签发 intermediate 证书
+
+```shell
 openssl req -new -key intermediate.key -sha256 -out intermediate.csr -config intermediate.conf
 openssl x509 -req -in intermediate.csr -CA root.crt -CAkey root.key -CAcreateserial -out intermediate.crt -days 1825 -sha256 -extfile intermediate.conf -extensions v3_intermediate_ca
+```
 
+## 生成 {xxx}-authority 证书
 
----------------------------------------------------------------------
+* 生成 {xxx}-authority 证书私钥
+
+```shell
+openssl genrsa -out {xxx}-authority.key 4096
+```
+
+* 编写 {xxx}-authority 证书配置文件
 
 ```
 # openssl-applications-authority.cnf
@@ -97,10 +126,22 @@ extendedKeyUsage = serverAuth, clientAuth  # 允许签发服务器和客户端�
 
 ```
 
----------------------------------------------------------------------
+* 签发 {xxx}-authority 证书
 
-http证书
+```shell
+openssl req -new -key {xxx}-authority.key -sha256 -out {xxx}-authority.csr -config {xxx}-authority.cnf
+openssl x509 -req -in {xxx}-authority.csr -CA intermediate.crt -CAkey intermediate.key -CAcreateserial -out {xxx}-authority.crt -days 1095 -sha256 -extfile {xxx}-authority.cnf -extensions v3_application_ca
+```
+
+## 生成 hserver 证书
+
+* 生成 hserver 证书私钥
+
+```shell
 openssl genrsa -out hserver.key 4096
+```
+
+* 编写 hserver 证书配置文件
 
 ```
 # openssl-http.conf
@@ -153,14 +194,23 @@ subjectAltName = @alt_names
 
 ```
 
+* 签发 hserver 证书
+
+```shell
 openssl req -new -key hserver.key -sha256 -out hserver.csr -config hserver.conf
-openssl x509 -req -in hserver.csr -CA intermediate.crt -CAkey intermediate.key -CAcreateserial -out hserver.crt -days 365 -sha256 -extfile hserver.conf -extensions v3_http_cert
+openssl x509 -req -in hserver.csr -CA http-authority.crt -CAkey http-authority.key -CAcreateserial -out hserver.crt -days 365 -sha256 -extfile hserver.conf -extensions v3_http_cert
+```
 
--------------------------------------------------------------------------
+## 生成 gserver 证书
 
-grpc server
+* 生成 gserver 证书私钥
+
+```shell
 openssl genrsa -out gserver.key 4096
-# 编写 gserver.conf
+```
+
+* 编写 gserver.conf
+
 ```
 [req]
 default_bits = 2048
@@ -202,11 +252,21 @@ subjectAltName = @alt_names # 确保SANs最终包含在签发的证书中
 
 ```
 
-后续步骤和http一样 最后x509的那步骤 extensions v3_grpc_server_cert
+* 生成 gserver 证书
 
--------------------------------------------------------------------------
+```shell
+# 后续步骤和 hserver 一样 最后 x509 的那步 extensions v3_grpc_server_cert
+```
 
-grpc client
+## 生成 gclient 证书
+
+* 生成 gclient 证书私钥
+
+```shell
+# 省略
+```
+
+* 编写 gclient 证书配置文件
 
 ```
 [req]
@@ -250,50 +310,106 @@ subjectAltName = @alt_names
 
 ```
 
--extensions v3_grpc_client_cert
+* 签发 gclient 证书
 
+```shell
+# -extensions v3_grpc_client_cert
+```
 
-##### 生成客户端证书
-1. cp gserver.conf lclient.conf
-2. 修改lclient.conf 中的commonName dns信息
-3. openssl genrsa -out lclient.key 2048
-4. openssl req -new -key lclient.key -out lclient.csr -config lclient.conf
-5. openssl x509 -req -in lclient.csr -CA root-ca.crt -CAkey root-ca.key -CAcreateserial -out lclient.crt -days 365 -sha256 -extensions v3_req -extfile lclient.conf
+# linux 添加根证书到系统信任中
 
+```
+sudo cp root.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+```
 
-###### gmssl
-0. 安装
-	git clone https://github.com/guanzhi/GmSSL.git gmssl
-	https://github.com/guanzhi/GmSSL/archive/master.zip
-	这里 v3.1.1 貌似不是最新的代码 使用master分支执行
-	cd gmssl && git checkout v3.1.1
-    mkdir build && cd build
-	cmake ..
-    make
-    make test
-    sudo make install
-	ldd /usr/local/bin/gmssl # 能够看到缺少libgmssl.so.3  # 如果不缺就不放
-	sudo cp ./bin/libgmssl.so.3 /usr/bin/ # 应该是libgmssl.so.3 缺失
-	gmssl version
-1. root key
-	gmssl sm2keygen -out gmroot.key -pubout gmroot.pub -pass xxxxxxxx
-	gmssl certgen -C CN -ST Xinjiang -O jianlu -OU IT -CN root -days 3650 -key gmroot.key -pass xxxxxxxx -out gmroot.crt -key_usage keyCertSign -key_usage cRLSign -key_usage digitalSignature -gen_authority_key_id -gen_subject_key_id -ca
+# 简化版颁发证书 (root -> {hserver,gserver,lserver等等})
 
-2. http
-	gmssl sm2keygen -out gmhserver.key -pass gmhttp -pubout gmhserver.pub
-	gmssl reqgen -C CN -ST Xinjiang -L Urumqi -O jianlu -OU IT -CN http -key gmroot.key -pass xxxxxxxx -out gmhserver.csr
-	gmssl reqsign -in gmhserver.csr -days 365 -key_usage keyCertSign -path_len_constraint 0 -cacert gmroot.crt -key gmroot.key -pass xxxxxxxx -gen_authority_key_id -gen_subject_key_id -serial_len 12 -out gmhserver.crt -subject_dns_name localhost -subject_dns_name jianlu.site -subject_dns_name http -issuer_dns_name 127.0.0.1 -issuer_dns_name 192.168.58.110 -ext_key_usage serverAuth
+```text
+cp gserver.conf lclient.conf
+修改lclient.conf 中的commonName dns信息
+openssl genrsa -out lclient.key 2048
+openssl req -new -key lclient.key -out lclient.csr -config lclient.conf
+openssl x509 -req -in lclient.csr -CA root-ca.crt -CAkey root-ca.key -CAcreateserial -out lclient.crt -days 365 -sha256 -extensions v3_req -extfile lclient.conf
+```
 
-# ca证书颁发签名证书和加密证书
-    gmssl sm2keygen -pass 1234 -out signkey.pem
-    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key signkey.pem -pass 1234 -out signreq.csr
-    gmssl reqsign -in signreq.csr -days 365 -key_usage digitalSignature -cacert cacert.cer -key cakey.pem -pass 1234 -out signcert.cer
+# gmssl (编写时的v3版本只能签发带密码的证书)
 
-    gmssl sm2keygen -pass 1234 -out enckey.pem
-    gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key enckey.pem -pass 1234 -out encreq.csr
-    gmssl reqsign -in encreq.csr -days 365 -key_usage keyEncipherment -cacert cacert.cer -key cakey.pem -pass 1234 -out enccert.cer
+## 安装
 
-# 合并ca证书和签名证书 并验证
-    cat signcert.cer > certs.cer
-    cat cacert.cer >> certs.cer
-    gmssl certverify -in certs.cer -cacert rootcacert.cer
+```shell
+git clone https://github.com/guanzhi/GmSSL.git gmssl
+# https://github.com/guanzhi/GmSSL/archive/master.zip 链接 
+# 这里 v3.1.1 貌似不是最新的代码 使用master分支执行
+cd gmssl && git checkout v3.1.1 # 这一步 应该使用master分支
+mkdir build && cd build
+cmake ..
+make
+make test
+sudo make install
+ldd /usr/local/bin/gmssl # 能够看到缺少libgmssl.so.3 # 如果不缺就不放
+sudo cp ./bin/libgmssl.so.3 /usr/bin/ # 应该是libgmssl.so.3 缺失
+gmssl version
+```
+
+## 生成 root 证书 (使用gmssl 生成的证书其实用不成(或者说自己不会用), 因为是带密码的)
+
+* 生成 root 证书私钥
+
+```shell
+gmssl sm2keygen -out gmroot.key -pubout gmroot.pub -pass xxxxxxxx
+```
+
+* 生成 root 证书
+
+```shell
+gmssl certgen -C CN -ST Xinjiang -O jianlu -OU IT -CN root -days 3650 -key gmroot.key -pass xxxxxxxx -out gmroot.crt -key_usage keyCertSign -key_usage cRLSign -key_usage digitalSignature -gen_authority_key_id -gen_subject_key_id -ca
+```
+
+## 生成http 证书
+
+* 生成 http 证书私钥
+
+```shell
+gmssl sm2keygen -out gmhserver.key -pass gmhttp -pubout gmhserver.pub
+```
+
+* 生成 http csr
+
+```shell
+gmssl reqgen -C CN -ST Xinjiang -L Urumqi -O jianlu -OU IT -CN http -key gmroot.key -pass xxxxxxxx -out gmhserver.csr
+```
+
+* 生成 http 证书
+
+```shell
+gmssl reqsign -in gmhserver.csr -days 365 -key_usage keyCertSign -path_len_constraint 0 -cacert gmroot.crt -key gmroot.key -pass xxxxxxxx -gen_authority_key_id -gen_subject_key_id -serial_len 12 -out gmhserver.crt -subject_dns_name localhost -subject_dns_name jianlu.site -subject_dns_name http -issuer_dns_name 127.0.0.1 -issuer_dns_name 192.168.58.110 -ext_key_usage serverAuth
+```
+
+## 证书颁发签名证书和加密证书 (如果使用gm证书启动http服务,需要两套keypair 一套签名 一套加密)
+
+```shell
+gmssl sm2keygen -pass 1234 -out signkey.pem
+gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key signkey.pem -pass 1234 -out signreq.csr
+gmssl reqsign -in signreq.csr -days 365 -key_usage digitalSignature -cacert cacert.cer -key cakey.pem -pass 1234 -out signcert.cer
+
+gmssl sm2keygen -pass 1234 -out enckey.pem
+gmssl reqgen -C CN -ST Beijing -L Haidian -O PKU -OU CS -CN localhost -key enckey.pem -pass 1234 -out encreq.csr
+gmssl reqsign -in encreq.csr -days 365 -key_usage keyEncipherment -cacert cacert.cer -key cakey.pem -pass 1234 -out enccert.cer
+```
+
+## 合并ca证书和签名证书 并验证
+
+```shell
+cat signcert.cer > certs.cer
+cat cacert.cer >> certs.cer
+gmssl certverify -in certs.cer -cacert rootcacert.cer
+```
+
+# tongsuossl (openssl的gm实现,可签发不带密码的证书)
+
+## 安装
+
+```shell
+
+```
