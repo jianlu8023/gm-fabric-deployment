@@ -10,6 +10,12 @@ datasource:
   max_idle_conn: 10
   max_open_conn: 50
   log_in_console: true
+  tls_enabled: false
+  tls_cert_file: certs/openssl/mysqlclient.crt
+  tls_key_file: certs/openssl/mysqlclient.key
+  tls_ca_file: certs/openssl/root.crt
+  tls_skip_verify: false
+  tls_server_name: mysql
 docker:
   enabled: false
   host: unix:///var/run/docker.sock

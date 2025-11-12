@@ -47,6 +47,12 @@ type DataSourceConfig struct {
 	MaxIdleConn    int    `json:"max_idle_conn,omitempty" yaml:"max_idle_conn,omitempty" mapstructure:"max_idle_conn"`          // 最大空闲连接数
 	MaxOpenConn    int    `json:"max_open_conn,omitempty" yaml:"max_open_conn,omitempty" mapstructure:"max_open_conn"`          // 最大连接数
 	LogInConsole   bool   `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`       // 是否在控制台打印日志
+	TLSEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                // 是否启用TLS
+	TLSCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`          // TLS证书文件
+	TLSKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`             // TLS私钥文件
+	TLSCAFile      string `json:"tls_ca_file,omitempty" yaml:"tls_ca_file,omitempty" mapstructure:"tls_ca_file"`                // TLS CA证书文件
+	TLSSkipVerify  bool   `json:"tls_skip_verify,omitempty" yaml:"tls_skip_verify,omitempty" mapstructure:"tls_skip_verify"`    // 是否跳过TLS验证
+	TLSServerName  string `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty" mapstructure:"tls_server_name"`    // TLS服务器名称
 }
 
 // GenMysqlDSN 生成mysql的dsn
@@ -56,8 +62,14 @@ func (d *DataSourceConfig) GenMysqlDSN() string {
 	// 如果需要正确处理time.Time 需要携带parseTime参数
 	// 需要支持完整utf-8 需要设置charset=utf8mb4
 	// 格式 "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
-	return fmt.Sprintf("%s:%s@tcp(%s:%v)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%v)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		d.UserName, d.Password, d.Host, d.Port, d.DataBaseName)
+	// 添加TLS配置
+	if d.TLSEnabled {
+		// 使用自定义TLS配置
+		dsn += "&tls=custom"
+	}
+	return dsn
 }
 
 // GenTiDBDSN 生成tidb的dsn
