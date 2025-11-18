@@ -7,8 +7,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	
+
 	"github.com/jianlu8023/go-tools/v2/pkg/colour"
+	"github.com/jianlu8023/go-tools/v2/pkg/nethelper/ip4"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
@@ -53,7 +54,7 @@ func LoadConfig() error {
 		return err
 	}
 
-	Config.IP, err = eutil.GetLocalIP()
+	Config.IP, err = ip4.GetLocalIP()
 	if err != nil {
 		log.Println(colour.Yellow("获取不到本机的局域网IP"))
 	}

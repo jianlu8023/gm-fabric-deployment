@@ -4,7 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fatih/color"
+	"github.com/jianlu8023/go-tools/v2/pkg/colour"
+	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container"
+	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container/verify"
 	"github.com/spf13/viper"
 	"github.com/urfave/cli/v2"
 )
@@ -63,5 +65,5 @@ func configAction(c *cli.Context) error {
 	if err := viper.WriteConfig(); err != nil {
 		return cli.Exit(err.Error(), 11)
 	}
-	return cli.Exit(color.GreenString("配置成功~"), 0)
+	return cli.Exit(colour.Green("配置成功~"), 0)
 }

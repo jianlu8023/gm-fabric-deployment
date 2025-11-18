@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/colour"
@@ -9,8 +8,6 @@ import (
 )
 
 func main() {
-	fmt.Println("hello world")
-
 	var err error
 	defer func() {
 		if err != nil {

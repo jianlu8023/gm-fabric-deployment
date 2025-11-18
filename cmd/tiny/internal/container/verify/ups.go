@@ -3,6 +3,7 @@ package verify
 import (
 	"errors"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container"
 	"github.com/spf13/viper"
 )
@@ -56,16 +57,16 @@ func (u *upsVerifier) Handle() error {
 		fallthrough
 	case USER:
 		// 100 设置用户名，需配置文件中有密码
-		return eutil.If(viper.GetString("account.custom.pass") != "", nil, errors.New("未设置密码"))
+		return check.IF(viper.GetString("account.custom.pass") != "", nil, errors.New("未设置密码"))
 	case PASS | SECU:
 		// 011 开启访问登录，并设置密码，穿透下去检查是否有帐户名
 		fallthrough
 	case PASS:
 		// 010 设置密码，需配置文件中有账户名
-		return eutil.If(viper.GetString("account.custom.user") != "", nil, errors.New("未设置帐号"))
+		return check.IF(viper.GetString("account.custom.user") != "", nil, errors.New("未设置帐号"))
 	case SECU:
 		// 001 开启访问登录
-		return eutil.If(viper.GetString("account.custom.user") != "" && viper.GetString("account.custom.pass") != "", nil, errors.New("未设置帐号和密码"))
+		return check.IF(viper.GetString("account.custom.user") != "" && viper.GetString("account.custom.pass") != "", nil, errors.New("未设置帐号和密码"))
 	case 0:
 		// 000 打印当前是否开启访问登录
 		return nil

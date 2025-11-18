@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/fatih/color"
-	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/colour"
+	myhttp "github.com/jianlu8023/go-tools/v2/pkg/http"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/version"
 	"github.com/urfave/cli/v2"
@@ -85,7 +85,7 @@ func (u *update) updateList() error {
 		return err
 	}
 	for _, tag := range tags {
-		fmt.Println(color.GreenString("%v", tag.TagName))
+		fmt.Println(colour.Green(fmt.Sprintf("%v", tag.TagName)))
 	}
 	return nil
 }
@@ -94,21 +94,16 @@ func (u *update) updateVersion(version string) error {
 	if err := checkVersion(version); err != nil {
 		return err
 	}
-
-	_, body, errs := gorequest.New().Get(conf.VersionByTagURL + version).End()
-	if len(errs) != 0 {
-		return errors.New("网络抖动了一下～请重试")
-	}
 	var versionInfo = new(ReleaseInfo)
-	err := json.Unmarshal([]byte(body), versionInfo)
-	if err != nil {
-		return errors.New("网络抖动了一下～请重试")
-	}
+	_, err := myhttp.GetJSON(fmt.Sprintf("%s%s", conf.VersionByTagURL, version), map[string]interface{}{}, versionInfo)
 
+	if err != nil {
+		return err
+	}
 	// 检查当前系统是 linux 还是 mac 还是 windows决定 Assets 用哪个,然后进行下载
 	name, ok := conf.ReleaseName[conf.Config.OS]
 	if !ok {
-		u.msg = color.YellowString("暂时没有适合您的系统的版本，请自行下载编译")
+		u.msg = colour.Yellow("暂时没有适合您的系统的版本，请自行下载编译")
 		return nil
 	}
 	var (
@@ -122,43 +117,38 @@ func (u *update) updateVersion(version string) error {
 		}
 	}
 	if assert == nil {
-		u.msg = color.YellowString("暂时没有适合您的系统的版本，请自行下载编译")
+		u.msg = colour.Yellow("暂时没有适合您的系统的版本，请自行下载编译")
 		return nil
 	}
 
 	// 进行下载
 	p, err := os.UserHomeDir()
 	if err != nil {
-		u.msg = color.HiYellowString("获取 Home 目录失败")
+		u.msg = colour.HiYellow("获取 Home 目录失败")
 		p = conf.Config.Pwd
 	}
 	path := filepath.Join(p, assert.Name)
-	errs = eutil.DownloadBinary(assert.DownloadURL, path)
-	if len(errs) != 0 {
-		return errors.New("网络抖动了一下～请重试")
+	_, err = myhttp.DownloadFile(assert.DownloadURL, path)
+
+	if err != nil {
+		return err
 	}
-	u.msg += color.HiGreenString("更新完成～, 文件存放于: %s", path)
+	u.msg += colour.HiGreen(fmt.Sprintf("更新完成～, 文件存放于: %s", path))
 	return nil
 }
 
 func (u *update) updateLatest() error {
 	// 获取当前最新版本
-	req := gorequest.New()
-	_, body, errs := req.Get(conf.VersionLatestURL).End()
-	if len(errs) != 0 {
-		return errors.New("网络抖动了一下～请重试")
-	}
-
 	var latestInfo = new(ReleaseInfo)
-	err := json.Unmarshal([]byte(body), latestInfo)
+	_, err := myhttp.GetJSON(conf.VersionLatestURL, map[string]interface{}{}, latestInfo)
 	if err != nil {
-		return errors.New("网络抖动了一下～请重试")
+		return err
 	}
 
 	// 检查最新版本与当前版本
 	latestVersion := splitVersion(latestInfo.TagName)
 	if u.isLatest(latestVersion) {
-		u.msg = color.GreenString("当前已是最新版本~")
+		u.msg = colour.Green("当前已是最新版本~")
 		return nil
 	}
 	// 进行更新
@@ -208,14 +198,14 @@ func checkVersion(version string) error {
 }
 
 func getVersionList() ([]TagList, error) {
-	_, body, errs := gorequest.New().Set("Accept", "application/vnd.github.v3+json").Get(constant.VersionListURL).End()
-	if len(errs) != 0 {
-		return nil, errors.New("网络抖动了一下～请重试")
-	}
 	var tags []TagList
-	err := json.Unmarshal([]byte(body), &tags)
+	_, err := myhttp.NewClient().SetHeader("Accept", "application/vnd.github.v3+json").GetJSON(
+		conf.VersionListURL, map[string]interface{}{},
+		tags,
+	)
 	if err != nil {
-		return nil, errors.New("网络抖动了一下～请重试")
+		return nil, err
 	}
+
 	return tags, nil
 }

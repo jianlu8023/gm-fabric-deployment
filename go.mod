@@ -19,15 +19,17 @@ replace (
 	github.com/go-logr/zapr => github.com/go-logr/zapr v1.3.0
 	github.com/go-ozzo/ozzo-validation/v4 => github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/go-playground/validator/v10 => github.com/go-playground/validator/v10 v10.24.0
+	github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v1.7.0
 	github.com/golang-jwt/jwt/v5 => github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.3
 	github.com/ipfs-cluster/ipfs-cluster => github.com/ipfs-cluster/ipfs-cluster v1.0.8
 	// github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
 	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
-	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20251102130800-0df534254bc9
+	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20251118130925-20bda08169ec
 	github.com/jinzhu/copier => github.com/jinzhu/copier v0.4.0
 	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
+	github.com/mitchellh/go-homedir => github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure => github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
 	github.com/pion/interceptor => github.com/pion/interceptor v0.1.41
@@ -42,6 +44,7 @@ replace (
 	github.com/tuneinsight/lattigo/v6 => github.com/tuneinsight/lattigo/v6 v6.1.1
 	github.com/ulule/limiter/v3 => github.com/ulule/limiter/v3 v3.11.2
 	github.com/unrolled/secure => github.com/unrolled/secure v1.17.0
+	github.com/urfave/cli/v2 => github.com/urfave/cli/v2 v2.27.1
 	github.com/valyala/fasttemplate => github.com/valyala/fasttemplate v1.2.2
 	go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc => go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.11.0
@@ -106,6 +109,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // logr 一些开源项目中使用的log抽象层
 	github.com/go-logr/zapr v1.3.0 // logr 使用zapr logr的zap实现
 	github.com/go-playground/validator/v10 v10.25.0 // 验证参数
+	github.com/go-sql-driver/mysql v1.7.0
 	github.com/golang-jwt/jwt/v5 v5.3.0 // jwt
 	github.com/gorilla/websocket v1.5.3 // websocket
 	github.com/ipfs-cluster/ipfs-cluster v1.0.8 // ipfs-cluster的sdk
@@ -125,6 +129,7 @@ require (
 	github.com/libp2p/go-libp2p v0.40.0 // libp2p
 	github.com/libp2p/go-libp2p-kad-dht v0.29.0 // dht
 	github.com/mingrammer/commonregex v1.0.1 // 正则表达式
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0 // mapstructure
 	github.com/mojocn/base64Captcha v1.3.8 // 验证码
 	github.com/multiformats/go-multiaddr v0.14.0 // multiaddr
@@ -146,6 +151,7 @@ require (
 	github.com/tuneinsight/lattigo/v6 v6.1.1 // go实现的同态加密 bfv bgv ckks
 	github.com/ulule/limiter/v3 v3.11.2 // ulule 限流
 	github.com/unrolled/secure v0.0.0-00010101000000-000000000000 // secure gin中间件
+	github.com/urfave/cli/v2 v2.27.1
 	github.com/valyala/bytebufferpool v1.0.0 // bytebufferpool 构建json对象 没研究
 	github.com/valyala/fasttemplate v1.2.2 // fasttemplate 没研究
 	github.com/valyala/quicktemplate v1.8.0 // quicktemplate 没研究
@@ -259,6 +265,7 @@ require (
 	github.com/cockroachdb/tokenbucket v0.0.0-20230807174530-cc333fc44b06 // indirect
 	github.com/containerd/cgroups v1.1.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/crackcomm/go-gitignore v0.0.0-20241020182519-7843d2ba8fdf // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/davidlazar/go-crypto v0.0.0-20200604182044-b73af7476f6c // indirect
@@ -285,7 +292,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-resty/resty/v2 v2.13.1 // indirect
-	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
@@ -354,7 +360,6 @@ require (
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
-	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -413,6 +418,7 @@ require (
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.24.10 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
@@ -430,6 +436,7 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/whyrusleeping/go-keyspace v0.0.0-20160322163242-5b898ac5add1 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
