@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+	
 	glog "github.com/jianlu8023/go-logger/v2"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
@@ -74,32 +74,40 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 			EncodeName:     zapcore.FullNameEncoder,
 		}),
-		glog.WithFileConfig(zapcore.EncoderConfig{
-			MessageKey:       "msg",
-			LevelKey:         "level",
-			TimeKey:          "time",
-			NameKey:          "logger",
-			CallerKey:        "caller",
-			StacktraceKey:    "stacktrace",
-			ConsoleSeparator: "  ",
-			// FunctionKey:    "func",
-			LineEnding:     zapcore.DefaultLineEnding,
-			EncodeLevel:    glog.CustomCapitalLevelEncoder,
-			EncodeTime:     glog.CustomTimeEncoder,
-			EncodeDuration: zapcore.SecondsDurationEncoder,
-			EncodeCaller:   zapcore.ShortCallerEncoder,
-			EncodeName:     zapcore.FullNameEncoder,
-		}),
-		glog.WithFileOutPut(),
-		glog.WithRotateLog(&glog.RotateLogConfig{
-			FileName: c.loggerConfig.FilePath,
-			// MaxAge:       fmt.Sprintf("%vd", c.loggerConfig.MaxAge),
-			MaxAge:    (time.Duration(c.loggerConfig.MaxAge) * time.Hour * 24).String(),
-			LocalTime: true,
-			// RotationTime: fmt.Sprintf("%vh", c.loggerConfig.RotationTime),
-			RotationTime: (time.Duration(c.loggerConfig.RotationTime) * time.Hour).String(),
-		}),
-		glog.WithFileLogLevel("debug"),
+	}
+
+	if !stringer.IsBlank(c.loggerConfig.FilePath) {
+		opts = append(opts,
+			glog.WithFileConfig(zapcore.EncoderConfig{
+				MessageKey:       "msg",
+				LevelKey:         "level",
+				TimeKey:          "time",
+				NameKey:          "logger",
+				CallerKey:        "caller",
+				StacktraceKey:    "stacktrace",
+				ConsoleSeparator: "  ",
+				// FunctionKey:    "func",
+				LineEnding:     zapcore.DefaultLineEnding,
+				EncodeLevel:    glog.CustomCapitalLevelEncoder,
+				EncodeTime:     glog.CustomTimeEncoder,
+				EncodeDuration: zapcore.SecondsDurationEncoder,
+				EncodeCaller:   zapcore.ShortCallerEncoder,
+				EncodeName:     zapcore.FullNameEncoder,
+			}),
+			glog.WithFileOutPut(),
+			glog.WithFileLogLevel("debug"),
+		)
+		
+		if c.loggerConfig.MaxAge>0 && c.loggerConfig.RotationTime>0{
+			opts=append(opts,glog.WithRotateLog(&glog.RotateLogConfig{
+				FileName: c.loggerConfig.FilePath,
+				// MaxAge:       fmt.Sprintf("%vd", c.loggerConfig.MaxAge),
+				MaxAge:    (time.Duration(c.loggerConfig.MaxAge) * time.Hour * 24).String(),
+				LocalTime: true,
+				// RotationTime: fmt.Sprintf("%vh", c.loggerConfig.RotationTime),
+				RotationTime: (time.Duration(c.loggerConfig.RotationTime) * time.Hour).String(),
+			}))
+		}
 	}
 
 	// 设置stack 日志界别 当日志级别高于stack日志级别时，才会打印stack信息
