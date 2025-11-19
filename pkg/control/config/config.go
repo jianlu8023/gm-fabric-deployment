@@ -681,28 +681,45 @@ func (a *AIConfig) String() string {
 	return string(pretty)
 }
 
+// CertificateConfig 证书配置结构体
+type CertificateConfig struct {
+	Enabled     bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                // 是否启用证书功能
+	DefaultAlgo string `json:"default_algo,omitempty" yaml:"default_algo,omitempty" mapstructure:"default_algo"` // 默认算法 (RSA/ECC/SM2)
+	RootSubject string `json:"root_subject,omitempty" yaml:"root_subject,omitempty" mapstructure:"root_subject"` // 根证书主题信息，使用/分割(/OU=/O=/CN等)
+	CertPath    string `json:"cert_path,omitempty" yaml:"cert_path,omitempty" mapstructure:"cert_path"`          // 证书存储路径
+}
+
+// String 返回CertificateConfig的字符串表示
+// @return string CertificateConfig的字符串表示
+func (c *CertificateConfig) String() string {
+	pretty, _ := json.MarshalPretty(c)
+	return string(pretty)
+}
+
 // Config 配置
 type Config struct {
-	GrpcConfig        *GrpcConfig        `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                   // grpc配置
-	LoggerConfig      *LoggerConfig      `json:"logger_config,omitempty" yaml:"logger_config,omitempty" mapstructure:"logger"`             // logger配置
-	HttpConfig        *HttpServerConfig  `json:"http_config,omitempty" yaml:"http_config,omitempty" mapstructure:"http"`                   // http配置
-	Libp2pConfig      *Libp2pConfig      `json:"libp2p_config,omitempty" yaml:"libp2p_config,omitempty" mapstructure:"libp2p"`             // libp2p配置
-	DataSourceConfig  *DataSourceConfig  `json:"datasource_config,omitempty" yaml:"datasource_config,omitempty" mapstructure:"datasource"` // 数据源配置
-	DockerConfig      *DockerConfig      `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`             // docker配置
-	IpfsConfig        *IpfsConfig        `json:"ipfs_config,omitempty" yaml:"ipfs_config,omitempty" mapstructure:"ipfs"`                   // IPFS配置
-	CaptchaConfig     *CaptchaConfig     `json:"captcha_config,omitempty" yaml:"captcha_config,omitempty" mapstructure:"captcha"`          // 验证码配置
-	EmailConfig       *EmailConfig       `json:"email_config,omitempty" yaml:"email_config,omitempty" mapstructure:"email"`                // 邮件配置
-	AntsPoolConfig    *AntsPoolConfig    `json:"ants_pool_config,omitempty" yaml:"ants_pool_config,omitempty" mapstructure:"ants_pool"`    // Ants线程池配置
-	FabricCAConfig    *FabricCAConfig    `json:"fabric_ca_config,omitempty" yaml:"fabric_ca_config,omitempty" mapstructure:"fabric_ca"`    // Fabric CA配置
-	WebRTCConfig      *WebRTCConfig      `json:"webrtc_config,omitempty" yaml:"webrtc_config,omitempty" mapstructure:"webrtc"`             // WebRTC配置
-	AuthzConfig       *AuthzConfig       `json:"authz_config,omitempty" yaml:"authz_config,omitempty" mapstructure:"authz"`                // 权限控制配置
-	MFAConfig         *MFAConfig         `json:"mfa_config,omitempty" yaml:"mfa_config,omitempty" mapstructure:"mfa"`                      // MFA配置
-	TracerConfig      *TracerConfig      `json:"tracer_config,omitempty" yaml:"tracer_config,omitempty" mapstructure:"tracer"`
+	GrpcConfig        *GrpcConfig        `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                         // grpc配置
+	LoggerConfig      *LoggerConfig      `json:"logger_config,omitempty" yaml:"logger_config,omitempty" mapstructure:"logger"`                   // logger配置
+	HttpConfig        *HttpServerConfig  `json:"http_config,omitempty" yaml:"http_config,omitempty" mapstructure:"http"`                         // http配置
+	Libp2pConfig      *Libp2pConfig      `json:"libp2p_config,omitempty" yaml:"libp2p_config,omitempty" mapstructure:"libp2p"`                   // libp2p配置
+	DataSourceConfig  *DataSourceConfig  `json:"datasource_config,omitempty" yaml:"datasource_config,omitempty" mapstructure:"datasource"`       // 数据源配置
+	DockerConfig      *DockerConfig      `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`                   // docker配置
+	IpfsConfig        *IpfsConfig        `json:"ipfs_config,omitempty" yaml:"ipfs_config,omitempty" mapstructure:"ipfs"`                         // IPFS配置
+	CaptchaConfig     *CaptchaConfig     `json:"captcha_config,omitempty" yaml:"captcha_config,omitempty" mapstructure:"captcha"`                // 验证码配置
+	EmailConfig       *EmailConfig       `json:"email_config,omitempty" yaml:"email_config,omitempty" mapstructure:"email"`                      // 邮件配置
+	AntsPoolConfig    *AntsPoolConfig    `json:"ants_pool_config,omitempty" yaml:"ants_pool_config,omitempty" mapstructure:"ants_pool"`          // Ants线程池配置
+	FabricCAConfig    *FabricCAConfig    `json:"fabric_ca_config,omitempty" yaml:"fabric_ca_config,omitempty" mapstructure:"fabric_ca"`          // Fabric CA配置
+	WebRTCConfig      *WebRTCConfig      `json:"webrtc_config,omitempty" yaml:"webrtc_config,omitempty" mapstructure:"webrtc"`                   // WebRTC配置
+	AuthzConfig       *AuthzConfig       `json:"authz_config,omitempty" yaml:"authz_config,omitempty" mapstructure:"authz"`                      // 权限控制配置
+	MFAConfig         *MFAConfig         `json:"mfa_config,omitempty" yaml:"mfa_config,omitempty" mapstructure:"mfa"`                            // MFA配置
+	TracerConfig      *TracerConfig      `json:"tracer_config,omitempty" yaml:"tracer_config,omitempty" mapstructure:"tracer"`                   // 链路追踪配置
 	IpfsClusterConfig *IpfsClusterConfig `json:"ipfs_cluster_config,omitempty" yaml:"ipfs_cluster_config,omitempty" mapstructure:"ipfs_cluster"` // ipfs cluster配置
 	RedisConfig       *RedisConfig       `json:"redis_config,omitempty" yaml:"redis_config,omitempty" mapstructure:"redis"`                      // Redis配置
 	KvDatabaseConfig  *KvDatabaseConfig  `json:"kvdatabase_config,omitempty" yaml:"kvdatabase_config,omitempty" mapstructure:"kvdatabase"`       // KV数据库配置
+	AIConfig          *AIConfig          `json:"ai_config,omitempty" yaml:"ai_config,omitempty" mapstructure:"ai"`                               // AI配置
+	CertificateConfig *CertificateConfig `json:"certificate_config,omitempty" yaml:"certificate_config,omitempty" mapstructure:"certificate"`    // 证书配置
+
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
-	AIConfig *AIConfig `json:"ai_config,omitempty" yaml:"ai_config,omitempty" mapstructure:"ai"` // AI配置
 }
 
 // String 返回配置的字符串表示

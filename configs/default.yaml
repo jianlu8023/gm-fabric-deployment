@@ -264,3 +264,9 @@ ai:
   headers: {}
   #  headers:
   #    X-API-Key: "your-custom-header"
+# 证书配置示例
+certificate:
+  enabled: true
+  default_algo: "RSA"  # 默认算法 (RSA/ECC/SM2)
+  root_subject: "/CN=Example Root CA/O=Example Organization/OU=IT Department/C=CN/ST=Xinjiang/L=Urumqi"  # 根证书主题信息，使用/分割
+  cert_path: "certs/generated"  # 证书存储路径

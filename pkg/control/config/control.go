@@ -179,6 +179,14 @@ func (c *Control) GetAIConfig() *AIConfig {
 	return c.config.AIConfig
 }
 
+// GetCertificateConfig 获取证书配置
+// @return *CertificateConfig 证书配置
+func (c *Control) GetCertificateConfig() *CertificateConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.CertificateConfig
+}
+
 // GetTunnyPoolConfig 获取Tunny线程池配置
 // @return *TunnyPoolConfig Tunny线程池配置
 // func (c *Control) GetTunnyPoolConfig() *TunnyPoolConfig {
