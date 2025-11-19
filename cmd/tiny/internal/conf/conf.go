@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/jianlu8023/go-tools/v2/pkg/nethelper/ip4"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const (
@@ -42,27 +42,31 @@ type config struct {
 	Password   string // 访问登录的密码
 }
 
-func LoadConfig() error {
+func LoadConfig(logger *zap.SugaredLogger) error {
 	home, err := homedir.Dir()
 	if err != nil {
+		logger.Errorf("获取用户目录失败: %v", err)
 		return errors.New("获取配置目录失败")
 	}
-	cfgDir := filepath.Join(home, "tiny")
+	cfgDir := filepath.Join(home, ".config", "tiny")
 	cfgFile := filepath.Join(cfgDir, "config.yaml")
-	err = loadUserConfig(cfgDir, cfgFile)
+	err = loadUserConfig(cfgDir, cfgFile, logger)
 	if err != nil {
+		logger.Errorf("加载用户配置失败: %v", err)
 		return err
 	}
 
 	Config.IP, err = ip4.GetLocalIP()
 	if err != nil {
-		log.Println(colour.Yellow("获取不到本机的局域网IP"))
+		logger.Errorf("获取本机局域网IP失败: %v", err)
+		return err
 	}
 
 	Config.RootPath = viper.GetString("server.road")
 	if len(Config.RootPath) < 1 {
 		wd, err := os.Getwd()
 		if err != nil {
+			logger.Errorf("获取不到共享目录: %v", err)
 			return errors.New("获取不到共享路径")
 		}
 		Config.RootPath = wd
@@ -79,7 +83,7 @@ func LoadConfig() error {
 }
 
 // loadUserConfig 负责加载用户配置文件,如果文件不存在则创建并设置默认值
-func loadUserConfig(cfgDir, cfgFile string) error {
+func loadUserConfig(cfgDir, cfgFile string, logger *zap.SugaredLogger) error {
 	viper.AddConfigPath(cfgDir)
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
@@ -88,11 +92,12 @@ read:
 	if err := viper.ReadInConfig(); err != nil {
 		switch err.(type) {
 		case viper.ConfigFileNotFoundError:
-			log.Println(colour.Yellow("未找到「自定义配置文件」, 正在创建中..."))
-			if err := createCfgFile(cfgDir, cfgFile); err != nil {
+			logger.Infof(colour.Yellow("未找到「自定义配置文件」, 正在创建中..."))
+			if err := createCfgFile(cfgDir, cfgFile, logger); err != nil {
+				logger.Errorf("创建用户配置文件失败: %v", err)
 				return err
 			}
-			log.Println(colour.Green(fmt.Sprintf("创建成功，配置文件位于: %s", cfgFile)))
+			logger.Infof(colour.Green(fmt.Sprintf("创建成功，配置文件位于: %s", cfgFile)))
 			goto read
 		case viper.ConfigParseError:
 			return errors.New("已找到「自定义配置文件」，但是解析失败！")
@@ -103,7 +108,7 @@ read:
 	return nil
 }
 
-func createCfgFile(cfgDir, cfgFile string) error {
+func createCfgFile(cfgDir, cfgFile string, logger *zap.SugaredLogger) error {
 	_, err := os.Stat(cfgDir)
 	if os.IsNotExist(err) {
 		_ = os.MkdirAll(cfgDir, os.ModePerm)
@@ -113,7 +118,7 @@ func createCfgFile(cfgDir, cfgFile string) error {
 		return errors.New("创建自定义配置文件失败！")
 	}
 	if err := setDefault(); err != nil {
-		log.Println(colour.Yellow("设置默认配置失败！"))
+		logger.Errorf(colour.Yellow("设置默认配置失败！"))
 	}
 	return nil
 }

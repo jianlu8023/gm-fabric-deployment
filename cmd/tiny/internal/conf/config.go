@@ -27,6 +27,11 @@ var Config = &config{
 }
 
 const (
+	ROOT            string = "/"
+	FileGroupPrefix string = "/file"
+)
+
+const (
 	VersionListURL   = "https://api.github.com/repos/TCP404/OneTiny/tags"
 	VersionLatestURL = "https://api.github.com/repos/TCP404/OneTiny/releases/latest"
 	VersionByTagURL  = "https://api.github.com/repos/TCP404/OneTiny/releases/tags/"
