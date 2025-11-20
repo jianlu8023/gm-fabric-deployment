@@ -98,7 +98,7 @@ func (c *Control) ensureRootCertificate() error {
 	}
 
 	// 创建证书和私钥目录
-	if _, err := path.CreateDir(c.config.CertPath); err != nil {
+	if created, err := path.CreateDir(c.config.CertPath); !created && err != nil {
 		return fmt.Errorf("failed to create cert path: %w", err)
 	}
 

@@ -11,12 +11,4 @@ type EmailControl interface {
 	// @param message *EmailMessage 邮件消息对象
 	// @return error 发送过程中的错误
 	SendEmail(message *EmailMessage) error
-
-	// StartUp 启动邮件服务
-	// @param failedFunc func(err error) 启动失败回调函数
-	StartUp(failedFunc func(err error))
-
-	// Shutdown 关闭邮件服务
-	// @return error 关闭过程中的错误
-	Shutdown() error
 }

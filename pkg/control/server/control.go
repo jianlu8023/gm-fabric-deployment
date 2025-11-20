@@ -11,6 +11,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
 	"github.com/jianlu8023/golang-example/pkg/control/authz"
 	"github.com/jianlu8023/golang-example/pkg/control/captcha"
+	"github.com/jianlu8023/golang-example/pkg/control/certificate"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
@@ -56,6 +57,7 @@ type Control struct {
 	kvDatabaseControl  *kvdatabase.Control  // KvDatabase控制器
 	webRTCControl      *webrtc.Control      // WebRTC控制器
 	aiControl          *ai.Control          // AI控制器
+	certificateControl *certificate.Control // 证书控制器
 	logger             *zap.SugaredLogger   // 日志记录器
 	once               sync.Once            // 确保StartUp只执行一次
 	mutex              sync.RWMutex         // 读写锁，保护控制器访问
@@ -104,6 +106,12 @@ func NewServerControlFromFile() (*Control, error) {
 			return nil, err
 		}
 		control.tracerControl = tracerControl
+	}
+
+	certificateConfig := configControl.GetCertificateConfig()
+	if certificateConfig != nil && certificateConfig.Enabled {
+		certificateControl := certificate.NewCertificateControl(certificateConfig, control.GetLoggerControl())
+		control.certificateControl = certificateControl
 	}
 
 	// 检查并创建GRPC控制器
@@ -438,6 +446,12 @@ func (c *Control) GetAIControl() *ai.Control {
 	return c.aiControl
 }
 
+func (c *Control) GetCertificateControl() *certificate.Control {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.certificateControl
+}
+
 // NewServerControl 创建服务器控制器
 // @description 使用预初始化的各个子控制器创建服务器控制器实例
 // @param dockerControl *docker.Control Docker控制器
@@ -483,6 +497,7 @@ func NewServerControl(dockerControl *docker.Control,
 	kvDatabaseControl *kvdatabase.Control,
 	webRTCControl *webrtc.Control,
 	aiControl *ai.Control,
+	certificateControl *certificate.Control,
 ) *Control {
 	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
 	serverLogger.Infof("[control] starting new server control...")
@@ -510,6 +525,7 @@ func NewServerControl(dockerControl *docker.Control,
 		kvDatabaseControl:  kvDatabaseControl,
 		webRTCControl:      webRTCControl,
 		aiControl:          aiControl,
+		certificateControl: certificateControl,
 	}
 }
 
@@ -532,6 +548,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.loggerControl != nil {
 			c.logger.Debugf("[control] starting up logger server...")
 			c.loggerControl.StartUp(failedFunc)
+		}
+
+		if c.certificateControl != nil {
+			c.logger.Debugf("[control] starting up certificate server...")
+			c.certificateControl.StartUp(failedFunc)
 		}
 
 		if c.tracerControl != nil {
@@ -784,6 +805,14 @@ func (c *Control) Shutdown() error {
 		c.logger.Debugf("[control] shutting down tracer server...")
 		if err := c.tracerControl.Shutdown(); err != nil {
 			c.logger.Errorf("[control] shutdown tracer server err: %v", err)
+			errs = append(errs, err)
+		}
+	}
+
+	if c.certificateControl != nil {
+		c.logger.Debugf("[control] shutting down certificate server...")
+		if err := c.certificateControl.Shutdown(); err != nil {
+			c.logger.Errorf("[control] shutdown certificate server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
