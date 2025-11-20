@@ -608,115 +608,119 @@ func (c *Control) registerDefaultRouter() {
 	if c.config.Pprof {
 		c.logger.Info("[control] pprof enabled, registering pprof routes")
 		pprofUri := fmt.Sprintf("%s", "debug/pprof")
-		c.RegisterRouter([]commonhttp.RouterHandler{
-			&commonhttp.MyRouter{
-				Name:            "pprof",
-				Uri:             fmt.Sprintf("%v/", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Index),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprof",
+		c.RegisterGroupedRouter(&commonhttp.MyGroupRouter{
+			Group: pprofUri,
+			Routers: []commonhttp.RouterHandler{
+				&commonhttp.MyRouter{
+					Name:            "pprof",
+					Uri:             "/",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Index),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprof",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofCmdLine",
+					Uri:             "/cmdline",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Cmdline),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofCmdLine",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofProfile",
+					Uri:             "/profile",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Profile),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofProfile",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofSymbol",
+					Uri:             "/symbol",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Symbol),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofSymbol",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofSymbol",
+					Uri:             "/symbol",
+					Method:          http.MethodPost,
+					HandlerFunc:     gin.WrapF(pprof.Symbol),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofSymbol",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofTrace",
+					Uri:             "/trace",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Trace),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofTrace",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofAllocs",
+					Uri:             "/allocs",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Handler("allocs").ServeHTTP),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofAllocs",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofBlock",
+					Uri:             "/block",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Handler("block").ServeHTTP),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofBlock",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofGoroutine",
+					Uri:             "/goroutine",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Handler("goroutine").ServeHTTP),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofGoroutine",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofHeap",
+					Uri:             "/heap",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Handler("heap").ServeHTTP),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofHeap",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofMutex",
+					Uri:             "/mutex",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Handler("mutex").ServeHTTP),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofMutex",
+				},
+				&commonhttp.MyRouter{
+					Name:            "pprofThreadcreate",
+					Uri:             "/threadcreate",
+					Method:          http.MethodGet,
+					HandlerFunc:     gin.WrapF(pprof.Handler("threadcreate").ServeHTTP),
+					EnableJWtVerify: false,
+					Enabled:         true,
+					Desc:            "pprofThreadcreate",
+				},
 			},
-			&commonhttp.MyRouter{
-				Name:            "pprofCmdLine",
-				Uri:             fmt.Sprintf("%v/cmdline", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Cmdline),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofCmdLine",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofProfile",
-				Uri:             fmt.Sprintf("%v/profile", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Profile),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofProfile",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofSymbol",
-				Uri:             fmt.Sprintf("%v/symbol", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Symbol),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofSymbol",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofSymbol",
-				Uri:             fmt.Sprintf("%v/symbol", pprofUri),
-				Method:          http.MethodPost,
-				HandlerFunc:     gin.WrapF(pprof.Symbol),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofSymbol",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofTrace",
-				Uri:             fmt.Sprintf("%v/trace", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Trace),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofTrace",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofAllocs",
-				Uri:             fmt.Sprintf("%v/allocs", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Handler("allocs").ServeHTTP),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofAllocs",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofBlock",
-				Uri:             fmt.Sprintf("%v/block", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Handler("block").ServeHTTP),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofBlock",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofGoroutine",
-				Uri:             fmt.Sprintf("%v/goroutine", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Handler("goroutine").ServeHTTP),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofGoroutine",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofHeap",
-				Uri:             fmt.Sprintf("%v/heap", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Handler("heap").ServeHTTP),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofHeap",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofMutex",
-				Uri:             fmt.Sprintf("%v/mutex", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Handler("mutex").ServeHTTP),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofMutex",
-			},
-			&commonhttp.MyRouter{
-				Name:            "pprofThreadcreate",
-				Uri:             fmt.Sprintf("%v/threadcreate", pprofUri),
-				Method:          http.MethodGet,
-				HandlerFunc:     gin.WrapF(pprof.Handler("threadcreate").ServeHTTP),
-				EnableJWtVerify: false,
-				Enabled:         true,
-				Desc:            "pprofThreadcreate",
-			},
+			MiddlewaresFunc: nil,
 		})
 	}
 
@@ -729,41 +733,96 @@ func (c *Control) GetSessionManager() jwt.SessionManager {
 	return c.sessionManager
 }
 
+// validateRouters 验证路由处理器列表的有效性
+func (c *Control) validateRouters(routers []commonhttp.RouterHandler) error {
+	if len(routers) == 0 {
+		return nil
+	}
+
+	// 检查是否有nil路由
+	for i, router := range routers {
+		if router == nil {
+			return fmt.Errorf("router at index %d is nil", i)
+		}
+
+		// 检查路由基本信息是否完整
+		if stringer.IsBlank(router.GetUri()) {
+			return fmt.Errorf("router at index %d has empty URI", i)
+		}
+		if stringer.IsBlank(router.GetMethod()) {
+			return fmt.Errorf("router at index %d has empty method", i)
+		}
+		if router.GetHandlerFunc() == nil {
+			return fmt.Errorf("router at index %d has nil handler function", i)
+		}
+	}
+
+	return nil
+}
+
 // RegisterRouter 注册HTTP路由
 // @param routers []commonhttp.RouterHandler 路由处理器列表
 func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
-	c.logger.Info("[control] register router...")
+	// 验证路由有效性
+	if err := c.validateRouters(routers); err != nil {
+		c.logger.Errorf("[control] invalid routers: %v", err)
+		return
+	}
+
+	c.logger.Infof("[control] registering %d router(s)...", len(routers))
 	c.RegisterGroupedRouter(&commonhttp.MyGroupRouter{
 		Group:           "default",
 		Routers:         routers,
 		MiddlewaresFunc: make([]gin.HandlerFunc, 0),
 	})
-	c.logger.Info("[control] register router success...")
+	c.logger.Info("[control] routers registered successfully")
 }
 
 // RegisterGroupedRouter 注册支持路由组的HTTP路由
 // @param groupRouter commonhttp.GroupRouterHandler 路由组处理器
 func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandler) {
-	c.logger.Info("[control] register group router...")
+	if groupRouter == nil {
+		c.logger.Error("[control] groupRouter is nil")
+		return
+	}
+
 	c.routerMutex.Lock()
 	defer c.routerMutex.Unlock()
 
-	// 使用routerGroups存储
 	groupName := groupRouter.GetGroup()
 	if stringer.IsBlank(groupName) {
 		groupName = "default"
 	}
 
+	routers := groupRouter.GetRouterHandler()
+	middlewares := groupRouter.GetMiddlewares()
+
+	// 验证路由有效性
+	if err := c.validateRouters(routers); err != nil {
+		c.logger.Errorf("[control] invalid routers in group %s: %v", groupName, err)
+		return
+	}
+
+	c.logger.Infof("[control] registering %d router(s) and %d middleware(s) for group '%s'...", len(routers), len(middlewares), groupName)
+
 	// 首先判断 routerGroups 是否有 groupName
 	if existingGroup, exists := c.routerGroups[groupName]; exists {
-		// 存在则合并 Routers MiddlewareFunc
-		c.logger.Debugf("[control] merge existing router group: %s", groupName)
+		// 存在则合并 Routers 和 MiddlewaresFunc
+		c.logger.Debugf("[control] merging with existing router group: %s", groupName)
+
+		// 预分配足够容量的切片，减少内存分配
+		existingRouters := existingGroup.GetRouterHandler()
+		existingMiddlewares := existingGroup.GetMiddlewares()
 
 		// 合并路由
-		mergedRouters := append(existingGroup.GetRouterHandler(), groupRouter.GetRouterHandler()...)
+		mergedRouters := make([]commonhttp.RouterHandler, 0, len(existingRouters)+len(routers))
+		mergedRouters = append(mergedRouters, existingRouters...)
+		mergedRouters = append(mergedRouters, routers...)
 
 		// 合并中间件
-		mergedMiddlewares := append(existingGroup.GetMiddlewares(), groupRouter.GetMiddlewares()...)
+		mergedMiddlewares := make([]gin.HandlerFunc, 0, len(existingMiddlewares)+len(middlewares))
+		mergedMiddlewares = append(mergedMiddlewares, existingMiddlewares...)
+		mergedMiddlewares = append(mergedMiddlewares, middlewares...)
 
 		// 创建新的组路由器
 		mergedGroupRouter := &commonhttp.MyGroupRouter{
@@ -774,13 +833,14 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 
 		// 更新路由组
 		c.routerGroups[groupName] = mergedGroupRouter
+		c.logger.Debugf("[control] merged router group '%s': total %d routers, %d middlewares", groupName, len(mergedRouters), len(mergedMiddlewares))
 	} else {
 		// 不存在则直接添加
-		c.logger.Debugf("[control] add new router group: %s", groupName)
+		c.logger.Debugf("[control] adding new router group: %s", groupName)
 		c.routerGroups[groupName] = groupRouter
 	}
 
-	c.logger.Info("[control] register grouped router success...")
+	c.logger.Infof("[control] router group '%s' registered successfully", groupName)
 }
 
 func (c *Control) deduplicateRouters() {
@@ -792,44 +852,102 @@ func (c *Control) deduplicateRouters() {
 
 		// 获取该组的所有路由
 		routers := groupRouter.GetRouterHandler()
+		routerCount := len(routers)
 
-		// 使用map来跟踪已经见过的路由键（uri+method组合）
+		// 如果没有路由，直接跳过
+		if routerCount == 0 {
+			continue
+		}
+
+		// 检查是否有重复路由
 		seenRouters := make(map[string]bool)
-		uniqueRouters := make([]commonhttp.RouterHandler, 0, len(routers))
+		hasDuplicates := false
 
-		// 遍历路由，去除重复项
+		// 第一次遍历：检查是否有重复
 		for _, router := range routers {
-			// 创建路由的唯一键，使用URI和方法的组合
 			key := fmt.Sprintf("%s:%s", router.GetUri(), router.GetMethod())
+			if seenRouters[key] {
+				hasDuplicates = true
+				break
+			}
+			seenRouters[key] = true
+		}
 
-			// 如果还没有见过这个路由键，则添加到唯一路由列表中
+		// 如果没有重复路由，直接跳过后续处理
+		if !hasDuplicates {
+			c.logger.Debugf("[control] no duplicate routers found in group: %s", groupName)
+			continue
+		}
+
+		// 第二次遍历：创建唯一路由列表
+		uniqueRouters := make([]commonhttp.RouterHandler, 0, routerCount)
+		seenRouters = make(map[string]bool) // 重置map
+
+		for _, router := range routers {
+			key := fmt.Sprintf("%s:%s", router.GetUri(), router.GetMethod())
 			if !seenRouters[key] {
 				seenRouters[key] = true
 				uniqueRouters = append(uniqueRouters, router)
 				c.logger.Debugf("[control] added unique router: %s %s", router.GetMethod(), router.GetUri())
 			} else {
-				// c.logger.Debugf("[control] skipped duplicate router: %s %s", router.GetMethod(), router.GetUri())
+				c.logger.Debugf("[control] skipped duplicate router: %s %s", router.GetMethod(), router.GetUri())
 			}
 		}
 
-		// 如果发现了重复路由，需要创建一个新的组路由器
-		if len(uniqueRouters) != len(routers) {
-			c.logger.Debugf("[control] removed %d duplicate routers from group: %s", len(routers)-len(uniqueRouters), groupName)
+		// 创建新的组路由器替换原有的
+		dupCount := routerCount - len(uniqueRouters)
+		c.logger.Debugf("[control] removed %d duplicate routers from group: %s", dupCount, groupName)
 
-			// 创建新的组路由器替换原有的
-			newGroupRouter := &commonhttp.MyGroupRouter{
-				Group:           groupRouter.GetGroup(),
-				Routers:         uniqueRouters,
-				MiddlewaresFunc: groupRouter.GetMiddlewares(),
-			}
-
-			// 更新路由组
-			c.routerGroups[groupName] = newGroupRouter
+		newGroupRouter := &commonhttp.MyGroupRouter{
+			Group:           groupRouter.GetGroup(),
+			Routers:         uniqueRouters,
+			MiddlewaresFunc: groupRouter.GetMiddlewares(),
 		}
+
+		// 更新路由组
+		c.routerGroups[groupName] = newGroupRouter
 	}
 
-	// 对于GroupRouterHandler，去重逻辑在组内处理
 	c.logger.Debug("[control] finished deduplicate routers...")
+}
+
+// registerRouter 注册单个路由到指定的gin路由组
+func (c *Control) registerRouter(ginGroup *gin.RouterGroup, router commonhttp.RouterHandler) {
+	if !router.IsEnabled() {
+		return // 跳过禁用的路由
+	}
+
+	// 构建URL路径
+	var url string
+	if strings.HasPrefix(router.GetUri(), "/") {
+		url = router.GetUri()
+	} else {
+		url = "/" + router.GetUri()
+	}
+
+	handlerFunc := router.GetHandlerFunc()
+	httpMethod := router.GetMethod()
+
+	// 根据HTTP方法注册路由
+	switch httpMethod {
+	case http.MethodGet:
+		ginGroup.GET(url, handlerFunc)
+	case http.MethodPost:
+		ginGroup.POST(url, handlerFunc)
+	case http.MethodPut:
+		ginGroup.PUT(url, handlerFunc)
+	case http.MethodDelete:
+		ginGroup.DELETE(url, handlerFunc)
+	case http.MethodPatch:
+		ginGroup.PATCH(url, handlerFunc)
+	case http.MethodOptions:
+		ginGroup.OPTIONS(url, handlerFunc)
+	case http.MethodHead:
+		ginGroup.HEAD(url, handlerFunc)
+	default:
+		// 默认使用GET方法
+		ginGroup.GET(url, handlerFunc)
+	}
 }
 
 // initRouters 初始化所有注册的路由
@@ -837,29 +955,8 @@ func (c *Control) initRouters() {
 	c.logger.Info("[control] start init routers...")
 
 	// 创建用于存储gin路由组的映射
+	// key: 组名, value: 该组的主路由组
 	ginRouterGroups := make(map[string]*gin.RouterGroup)
-
-	// 预创建默认组的认证和非认证路由组
-	var defaultAuthGroup *gin.RouterGroup
-	var defaultNoAuthGroup *gin.RouterGroup
-
-	// 先创建默认组，因为它是特殊的
-	if defaultGroup, exists := c.routerGroups["default"]; exists {
-		// 创建默认组的gin路由组
-		defaultGinGroup := c.ginRouter.Group("/")
-
-		// 获取默认组的中间件
-		defaultMiddlewares := defaultGroup.GetMiddlewares()
-		for _, middleware := range defaultMiddlewares {
-			defaultGinGroup.Use(middleware)
-		}
-
-		// 创建默认组的认证和非认证子组
-		defaultAuthGroup = defaultGinGroup.Group("/")
-		defaultAuthGroup.Use(jwt.EnableJWT(c.logger, c.sessionManager))
-
-		defaultNoAuthGroup = defaultGinGroup.Group("/")
-	}
 
 	// 遍历所有路由组
 	for groupName, groupRouter := range c.routerGroups {
@@ -871,125 +968,63 @@ func (c *Control) initRouters() {
 
 		c.logger.Debugf("[control] processing router group: %s with %d routers and %d middlewares", groupName, len(routers), len(middlewares))
 
-		// 如果是默认组，使用预创建的路由组
-		if groupName == "default" {
-			// 注册该组下的所有路由
-			for _, router := range routers {
-				if !router.IsEnabled() {
-					continue // 跳过禁用的路由
-				}
-
-				// 构建URL路径
-				var url string
-				if strings.HasPrefix(router.GetUri(), "/") {
-					url = router.GetUri()
-				} else {
-					url = "/" + router.GetUri()
-				}
-
-				handlerFunc := router.GetHandlerFunc()
-				httpMethod := router.GetMethod()
-
-				c.logger.Debugf("[control] register router uri %s method %s in default group", url, httpMethod)
-
-				// 根据是否需要JWT验证和HTTP方法选择合适的路由组和注册方法
-				if router.GetEnableJWtVerify() {
-					switch httpMethod {
-					case http.MethodGet:
-						defaultAuthGroup.GET(url, handlerFunc)
-					case http.MethodPost:
-						defaultAuthGroup.POST(url, handlerFunc)
-					case http.MethodPut:
-						defaultAuthGroup.PUT(url, handlerFunc)
-					case http.MethodDelete:
-						defaultAuthGroup.DELETE(url, handlerFunc)
-					case http.MethodPatch:
-						defaultAuthGroup.PATCH(url, handlerFunc)
-					case http.MethodOptions:
-						defaultAuthGroup.OPTIONS(url, handlerFunc)
-					case http.MethodHead:
-						defaultAuthGroup.HEAD(url, handlerFunc)
-					default:
-						// 默认使用GET方法
-						defaultAuthGroup.GET(url, handlerFunc)
-					}
-				} else {
-					switch httpMethod {
-					case http.MethodGet:
-						defaultNoAuthGroup.GET(url, handlerFunc)
-					case http.MethodPost:
-						defaultNoAuthGroup.POST(url, handlerFunc)
-					case http.MethodPut:
-						defaultNoAuthGroup.PUT(url, handlerFunc)
-					case http.MethodDelete:
-						defaultNoAuthGroup.DELETE(url, handlerFunc)
-					case http.MethodPatch:
-						defaultNoAuthGroup.PATCH(url, handlerFunc)
-					case http.MethodOptions:
-						defaultNoAuthGroup.OPTIONS(url, handlerFunc)
-					case http.MethodHead:
-						defaultNoAuthGroup.HEAD(url, handlerFunc)
-					default:
-						// 默认使用GET方法
-						defaultNoAuthGroup.GET(url, handlerFunc)
-					}
-				}
-			}
+		// 获取或创建该组的主路由组
+		var mainGroup *gin.RouterGroup
+		if existingGroup, exists := ginRouterGroups[groupName]; exists {
+			mainGroup = existingGroup
 		} else {
-			// 对于非默认组，创建或获取对应的gin路由组
-			var group *gin.RouterGroup
-			if existingGroup, exists := ginRouterGroups[groupName]; exists {
-				group = existingGroup
-			} else {
-				// 创建新的gin路由组
-				group = c.ginRouter.Group(groupName)
-				// 应用组级别中间件
-				for _, middleware := range middlewares {
-					group.Use(middleware)
-				}
-				ginRouterGroups[groupName] = group
-				c.logger.Debugf("[control] created new gin router group: %s", groupName)
+			// 根据组名决定路由组的基础路径
+			basePath := "/"
+			if !stringer.CompareIgnoreCase(groupName, "default") {
+				basePath = "/" + groupName
 			}
 
-			// 注册该组下的所有路由
-			for _, router := range routers {
-				if !router.IsEnabled() {
-					continue // 跳过禁用的路由
-				}
-
-				// 构建URL路径（相对于组的路径）
-				var url string
-				if strings.HasPrefix(router.GetUri(), "/") {
-					url = router.GetUri()
+			// 添加上下文路径
+			fullPath := ""
+			if !stringer.CompareIgnoreCase(c.config.ContextPath, "") {
+				// 确保ContextPath以/开头
+				if !strings.HasPrefix(c.config.ContextPath, "/") {
+					fullPath = "/" + c.config.ContextPath
 				} else {
-					url = "/" + router.GetUri()
+					fullPath = c.config.ContextPath
 				}
-
-				handlerFunc := router.GetHandlerFunc()
-				httpMethod := router.GetMethod()
-
-				c.logger.Debugf("[control] register router uri %s method %s in group %s", url, httpMethod, groupName)
-
-				// 注册路由到对应的组
-				switch httpMethod {
-				case http.MethodGet:
-					group.GET(url, handlerFunc)
-				case http.MethodPost:
-					group.POST(url, handlerFunc)
-				case http.MethodPut:
-					group.PUT(url, handlerFunc)
-				case http.MethodDelete:
-					group.DELETE(url, handlerFunc)
-				case http.MethodPatch:
-					group.PATCH(url, handlerFunc)
-				case http.MethodOptions:
-					group.OPTIONS(url, handlerFunc)
-				case http.MethodHead:
-					group.HEAD(url, handlerFunc)
-				default:
-					// 默认使用GET方法
-					group.GET(url, handlerFunc)
+				// 添加basePath（如果不是根路径）
+				if !stringer.CompareIgnoreCase(basePath, "/") {
+					// 确保basePath前没有重复的/
+					if strings.HasSuffix(fullPath, "/") {
+						fullPath += basePath[1:]
+					} else {
+						fullPath += basePath
+					}
 				}
+			} else {
+				fullPath = basePath
+			}
+
+			// 创建新的gin路由组
+			mainGroup = c.ginRouter.Group(fullPath)
+			// 应用组级别中间件
+			for _, middleware := range middlewares {
+				mainGroup.Use(middleware)
+			}
+			ginRouterGroups[groupName] = mainGroup
+			c.logger.Debugf("[control] created new gin router group: %s with full path: %s", groupName, fullPath)
+		}
+
+		// 为当前组创建认证和非认证子组
+		authGroup := mainGroup.Group("/")
+		authGroup.Use(jwt.EnableJWT(c.logger, c.sessionManager))
+
+		noAuthGroup := mainGroup.Group("/")
+
+		// 注册该组下的所有路由
+		for _, router := range routers {
+			if router.GetEnableJWtVerify() {
+				c.logger.Debugf("[control] register router uri %s method %s in %s auth group", router.GetUri(), router.GetMethod(), groupName)
+				c.registerRouter(authGroup, router)
+			} else {
+				c.logger.Debugf("[control] register router uri %s method %s in %s no-auth group", router.GetUri(), router.GetMethod(), groupName)
+				c.registerRouter(noAuthGroup, router)
 			}
 		}
 	}
