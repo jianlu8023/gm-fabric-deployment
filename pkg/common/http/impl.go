@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// MyRouter 基础路由实现
 type MyRouter struct {
 	Name            string                 `json:"name,omitempty" yaml:"router_name,omitempty"`
 	Uri             string                 `json:"uri,omitempty" yaml:"router_uri,omitempty"`
@@ -47,4 +48,25 @@ func (r *MyRouter) IsEnabled() bool {
 // GetDesc 获取路由描述
 func (r *MyRouter) GetDesc() string {
 	return r.Desc
+}
+
+type MyGroupRouter struct {
+	Routers         []RouterHandler   `json:"routers" yaml:"routers"`
+	Group           string            `json:"group" yaml:"group"`
+	MiddlewaresFunc []gin.HandlerFunc `json:"-" yaml:"-"`
+}
+
+// GetRouterHandler 获取路由处理器
+func (r *MyGroupRouter) GetRouterHandler() []RouterHandler {
+	return r.Routers
+}
+
+// GetGroup 获取路由组
+func (r *MyGroupRouter) GetGroup() string {
+	return r.Group
+}
+
+// GetMiddlewares 获取中间件
+func (r *MyGroupRouter) GetMiddlewares() []gin.HandlerFunc {
+	return r.MiddlewaresFunc
 }

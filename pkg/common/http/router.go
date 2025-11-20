@@ -36,3 +36,13 @@ type RouterHandler interface {
 	// GetEnableJWtVerify 获取是否启用jwt验证
 	GetEnableJWtVerify() bool
 }
+
+// GroupRouterHandler 扩展RouterHandler接口，添加路由组支持
+type GroupRouterHandler interface {
+	// GetRouterHandler 获取路由处理器
+	GetRouterHandler() []RouterHandler
+	// GetGroup 获取路由组
+	GetGroup() string
+	// GetMiddlewares 获取中间件
+	GetMiddlewares() []gin.HandlerFunc
+}

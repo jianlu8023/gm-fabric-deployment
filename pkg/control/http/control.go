@@ -54,11 +54,11 @@ type Control struct {
 	gmTlsConfig    *gmtls.Config
 	ctx            context.Context
 	logger         *zap.SugaredLogger
-	routers        []commonhttp.RouterHandler
 	routerMutex    sync.RWMutex
 	sessionManager jwt.SessionManager
 	once           sync.Once
 	tracerControl  *tracer.Control
+	routerGroups   map[string]commonhttp.GroupRouterHandler
 }
 
 // NewWebServerControl 创建Web服务器控制器
@@ -102,11 +102,12 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	webLogger.Debug("[control] generate http control...")
 	control := &Control{
-		config:    serverConfig,
-		server:    srv,
-		ctx:       ctx,
-		logger:    webLogger,
-		ginRouter: engine,
+		config:       serverConfig,
+		server:       srv,
+		ctx:          ctx,
+		logger:       webLogger,
+		ginRouter:    engine,
+		routerGroups: make(map[string]commonhttp.GroupRouterHandler),
 	}
 
 	// 应用所有选项
@@ -593,7 +594,7 @@ func (c *Control) registerDefaultRouter() {
 					_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "routers")
 					defer span.End()
 					commonhttp.SuccessResponse(ctx, gin.H{
-						"routers": c.routers,
+						"routers": c.routerGroups,
 					})
 				},
 				Enabled:         true,
@@ -732,102 +733,263 @@ func (c *Control) GetSessionManager() jwt.SessionManager {
 // @param routers []commonhttp.RouterHandler 路由处理器列表
 func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
 	c.logger.Info("[control] register router...")
-	c.routerMutex.Lock()
-	c.routers = append(c.routers, routers...)
-	c.routerMutex.Unlock()
-	c.logger.Debug("[control] deduplicate routers...")
-	c.deduplicateRouters()
-
+	c.RegisterGroupedRouter(&commonhttp.MyGroupRouter{
+		Group:           "default",
+		Routers:         routers,
+		MiddlewaresFunc: make([]gin.HandlerFunc, 0),
+	})
 	c.logger.Info("[control] register router success...")
+}
+
+// RegisterGroupedRouter 注册支持路由组的HTTP路由
+// @param groupRouter commonhttp.GroupRouterHandler 路由组处理器
+func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandler) {
+	c.logger.Info("[control] register group router...")
+	c.routerMutex.Lock()
+	defer c.routerMutex.Unlock()
+
+	// 使用routerGroups存储
+	groupName := groupRouter.GetGroup()
+	if stringer.IsBlank(groupName) {
+		groupName = "default"
+	}
+
+	// 首先判断 routerGroups 是否有 groupName
+	if existingGroup, exists := c.routerGroups[groupName]; exists {
+		// 存在则合并 Routers MiddlewareFunc
+		c.logger.Debugf("[control] merge existing router group: %s", groupName)
+
+		// 合并路由
+		mergedRouters := append(existingGroup.GetRouterHandler(), groupRouter.GetRouterHandler()...)
+
+		// 合并中间件
+		mergedMiddlewares := append(existingGroup.GetMiddlewares(), groupRouter.GetMiddlewares()...)
+
+		// 创建新的组路由器
+		mergedGroupRouter := &commonhttp.MyGroupRouter{
+			Group:           groupName,
+			Routers:         mergedRouters,
+			MiddlewaresFunc: mergedMiddlewares,
+		}
+
+		// 更新路由组
+		c.routerGroups[groupName] = mergedGroupRouter
+	} else {
+		// 不存在则直接添加
+		c.logger.Debugf("[control] add new router group: %s", groupName)
+		c.routerGroups[groupName] = groupRouter
+	}
+
+	c.logger.Info("[control] register grouped router success...")
 }
 
 func (c *Control) deduplicateRouters() {
 	c.logger.Debug("[control] starting deduplicate routers...")
-	c.routerMutex.RLock()
-	defer c.routerMutex.RUnlock()
-	after := make([]commonhttp.RouterHandler, 0, len(c.routers))
-	seen := make(map[string]struct{}, len(c.routers))
 
-	for _, router := range c.routers {
-		if _, ok := seen[router.GetUri()+"_"+router.GetMethod()]; ok {
-			// 已经存在
-			continue
+	// routerGroups 每个组都进行去重
+	for groupName, groupRouter := range c.routerGroups {
+		c.logger.Debugf("[control] deduplicating routers in group: %s", groupName)
+
+		// 获取该组的所有路由
+		routers := groupRouter.GetRouterHandler()
+
+		// 使用map来跟踪已经见过的路由键（uri+method组合）
+		seenRouters := make(map[string]bool)
+		uniqueRouters := make([]commonhttp.RouterHandler, 0, len(routers))
+
+		// 遍历路由，去除重复项
+		for _, router := range routers {
+			// 创建路由的唯一键，使用URI和方法的组合
+			key := fmt.Sprintf("%s:%s", router.GetUri(), router.GetMethod())
+
+			// 如果还没有见过这个路由键，则添加到唯一路由列表中
+			if !seenRouters[key] {
+				seenRouters[key] = true
+				uniqueRouters = append(uniqueRouters, router)
+				c.logger.Debugf("[control] added unique router: %s %s", router.GetMethod(), router.GetUri())
+			} else {
+				// c.logger.Debugf("[control] skipped duplicate router: %s %s", router.GetMethod(), router.GetUri())
+			}
 		}
-		// 还不存在
-		seen[router.GetUri()+"_"+router.GetMethod()] = struct{}{}
-		after = append(after, router)
+
+		// 如果发现了重复路由，需要创建一个新的组路由器
+		if len(uniqueRouters) != len(routers) {
+			c.logger.Debugf("[control] removed %d duplicate routers from group: %s", len(routers)-len(uniqueRouters), groupName)
+
+			// 创建新的组路由器替换原有的
+			newGroupRouter := &commonhttp.MyGroupRouter{
+				Group:           groupRouter.GetGroup(),
+				Routers:         uniqueRouters,
+				MiddlewaresFunc: groupRouter.GetMiddlewares(),
+			}
+
+			// 更新路由组
+			c.routerGroups[groupName] = newGroupRouter
+		}
 	}
+
+	// 对于GroupRouterHandler，去重逻辑在组内处理
 	c.logger.Debug("[control] finished deduplicate routers...")
-	c.routers = after
 }
 
 // initRouters 初始化所有注册的路由
 func (c *Control) initRouters() {
 	c.logger.Info("[control] start init routers...")
 
-	// 预创建认证和非认证的路由组，避免每次循环重新创建
-	authGroup := c.ginRouter.Group("/", jwt.EnableJWT(c.logger, c.sessionManager))
-	noAuthGroup := c.ginRouter.Group("/")
+	// 创建用于存储gin路由组的映射
+	ginRouterGroups := make(map[string]*gin.RouterGroup)
 
-	for _, router := range c.routers {
-		if !router.IsEnabled() {
-			continue // 跳过禁用的路由
+	// 预创建默认组的认证和非认证路由组
+	var defaultAuthGroup *gin.RouterGroup
+	var defaultNoAuthGroup *gin.RouterGroup
+
+	// 先创建默认组，因为它是特殊的
+	if defaultGroup, exists := c.routerGroups["default"]; exists {
+		// 创建默认组的gin路由组
+		defaultGinGroup := c.ginRouter.Group("/")
+
+		// 获取默认组的中间件
+		defaultMiddlewares := defaultGroup.GetMiddlewares()
+		for _, middleware := range defaultMiddlewares {
+			defaultGinGroup.Use(middleware)
 		}
 
-		// 构建URL路径
-		var url string
-		if strings.HasPrefix(router.GetUri(), "/") {
-			// 避免重复添加前缀
-			url = fmt.Sprintf("%s%s", c.config.ContextPath, router.GetUri())
-		} else {
-			url = fmt.Sprintf("%s/%s", c.config.ContextPath, router.GetUri())
-		}
+		// 创建默认组的认证和非认证子组
+		defaultAuthGroup = defaultGinGroup.Group("/")
+		defaultAuthGroup.Use(jwt.EnableJWT(c.logger, c.sessionManager))
 
-		handlerFunc := router.GetHandlerFunc()
-		httpMethod := router.GetMethod()
+		defaultNoAuthGroup = defaultGinGroup.Group("/")
+	}
 
-		c.logger.Debugf("[control] register router uri %s method %s", url, httpMethod)
+	// 遍历所有路由组
+	for groupName, groupRouter := range c.routerGroups {
+		// 获取该组的所有路由
+		routers := groupRouter.GetRouterHandler()
 
-		// 根据是否需要JWT验证和HTTP方法选择合适的路由组和注册方法
-		if router.GetEnableJWtVerify() {
-			switch httpMethod {
-			case http.MethodGet:
-				authGroup.GET(url, handlerFunc)
-			case http.MethodPost:
-				authGroup.POST(url, handlerFunc)
-			case http.MethodPut:
-				authGroup.PUT(url, handlerFunc)
-			case http.MethodDelete:
-				authGroup.DELETE(url, handlerFunc)
-			case http.MethodPatch:
-				authGroup.PATCH(url, handlerFunc)
-			case http.MethodOptions:
-				authGroup.OPTIONS(url, handlerFunc)
-			case http.MethodHead:
-				authGroup.HEAD(url, handlerFunc)
-			default:
-				// 默认使用GET方法
-				authGroup.GET(url, handlerFunc)
+		// 获取该组的中间件
+		middlewares := groupRouter.GetMiddlewares()
+
+		c.logger.Debugf("[control] processing router group: %s with %d routers and %d middlewares", groupName, len(routers), len(middlewares))
+
+		// 如果是默认组，使用预创建的路由组
+		if groupName == "default" {
+			// 注册该组下的所有路由
+			for _, router := range routers {
+				if !router.IsEnabled() {
+					continue // 跳过禁用的路由
+				}
+
+				// 构建URL路径
+				var url string
+				if strings.HasPrefix(router.GetUri(), "/") {
+					url = router.GetUri()
+				} else {
+					url = "/" + router.GetUri()
+				}
+
+				handlerFunc := router.GetHandlerFunc()
+				httpMethod := router.GetMethod()
+
+				c.logger.Debugf("[control] register router uri %s method %s in default group", url, httpMethod)
+
+				// 根据是否需要JWT验证和HTTP方法选择合适的路由组和注册方法
+				if router.GetEnableJWtVerify() {
+					switch httpMethod {
+					case http.MethodGet:
+						defaultAuthGroup.GET(url, handlerFunc)
+					case http.MethodPost:
+						defaultAuthGroup.POST(url, handlerFunc)
+					case http.MethodPut:
+						defaultAuthGroup.PUT(url, handlerFunc)
+					case http.MethodDelete:
+						defaultAuthGroup.DELETE(url, handlerFunc)
+					case http.MethodPatch:
+						defaultAuthGroup.PATCH(url, handlerFunc)
+					case http.MethodOptions:
+						defaultAuthGroup.OPTIONS(url, handlerFunc)
+					case http.MethodHead:
+						defaultAuthGroup.HEAD(url, handlerFunc)
+					default:
+						// 默认使用GET方法
+						defaultAuthGroup.GET(url, handlerFunc)
+					}
+				} else {
+					switch httpMethod {
+					case http.MethodGet:
+						defaultNoAuthGroup.GET(url, handlerFunc)
+					case http.MethodPost:
+						defaultNoAuthGroup.POST(url, handlerFunc)
+					case http.MethodPut:
+						defaultNoAuthGroup.PUT(url, handlerFunc)
+					case http.MethodDelete:
+						defaultNoAuthGroup.DELETE(url, handlerFunc)
+					case http.MethodPatch:
+						defaultNoAuthGroup.PATCH(url, handlerFunc)
+					case http.MethodOptions:
+						defaultNoAuthGroup.OPTIONS(url, handlerFunc)
+					case http.MethodHead:
+						defaultNoAuthGroup.HEAD(url, handlerFunc)
+					default:
+						// 默认使用GET方法
+						defaultNoAuthGroup.GET(url, handlerFunc)
+					}
+				}
 			}
 		} else {
-			switch httpMethod {
-			case http.MethodGet:
-				noAuthGroup.GET(url, handlerFunc)
-			case http.MethodPost:
-				noAuthGroup.POST(url, handlerFunc)
-			case http.MethodPut:
-				noAuthGroup.PUT(url, handlerFunc)
-			case http.MethodDelete:
-				noAuthGroup.DELETE(url, handlerFunc)
-			case http.MethodPatch:
-				noAuthGroup.PATCH(url, handlerFunc)
-			case http.MethodOptions:
-				noAuthGroup.OPTIONS(url, handlerFunc)
-			case http.MethodHead:
-				noAuthGroup.HEAD(url, handlerFunc)
-			default:
-				// 默认使用GET方法
-				noAuthGroup.GET(url, handlerFunc)
+			// 对于非默认组，创建或获取对应的gin路由组
+			var group *gin.RouterGroup
+			if existingGroup, exists := ginRouterGroups[groupName]; exists {
+				group = existingGroup
+			} else {
+				// 创建新的gin路由组
+				group = c.ginRouter.Group(groupName)
+				// 应用组级别中间件
+				for _, middleware := range middlewares {
+					group.Use(middleware)
+				}
+				ginRouterGroups[groupName] = group
+				c.logger.Debugf("[control] created new gin router group: %s", groupName)
+			}
+
+			// 注册该组下的所有路由
+			for _, router := range routers {
+				if !router.IsEnabled() {
+					continue // 跳过禁用的路由
+				}
+
+				// 构建URL路径（相对于组的路径）
+				var url string
+				if strings.HasPrefix(router.GetUri(), "/") {
+					url = router.GetUri()
+				} else {
+					url = "/" + router.GetUri()
+				}
+
+				handlerFunc := router.GetHandlerFunc()
+				httpMethod := router.GetMethod()
+
+				c.logger.Debugf("[control] register router uri %s method %s in group %s", url, httpMethod, groupName)
+
+				// 注册路由到对应的组
+				switch httpMethod {
+				case http.MethodGet:
+					group.GET(url, handlerFunc)
+				case http.MethodPost:
+					group.POST(url, handlerFunc)
+				case http.MethodPut:
+					group.PUT(url, handlerFunc)
+				case http.MethodDelete:
+					group.DELETE(url, handlerFunc)
+				case http.MethodPatch:
+					group.PATCH(url, handlerFunc)
+				case http.MethodOptions:
+					group.OPTIONS(url, handlerFunc)
+				case http.MethodHead:
+					group.HEAD(url, handlerFunc)
+				default:
+					// 默认使用GET方法
+					group.GET(url, handlerFunc)
+				}
 			}
 		}
 	}
