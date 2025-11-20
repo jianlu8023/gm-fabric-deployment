@@ -9,6 +9,7 @@ import (
 
 	"github.com/jianlu8023/go-tools/v2/pkg/colour"
 	"github.com/jianlu8023/go-tools/v2/pkg/nethelper/ip4"
+	"github.com/jianlu8023/golang-example/pkg/control/certificate"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -31,6 +32,11 @@ type config struct {
 	IP     string
 	Pwd    string
 
+	TlsEnabled     bool
+	TlsCertPath    string
+	TlsKeyPath     string
+	TlsRCACertPath string
+
 	RootPath      string // 共享目录的根路径，默认值：当前目录
 	MaxLevel      uint8  // 允许访问的最大层级，默认值  0
 	Port          int    // 指定的服务端口，默认值 9090
@@ -42,13 +48,27 @@ type config struct {
 	Password   string // 访问登录的密码
 }
 
-func LoadConfig(logger *zap.SugaredLogger) error {
+func GenConfigPath() (string, error) {
 	home, err := homedir.Dir()
 	if err != nil {
-		logger.Errorf("获取用户目录失败: %v", err)
-		return errors.New("获取配置目录失败")
+		return "", err
 	}
 	cfgDir := filepath.Join(home, ".config", "tiny")
+	return cfgDir, nil
+}
+
+func LoadConfig(logger *zap.SugaredLogger, cert *certificate.Control) error {
+	cfgDir, err := GenConfigPath()
+	if err != nil {
+		logger.Errorf("获取配置目录失败: %v", err)
+		return errors.New("获取配置目录失败")
+	}
+
+	err = cert.GenerateLeafCertificate("tiny", "/CN=localhost", "RSA", false, cfgDir+"/root.crt", cfgDir+"/root.key", "", "")
+	if err != nil {
+		logger.Errorf("生成服务证书失败: %v", err)
+	}
+
 	cfgFile := filepath.Join(cfgDir, "config.yaml")
 	err = loadUserConfig(cfgDir, cfgFile, logger)
 	if err != nil {
@@ -79,6 +99,10 @@ func LoadConfig(logger *zap.SugaredLogger) error {
 	Config.IsSecure = viper.GetBool("account.secure")
 	Config.Username = viper.GetString("account.custom.user")
 	Config.Password = viper.GetString("account.custom.pass")
+	Config.TlsEnabled = viper.GetBool("server.tls_enabled")
+	Config.TlsCertPath = viper.GetString("server.tls_cert_path")
+	Config.TlsKeyPath = viper.GetString("server.tls_key_path")
+	Config.TlsRCACertPath = viper.GetString("server.tls_rca_cert_path")
 	return nil
 }
 
@@ -117,15 +141,19 @@ func createCfgFile(cfgDir, cfgFile string, logger *zap.SugaredLogger) error {
 	if err != nil {
 		return errors.New("创建自定义配置文件失败！")
 	}
-	if err := setDefault(); err != nil {
+	if err = setDefault(cfgDir); err != nil {
 		logger.Errorf(colour.Yellow("设置默认配置失败！"))
 	}
 	return nil
 }
 
-func setDefault() error {
+func setDefault(cfgDir string) error {
 	viper.Set("server.port", Port)
 	viper.Set("server.allow_upload", IsAllowUpload)
 	viper.Set("server.max_level", MaxLevel)
+	viper.Set("server.tls_enabled", false)
+	viper.Set("server.tls_cert_path", cfgDir+"/tiny.crt")
+	viper.Set("server.tls_key_path", cfgDir+"/tiny.key")
+	viper.Set("server.tls_rca_cert_path", cfgDir+"/root.crt")
 	return viper.WriteConfig()
 }

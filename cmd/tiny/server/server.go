@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"syscall"
 	"time"
-
+	
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/colour"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
@@ -22,7 +22,7 @@ import (
 // RunCore 函数负责启动 gin 实例，开始提供 HTTP 服务
 func RunCore(logger *zap.SugaredLogger) {
 	var (
-		srv = initServer()
+		srv = initServer(logger)
 		q   = make(chan os.Signal, 1)
 	)
 	signal.Notify(q, syscall.SIGINT, syscall.SIGTERM)
@@ -34,11 +34,11 @@ func RunCore(logger *zap.SugaredLogger) {
 	}
 }
 
-func initServer() *http.Server {
+func initServer(logger *zap.SugaredLogger) *http.Server {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	middleware.Setup(r)
-	router.Setup(r)
+	router.Setup(r, logger)
 	s := &http.Server{
 		Addr:    ":" + strconv.Itoa(conf.Config.Port),
 		Handler: r,
@@ -48,6 +48,12 @@ func initServer() *http.Server {
 
 func run(srv *http.Server, logger *zap.SugaredLogger) {
 	printInfo(logger)
+
+	
+	if conf.Config.TlsEnabled{
+	
+	}
+
 	err := srv.ListenAndServe()
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Errorf("启用服务失败: %v", err)
@@ -69,7 +75,6 @@ func printInfo(logger *zap.SugaredLogger) {
 	// Print IP information
 	if conf.Config.IP != "" {
 		logger.Infof("Run on   [ %s ]", colour.Blue(fmt.Sprintf("http://%s:%d", conf.Config.IP, conf.Config.Port)))
-
 	} else {
 		logger.Infof("%s", colour.Yellow("Warning: [ 暂时获取不到您的IP，可以打开新的命令行窗口输入 ->  ipconfig , 查看您的IP。]"))
 	}

@@ -1,15 +1,14 @@
 package main
 
 import (
-	"log"
 	"os"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/colour"
 	"github.com/jianlu8023/golang-example/cmd/tiny/command"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container/verify"
 	"github.com/jianlu8023/golang-example/cmd/tiny/server"
+	"github.com/jianlu8023/golang-example/pkg/control/certificate"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 )
@@ -21,22 +20,52 @@ func main() {
 		DefaultLogLevel: "info",
 		PrintFormat:     "console",
 	})
+	if loggerControl == nil {
+		return
+	}
 	loggerControl.StartUp(func(err error) {
 		if err != nil {
 			os.Exit(1)
 		}
 	})
+
+	mainLogger := loggerControl.GenLogger("")
 	defer func() {
 		_ = loggerControl.Shutdown()
 
 		if err != nil {
-			log.Printf(colour.Red(err.Error()))
+			mainLogger.Errorf("启动失败: %v", err)
 		}
 	}()
 
-	mainLogger := loggerControl.GenLogger("")
+	certPath, err := conf.GenConfigPath()
+	if err != nil {
+		mainLogger.Errorf("获取配置文件路径失败: %v", err)
+		return
+	}
 
-	if err = conf.LoadConfig(mainLogger); err != nil {
+	certificateControl := certificate.NewCertificateControl(&config.CertificateConfig{
+		Enabled:     true,
+		CertPath:    certPath,
+		DefaultAlgo: "RSA",
+		RootSubject: "/CN=Tiny Root CA",
+	}, loggerControl)
+
+	if certificateControl == nil {
+		return
+	}
+
+	certificateControl.StartUp(func(err error) {
+		if err != nil {
+			os.Exit(1)
+		}
+	})
+
+	defer func() {
+		_ = certificateControl.Shutdown()
+	}()
+
+	if err = conf.LoadConfig(mainLogger, certificateControl); err != nil {
 		mainLogger.Errorf("加载配置文件失败: %v", err)
 		return
 	}
@@ -53,5 +82,6 @@ func main() {
 		mainLogger.Errorf("链式检查必要配置失败: %v", err)
 		return
 	}
+
 	server.RunCore(mainLogger)
 }

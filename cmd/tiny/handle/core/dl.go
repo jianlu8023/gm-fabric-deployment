@@ -12,10 +12,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
+	
 	"github.com/gin-gonic/gin"
-	"github.com/jianlu8023/golang-example/cmd/tiny/handle"
+	"github.com/jianlu8023/go-tools/v2/pkg/archive/zip"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
 
 type fileStructure struct {
@@ -55,7 +56,7 @@ func Downloader(c *gin.Context) {
 func (a *agent) file(c *gin.Context) {
 	src, err := os.Open(a.abs)
 	if err != nil {
-		handle.ErrorHandle(c, err.Error())
+		commonhttp.FailedResponseWithMessage(c, commonhttp.NormalFailed, err.Error())
 	}
 	defer func(src *os.File) { _ = src.Close() }(src)
 
@@ -96,12 +97,17 @@ func (a *agent) dir(c *gin.Context) {
 	// 创建准备写入的压缩文件
 	srcZip, err := os.CreateTemp(os.TempDir(), "temp.*.zip")
 	if err != nil {
-		handle.ErrorHandle(c, "压缩目录失败")
+		commonhttp.FailedResponseWithMessage(c, commonhttp.NormalFailed, "创建临时压缩文件夹失败")
 	}
 	defer func(srcZip *os.File) {
 		_ = srcZip.Close()
 		_ = os.Remove(srcZip.Name())
 	}(srcZip)
+
+	err = zip.Zip(filepath.Join(conf.Config.RootPath, a.rel), srcZip.Name(), true)
+	if err != nil {
+		commonhttp.FailedResponseWithMessage(c, commonhttp.NormalFailed, "压缩目录失败")
+	}
 
 	// err = eutil.Zip(srcZip, filepath.Join(conf.Config.RootPath, a.rel))
 	// if err != nil {
@@ -128,7 +134,7 @@ func (a *agent) readDir(c *gin.Context) {
 func getFileInfos(c *gin.Context, absPath string) []fileStructure {
 	dirEntries, err := os.ReadDir(absPath)
 	if err != nil {
-		handle.ErrorHandle(c, "目录读取失败！")
+		commonhttp.FailedResponseWithMessage(c, commonhttp.NormalFailed, "目录读取失败!")
 		return nil
 	}
 
@@ -168,7 +174,7 @@ func (a *agent) flush(c *gin.Context, src io.Reader, buf []byte) {
 			break
 		}
 		if err != nil {
-			handle.ErrorHandle(c, "server error!")
+			commonhttp.FailedResponseWithMessage(c, commonhttp.NormalFailed, "服务端内部错误")
 			return
 		}
 		// _, _ = bar.Write(buf)

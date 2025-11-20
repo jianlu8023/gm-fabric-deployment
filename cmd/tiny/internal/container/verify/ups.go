@@ -71,6 +71,6 @@ func (u *upsVerifier) Handle() error {
 		// 000 打印当前是否开启访问登录
 		return nil
 	default:
-		return errors.New("设置失败～")
+		return errors.New("设置失败")
 	}
 }

@@ -1,7 +1,5 @@
 package container
 
-
-
 type Handler interface {
 	Handle() error
 }
