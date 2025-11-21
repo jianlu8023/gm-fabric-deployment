@@ -21,12 +21,12 @@ func main() {
 
 	loggerControl := logger.NewLoggerControl(loggerConfig)
 
-	logger := loggerControl.GenLogger("main")
+	sugaredLogger := loggerControl.GenLogger("main")
 
-	logger.Infof("info logger")
-	logger.Debugf("debug logger")
-	logger.Warnf("warn logger")
-	logger.Errorf("error logger")
-	logger.Fatalf("fatal logger")
+	sugaredLogger.Infof("info sugaredLogger")
+	sugaredLogger.Debugf("debug sugaredLogger")
+	sugaredLogger.Warnf("warn sugaredLogger")
+	sugaredLogger.Errorf("error sugaredLogger")
+	sugaredLogger.Fatalf("fatal sugaredLogger")
 
 }

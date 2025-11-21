@@ -15,6 +15,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"golang.org/x/net/http2"
@@ -54,11 +57,12 @@ type Control struct {
 	gmTlsConfig    *gmtls.Config
 	ctx            context.Context
 	logger         *zap.SugaredLogger
-	routerMutex    sync.RWMutex
 	sessionManager jwt.SessionManager
 	once           sync.Once
 	tracerControl  *tracer.Control
-	routerGroups   map[string]commonhttp.GroupRouterHandler
+	routerGroups   concurrent.Map[string, commonhttp.GroupRouterHandler] // 使用 并发安全的 map
+	// routerGroups   map[string]commonhttp.GroupRouterHandler
+	// routerMutex    sync.RWMutex
 }
 
 // NewWebServerControl 创建Web服务器控制器
@@ -107,7 +111,8 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		ctx:          ctx,
 		logger:       webLogger,
 		ginRouter:    engine,
-		routerGroups: make(map[string]commonhttp.GroupRouterHandler),
+		routerGroups: concurrentmap.NewRWMap[string, commonhttp.GroupRouterHandler](),
+		// routerGroups: make(map[string]commonhttp.GroupRouterHandler),
 	}
 
 	// 应用所有选项
@@ -594,7 +599,7 @@ func (c *Control) registerDefaultRouter() {
 					_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "routers")
 					defer span.End()
 					commonhttp.SuccessResponse(ctx, gin.H{
-						"routers": c.routerGroups,
+						"routers": c.routerGroups.Values(),
 					})
 				},
 				Enabled:         true,
@@ -786,8 +791,8 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 		return
 	}
 
-	c.routerMutex.Lock()
-	defer c.routerMutex.Unlock()
+	// c.routerMutex.Lock()
+	// defer c.routerMutex.Unlock()
 
 	groupName := groupRouter.GetGroup()
 	if stringer.IsBlank(groupName) {
@@ -806,7 +811,8 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 	c.logger.Infof("[control] registering %d router(s) and %d middleware(s) for group '%s'...", len(routers), len(middlewares), groupName)
 
 	// 首先判断 routerGroups 是否有 groupName
-	if existingGroup, exists := c.routerGroups[groupName]; exists {
+	// if existingGroup, exists := c.routerGroups[groupName]; exists {
+	if existingGroup, exists := c.routerGroups.Get(groupName); exists {
 		// 存在则合并 Routers 和 MiddlewaresFunc
 		c.logger.Debugf("[control] merging with existing router group: %s", groupName)
 
@@ -832,12 +838,14 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 		}
 
 		// 更新路由组
-		c.routerGroups[groupName] = mergedGroupRouter
+		// c.routerGroups[groupName] = mergedGroupRouter
+		c.routerGroups.Put(groupName, mergedGroupRouter)
 		c.logger.Debugf("[control] merged router group '%s': total %d routers, %d middlewares", groupName, len(mergedRouters), len(mergedMiddlewares))
 	} else {
 		// 不存在则直接添加
 		c.logger.Debugf("[control] adding new router group: %s", groupName)
-		c.routerGroups[groupName] = groupRouter
+		// c.routerGroups[groupName] = groupRouter
+		c.routerGroups.Put(groupName, groupRouter)
 	}
 
 	c.logger.Infof("[control] router group '%s' registered successfully", groupName)
@@ -847,7 +855,15 @@ func (c *Control) deduplicateRouters() {
 	c.logger.Debug("[control] starting deduplicate routers...")
 
 	// routerGroups 每个组都进行去重
-	for groupName, groupRouter := range c.routerGroups {
+
+	iter := c.routerGroups.Iterator()
+	defer func() {
+		_ = iter.Close()
+	}()
+	for iter.HasNext() {
+		value := iter.Value()
+		groupName := value.Key
+		groupRouter := value.Value
 		c.logger.Debugf("[control] deduplicating routers in group: %s", groupName)
 
 		// 获取该组的所有路由
@@ -905,8 +921,68 @@ func (c *Control) deduplicateRouters() {
 		}
 
 		// 更新路由组
-		c.routerGroups[groupName] = newGroupRouter
+		c.routerGroups.Put(groupName, newGroupRouter)
 	}
+	// for groupName, groupRouter := range c.routerGroups {
+	// 	c.logger.Debugf("[control] deduplicating routers in group: %s", groupName)
+	//
+	// 	// 获取该组的所有路由
+	// 	routers := groupRouter.GetRouterHandler()
+	// 	routerCount := len(routers)
+	//
+	// 	// 如果没有路由，直接跳过
+	// 	if routerCount == 0 {
+	// 		continue
+	// 	}
+	//
+	// 	// 检查是否有重复路由
+	// 	seenRouters := make(map[string]bool)
+	// 	hasDuplicates := false
+	//
+	// 	// 第一次遍历：检查是否有重复
+	// 	for _, router := range routers {
+	// 		key := fmt.Sprintf("%s:%s", router.GetUri(), router.GetMethod())
+	// 		if seenRouters[key] {
+	// 			hasDuplicates = true
+	// 			break
+	// 		}
+	// 		seenRouters[key] = true
+	// 	}
+	//
+	// 	// 如果没有重复路由，直接跳过后续处理
+	// 	if !hasDuplicates {
+	// 		c.logger.Debugf("[control] no duplicate routers found in group: %s", groupName)
+	// 		continue
+	// 	}
+	//
+	// 	// 第二次遍历：创建唯一路由列表
+	// 	uniqueRouters := make([]commonhttp.RouterHandler, 0, routerCount)
+	// 	seenRouters = make(map[string]bool) // 重置map
+	//
+	// 	for _, router := range routers {
+	// 		key := fmt.Sprintf("%s:%s", router.GetUri(), router.GetMethod())
+	// 		if !seenRouters[key] {
+	// 			seenRouters[key] = true
+	// 			uniqueRouters = append(uniqueRouters, router)
+	// 			c.logger.Debugf("[control] added unique router: %s %s", router.GetMethod(), router.GetUri())
+	// 		} else {
+	// 			c.logger.Debugf("[control] skipped duplicate router: %s %s", router.GetMethod(), router.GetUri())
+	// 		}
+	// 	}
+	//
+	// 	// 创建新的组路由器替换原有的
+	// 	dupCount := routerCount - len(uniqueRouters)
+	// 	c.logger.Debugf("[control] removed %d duplicate routers from group: %s", dupCount, groupName)
+	//
+	// 	newGroupRouter := &commonhttp.MyGroupRouter{
+	// 		Group:           groupRouter.GetGroup(),
+	// 		Routers:         uniqueRouters,
+	// 		MiddlewaresFunc: groupRouter.GetMiddlewares(),
+	// 	}
+	//
+	// 	// 更新路由组
+	// 	c.routerGroups[groupName] = newGroupRouter
+	// }
 
 	c.logger.Debug("[control] finished deduplicate routers...")
 }
@@ -918,12 +994,15 @@ func (c *Control) registerRouter(ginGroup *gin.RouterGroup, router commonhttp.Ro
 	}
 
 	// 构建URL路径
-	var url string
-	if strings.HasPrefix(router.GetUri(), "/") {
-		url = router.GetUri()
-	} else {
-		url = "/" + router.GetUri()
-	}
+	// var url string
+	// if strings.HasPrefix(router.GetUri(), "/") {
+	// 	url = router.GetUri()
+	// } else {
+	// 	url = "/" + router.GetUri()
+	// }
+	url := check.IF[string](strings.HasPrefix(router.GetUri(), "/"),
+		router.GetUri(),
+		"/"+router.GetUri())
 
 	handlerFunc := router.GetHandlerFunc()
 	httpMethod := router.GetMethod()
@@ -959,7 +1038,14 @@ func (c *Control) initRouters() {
 	ginRouterGroups := make(map[string]*gin.RouterGroup)
 
 	// 遍历所有路由组
-	for groupName, groupRouter := range c.routerGroups {
+	iter := c.routerGroups.Iterator()
+	defer func() {
+		_ = iter.Close()
+	}()
+	for iter.HasNext() {
+		next := iter.Value()
+		groupName := next.Key
+		groupRouter := next.Value
 		// 获取该组的所有路由
 		routers := groupRouter.GetRouterHandler()
 
@@ -974,28 +1060,38 @@ func (c *Control) initRouters() {
 			mainGroup = existingGroup
 		} else {
 			// 根据组名决定路由组的基础路径
-			basePath := "/"
-			if !stringer.CompareIgnoreCase(groupName, "default") {
-				basePath = "/" + groupName
-			}
+			// basePath := "/"
+			// if !stringer.CompareIgnoreCase(groupName, "default") {
+			// 	basePath = "/" + groupName
+			// }
+
+			basePath := check.IF[string](!stringer.CompareIgnoreCase(groupName, "default"),
+				"/"+groupName,
+				"/")
 
 			// 添加上下文路径
 			fullPath := ""
 			if !stringer.CompareIgnoreCase(c.config.ContextPath, "") {
 				// 确保ContextPath以/开头
-				if !strings.HasPrefix(c.config.ContextPath, "/") {
-					fullPath = "/" + c.config.ContextPath
-				} else {
-					fullPath = c.config.ContextPath
-				}
+				// if !strings.HasPrefix(c.config.ContextPath, "/") {
+				// 	fullPath = "/" + c.config.ContextPath
+				// } else {
+				// 	fullPath = c.config.ContextPath
+				// }
+				fullPath = check.IF[string](!strings.HasPrefix(c.config.ContextPath, "/"),
+					"/"+c.config.ContextPath,
+					c.config.ContextPath)
 				// 添加basePath（如果不是根路径）
 				if !stringer.CompareIgnoreCase(basePath, "/") {
 					// 确保basePath前没有重复的/
-					if strings.HasSuffix(fullPath, "/") {
-						fullPath += basePath[1:]
-					} else {
-						fullPath += basePath
-					}
+					// if strings.HasSuffix(fullPath, "/") {
+					// 	fullPath += basePath[1:]
+					// } else {
+					// 	fullPath += basePath
+					// }
+					fullPath = check.IF[string](strings.HasSuffix(fullPath, "/"),
+						fullPath+basePath[1:],
+						fullPath+basePath)
 				}
 			} else {
 				fullPath = basePath
@@ -1028,6 +1124,76 @@ func (c *Control) initRouters() {
 			}
 		}
 	}
+	// 遍历所有路由组
+	// for groupName, groupRouter := range c.routerGroups {
+	// 	// 获取该组的所有路由
+	// 	routers := groupRouter.GetRouterHandler()
+	//
+	// 	// 获取该组的中间件
+	// 	middlewares := groupRouter.GetMiddlewares()
+	//
+	// 	c.logger.Debugf("[control] processing router group: %s with %d routers and %d middlewares", groupName, len(routers), len(middlewares))
+	//
+	// 	// 获取或创建该组的主路由组
+	// 	var mainGroup *gin.RouterGroup
+	// 	if existingGroup, exists := ginRouterGroups[groupName]; exists {
+	// 		mainGroup = existingGroup
+	// 	} else {
+	// 		// 根据组名决定路由组的基础路径
+	// 		basePath := "/"
+	// 		if !stringer.CompareIgnoreCase(groupName, "default") {
+	// 			basePath = "/" + groupName
+	// 		}
+	//
+	// 		// 添加上下文路径
+	// 		fullPath := ""
+	// 		if !stringer.CompareIgnoreCase(c.config.ContextPath, "") {
+	// 			// 确保ContextPath以/开头
+	// 			if !strings.HasPrefix(c.config.ContextPath, "/") {
+	// 				fullPath = "/" + c.config.ContextPath
+	// 			} else {
+	// 				fullPath = c.config.ContextPath
+	// 			}
+	// 			// 添加basePath（如果不是根路径）
+	// 			if !stringer.CompareIgnoreCase(basePath, "/") {
+	// 				// 确保basePath前没有重复的/
+	// 				if strings.HasSuffix(fullPath, "/") {
+	// 					fullPath += basePath[1:]
+	// 				} else {
+	// 					fullPath += basePath
+	// 				}
+	// 			}
+	// 		} else {
+	// 			fullPath = basePath
+	// 		}
+	//
+	// 		// 创建新的gin路由组
+	// 		mainGroup = c.ginRouter.Group(fullPath)
+	// 		// 应用组级别中间件
+	// 		for _, middleware := range middlewares {
+	// 			mainGroup.Use(middleware)
+	// 		}
+	// 		ginRouterGroups[groupName] = mainGroup
+	// 		c.logger.Debugf("[control] created new gin router group: %s with full path: %s", groupName, fullPath)
+	// 	}
+	//
+	// 	// 为当前组创建认证和非认证子组
+	// 	authGroup := mainGroup.Group("/")
+	// 	authGroup.Use(jwt.EnableJWT(c.logger, c.sessionManager))
+	//
+	// 	noAuthGroup := mainGroup.Group("/")
+	//
+	// 	// 注册该组下的所有路由
+	// 	for _, router := range routers {
+	// 		if router.GetEnableJWtVerify() {
+	// 			c.logger.Debugf("[control] register router uri %s method %s in %s auth group", router.GetUri(), router.GetMethod(), groupName)
+	// 			c.registerRouter(authGroup, router)
+	// 		} else {
+	// 			c.logger.Debugf("[control] register router uri %s method %s in %s no-auth group", router.GetUri(), router.GetMethod(), groupName)
+	// 			c.registerRouter(noAuthGroup, router)
+	// 		}
+	// 	}
+	// }
 }
 
 func (c *Control) GetUploadDir() string {

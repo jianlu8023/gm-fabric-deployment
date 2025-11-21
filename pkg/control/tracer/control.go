@@ -50,7 +50,10 @@ import (
 var (
 	pool = sync.Pool{
 		New: func() any {
-			control, err := NewTracerControl(nil, logger.NewLoggerControl(nil), nil)
+			control, err := NewTracerControl(nil, logger.NewLoggerControl(&config.LoggerConfig{
+				DefaultLogLevel: "info",
+				PrintFormat:     "console",
+			}), context.Background())
 			if err != nil {
 				return nil
 			}

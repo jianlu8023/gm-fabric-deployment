@@ -1949,8 +1949,8 @@ github.com/jessevdk/go-flags v1.6.1 h1:Cvu5U8UGrLay1rZfv/zP7iLpSHGUZ/Ou68T0iX1bB
 github.com/jessevdk/go-flags v1.6.1/go.mod h1:Mk8T1hIAWpOiJiHa9rJASDK2UGWji0EuPGBnNLMooyc=
 github.com/jianlu8023/go-logger/v2 v2.0.2 h1:gkKMNY0JDOP1ytUZqaEtG/daPWm0BOS0fOy3+LaOCmA=
 github.com/jianlu8023/go-logger/v2 v2.0.2/go.mod h1:3c7SPVBFbn97VskkNOL45tN7GXD/uxEMthrFCrdgOqk=
-github.com/jianlu8023/go-tools/v2 v2.0.0-20251118130925-20bda08169ec h1:5gEVeyFPbGXy23F6277t4q29NFqc+4G/zyu3nwcbzNg=
-github.com/jianlu8023/go-tools/v2 v2.0.0-20251118130925-20bda08169ec/go.mod h1:uABOMZ8ePQNeYbHrKpgU8ScImbr0BBoXoGG8yBr/slQ=
+github.com/jianlu8023/go-tools/v2 v2.0.0-20251121073737-5f457784c98f h1:71WNNtK2VD2fhAvh7f84DDenEhYpUmBesxPZkkc09lU=
+github.com/jianlu8023/go-tools/v2 v2.0.0-20251121073737-5f457784c98f/go.mod h1:uABOMZ8ePQNeYbHrKpgU8ScImbr0BBoXoGG8yBr/slQ=
 github.com/jinzhu/copier v0.4.0 h1:w3ciUoD19shMCRargcpm0cm91ytaBhDvuRpz1ODO/U8=
 github.com/jinzhu/copier v0.4.0/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
 github.com/jinzhu/gorm v1.9.12 h1:Drgk1clyWT9t9ERbzHza6Mj/8FY/CqMyVzOiHviMo6Q=
