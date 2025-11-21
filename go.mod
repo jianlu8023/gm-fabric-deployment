@@ -15,6 +15,7 @@ replace (
 	github.com/gin-contrib/gzip => github.com/gin-contrib/gzip v1.2.2
 	github.com/gin-contrib/requestid => github.com/gin-contrib/requestid v1.0.4
 	github.com/gin-contrib/sse => github.com/gin-contrib/sse v1.0.0
+	github.com/gin-gonic/gin => github.com/gin-gonic/gin v1.10.1
 	github.com/go-logr/logr => github.com/go-logr/logr v1.4.3
 	github.com/go-logr/zapr => github.com/go-logr/zapr v1.3.0
 	github.com/go-ozzo/ozzo-validation/v4 => github.com/go-ozzo/ozzo-validation/v4 v4.3.0

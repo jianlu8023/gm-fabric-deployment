@@ -19,6 +19,7 @@ import (
 	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
 	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
+	middlewarelogger "github.com/jianlu8023/golang-example/pkg/control/http/middleware/logger"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -87,7 +88,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	ctx := context.Background()
 
 	webLogger.Debug("[control] generate gin engine...")
-	engine := gin.Default()
+	engine := gin.New()
 
 	srv := &http.Server{
 		Addr:         serverConfig.Address,
@@ -132,6 +133,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	if control.tracerControl != nil {
 		engine.Use(otelgin.Middleware(control.tracerControl.GetServiceName(), otelgin.WithTracerProvider(control.tracerControl.TracerProvider())))
 	}
+
+	// 0. 输出请求信息
+	engine.Use(middlewarelogger.Logger())
 
 	// 1. 恢复中间件（Recovery Middleware）- 应在最前面注册，捕获所有后续中间件的panic
 	engine.Use(recovery.EnableRecovery(control.logger, true))
