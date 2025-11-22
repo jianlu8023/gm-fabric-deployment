@@ -7,6 +7,7 @@ import (
 	gohttp "net/http"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/http"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -26,12 +27,21 @@ type Control struct {
 
 // NewAIControl 创建AI控制器
 func NewAIControl(aiConfig *config.AIConfig, loggerControl *logger.Control) (*Control, error) {
-	if aiConfig == nil {
-		aiConfig = getDefaultConfig()
-	}
+	aiConfig = check.IF[*config.AIConfig](aiConfig == nil,
+		getDefaultConfig(),
+		aiConfig,
+	)
 	if !aiConfig.Enabled {
 		return nil, errors.New("ai is disabled")
 	}
+
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 
 	aiLogger := loggerControl.GenLogger(logger.ModuleAI)
 	aiLogger.Infof("[control] starting new ai control...")

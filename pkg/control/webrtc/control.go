@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
@@ -28,22 +29,26 @@ type Control struct {
 
 // NewWebRTCControl 创建一个新的WebRTC控制器
 // 参数：
-// - webRTCConfig: WebRTC配置信息，包含ICE服务器等配置
+// - webrtcConfig: WebRTC配置信息，包含ICE服务器等配置
 // - loggerControl: 日志控制器，用于获取日志记录器
 // 返回值：
 // - *Control: 创建的WebRTC控制器实例
 // - error: 如果创建过程中发生错误，则返回错误信息
-func NewWebRTCControl(config *config.WebRTCConfig,
-	loggerControl *logger.Control,
-) (*Control, error) {
-
-	if config == nil {
-		config = getDefaultConfig()
-	}
-	if !config.Enabled {
+func NewWebRTCControl(webrtcConfig *config.WebRTCConfig, loggerControl *logger.Control) (*Control, error) {
+	webrtcConfig = check.IF[*config.WebRTCConfig](webrtcConfig == nil,
+		getDefaultConfig(),
+		webrtcConfig,
+	)
+	if !webrtcConfig.Enabled {
 		return nil, errors.New("webrtc is not enabled")
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	// 创建带取消功能的上下文
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -51,7 +56,7 @@ func NewWebRTCControl(config *config.WebRTCConfig,
 	log := loggerControl.GenLogger(logger.ModuleWebRTC)
 
 	// 创建对等连接服务
-	peerService, err := newPeerService(ctx, config, loggerControl)
+	peerService, err := newPeerService(ctx, webrtcConfig, loggerControl)
 	if err != nil {
 		log.Errorf("[control] create peer service failed: %v", err)
 		cancel()
@@ -62,7 +67,7 @@ func NewWebRTCControl(config *config.WebRTCConfig,
 	control := &Control{
 		ctx:          ctx,
 		cancel:       cancel,
-		webRTCConfig: config,
+		webRTCConfig: webrtcConfig,
 		logger:       log,
 		peerService:  peerService,
 	}

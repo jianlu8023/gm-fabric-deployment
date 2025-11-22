@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 
 	"github.com/docker/docker/api/types/container"
@@ -37,12 +38,20 @@ type Control struct {
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control docker控制器
 func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.Control) *Control {
-	if dockerConfig == nil {
-		dockerConfig = getDefaultConfig()
-	}
+	dockerConfig = check.IF[*config.DockerConfig](dockerConfig == nil,
+		getDefaultConfig(),
+		dockerConfig,
+	)
 	if !dockerConfig.Enabled {
 		return nil
 	}
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	dockerLogger := loggerControl.GenLogger(logger.ModuleDocker)
 	dockerLogger.Infof("[control] starting new docker control...")
 

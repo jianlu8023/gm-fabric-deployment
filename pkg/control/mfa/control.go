@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
 	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"go.uber.org/zap"
@@ -33,13 +34,20 @@ type Control struct {
 // @return MFAControl MFA控制器实例
 // @return error 创建过程中的错误
 func NewMFAControl(mfaConfig *config.MFAConfig, loggerControl *logger.Control) (*Control, error) {
-	if mfaConfig == nil {
-		mfaConfig = getDefaultConfig()
-	}
+	mfaConfig = check.IF[*config.MFAConfig](mfaConfig == nil,
+		getDefaultConfig(),
+		mfaConfig,
+	)
 	if !mfaConfig.Enabled {
 		return nil, fmt.Errorf("mfa is not enabled")
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	mfaLogger := loggerControl.GenLogger(logger.ModuleMFA)
 	mfaLogger.Infof("[control] starting new MFA control...")
 

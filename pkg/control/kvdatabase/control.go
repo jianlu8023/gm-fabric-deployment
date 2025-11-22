@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
@@ -29,15 +30,21 @@ type Control struct {
 // @param opts ...Option 可选的配置选项
 // @return *Control kvdatabase控制器
 func NewKvDatabaseControl(kvDatabaseConfig *config.KvDatabaseConfig, loggerControl *logger.Control, opts ...Option) *Control {
-	if kvDatabaseConfig == nil {
-		kvDatabaseConfig = getDefaultConfig()
-	}
-
+	kvDatabaseConfig = check.IF[*config.KvDatabaseConfig](kvDatabaseConfig == nil,
+		getDefaultConfig(),
+		kvDatabaseConfig,
+	)
 	// 如果KvDatabase未启用，返回nil
 	if !kvDatabaseConfig.Enabled {
 		return nil
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	kvDatabaseLogger := loggerControl.GenLogger("kvdatabase")
 	kvDatabaseLogger.Infof("[control] starting new kvdatabase control...")
 

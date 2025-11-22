@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/mojocn/base64Captcha"
@@ -27,13 +28,20 @@ type Control struct {
 //
 // @return *Control 验证码控制器
 func NewCaptchaControl(captchaConfig *config.CaptchaConfig, loggerControl *logger.Control) *Control {
-	if captchaConfig == nil {
-		captchaConfig = getDefaultConfig()
-	}
+	captchaConfig = check.IF[*config.CaptchaConfig](captchaConfig == nil,
+		getDefaultConfig(),
+		captchaConfig,
+	)
 	if !captchaConfig.Enabled {
 		return nil
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	captchaLogger := loggerControl.GenLogger(logger.ModuleCaptcha)
 	captchaLogger.Infof("[control] starting new captcha control...")
 

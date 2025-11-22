@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
@@ -32,15 +33,21 @@ type Control struct {
 // @param opts ...Option 可选的配置选项
 // @return *Control redis控制器
 func NewRedisControl(redisConfig *config.RedisConfig, loggerControl *logger.Control, opts ...Option) *Control {
-	if redisConfig == nil {
-		redisConfig = getDefaultConfig()
-	}
-
+	redisConfig = check.IF[*config.RedisConfig](redisConfig == nil,
+		getDefaultConfig(),
+		redisConfig,
+	)
 	// 如果Redis未启用，返回nil
 	if !redisConfig.Enabled {
 		return nil
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	redisLogger := loggerControl.GenLogger(logger.ModuleRedis)
 	redisLogger.Infof("[control] starting new redis control...")
 

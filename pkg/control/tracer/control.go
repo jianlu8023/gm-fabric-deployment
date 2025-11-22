@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -88,13 +89,20 @@ type Control struct {
 // @return *Control OTEL控制器实例
 // @return error 初始化过程中可能出现的错误
 func NewTracerControl(tracerConfig *config.TracerConfig, loggerControl *logger.Control, ctx context.Context) (*Control, error) {
-	if tracerConfig == nil {
-		tracerConfig = getDefaultConfig()
-	}
+	tracerConfig = check.IF[*config.TracerConfig](tracerConfig == nil,
+		getDefaultConfig(),
+		tracerConfig,
+	)
 	if !tracerConfig.Enabled {
 		return nil, errors.New("tracer is not enabled")
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	tracerLogger := loggerControl.GenLogger(logger.ModuleTracer)
 
 	// 如果传入的ctx为nil，则使用context.Background()作为默认值

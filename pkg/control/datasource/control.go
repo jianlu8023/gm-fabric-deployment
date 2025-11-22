@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-logger/v2/dblogger"
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
@@ -236,13 +237,20 @@ func (c *Control) initDBConn() error {
 // @return *Control 数据源控制器实例
 // @return error 创建过程中可能产生的错误
 func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logger.Control, opts ...Option) (*Control, error) {
-	if dbConfig == nil {
-		dbConfig = getDefaultConfig()
-	}
+	dbConfig = check.IF[*config.DataSourceConfig](dbConfig == nil,
+		getDefaultConfig(),
+		dbConfig,
+	)
 	if !dbConfig.Enabled {
 		return nil, errors.New("datasource is not enabled")
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	dsLogger := loggerControl.GenLogger(logger.ModuleDataSource)
 	dsLogger.Infof("[control] starting new datasource control...")
 

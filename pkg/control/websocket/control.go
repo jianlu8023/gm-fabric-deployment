@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
 	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
@@ -49,12 +50,20 @@ type Control struct {
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control WebSocket控制器
 func NewWebsocketControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control) *Control {
-	if serverConfig == nil {
-		serverConfig = getDefaultConfig()
-	}
+	serverConfig = check.IF[*config.HttpServerConfig](serverConfig == nil,
+		getDefaultConfig(),
+		serverConfig,
+	)
 	if !serverConfig.Enabled {
 		return nil
 	}
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	wsLogger := loggerControl.GenLogger(logger.ModuleWebSocket)
 	wsLogger.Infof("[control] starting new websocket control...")
 

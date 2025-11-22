@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
@@ -39,12 +40,20 @@ func (c *Control) Shutdown() error {
 }
 
 func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control, opts ...Option) (*Control, error) {
-	if grpcConfig == nil {
-		grpcConfig = getDefaultConfig()
-	}
+	grpcConfig = check.IF[*config.GrpcConfig](grpcConfig == nil,
+		getDefaultConfig(),
+		grpcConfig,
+	)
 	if !grpcConfig.Enabled {
 		return nil, errors.New("grpc is not enabled")
 	}
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	grpcLogger := loggerControl.GenLogger(logger.ModuleGrpc)
 
 	grpcLogger.Infof("[control] starting new grpc control...")

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
 	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
@@ -69,12 +70,20 @@ type Control struct {
 // @return *Control libp2p控制器
 // @return error 错误
 func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.Control) (*Control, error) {
-	if libp2pConfig == nil {
-		libp2pConfig = getDefaultConfig()
-	}
+	libp2pConfig = check.IF[*config.Libp2pConfig](libp2pConfig == nil,
+		getDefaultConfig(),
+		libp2pConfig,
+	)
 	if !libp2pConfig.Enabled {
 		return nil, errors.New("libp2p is disabled")
 	}
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	libp2pLogger := loggerControl.GenLogger(logger.ModuleLibp2p)
 	libp2pLogger.Infof("[control] starting new libp2p control...")
 

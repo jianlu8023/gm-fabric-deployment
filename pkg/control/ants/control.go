@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/panjf2000/ants/v2"
@@ -91,25 +92,32 @@ type Control struct {
 }
 
 // NewAntsPoolControl 创建线程池控制器
-// @param config *config.AntsPoolConfig 线程池配置
+// @param antsConfig *config.AntsPoolConfig 线程池配置
 // @param loggerControl *logger.Control 日志控制器
 // @return *Control 线程池控制器实例
 // @since v1.0.0
-func NewAntsPoolControl(config *config.AntsPoolConfig, loggerControl *logger.Control) *Control {
-	if config == nil {
-		config = getDefaultConfig()
-	}
-	if !config.Enabled {
+func NewAntsPoolControl(antsConfig *config.AntsPoolConfig, loggerControl *logger.Control) *Control {
+	antsConfig = check.IF[*config.AntsPoolConfig](antsConfig == nil,
+		getDefaultConfig(),
+		antsConfig,
+	)
+	if !antsConfig.Enabled {
 		return nil
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	antsLogger := loggerControl.GenLogger(logger.ModuleAnts)
 	antsLogger.Infof("[control] start new ants pool control...")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	control := &Control{
-		config:    config,
+		config:    antsConfig,
 		logger:    antsLogger,
 		ctx:       ctx,
 		ctxCancel: cancel,

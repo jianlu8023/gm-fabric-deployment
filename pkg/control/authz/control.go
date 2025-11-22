@@ -8,6 +8,7 @@ import (
 	"github.com/casbin/casbin/v2"
 	casbinmodel "github.com/casbin/casbin/v2/model"
 	fileadapter "github.com/casbin/casbin/v2/persist/file-adapter"
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
@@ -30,12 +31,22 @@ type Control struct {
 func NewAuthzControl(authzConfig *config.AuthzConfig, loggerControl *logger.Control) *Control {
 
 	// 验证配置
-	if authzConfig == nil {
-		authzConfig = getDefaultConfig()
-	}
+	authzConfig = check.IF[*config.AuthzConfig](authzConfig == nil,
+		getDefaultConfig(),
+		authzConfig,
+	)
+
 	if !authzConfig.Enabled {
 		return nil
 	}
+
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 
 	authzLogger := loggerControl.GenLogger(logger.ModuleAuthZ)
 	authzLogger.Infof("[authz] start new authz control...")

@@ -5,7 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
+	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"go.uber.org/zap"
 )
@@ -31,6 +33,16 @@ type Control struct {
 // @param antsPoolControl *ants.Control 线程池控制器
 // @return *Control 作业控制器实例
 func NewJobControl(loggerControl *logger.Control, antsPoolControl *ants.Control) *Control {
+	if antsPoolControl == nil {
+		return nil
+	}
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	jobLogger := loggerControl.GenLogger(logger.ModuleJob)
 	jobLogger.Infof("[control] starting create job control...")
 	ctx, cancel := context.WithCancel(context.Background())

@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
@@ -34,9 +35,10 @@ type Control struct {
 // NewCertificateControl 新建证书控制器
 // @return *Control 证书控制器
 func NewCertificateControl(certificateConfig *config.CertificateConfig, loggerControl *logger.Control) *Control {
-	if certificateConfig == nil {
-		certificateConfig = getDefaultConfig()
-	}
+	certificateConfig = check.IF[*config.CertificateConfig](certificateConfig == nil,
+		getDefaultConfig(),
+		certificateConfig,
+	)
 	if !certificateConfig.Enabled {
 		return nil
 	}
@@ -44,7 +46,13 @@ func NewCertificateControl(certificateConfig *config.CertificateConfig, loggerCo
 	if loggerControl == nil {
 		return nil
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	certificateLogger := loggerControl.GenLogger("[Cert]")
 
 	control := &Control{

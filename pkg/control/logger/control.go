@@ -7,6 +7,7 @@ import (
 	"time"
 
 	glog "github.com/jianlu8023/go-logger/v2"
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
 	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -30,10 +31,10 @@ func (c *Control) GetConfig() *config.LoggerConfig {
 }
 
 func NewLoggerControl(loggerConfig *config.LoggerConfig) *Control {
-	if loggerConfig == nil {
-		loggerConfig = getDefaultConfig()
-	}
-
+	loggerConfig = check.IF[*config.LoggerConfig](loggerConfig == nil,
+		getDefaultConfig(),
+		loggerConfig,
+	)
 	loggerLevel := concurrentmap.NewRWMap[string, string]()
 	for logger, level := range loggerConfig.LoggerLevel {
 		// loggerLevel[strings.ToLower(logger)] = level

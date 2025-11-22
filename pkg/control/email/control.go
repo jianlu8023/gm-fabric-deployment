@@ -2,33 +2,18 @@ package email
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/smtp"
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"go.uber.org/zap"
 )
-
-type EmailMessage struct {
-	To          []string          // 收件人列表
-	Cc          []string          // 抄送人列表
-	Bcc         []string          // 密送人列表
-	Subject     string            // 邮件主题
-	Body        string            // 邮件正文
-	IsHTML      bool              // 是否为HTML格式
-	Attachments []Attachment      // 附件列表
-	ReplyTo     string            // 回复地址
-	Headers     map[string]string // 自定义邮件头
-}
-
-type Attachment struct {
-	Filename    string // 文件名
-	ContentType string // 文件类型
-	Content     []byte // 文件内容
-}
 
 type Control struct {
 	emailConfig *config.EmailConfig
@@ -37,17 +22,24 @@ type Control struct {
 }
 
 // NewEmailControl 创建邮件控制器
-func NewEmailControl(configControl *config.Control, loggerControl *logger.Control) (*Control, error) {
+func NewEmailControl(emailConfig *config.EmailConfig, loggerControl *logger.Control) (*Control, error) {
+	emailConfig = check.IF[*config.EmailConfig](emailConfig == nil,
+		getDefaultConfig(),
+		emailConfig,
+	)
+	if !emailConfig.Enabled {
+		return nil, errors.New("email is not enabled")
+	}
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
+
 	emailLogger := loggerControl.GenLogger("email")
 	emailLogger.Infof("[control] starting new email control...")
-
-	emailConfig := configControl.GetEmailConfig()
-	if emailConfig == nil {
-		emailLogger.Warnf("[control] email config is nil, using default config...")
-		emailConfig = &config.EmailConfig{
-			Enabled: false,
-		}
-	}
 
 	ctl := &Control{
 		emailConfig: emailConfig,
@@ -70,7 +62,7 @@ func (c *Control) SendEmail(message *EmailMessage) error {
 		return ErrNoRecipients
 	}
 
-	if message.Subject == "" {
+	if stringer.IsBlank(message.Subject) {
 		return ErrEmptySubject
 	}
 
@@ -79,7 +71,7 @@ func (c *Control) SendEmail(message *EmailMessage) error {
 
 	// 构建邮件内容
 	from := c.emailConfig.SenderAddress
-	if c.emailConfig.SenderName != "" {
+	if !stringer.IsBlank(c.emailConfig.SenderName) {
 		from = fmt.Sprintf("%s <%s>", c.emailConfig.SenderName, c.emailConfig.SenderAddress)
 	}
 
@@ -140,10 +132,9 @@ func (c *Control) SendEmail(message *EmailMessage) error {
 // StartUp 启动邮件服务
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		c.logger.Debugf("[control] starting up email service...")
-
 		// 验证配置
 		if c.emailConfig.Enabled {
+			c.logger.Debugf("[control] starting up email service...")
 			if c.emailConfig.SmtpHost == "" {
 				c.logger.Errorf("[control] email service enabled but smtp host is empty")
 				if failedFunc != nil {

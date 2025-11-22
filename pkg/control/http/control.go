@@ -72,13 +72,20 @@ type Control struct {
 // @param opts ...Option 可选的配置选项
 // @return *Control Web服务器控制器实例
 func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *logger.Control, opts ...Option) (*Control, error) {
-	if serverConfig == nil {
-		serverConfig = getDefaultConfig()
-	}
+	serverConfig = check.IF[*config.HttpServerConfig](serverConfig == nil,
+		getDefaultConfig(),
+		serverConfig,
+	)
 	if !serverConfig.Enabled {
 		return nil, errors.New("http is not enabled")
 	}
-
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 	webLogger.Info("[control] start new http server control...")
 	gin.SetMode(serverConfig.RunMode)

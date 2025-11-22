@@ -13,6 +13,7 @@ import (
 
 	"github.com/ipfs-cluster/ipfs-cluster/api"
 	"github.com/ipfs-cluster/ipfs-cluster/api/rest/client"
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/ipfs/thridparty/shell"
@@ -38,13 +39,21 @@ type Control struct {
 // @return *Control IPFS集群控制器实例
 // @return error 创建过程中可能产生的错误
 func NewIpfsClusterControl(ipfsClusterConfig *config.IpfsClusterConfig, loggerControl *logger.Control) (*Control, error) {
-	if ipfsClusterConfig == nil {
-		ipfsClusterConfig = getDefaultConfig()
-	}
+	ipfsClusterConfig = check.IF[*config.IpfsClusterConfig](ipfsClusterConfig == nil,
+		getDefaultConfig(),
+		ipfsClusterConfig,
+	)
 	if !ipfsClusterConfig.Enabled {
 		// 未启用
 		return nil, errors.New("ipfs cluster is not enabled")
 	}
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	ipfsClusterLogger := loggerControl.GenLogger(logger.ModuleIpfsCluster)
 
 	ctx, cancel := context.WithCancel(context.Background())

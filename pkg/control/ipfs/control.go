@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	shell "github.com/ipfs/go-ipfs-api"
+	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/multiformats/go-multiaddr"
@@ -31,12 +32,20 @@ type Control struct {
 //
 // @return *Control IPFS控制器
 func NewIpfsControl(ipfsConfig *config.IpfsConfig, loggerControl *logger.Control) *Control {
-	if ipfsConfig == nil {
-		ipfsConfig = getDefaultConfig()
-	}
+	ipfsConfig = check.IF[*config.IpfsConfig](ipfsConfig == nil,
+		getDefaultConfig(),
+		ipfsConfig,
+	)
 	if !ipfsConfig.Enabled {
 		return nil
 	}
+	loggerControl = check.IF[*logger.Control](loggerControl == nil,
+		logger.NewLoggerControl(&config.LoggerConfig{
+			DefaultLogLevel: "debug",
+			PrintFormat:     "console",
+		}),
+		loggerControl,
+	)
 	ipfsLogger := loggerControl.GenLogger(logger.ModuleIpfs)
 	ipfsLogger.Infof("[control] starting new IPFS control...")
 
