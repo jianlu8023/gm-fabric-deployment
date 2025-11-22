@@ -4,8 +4,6 @@ import (
 	"errors"
 )
 
-
-
 // 错误定义
 var (
 	// ErrMissingGoogleIssuer 缺少Google认证器颁发者名称

@@ -12,8 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-
-
 type EmailMessage struct {
 	To          []string          // 收件人列表
 	Cc          []string          // 抄送人列表

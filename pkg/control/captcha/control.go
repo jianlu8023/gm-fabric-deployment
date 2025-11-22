@@ -1,5 +1,3 @@
-// control.go - 验证码控制器实现
-
 package captcha
 
 import (

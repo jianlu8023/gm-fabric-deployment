@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/ipfs/go-cid"
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	dht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -35,15 +37,17 @@ type DiscoveryService struct {
 	serviceTag string
 
 	// 发现到的节点
-	peers      map[peer.ID]struct{}
-	peersMutex sync.RWMutex
+	// peers      map[peer.ID]struct{}
+	// peersMutex sync.RWMutex
+	peers concurrent.Map[peer.ID, struct{}]
 
 	// 发现结果回调
 	onPeerFound func(peer.ID, peer.AddrInfo)
 
 	// bootstrap节点列表
-	bootstrapPeers map[peer.ID]struct{}
-	bootstrapMutex sync.RWMutex
+	// bootstrapPeers map[peer.ID]struct{}
+	// bootstrapMutex sync.RWMutex
+	bootstrapPeers concurrent.Map[peer.ID, struct{}]
 
 	// DHT服务
 	dht *dht.IpfsDHT
@@ -73,12 +77,14 @@ type DiscoveryService struct {
 func newDiscoveryService(ctx context.Context, host host.Host, serviceTag string, logger *zap.SugaredLogger, libp2pConfig *config.Libp2pConfig) (*DiscoveryService, error) {
 	logger.Infof("[discovery] creating discovery service...")
 	ds := &DiscoveryService{
-		ctx:            ctx,
-		host:           host,
-		logger:         logger,
-		serviceTag:     serviceTag,
-		peers:          make(map[peer.ID]struct{}),
-		bootstrapPeers: make(map[peer.ID]struct{}),
+		ctx:        ctx,
+		host:       host,
+		logger:     logger,
+		serviceTag: serviceTag,
+		// peers:          make(map[peer.ID]struct{}),
+		// bootstrapPeers: make(map[peer.ID]struct{}),
+		peers:          concurrentmap.NewRWMap[peer.ID, struct{}](),
+		bootstrapPeers: concurrentmap.NewRWMap[peer.ID, struct{}](),
 		libp2pConfig:   libp2pConfig,
 		onPeerFound: func(id peer.ID, info peer.AddrInfo) {
 			// 默认回调，只是记录日志
@@ -227,14 +233,16 @@ func (ds *DiscoveryService) ConnectBootstrapPeers() {
 			}
 
 			// 注册peer
-			ds.peersMutex.Lock()
-			ds.peers[peerInfo.ID] = struct{}{}
-			ds.peersMutex.Unlock()
+			// ds.peersMutex.Lock()
+			// ds.peers[peerInfo.ID] = struct{}{}
+			// ds.peersMutex.Unlock()
+			ds.peers.Put(peerInfo.ID, struct{}{})
 
 			// 添加到bootstrap节点列表
-			ds.bootstrapMutex.Lock()
-			ds.bootstrapPeers[peerInfo.ID] = struct{}{}
-			ds.bootstrapMutex.Unlock()
+			// ds.bootstrapMutex.Lock()
+			// ds.bootstrapPeers[peerInfo.ID] = struct{}{}
+			// ds.bootstrapMutex.Unlock()
+			ds.bootstrapPeers.Put(peerInfo.ID, struct{}{})
 
 			ds.logger.Infof("[discovery] successfully connected to bootstrap peer: %s", peerInfo.ID)
 		}(addr)
@@ -269,14 +277,14 @@ func (ds *DiscoveryService) CheckPeersHealth() {
 	ds.logger.Debugf("[discovery] checking peers health...")
 
 	// 检查当前连接的所有节点
-	ds.peersMutex.RLock()
-	peersCopy := make([]peer.ID, 0, len(ds.peers))
-	for peerID := range ds.peers {
-		peersCopy = append(peersCopy, peerID)
-	}
-	ds.peersMutex.RUnlock()
-
-	for _, peerID := range peersCopy {
+	// ds.peersMutex.RLock()
+	// peersCopy := make([]peer.ID, 0, len(ds.peers))
+	// for peerID := range ds.peers {
+	// 	peersCopy = append(peersCopy, peerID)
+	// }
+	// ds.peersMutex.RUnlock()
+	keys := ds.peers.Keys()
+	for _, peerID := range keys {
 		go ds.CheckPeerHealth(peerID)
 	}
 }
@@ -293,14 +301,16 @@ func (ds *DiscoveryService) CheckPeerHealth(peerID peer.ID) {
 		ds.logger.Warnf("[discovery] peer %s is not connected, removing...", peerID)
 
 		// 从节点列表中移除
-		ds.peersMutex.Lock()
-		delete(ds.peers, peerID)
-		ds.peersMutex.Unlock()
+		// ds.peersMutex.Lock()
+		// delete(ds.peers, peerID)
+		// ds.peersMutex.Unlock()
+		ds.peers.Del(peerID)
 
 		// 检查是否是bootstrap节点，如果是，则尝试重新连接
-		ds.bootstrapMutex.RLock()
-		_, isBootstrap := ds.bootstrapPeers[peerID]
-		ds.bootstrapMutex.RUnlock()
+		// ds.bootstrapMutex.RLock()
+		// _, isBootstrap := ds.bootstrapPeers[peerID]
+		// ds.bootstrapMutex.RUnlock()
+		_, isBootstrap := ds.bootstrapPeers.Get(peerID)
 
 		if isBootstrap {
 			ds.logger.Infof("[discovery] peer %s is bootstrap node, will try to reconnect in next health check", peerID)
@@ -312,15 +322,16 @@ func (ds *DiscoveryService) CheckPeerHealth(peerID peer.ID) {
 //
 // @return []peer.ID bootstrap节点ID列表
 func (ds *DiscoveryService) GetBootstrapPeers() []peer.ID {
-	ds.bootstrapMutex.RLock()
-	defer ds.bootstrapMutex.RUnlock()
+	// ds.bootstrapMutex.RLock()
+	// defer ds.bootstrapMutex.RUnlock()
 
-	peers := make([]peer.ID, 0, len(ds.bootstrapPeers))
-	for peerID := range ds.bootstrapPeers {
-		peers = append(peers, peerID)
-	}
-
-	return peers
+	// peers := make([]peer.ID, 0, len(ds.bootstrapPeers))
+	// for peerID := range ds.bootstrapPeers {
+	// 	peers = append(peers, peerID)
+	// }
+	// return peers
+	keys := ds.bootstrapPeers.Keys()
+	return keys
 }
 
 // Stop 停止节点发现服务
@@ -435,15 +446,17 @@ func (ds *DiscoveryService) NotifyPeerFound(callback func(peer.ID, peer.AddrInfo
 // @return []peer.ID 已发现的节点ID列表
 func (ds *DiscoveryService) GetDiscoveredPeers() []peer.ID {
 	ds.logger.Infof("[discovery] get discovered peers...")
-	ds.peersMutex.RLock()
-	defer ds.peersMutex.RUnlock()
-
-	peers := make([]peer.ID, 0, len(ds.peers))
-	for peerID := range ds.peers {
-		peers = append(peers, peerID)
-	}
-
-	return peers
+	// ds.peersMutex.RLock()
+	// defer ds.peersMutex.RUnlock()
+	//
+	// peers := make([]peer.ID, 0, len(ds.peers))
+	// for peerID := range ds.peers {
+	// 	peers = append(peers, peerID)
+	// }
+	//
+	// return peers
+	keys := ds.peers.Keys()
+	return keys
 }
 
 // scanPeers 定期扫描局域网内的节点
@@ -471,15 +484,17 @@ func (ds *DiscoveryService) HandlePeerFound(pi peer.AddrInfo) {
 	}
 
 	// 检查是否已经发现过该节点
-	ds.peersMutex.RLock()
-	_, exists := ds.peers[pi.ID]
-	ds.peersMutex.RUnlock()
+	// ds.peersMutex.RLock()
+	// _, exists := ds.peers[pi.ID]
+	// ds.peersMutex.RUnlock()
+	_, exists := ds.peers.Get(pi.ID)
 
 	if !exists {
 		// 添加到已发现节点列表
-		ds.peersMutex.Lock()
-		ds.peers[pi.ID] = struct{}{}
-		ds.peersMutex.Unlock()
+		// ds.peersMutex.Lock()
+		// ds.peers[pi.ID] = struct{}{}
+		// ds.peersMutex.Unlock()
+		ds.peers.Put(pi.ID, struct{}{})
 
 		ds.logger.Debugf("[discovery] discovered new peer: %s", pi.ID)
 
@@ -606,17 +621,20 @@ func (ds *DiscoveryService) SavePeersToFile() error {
 	// peersInfo := []PersistentPeerInfo{}
 
 	// 获取所有发现的节点
-	ds.peersMutex.RLock()
+	// ds.peersMutex.RLock()
 	ds.peerstoreMutex.RLock()
-	ds.bootstrapMutex.RLock()
+	// ds.bootstrapMutex.RLock()
 	defer func() {
-		ds.peersMutex.RUnlock()
+		// ds.peersMutex.RUnlock()
 		ds.peerstoreMutex.RUnlock()
-		ds.bootstrapMutex.RUnlock()
+		// ds.bootstrapMutex.RUnlock()
 	}()
 
 	// 为每个节点准备持久化数据
-	for peerID := range ds.peers {
+
+	keys := ds.peers.Keys()
+
+	for _, peerID := range keys {
 		// 检查节点是否有效
 		addrs := ds.host.Peerstore().Addrs(peerID)
 		if len(addrs) == 0 {
@@ -693,13 +711,13 @@ func (ds *DiscoveryService) LoadPeersFromFile() error {
 	// ds.logger.Infof("[discovery] loaded %d peers from file", len(peersInfo))
 
 	// 处理加载的节点信息
-	ds.peersMutex.Lock()
+	// ds.peersMutex.Lock()
 	ds.peerstoreMutex.Lock()
-	ds.bootstrapMutex.Lock()
+	// ds.bootstrapMutex.Lock()
 	defer func() {
-		ds.peersMutex.Unlock()
+		// ds.peersMutex.Unlock()
 		ds.peerstoreMutex.Unlock()
-		ds.bootstrapMutex.Unlock()
+		// ds.bootstrapMutex.Unlock()
 	}()
 
 	// for _, info := range peersInfo {

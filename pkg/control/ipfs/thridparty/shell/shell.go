@@ -3,7 +3,7 @@ package shell
 import (
 	"context"
 	"io"
-	
+
 	"github.com/ipfs/boxo/tar"
 	shell "github.com/ipfs/go-ipfs-api"
 )

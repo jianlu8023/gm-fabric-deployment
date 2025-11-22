@@ -97,7 +97,8 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control
 
 func (c *Control) printHandlers() {
 	c.logger.Debugf("[control] print handler...")
-	for handlerName := range c.server.mServer.handler.handlerMap {
+	keys := c.server.mServer.handler.handlerMap.Keys()
+	for handlerName := range keys {
 		c.logger.Debugf("[control] register handler %v", handlerName)
 	}
 }

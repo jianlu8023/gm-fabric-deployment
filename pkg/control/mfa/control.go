@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"go.uber.org/zap"
 
 	"github.com/jianlu8023/golang-example/pkg/control/config"
@@ -15,13 +17,14 @@ import (
 // @description 实现MFAControl接口的控制结构体
 // @struct Control
 type Control struct {
-	config          *config.MFAConfig   // MFA配置
-	logger          *zap.SugaredLogger  // 日志记录器
-	ctx             context.Context     // 上下文
-	cancel          context.CancelFunc  // 取消函数
-	once            sync.Once           // 确保StartUp只执行一次
-	providers       map[string]Provider // 认证提供商映射
-	currentProvider Provider            // 当前使用的认证提供商
+	config *config.MFAConfig  // MFA配置
+	logger *zap.SugaredLogger // 日志记录器
+	ctx    context.Context    // 上下文
+	cancel context.CancelFunc // 取消函数
+	once   sync.Once          // 确保StartUp只执行一次
+	// providers       map[string]Provider // 认证提供商映射
+	providers       concurrent.Map[string, Provider] // 认证提供商映射
+	currentProvider Provider                         // 当前使用的认证提供商
 }
 
 // NewMFAControl 创建一个新的MFA控制器
@@ -45,11 +48,12 @@ func NewMFAControl(mfaConfig *config.MFAConfig, loggerControl *logger.Control) (
 
 	// 初始化控制器
 	control := &Control{
-		logger:    mfaLogger,
-		config:    mfaConfig,
-		ctx:       ctx,
-		cancel:    cancel,
-		providers: make(map[string]Provider),
+		logger: mfaLogger,
+		config: mfaConfig,
+		ctx:    ctx,
+		cancel: cancel,
+		// providers: make(map[string]Provider),
+		providers: concurrentmap.NewRWMap[string, Provider](),
 	}
 
 	// 初始化认证提供商
@@ -70,16 +74,16 @@ func NewMFAControl(mfaConfig *config.MFAConfig, loggerControl *logger.Control) (
 // @description 初始化Google和Microsoft认证提供商
 func (c *Control) initProviders() {
 	// 初始化Google认证提供商
-	c.providers[ProviderGoogle] = &GoogleProvider{
+	c.providers.Put(ProviderGoogle, &GoogleProvider{
 		issuer: c.config.Google.Issuer,
 		logger: c.logger.Named("google"),
-	}
+	})
 	// 初始化Microsoft认证提供商
-	c.providers[ProviderMicrosoft] = &MicrosoftProvider{
+	c.providers.Put(ProviderMicrosoft, &MicrosoftProvider{
 		logger:   c.logger.Named("microsoft"),
 		tenantID: c.config.Microsoft.TenantID,
 		clientID: c.config.Microsoft.ClientID,
-	}
+	})
 }
 
 // GenerateSecret 生成MFA密钥
@@ -121,7 +125,7 @@ func (c *Control) setProvider(provider string) error {
 	c.logger.Debugf("[control] setting MFA provider to: %s", provider)
 
 	// 检查提供商是否存在
-	p, exists := c.providers[provider]
+	p, exists := c.providers.Get(provider)
 	if !exists {
 		err := fmt.Errorf("unsupported provider: %s", provider)
 		c.logger.Errorf("[control] %v", err)
@@ -137,11 +141,22 @@ func (c *Control) setProvider(provider string) error {
 // @return string 当前认证提供商
 func (c *Control) GetProvider() string {
 	// 遍历providers映射，找到当前provider对应的键
-	for k, v := range c.providers {
-		if v == c.currentProvider {
-			return k
+	// for k, v := range c.providers {
+	// 	if v == c.currentProvider {
+	// 		return k
+	// 	}
+	// }
+	iter := c.providers.Iterator()
+	defer func() {
+		_ = iter.Close()
+	}()
+	for iter.HasNext() {
+		next := iter.Value()
+		if next.Value == c.currentProvider {
+			return next.Key
 		}
 	}
+
 	return ""
 }
 
@@ -153,7 +168,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.config.Enabled {
 			c.logger.Debugf("[control] starting up MFA service...")
 			// 验证默认提供商是否配置正确
-			if _, exists := c.providers[c.config.DefaultProvider]; !exists {
+			if _, exists := c.providers.Get(c.config.DefaultProvider); !exists {
 				err := fmt.Errorf("invalid default provider: %s", c.config.DefaultProvider)
 				c.logger.Errorf("[control] %v", err)
 				if failedFunc != nil {

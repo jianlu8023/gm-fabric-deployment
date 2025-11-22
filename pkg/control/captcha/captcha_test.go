@@ -75,7 +75,7 @@ func GetCaptcha() (string, string, string, error) {
 	// }
 
 	// https://captcha.mojotv.cn/ 调试配置
-	var param configJsonBody = configJsonBody{
+	var param = configJsonBody{
 		Id:          "",
 		CaptchaType: "string",
 		VerifyValue: "",

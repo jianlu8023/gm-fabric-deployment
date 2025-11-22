@@ -1,10 +1,11 @@
 package helper
 
 import (
+	"strconv"
+
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/sony/sonyflake"
 	"go.uber.org/zap"
-	"strconv"
 )
 
 type Control struct {

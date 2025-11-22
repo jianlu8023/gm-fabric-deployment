@@ -3,9 +3,10 @@ package webrtc
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/pion/interceptor"
@@ -19,13 +20,14 @@ import (
 // @description 管理所有WebRTC对等连接的创建、维护和关闭，并管理各种回调函数
 // @struct
 type PeerService struct {
-	ctx                         context.Context                            // ctx 上下文，用于控制生命周期
-	logger                      *zap.SugaredLogger                         // logger 日志记录器，用于记录WebRTC相关日志
-	config                      *config.WebRTCConfig                       // config WebRTC配置信息
-	api                         *webrtc.API                                // api webrtc.API 复用实例
-	peerConfig                  *webrtc.Configuration                      // peerConfig WebRTC连接配置
-	peerConnections             map[string]*PeerConnection                 // peerConnections 对等连接映射，存储所有活跃的WebRTC连接
-	peerConnectionsMux          sync.RWMutex                               // peerConnectionsMux 对等连接映射的读写锁，保证并发安全
+	ctx        context.Context       // ctx 上下文，用于控制生命周期
+	logger     *zap.SugaredLogger    // logger 日志记录器，用于记录WebRTC相关日志
+	config     *config.WebRTCConfig  // config WebRTC配置信息
+	api        *webrtc.API           // api webrtc.API 复用实例
+	peerConfig *webrtc.Configuration // peerConfig WebRTC连接配置
+	// peerConnections             map[string]*PeerConnection                 // peerConnections 对等连接映射，存储所有活跃的WebRTC连接
+	// peerConnectionsMux          sync.RWMutex                               // peerConnectionsMux 对等连接映射的读写锁，保证并发安全
+	peerConnections             concurrent.Map[string, *PeerConnection]    // peerConnections 对等连接映射，存储所有活跃的WebRTC连接
 	onPeerConnectionCreated     func(id string, conn *PeerConnection)      // onPeerConnectionCreated 对等连接创建时的回调函数
 	onPeerConnectionClosed      func(id string)                            // onPeerConnectionClosed 对等连接关闭时的回调函数
 	onPeerConnectionFailed      func(id string, err error)                 // onPeerConnectionFailed 对等连接失败时的回调函数
@@ -53,10 +55,11 @@ func newPeerService(ctx context.Context,
 	log.Debugf("[peerservice] starting generate peer service...")
 
 	ps := &PeerService{
-		ctx:             ctx,
-		config:          config,
-		logger:          log,
-		peerConnections: make(map[string]*PeerConnection),
+		ctx:    ctx,
+		config: config,
+		logger: log,
+		// peerConnections: make(map[string]*PeerConnection),
+		peerConnections: concurrentmap.NewRWMap[string, *PeerConnection](),
 	}
 
 	// 生成 webrtc.API 实例
@@ -213,9 +216,10 @@ func (ps *PeerService) CreatePeerConnection(connConfig *webrtc.Configuration, id
 	ps.logger.Debugf("[peerservice] creating new peer connection, id: %s", id)
 
 	// 记录当前活跃的连接数
-	ps.peerConnectionsMux.RLock()
-	activeConnections := len(ps.peerConnections)
-	ps.peerConnectionsMux.RUnlock()
+	// ps.peerConnectionsMux.RLock()
+	// activeConnections := len(ps.peerConnections)
+	// ps.peerConnectionsMux.RUnlock()
+	activeConnections := ps.peerConnections.Len()
 	ps.logger.Debugf("[peerservice] current active connections: %d", activeConnections)
 
 	// 如果没有提供配置，使用默认配置
@@ -312,9 +316,10 @@ func (ps *PeerService) CreatePeerConnection(connConfig *webrtc.Configuration, id
 	})
 
 	// 添加到对等连接映射
-	ps.peerConnectionsMux.Lock()
-	ps.peerConnections[id] = wpc
-	ps.peerConnectionsMux.Unlock()
+	// ps.peerConnectionsMux.Lock()
+	// ps.peerConnections[id] = wpc
+	// ps.peerConnectionsMux.Unlock()
+	ps.peerConnections.Put(id, wpc)
 
 	// 调用创建回调
 	if ps.onPeerConnectionCreated != nil {
@@ -330,12 +335,16 @@ func (ps *PeerService) CreatePeerConnection(connConfig *webrtc.Configuration, id
 // @description 内部方法：移除连接，现在直接操作peerConnections，不再需要单独的connections映射
 // @param id string 连接ID
 func (ps *PeerService) removeConnection(id string) {
-	ps.peerConnectionsMux.Lock()
-	conn, exists := ps.peerConnections[id]
+	// ps.peerConnectionsMux.Lock()
+	// conn, exists := ps.peerConnections[id]
+	// if exists {
+	// 	delete(ps.peerConnections, id)
+	// }
+	// ps.peerConnectionsMux.Unlock()
+	conn, exists := ps.peerConnections.Get(id)
 	if exists {
-		delete(ps.peerConnections, id)
+		ps.peerConnections.Del(id)
 	}
-	ps.peerConnectionsMux.Unlock()
 
 	// 只有在连接存在时才执行清理操作
 	if exists {
@@ -358,9 +367,10 @@ func (ps *PeerService) removeConnection(id string) {
 // @param id string 连接ID
 // @return *PeerConnection 如果找到对应的连接，则返回该连接实例；否则返回nil
 func (ps *PeerService) GetPeerConnection(id string) *PeerConnection {
-	ps.peerConnectionsMux.RLock()
-	defer ps.peerConnectionsMux.RUnlock()
-	conn, exists := ps.peerConnections[id]
+	// ps.peerConnectionsMux.RLock()
+	// defer ps.peerConnectionsMux.RUnlock()
+	// conn, exists := ps.peerConnections[id]
+	conn, exists := ps.peerConnections.Get(id)
 	if exists {
 		ps.logger.Debugf("[peerservice] peer connection found, id: %s, state: %s", id, conn.Connection.ConnectionState().String())
 		return conn
@@ -374,16 +384,18 @@ func (ps *PeerService) GetPeerConnection(id string) *PeerConnection {
 // @description 获取所有对等连接
 // @return []*PeerConnection 所有对等连接的列表
 func (ps *PeerService) GetAllPeerConnections() []*PeerConnection {
-	ps.peerConnectionsMux.RLock()
-	defer ps.peerConnectionsMux.RUnlock()
+	// ps.peerConnectionsMux.RLock()
+	// defer ps.peerConnectionsMux.RUnlock()
 
-	ps.logger.Debugf("[peerservice] getting all peer connections, count: %d", len(ps.peerConnections))
-	connections := make([]*PeerConnection, 0, len(ps.peerConnections))
-	for id, conn := range ps.peerConnections {
-		connections = append(connections, conn)
-		ps.logger.Debugf("[peerservice] peer connection id: %s, state: %s", id, conn.Connection.ConnectionState().String())
-	}
-	return connections
+	ps.logger.Debugf("[peerservice] getting all peer connections, count: %d", ps.peerConnections.Len())
+	// connections := make([]*PeerConnection, 0, len(ps.peerConnections))
+	// for id, conn := range ps.peerConnections {
+	// 	connections = append(connections, conn)
+	// 	ps.logger.Debugf("[peerservice] peer connection id: %s, state: %s", id, conn.Connection.ConnectionState().String())
+	// }
+	// return connections
+	values := ps.peerConnections.Values()
+	return values
 }
 
 // ClosePeerConnection 关闭指定ID的对等连接
@@ -394,14 +406,16 @@ func (ps *PeerService) GetAllPeerConnections() []*PeerConnection {
 func (ps *PeerService) ClosePeerConnection(id string) error {
 	ps.logger.Debugf("[peerservice] closing peer connection, id: %s", id)
 
-	ps.peerConnectionsMux.Lock()
-	conn, exists := ps.peerConnections[id]
+	// ps.peerConnectionsMux.Lock()
+	// conn, exists := ps.peerConnections[id]
+	conn, exists := ps.peerConnections.Get(id)
 	if exists {
 		// 从映射中移除连接
-		delete(ps.peerConnections, id)
+		// delete(ps.peerConnections, id)
+		ps.peerConnections.Del(id)
 		ps.logger.Debugf("[peerservice] peer connection removed from map, id: %s", id)
 	}
-	ps.peerConnectionsMux.Unlock()
+	// ps.peerConnectionsMux.Unlock()
 
 	if !exists {
 		ps.logger.Warnf("[peerservice] peer connection not found, id: %s", id)
@@ -450,13 +464,13 @@ func (ps *PeerService) CloseAllPeerConnections() {
 	ps.logger.Infof("[peerservice] closing all peer connections")
 
 	// 获取所有连接ID
-	ids := make([]string, 0)
-	ps.peerConnectionsMux.RLock()
-	for id := range ps.peerConnections {
-		ids = append(ids, id)
-	}
-	ps.peerConnectionsMux.RUnlock()
-
+	// ids := make([]string, 0)
+	// ps.peerConnectionsMux.RLock()
+	// for id := range ps.peerConnections {
+	// 	ids = append(ids, id)
+	// }
+	// ps.peerConnectionsMux.RUnlock()
+	ids := ps.peerConnections.Keys()
 	// 关闭每个连接
 	for _, id := range ids {
 		_ = ps.ClosePeerConnection(id)
@@ -470,9 +484,10 @@ func (ps *PeerService) CloseAllPeerConnections() {
 // @param message []byte 要发送的消息内容
 // @return error 如果发送过程中发生错误，则返回错误信息
 func (ps *PeerService) SendTo(id string, message []byte) error {
-	ps.peerConnectionsMux.RLock()
-	conn, exists := ps.peerConnections[id]
-	ps.peerConnectionsMux.RUnlock()
+	// ps.peerConnectionsMux.RLock()
+	// conn, exists := ps.peerConnections[id]
+	// ps.peerConnectionsMux.RUnlock()
+	conn, exists := ps.peerConnections.Get(id)
 
 	if !exists {
 		return fmt.Errorf("[peerservice] connection not found: %s", id)

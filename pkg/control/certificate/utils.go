@@ -12,7 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	
+
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	gmsm2 "github.com/tjfoc/gmsm/sm2"
 	gmx509 "github.com/tjfoc/gmsm/x509"
@@ -85,22 +85,22 @@ func parseSANs(sans string) []string {
 // @return error 错误信息
 func saveCertificate(certPath, name string, derBytes []byte, logger *zap.SugaredLogger) (string, error) {
 	certFilePath := filepath.Join(certPath, name+".crt")
-	
+
 	certOut, err := os.Create(certFilePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create certificate file: %w", err)
 	}
-	
+
 	defer func() {
 		if err := certOut.Close(); err != nil {
 			logger.Errorf("[control] close certificate {%v} certOut file failed: %v", name, err)
 		}
 	}()
-	
+
 	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
 		return "", fmt.Errorf("failed to write certificate: %w", err)
 	}
-	
+
 	return certFilePath, nil
 }
 
@@ -113,27 +113,27 @@ func saveCertificate(certPath, name string, derBytes []byte, logger *zap.Sugared
 // @return error 错误信息
 func saveRSAPrivateKey(certPath, name string, privateKey *rsa.PrivateKey, logger *zap.SugaredLogger) (string, error) {
 	keyFilePath := filepath.Join(certPath, name+".key")
-	
+
 	keyOut, err := os.Create(keyFilePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create key file: %w", err)
 	}
-	
+
 	defer func() {
 		if err := keyOut.Close(); err != nil {
 			logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
-	
+
 	privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal private key: %w", err)
 	}
-	
+
 	if err := pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: privateKeyBytes}); err != nil {
 		return "", fmt.Errorf("failed to write private key: %w", err)
 	}
-	
+
 	return keyFilePath, nil
 }
 
@@ -146,27 +146,27 @@ func saveRSAPrivateKey(certPath, name string, privateKey *rsa.PrivateKey, logger
 // @return error 错误信息
 func saveECCPrivateKey(certPath, name string, privateKey *ecdsa.PrivateKey, logger *zap.SugaredLogger) (string, error) {
 	keyFilePath := filepath.Join(certPath, name+".key")
-	
+
 	keyOut, err := os.Create(keyFilePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create key file: %w", err)
 	}
-	
+
 	defer func() {
 		if err := keyOut.Close(); err != nil {
 			logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
-	
+
 	privateKeyBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal private key: %w", err)
 	}
-	
+
 	if err := pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: privateKeyBytes}); err != nil {
 		return "", fmt.Errorf("failed to write private key: %w", err)
 	}
-	
+
 	return keyFilePath, nil
 }
 

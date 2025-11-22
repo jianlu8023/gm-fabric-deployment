@@ -2,12 +2,11 @@ package jwt
 
 import (
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/otel/codes"
-
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"

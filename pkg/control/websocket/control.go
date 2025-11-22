@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 
@@ -16,22 +18,13 @@ import (
 	"go.uber.org/zap"
 )
 
-// Connection 表示一个WebSocket连接
-type Connection struct {
-	Conn         *websocket.Conn
-	NodeID       string // 节点ID
-	Send         chan Message
-	CloseChan    chan struct{}
-	LastPingTime time.Time // 最后ping时间
-	CreatedAt    time.Time // 创建时间
-}
-
 // Control 管理WebSocket连接的控制结构体
 type Control struct {
-	logger          *zap.SugaredLogger
-	config          *config.HttpServerConfig
-	connections     map[string]*Connection
-	connectionsMux  sync.RWMutex
+	logger *zap.SugaredLogger
+	config *config.HttpServerConfig
+	// connections     map[string]*Connection
+	// connectionsMux  sync.RWMutex
+	connections     concurrent.Map[string, *Connection]
 	ctx             context.Context
 	cancel          context.CancelFunc
 	once            sync.Once
@@ -80,9 +73,10 @@ func NewWebsocketControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	// 初始化WebsocketControl
 	wc := &Control{
-		logger:          wsLogger,
-		config:          serverConfig,
-		connections:     make(map[string]*Connection),
+		logger: wsLogger,
+		config: serverConfig,
+		// connections:     make(map[string]*Connection),
+		connections:     concurrentmap.NewRWMap[string, *Connection](),
 		ctx:             ctx,
 		cancel:          cancel,
 		upgrader:        upgrader,
@@ -120,11 +114,15 @@ func (wc *Control) Shutdown() error {
 	wc.cancel()
 
 	// 关闭所有连接
-	wc.connectionsMux.Lock()
-	for _, conn := range wc.connections {
+	// wc.connectionsMux.Lock()
+	// for _, conn := range wc.connections {
+	// 	close(conn.CloseChan)
+	// }
+	// wc.connectionsMux.Unlock()
+	values := wc.connections.Values()
+	for _, conn := range values {
 		close(conn.CloseChan)
 	}
-	wc.connectionsMux.Unlock()
 
 	wc.logger.Infof("[control] websocket control shutdown completed")
 	return nil
@@ -246,8 +244,8 @@ func (wc *Control) RegisterMessageHandler(messageType int, handler MessageHandle
 // @param conn WebSocket连接
 // @return *Connection 封装后的连接对象
 func (wc *Control) AddConnection(id string, conn *websocket.Conn) *Connection {
-	wc.connectionsMux.Lock()
-	defer wc.connectionsMux.Unlock()
+	// wc.connectionsMux.Lock()
+	// defer wc.connectionsMux.Unlock()
 
 	// 创建新的连接对象
 	connection := &Connection{
@@ -260,7 +258,8 @@ func (wc *Control) AddConnection(id string, conn *websocket.Conn) *Connection {
 	}
 
 	// 添加到连接映射中
-	wc.connections[id] = connection
+	// wc.connections[id] = connection
+	wc.connections.Put(id, connection)
 
 	// 启动读写协程
 	go wc.readPump(connection)
@@ -278,13 +277,16 @@ func (wc *Control) AddConnection(id string, conn *websocket.Conn) *Connection {
 // RemoveConnection 移除一个WebSocket连接
 // @param id 连接ID
 func (wc *Control) RemoveConnection(id string) {
-	wc.connectionsMux.Lock()
-	connection, exists := wc.connections[id]
+	// wc.connectionsMux.Lock()
+	// connection, exists := wc.connections[id]
+	connection, exists := wc.connections.Get(id)
+
 	if exists {
-		delete(wc.connections, id)
+		// delete(wc.connections, id)
+		wc.connections.Del(id)
 		close(connection.CloseChan)
 	}
-	wc.connectionsMux.Unlock()
+	// wc.connectionsMux.Unlock()
 
 	if exists {
 		wc.logger.Debugf("[control] websocket connection removed, id: %s", id)
@@ -299,42 +301,62 @@ func (wc *Control) RemoveConnection(id string) {
 // @param id 连接ID
 // @return *Connection 连接对象，如果不存在则返回nil
 func (wc *Control) GetConnection(id string) *Connection {
-	wc.connectionsMux.RLock()
-	defer wc.connectionsMux.RUnlock()
-	return wc.connections[id]
+	// wc.connectionsMux.RLock()
+	// defer wc.connectionsMux.RUnlock()
+	// return wc.connections[id]
+	if wc.connections.HasKey(id) {
+		connection, _ := wc.connections.Get(id)
+		return connection
+	}
+	return nil
 }
 
 // Broadcast 向所有连接广播消息
 // @param message 消息内容
 func (wc *Control) Broadcast(message Message) {
-	wc.connectionsMux.RLock()
+	// wc.connectionsMux.RLock()
 	// 创建连接副本，避免在遍历过程中锁定时间过长
-	connections := make([]*Connection, 0, len(wc.connections))
-	for _, conn := range wc.connections {
-		connections = append(connections, conn)
-	}
-	wc.connectionsMux.RUnlock()
+	// connections := make([]*Connection, 0, len(wc.connections))
+	// for _, conn := range wc.connections {
+	// 	connections = append(connections, conn)
+	// }
+	// wc.connectionsMux.RUnlock()
+	iter := wc.connections.Iterator()
+	defer func() {
+		_ = iter.Close()
+	}()
 
 	// 向所有连接发送消息
-	for _, conn := range connections {
+	for iter.HasNext() {
+		next := iter.Value()
 		select {
-		case conn.Send <- message:
-			// 消息成功发送到通道
+		case next.Value.Send <- message:
 		default:
-			// 通道已满，关闭连接
-			close(conn.CloseChan)
-			wc.logger.Debugf("[control] websocket connection buffer full, closing: %s", conn.NodeID)
+			close(next.Value.CloseChan)
+			wc.logger.Debugf("[control] websocket connection buffer full, closing: %s", next.Value.NodeID)
 		}
 	}
+	// for _, conn := range connections {
+	// 	select {
+	// 	case conn.Send <- message:
+	// 		// 消息成功发送到通道
+	// 	default:
+	// 		// 通道已满，关闭连接
+	// 		close(conn.CloseChan)
+	// 		wc.logger.Debugf("[control] websocket connection buffer full, closing: %s", conn.NodeID)
+	// 	}
+	// }
+
 }
 
 // sendText 向指定连接发送消息
 // @param id 连接ID
 // @param message 消息内容
 func (wc *Control) sendText(id string, message Message) {
-	wc.connectionsMux.RLock()
-	connection, exists := wc.connections[id]
-	wc.connectionsMux.RUnlock()
+	// wc.connectionsMux.RLock()
+	// connection, exists := wc.connections[id]
+	// wc.connectionsMux.RUnlock()
+	connection, exists := wc.connections.Get(id)
 
 	if !exists {
 		wc.logger.Debugf("[control] websocket connection not found, id: %s", id)
@@ -358,9 +380,10 @@ func (wc *Control) sendText(id string, message Message) {
 // @param id string 连接ID
 // @param message Message ping消息内容
 func (wc *Control) sendPing(id string, message Message) {
-	wc.connectionsMux.RLock()
-	connection, exists := wc.connections[id]
-	wc.connectionsMux.RUnlock()
+	// wc.connectionsMux.RLock()
+	// connection, exists := wc.connections[id]
+	// wc.connectionsMux.RUnlock()
+	connection, exists := wc.connections.Get(id)
 
 	if !exists {
 		wc.logger.Debugf("[control] websocket connection not found for ping, id: %s", id)
@@ -384,9 +407,10 @@ func (wc *Control) sendPing(id string, message Message) {
 // @param id string 连接ID
 // @param message Message pong消息内容
 func (wc *Control) sendPong(id string, message Message) {
-	wc.connectionsMux.RLock()
-	connection, exists := wc.connections[id]
-	wc.connectionsMux.RUnlock()
+	// wc.connectionsMux.RLock()
+	// connection, exists := wc.connections[id]
+	// wc.connectionsMux.RUnlock()
+	connection, exists := wc.connections.Get(id)
 
 	if !exists {
 		wc.logger.Debugf("[control] websocket connection not found for pong, id: %s", id)
@@ -410,9 +434,10 @@ func (wc *Control) sendPong(id string, message Message) {
 // @param id string 连接ID
 // @param message Message 二进制消息内容
 func (wc *Control) sendBinary(id string, message Message) {
-	wc.connectionsMux.RLock()
-	connection, exists := wc.connections[id]
-	wc.connectionsMux.RUnlock()
+	// wc.connectionsMux.RLock()
+	// connection, exists := wc.connections[id]
+	// wc.connectionsMux.RUnlock()
+	connection, exists := wc.connections.Get(id)
 
 	if !exists {
 		wc.logger.Debugf("[control] websocket connection not found for binary message, id: %s", id)
@@ -436,9 +461,10 @@ func (wc *Control) sendBinary(id string, message Message) {
 // @param id string 连接ID
 // @param message Message 关闭消息
 func (wc *Control) sendClose(id string, message Message) {
-	wc.connectionsMux.RLock()
-	connection, exists := wc.connections[id]
-	wc.connectionsMux.RUnlock()
+	// wc.connectionsMux.RLock()
+	// connection, exists := wc.connections[id]
+	// wc.connectionsMux.RUnlock()
+	connection, exists := wc.connections.Get(id)
 
 	if !exists {
 		wc.logger.Debugf("[control] websocket connection not found for close message, id: %s", id)
@@ -466,9 +492,10 @@ func (wc *Control) sendClose(id string, message Message) {
 // @param message []byte 消息内容
 // @return bool 是否成功发送
 func (wc *Control) SendMessage(id string, message Message) {
-	wc.connectionsMux.RLock()
-	connection, exists := wc.connections[id]
-	wc.connectionsMux.RUnlock()
+	// wc.connectionsMux.RLock()
+	// connection, exists := wc.connections[id]
+	// wc.connectionsMux.RUnlock()
+	connection, exists := wc.connections.Get(id)
 
 	if !exists {
 		wc.logger.Debugf("[control] websocket connection not found for pong, id: %s", id)
@@ -498,30 +525,46 @@ func (wc *Control) startHeartBeat() {
 
 // pingAllConnections 向所有连接发送ping
 func (wc *Control) pingAllConnections() {
-	wc.connectionsMux.RLock()
-	connections := make([]*Connection, 0, len(wc.connections))
-	for _, conn := range wc.connections {
-		connections = append(connections, conn)
-	}
-	wc.connectionsMux.RUnlock()
+	// wc.connectionsMux.RLock()
+	// connections := make([]*Connection, 0, len(wc.connections))
+	// for _, conn := range wc.connections {
+	// 	connections = append(connections, conn)
+	// }
+	// wc.connectionsMux.RUnlock()
 
-	for _, conn := range connections {
-		// 检查连接是否超时
+	// for _, conn := range connections {
+	// 	// 检查连接是否超时
+	// 	if time.Since(conn.LastPingTime) > wc.pongWait {
+	// 		wc.logger.Debugf("[control] connection %s ping timeout, removing", conn.NodeID)
+	// 		wc.RemoveConnection(conn.NodeID)
+	// 		continue
+	// 	}
+	//
+	// 	// 发送ping
+	// 	wc.sendPing(conn.NodeID, Message{Content: []byte("ping")})
+	// }
+
+	iter := wc.connections.Iterator()
+	defer func() { _ = iter.Close() }()
+	for iter.HasNext() {
+		next := iter.Value()
+		conn := next.Value
 		if time.Since(conn.LastPingTime) > wc.pongWait {
 			wc.logger.Debugf("[control] connection %s ping timeout, removing", conn.NodeID)
 			wc.RemoveConnection(conn.NodeID)
 			continue
 		}
-
 		// 发送ping
 		wc.sendPing(conn.NodeID, Message{Content: []byte("ping")})
 	}
+
 }
 
 func (wc *Control) GetConnectionCount() int {
-	wc.connectionsMux.RLock()
-	defer wc.connectionsMux.RUnlock()
-	return len(wc.connections)
+	// wc.connectionsMux.RLock()
+	// defer wc.connectionsMux.RUnlock()
+	// return len(wc.connections)
+	return wc.connections.Len()
 }
 
 // readPump 从WebSocket连接读取消息（内部方法）
@@ -819,11 +862,13 @@ func (wc *Control) writePump(conn *Connection) {
 
 func (wc *Control) GetAllConnections() []*Connection {
 	wc.logger.Debugf("[control] getting all connections...")
-	var connections []*Connection
-	wc.connectionsMux.RLock()
-	for _, conn := range wc.connections {
-		connections = append(connections, conn)
-	}
-	defer wc.connectionsMux.RUnlock()
-	return connections
+	// var connections []*Connection
+	// wc.connectionsMux.RLock()
+	// for _, conn := range wc.connections {
+	// 	connections = append(connections, conn)
+	// }
+	// defer wc.connectionsMux.RUnlock()
+	// return connections
+	values := wc.connections.Values()
+	return values
 }

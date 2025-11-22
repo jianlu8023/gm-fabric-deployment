@@ -61,13 +61,13 @@ func TestToonEncoder(t *testing.T) {
 		}
 	})
 	t.Run("TOON Encoding with chatMessage", func(t *testing.T) {
-		msg:=[]ChatMessage{
+		msg := []ChatMessage{
 			{
-				Role: "user",
+				Role:    "user",
 				Content: "hello world",
 			},
 			{
-				Role: "assistant",
+				Role:    "assistant",
 				Content: "hello",
 			},
 		}
@@ -76,6 +76,6 @@ func TestToonEncoder(t *testing.T) {
 			t.Fatalf("Failed to encode to TOON with length marker: %v", err)
 		}
 		fmt.Printf("Encoded string: %s\n", encoded)
-	
+
 	})
 }

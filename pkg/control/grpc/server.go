@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
@@ -28,15 +30,18 @@ import (
 )
 
 type MessageHandler struct {
-	handlerMap map[string]func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)
+	// handlerMap map[string]func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)
+	handlerMap concurrent.Map[string, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)]
 }
 
 func (h *MessageHandler) RegisterHandler(path string, handle func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)) {
-	h.handlerMap[path] = handle
+	// h.handlerMap[path] = handle
+	h.handlerMap.Put(path, handle)
 }
 
 func (h *MessageHandler) GetHandler(path string) (func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error), error) {
-	if handle, exists := h.handlerMap[path]; exists {
+	// if handle, exists := h.handlerMap[path]; exists {
+	if handle, exists := h.handlerMap.Get(path); exists {
 		return handle, nil
 	}
 	return nil, fmt.Errorf("the processor corresponding to protocol '%s' is not registered", path)
@@ -392,7 +397,8 @@ func NewServerControl(control *Control) error {
 
 	messageServer := &server{
 		handler: &MessageHandler{
-			handlerMap: make(map[string]func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)),
+			// handlerMap: make(map[string]func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)),
+			handlerMap: concurrentmap.NewRWMap[string, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)](),
 		},
 		serverConfig: control.config.Server,
 		logger:       control.logger,
@@ -413,12 +419,18 @@ func (s *ServerControl) StartUp(failedFunc func(err error)) {
 	listen, err := net.Listen("tcp", s.Config.Host)
 	if err != nil {
 		s.logger.Errorf("[server] grpc generate listener failed: %v", err)
-		failedFunc(err)
+		if failedFunc != nil {
+			failedFunc(err)
+		}
+		return
 	}
 	go func() {
 		if err := s.gServer.Serve(listen); err != nil {
 			s.logger.Errorf("[server] grpc server start failed: %v", err)
-			failedFunc(err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
+			return
 		}
 	}()
 }

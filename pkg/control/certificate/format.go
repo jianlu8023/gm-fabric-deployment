@@ -7,7 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
-	
+
 	gmx509 "github.com/tjfoc/gmsm/x509"
 )
 

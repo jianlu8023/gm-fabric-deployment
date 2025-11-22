@@ -5,8 +5,10 @@ import (
 	"strings"
 	"sync"
 	"time"
-	
+
 	glog "github.com/jianlu8023/go-logger/v2"
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"go.uber.org/zap"
@@ -15,8 +17,10 @@ import (
 
 type Control struct {
 	loggerConfig *config.LoggerConfig
-	_logMap      map[string]*zap.SugaredLogger
-	_loggerLevel map[string]string
+	// _logMap      map[string]*zap.SugaredLogger
+	// _loggerLevel map[string]string
+	_logMap      concurrent.Map[string, *zap.SugaredLogger]
+	_loggerLevel concurrent.Map[string, string]
 	loggerMutex  sync.RWMutex
 	once         sync.Once
 }
@@ -29,14 +33,18 @@ func NewLoggerControl(loggerConfig *config.LoggerConfig) *Control {
 	if loggerConfig == nil {
 		loggerConfig = getDefaultConfig()
 	}
-	loggerLevel := make(map[string]string)
+
+	loggerLevel := concurrentmap.NewRWMap[string, string]()
 	for logger, level := range loggerConfig.LoggerLevel {
-		loggerLevel[strings.ToLower(logger)] = level
+		// loggerLevel[strings.ToLower(logger)] = level
+		loggerLevel.Put(strings.ToLower(logger), level)
 	}
 
 	return &Control{
 		loggerConfig: loggerConfig,
-		_logMap:      make(map[string]*zap.SugaredLogger),
+		// _logMap:      make(map[string]*zap.SugaredLogger),
+		// _loggerLevel: loggerLevel,
+		_logMap:      concurrentmap.NewRWMap[string, *zap.SugaredLogger](),
 		_loggerLevel: loggerLevel,
 	}
 }
@@ -49,7 +57,7 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 		return nil
 	}
 
-	existLogger, ok := c._logMap[moduleName]
+	existLogger, ok := c._logMap.Get(moduleName)
 	if ok {
 		return existLogger
 	}
@@ -97,9 +105,9 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 			glog.WithFileOutPut(),
 			glog.WithFileLogLevel("debug"),
 		)
-		
-		if c.loggerConfig.MaxAge>0 && c.loggerConfig.RotationTime>0{
-			opts=append(opts,glog.WithRotateLog(&glog.RotateLogConfig{
+
+		if c.loggerConfig.MaxAge > 0 && c.loggerConfig.RotationTime > 0 {
+			opts = append(opts, glog.WithRotateLog(&glog.RotateLogConfig{
 				FileName: c.loggerConfig.FilePath,
 				// MaxAge:       fmt.Sprintf("%vd", c.loggerConfig.MaxAge),
 				MaxAge:    (time.Duration(c.loggerConfig.MaxAge) * time.Hour * 24).String(),
@@ -116,13 +124,13 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 	}
 
 	// 日志日志级别
-	if level, ok := c._loggerLevel[strings.ToLower(moduleName)]; ok {
+	if level, ok := c._loggerLevel.Get(strings.ToLower(moduleName)); ok {
 		// 配置文件中有日志级别
 		opts = append(opts, glog.WithDefaultLogLevel(level))
 	} else {
 		// 配置文件中没有日志级别
 		opts = append(opts, glog.WithDefaultLogLevel(c.loggerConfig.DefaultLogLevel))
-		c._loggerLevel[strings.ToLower(moduleName)] = c.loggerConfig.DefaultLogLevel
+		c._loggerLevel.Put(strings.ToLower(moduleName), c.loggerConfig.DefaultLogLevel)
 	}
 
 	// 日志输出格式
@@ -134,7 +142,7 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 
 	logger := glog.NewSugaredLogger(opts...)
 
-	c._logMap[moduleName] = logger
+	c._logMap.Put(moduleName, logger)
 
 	return logger
 }

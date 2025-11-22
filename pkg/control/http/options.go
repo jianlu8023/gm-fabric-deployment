@@ -2,7 +2,7 @@ package http
 
 import (
 	"context"
-	
+
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 )

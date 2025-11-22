@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
@@ -33,14 +35,16 @@ import (
 type Control struct {
 	logger *zap.SugaredLogger
 	// libp2p相关字段
-	host      host.Host
-	ctx       context.Context
-	cancel    context.CancelFunc
-	protocols map[protocol.ID]MessageHandler
+	host   host.Host
+	ctx    context.Context
+	cancel context.CancelFunc
+	// protocols map[protocol.ID]MessageHandler
+	protocols concurrent.Map[protocol.ID, MessageHandler]
 
 	// 消息处理
-	handlers      map[string]MessageHandler
-	handlersMutex sync.RWMutex
+	// handlers      map[string]MessageHandler
+	// handlersMutex sync.RWMutex
+	handlers concurrent.Map[string, MessageHandler]
 
 	// 发现服务
 	discoveryService *DiscoveryService
@@ -78,11 +82,13 @@ func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.C
 	ctx, cancel := context.WithCancel(context.Background())
 	// 初始化Libp2pControl
 	lc := &Control{
-		logger:       libp2pLogger,
-		ctx:          ctx,
-		cancel:       cancel,
-		protocols:    make(map[protocol.ID]MessageHandler),
-		handlers:     make(map[string]MessageHandler),
+		logger: libp2pLogger,
+		ctx:    ctx,
+		cancel: cancel,
+		// protocols:    make(map[protocol.ID]MessageHandler),
+		// handlers:     make(map[string]MessageHandler),
+		protocols:    concurrentmap.NewRWMap[protocol.ID, MessageHandler](),
+		handlers:     concurrentmap.NewRWMap[string, MessageHandler](),
 		libp2pConfig: libp2pConfig,
 		// 创建带缓冲的消息队列，大小可以根据需要调整
 		messageQueue: make(chan MessageWithPeer, 1024),
@@ -303,11 +309,11 @@ func (lc *Control) Shutdown() error {
 // @return error 错误信息，如果广播过程中出现严重错误则返回错误
 func (lc *Control) BroadcastMessage(msg *Message) error {
 	lc.logger.Debugf("[control] starting broadcast message...")
-	lc.discoveryService.peersMutex.RLock()
-	defer lc.discoveryService.peersMutex.RUnlock()
+	// lc.discoveryService.peersMutex.RLock()
+	// defer lc.discoveryService.peersMutex.RUnlock()
 
 	// 遍历所有已知节点并发送消息
-	for peerID := range lc.discoveryService.peers {
+	for _, peerID := range lc.discoveryService.peers.Keys() {
 		msg.To = peerID
 		msg.From = lc.GetLocalhostPeerID()
 		lc.logger.Debugf("[control] broadcasting message to peer %s", peerID)
@@ -317,7 +323,7 @@ func (lc *Control) BroadcastMessage(msg *Message) error {
 		time.Sleep(time.Duration(rand.IntN(500)) * time.Millisecond)
 	}
 
-	lc.logger.Debugf("[control] broadcast message to %d peers...", len(lc.discoveryService.peers))
+	lc.logger.Debugf("[control] broadcast message to %d peers...", lc.discoveryService.peers.Len())
 	return nil
 }
 
@@ -381,9 +387,10 @@ func (lc *Control) worker(jobs <-chan MessageWithPeer) {
 //
 // @param msgWithPeer MessageWithPeer 包含待发送消息及其目标节点信息的结构体
 func (lc *Control) processMessage(msgWithPeer MessageWithPeer) {
-	lc.discoveryService.peersMutex.RLock()
-	_, exist := lc.discoveryService.peers[msgWithPeer.PeerID]
-	lc.discoveryService.peersMutex.RUnlock()
+	// lc.discoveryService.peersMutex.RLock()
+	// _, exist := lc.discoveryService.peers[msgWithPeer.PeerID]
+	// lc.discoveryService.peersMutex.RUnlock()
+	_, exist := lc.discoveryService.peers.Get(msgWithPeer.PeerID)
 	if !exist {
 		// 如果连接不存在，则跳过消息
 		lc.logger.Debugf("[control] peer %s not found, skipping message", msgWithPeer.PeerID)
@@ -516,7 +523,8 @@ func (lc *Control) defaultStreamHandler(stream network.Stream) {
 	lc.logger.Debugf("[control] received stream from peer %s using protocol %s", peerID, protocolID)
 
 	// 获取协议对应的处理器
-	handler, ok := lc.protocols[protocolID]
+	// handler, ok := lc.protocols[protocolID]
+	handler, ok := lc.protocols.Get(protocolID)
 	if !ok {
 		lc.logger.Errorf("[control] no handler found for protocol %s", protocolID)
 		return
@@ -541,7 +549,8 @@ func (lc *Control) defaultMessageHandler(protocolId protocol.ID, msg *Message) {
 	lc.logger.Debugf("[control] received message from %s, type: %s", msg.From, msg.Type)
 
 	// 根据消息类型调用对应的处理器
-	handler, ok := lc.handlers[msg.Type]
+	// handler, ok := lc.handlers[msg.Type]
+	handler, ok := lc.handlers.Get(msg.Type)
 	if ok {
 		handler(protocolId, msg)
 	} else {
@@ -555,10 +564,11 @@ func (lc *Control) defaultMessageHandler(protocolId protocol.ID, msg *Message) {
 // @param handler MessageHandler 消息处理函数，用于处理指定类型的消息
 func (lc *Control) RegisterMessageHandler(messageType string, handler MessageHandler) {
 	lc.logger.Debugf("[control] registering handler for message type: %s", messageType)
-	lc.handlersMutex.Lock()
-	defer lc.handlersMutex.Unlock()
+	// lc.handlersMutex.Lock()
+	// defer lc.handlersMutex.Unlock()
 
-	lc.handlers[messageType] = handler
+	// lc.handlers[messageType] = handler
+	lc.handlers.Put(messageType, handler)
 	lc.logger.Infof("[control] registered handler for message type: %s", messageType)
 }
 
@@ -579,7 +589,8 @@ func (lc *Control) RegisterProtocolHandler(protocolID protocol.ID, protocolHandl
 	lc.logger.Debugf("[control] register %v protocol handler...", protocolID)
 	// 注册默认的消息处理协议
 	lc.logger.Debugf("[control] register message protocol handler...")
-	lc.protocols[protocolID] = protocolHandler
+	// lc.protocols[protocolID] = protocolHandler
+	lc.protocols.Put(protocolID, protocolHandler)
 
 	// 设置流处理器
 	lc.logger.Debugf("[control] register %v protocol stream handler...", protocolID)
@@ -617,15 +628,17 @@ func (lc *Control) defaultMessageRegister() {
 // @return []peer.ID 连接的节点ID列表
 func (lc *Control) GetPeers() []peer.ID {
 	lc.logger.Debugf("[control] starting getting peers...")
-	lc.discoveryService.peersMutex.RLock()
-	defer lc.discoveryService.peersMutex.RUnlock()
+	// lc.discoveryService.peersMutex.RLock()
+	// defer lc.discoveryService.peersMutex.RUnlock()
 
-	peers := make([]peer.ID, 0, len(lc.discoveryService.peers))
-	for peerID := range lc.discoveryService.peers {
-		peers = append(peers, peerID)
-	}
-
-	return peers
+	// peers := make([]peer.ID, 0, len(lc.discoveryService.peers))
+	// for peerID := range lc.discoveryService.peers {
+	// 	peers = append(peers, peerID)
+	// }
+	//
+	// return peers
+	keys := lc.discoveryService.peers.Keys()
+	return keys
 }
 
 // ConnectToPeer 手动连接到指定节点
@@ -654,9 +667,10 @@ func (lc *Control) ConnectToPeer(addr string) error {
 	}
 
 	// 注册peer
-	lc.discoveryService.peersMutex.Lock()
-	lc.discoveryService.peers[peerInfo.ID] = struct{}{}
-	lc.discoveryService.peersMutex.Unlock()
+	// lc.discoveryService.peersMutex.Lock()
+	// lc.discoveryService.peers[peerInfo.ID] = struct{}{}
+	// lc.discoveryService.peersMutex.Unlock()
+	lc.discoveryService.peers.Put(peerInfo.ID, struct{}{})
 
 	lc.logger.Infof("[control] successfully connected to peer %s", peerInfo.ID)
 	return nil
@@ -666,9 +680,10 @@ func (lc *Control) ConnectToPeer(addr string) error {
 // @param peer peer.ID 要断开连接的节点ID
 func (lc *Control) DisconnectFromPeer(peer peer.ID) {
 	lc.logger.Debugf("[control] disconnecting from peer %v", peer)
-	lc.discoveryService.peersMutex.Lock()
-	delete(lc.discoveryService.peers, peer)
-	lc.discoveryService.peersMutex.Unlock()
+	// lc.discoveryService.peersMutex.Lock()
+	// delete(lc.discoveryService.peers, peer)
+	// lc.discoveryService.peersMutex.Unlock()
+	lc.discoveryService.peers.Del(peer)
 	lc.logger.Debugf("[control] successfully disconnected from peer %v", peer)
 }
 
