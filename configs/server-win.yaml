@@ -211,3 +211,17 @@ ai:
   headers: {}
   #  headers:
   #    X-API-Key: "your-custom-header"
+certificate:
+  enabled: true
+  # 默认算法 (RSA/ECC/SM2)
+  default_algo: "SM2"
+  # 根证书主题信息，使用/分割
+  # C = countryName              : CN
+  # ST = stateOrProvinceName     : Xinjiang
+  # L = localityName             : Urumqi
+  # O = organizationName         : Example Organization
+  # OU = organizationalUnitName  : IT Department
+  # CN = commonName              : Example Root CA
+  # emailAddress = (未实现对此字段的解析)
+  root_subject: "/CN=Example Root CA/O=Example Organization/OU=IT Department/C=CN/ST=Xinjiang/L=Urumqi"
+  cert_path: "certs/generated"  # 证书存储路径
