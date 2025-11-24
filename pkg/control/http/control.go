@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"html/template"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -14,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	
+
 	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
 	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
@@ -23,7 +22,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-	
+
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
@@ -44,7 +43,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/tjfoc/gmsm/gmtls"
 	gmx509 "github.com/tjfoc/gmsm/x509"
-	
+
 	"github.com/gin-gonic/gin"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"go.uber.org/zap"
@@ -172,7 +171,8 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		isDevelopment := gin.Mode() == gin.DebugMode
 		// 使用成熟的unrolled/secure包实现的TLS安全中间件
 		// 推荐在生产环境使用，提供完整的TLS安全保护功能
-		engine.Use(secure.EnableSecurePackageTLS(serverConfig.Address, isDevelopment))
+		// 只有在启用TLS时才启用SSL重定向
+		engine.Use(secure.EnableSecurePackageTLS(serverConfig.Address, isDevelopment, serverConfig.TlsEnabled))
 	}
 
 	// 如果需要使用不依赖外部包的版本，可以取消注释下面这行
@@ -265,54 +265,87 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 			// 	webLogger.Infof("[control] HTTP/2 disabled, using HTTP/1.1 only")
 			// }
 
-			// GM模式需要两套keypair：一个签名，一个加密
-			// 使用逗号分割证书和密钥文件路径
-			certFiles := strings.Split(serverConfig.TlsCertFile, ",")
-			keyFiles := strings.Split(serverConfig.TlsKeyFile, ",")
+			// 根据配置决定使用单证书还是双证书模式
+			if serverConfig.TlsGMSingleCert {
+				// 单证书模式
+				webLogger.Info("[control] GM TLS using single certificate mode")
 
-			// 检查是否提供了两套证书和密钥
-			if len(certFiles) != 2 || len(keyFiles) != 2 {
-				webLogger.Errorf("[control] GM模式必须提供两套keypair（签名和加密），当前证书文件数量: %d, 密钥文件数量: %d", len(certFiles), len(keyFiles))
-				return nil, errors.New("GM模式必须提供两套keypair，请在 tls_cert_file 和 tls_key_file 中使用逗号分割两套证书和密钥文件路径")
-			}
+				// 去除文件路径的空格
+				certFile := strings.TrimSpace(serverConfig.TlsCertFile)
+				keyFile := strings.TrimSpace(serverConfig.TlsKeyFile)
 
-			// 去除文件路径的空格
-			for i := range certFiles {
-				certFiles[i] = strings.TrimSpace(certFiles[i])
-			}
-			for i := range keyFiles {
-				keyFiles[i] = strings.TrimSpace(keyFiles[i])
-			}
-
-			// 验证文件路径不为空
-			for i, file := range certFiles {
-				if stringer.IsBlank(file) {
-					webLogger.Errorf("[control] 第%d个证书文件路径为空", i+1)
-					return nil, fmt.Errorf("第%d个证书文件路径为空", i+1)
+				// 验证文件路径不为空
+				if stringer.IsBlank(certFile) {
+					webLogger.Errorf("[control] GM TLS certificate file path is empty")
+					return nil, errors.New("GM TLS certificate file path is empty")
 				}
-			}
-			for i, file := range keyFiles {
-				if stringer.IsBlank(file) {
-					webLogger.Errorf("[control] 第%d个密钥文件路径为空", i+1)
-					return nil, fmt.Errorf("第%d个密钥文件路径为空", i+1)
+				if stringer.IsBlank(keyFile) {
+					webLogger.Errorf("[control] GM TLS key file path is empty")
+					return nil, errors.New("GM TLS key file path is empty")
 				}
-			}
 
-			// 加载两套keypair
-			var certificates []gmtls.Certificate
-			for i := 0; i < 2; i++ {
-				cert, err := gmtls.LoadX509KeyPair(certFiles[i], keyFiles[i])
+				// 加载单证书
+				cert, err := gmtls.LoadX509KeyPair(certFile, keyFile)
 				if err != nil {
-					webLogger.Errorf("[control] 加载第%d套GM TLS证书失败: %v", i+1, err)
-					return nil, fmt.Errorf("加载第%d套GM TLS证书失败: %v", i+1, err)
+					webLogger.Errorf("[control] failed to load GM TLS certificate: %v", err)
+					return nil, fmt.Errorf("加载GM TLS证书失败: %v", err)
 				}
-				certificates = append(certificates, cert)
-				webLogger.Debugf("[control] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
-			}
 
-			// 设置证书到GM TLS配置
-			gmTLSConfig.Certificates = certificates
-			webLogger.Infof("[control] 成功加载GM模式两套keypair，签名证书: %s，加密证书: %s", certFiles[0], certFiles[1])
+				gmTLSConfig.Certificates = []gmtls.Certificate{cert}
+				webLogger.Infof("[control] 成功加载GM模式单证书: %s -> %s", certFile, keyFile)
+			} else {
+				// 双证书模式（默认）
+				webLogger.Info("[control] GM TLS using dual certificate mode")
+
+				// GM模式需要两套keypair：一个签名，一个加密
+				// 使用逗号分割证书和密钥文件路径
+				certFiles := strings.Split(serverConfig.TlsCertFile, ",")
+				keyFiles := strings.Split(serverConfig.TlsKeyFile, ",")
+
+				// 检查是否提供了两套证书和密钥
+				if len(certFiles) != 2 || len(keyFiles) != 2 {
+					webLogger.Errorf("[control] GM双证书模式必须提供两套keypair（签名和加密），当前证书文件数量: %d, 密钥文件数量: %d", len(certFiles), len(keyFiles))
+					return nil, errors.New("GM双证书模式必须提供两套keypair，请在 tls_cert_file 和 tls_key_file 中使用逗号分割两套证书和密钥文件路径")
+				}
+
+				// 去除文件路径的空格
+				for i := range certFiles {
+					certFiles[i] = strings.TrimSpace(certFiles[i])
+				}
+				for i := range keyFiles {
+					keyFiles[i] = strings.TrimSpace(keyFiles[i])
+				}
+
+				// 验证文件路径不为空
+				for i, file := range certFiles {
+					if stringer.IsBlank(file) {
+						webLogger.Errorf("[control] 第%d个证书文件路径为空", i+1)
+						return nil, fmt.Errorf("第%d个证书文件路径为空", i+1)
+					}
+				}
+				for i, file := range keyFiles {
+					if stringer.IsBlank(file) {
+						webLogger.Errorf("[control] 第%d个密钥文件路径为空", i+1)
+						return nil, fmt.Errorf("第%d个密钥文件路径为空", i+1)
+					}
+				}
+
+				// 加载两套keypair
+				var certificates []gmtls.Certificate
+				for i := 0; i < 2; i++ {
+					cert, err := gmtls.LoadX509KeyPair(certFiles[i], keyFiles[i])
+					if err != nil {
+						webLogger.Errorf("[control] 加载第%d套GM TLS证书失败: %v", i+1, err)
+						return nil, fmt.Errorf("加载第%d套GM TLS证书失败: %v", i+1, err)
+					}
+					certificates = append(certificates, cert)
+					webLogger.Debugf("[control] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
+				}
+
+				// 设置证书到GM TLS配置
+				gmTLSConfig.Certificates = certificates
+				webLogger.Infof("[control] 成功加载GM模式两套keypair，签名证书: %s，加密证书: %s", certFiles[0], certFiles[1])
+			}
 
 			// 如果配置了根证书，则启用客户端证书验证
 			rootCaCertFile := serverConfig.TlsRCACertFile
@@ -862,10 +895,14 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 	c.logger.Infof("[control] router group '%s' registered successfully", groupName)
 }
 
-func (c *Control) RegisterHtmlTemplate(templ *template.Template) {
-	c.ginRouter.SetHTMLTemplate(templ)
-}
-
+// deduplicateRouters 去重路由组中的重复路由
+// 该方法遍历所有注册的路由组，检查并移除每个组内的重复路由（相同URI和HTTP方法的路由）
+// 重复路由定义为：具有相同URI路径和HTTP方法的路由
+// 实现逻辑：
+// 1. 遍历所有路由组
+// 2. 对于每个组，首先检查是否存在重复路由
+// 3. 如果存在重复，则创建一个只包含唯一路由的新列表
+// 4. 使用新的唯一路由列表替换原有的路由组
 func (c *Control) deduplicateRouters() {
 	c.logger.Debug("[control] starting deduplicate routers...")
 
@@ -1003,6 +1040,18 @@ func (c *Control) deduplicateRouters() {
 }
 
 // registerRouter 注册单个路由到指定的gin路由组
+// 该方法将通用路由器接口转换为Gin框架的具体路由注册
+// 参数:
+//
+//	ginGroup: Gin路由组，用于注册路由的目标组
+//	router: 通用路由器接口，包含路由的URI、HTTP方法和处理函数等信息
+//
+// 处理逻辑:
+// 1. 检查路由是否启用，如未启用则跳过注册
+// 2. 规范化URL路径，确保以'/'开头
+// 3. 根据HTTP方法类型，将路由注册到相应的Gin方法处理器
+// 4. 支持GET、POST、PUT、DELETE、PATCH、OPTIONS和HEAD方法
+// 5. 未知HTTP方法默认使用GET方法注册
 func (c *Control) registerRouter(ginGroup *gin.RouterGroup, router commonhttp.RouterHandler) {
 	if !router.IsEnabled() {
 		return // 跳过禁用的路由
@@ -1045,6 +1094,17 @@ func (c *Control) registerRouter(ginGroup *gin.RouterGroup, router commonhttp.Ro
 }
 
 // initRouters 初始化所有注册的路由
+// 该方法是路由系统的核心初始化函数，负责将所有注册的路由转换为Gin框架可识别的路由
+// 主要功能:
+// 1. 遍历所有注册的路由组
+// 2. 根据配置创建相应的Gin路由组，并应用组级别中间件
+// 3. 处理上下文路径(ContextPath)的拼接和规范化
+// 4. 为每个路由组创建认证(auth)和非认证(no-auth)子组
+// 5. 根据路由的JWT验证设置，将路由注册到相应的子组
+// 路由组路径生成规则:
+// - 默认为'/'，非默认组名为'/groupName'
+// - 如果配置了ContextPath，则会作为前缀添加
+// - 自动处理路径分隔符，避免重复的'/'
 func (c *Control) initRouters() {
 	c.logger.Info("[control] start init routers...")
 
@@ -1211,6 +1271,16 @@ func (c *Control) initRouters() {
 	// }
 }
 
+// GetUploadDir 获取上传目录路径
+// 该方法返回配置中指定的文件上传目录路径
+// 返回值:
+//
+//	清理后的上传目录绝对路径，如果未配置则返回空字符串
+//
+// 处理逻辑:
+// 1. 检查配置中的UploadDir是否为空
+// 2. 如果为空，返回空字符串
+// 3. 否则，使用filepath.Clean规范化路径格式
 func (c *Control) GetUploadDir() string {
 	c.logger.Debugf("[control] get upload dir...")
 	if stringer.IsBlank(c.config.UploadDir) {
@@ -1219,11 +1289,34 @@ func (c *Control) GetUploadDir() string {
 	return filepath.Clean(c.config.UploadDir)
 }
 
+// GetUploadCacheDir 获取上传缓存目录路径
+// 该方法返回文件上传的临时缓存目录路径，通常用于存储上传过程中的临时文件
+// 返回值:
+//
+//	清理后的缓存目录绝对路径，格式为：上传目录/temp
+//
+// 实现逻辑:
+// 1. 调用GetUploadDir获取基础上传目录
+// 2. 在基础上传目录下创建名为"temp"的子目录作为缓存目录
+// 3. 使用filepath.Clean规范化最终路径格式
 func (c *Control) GetUploadCacheDir() string {
 	c.logger.Debugf("[control] get upload cache dir...")
 	return filepath.Clean(filepath.Join(c.GetUploadDir(), "temp"))
 }
 
+// ClearUploadCache 清理上传缓存目录
+// 该方法清空上传缓存目录中的所有文件和子目录，释放临时占用的存储空间
+// 返回值:
+//
+//	成功时返回nil，失败时返回错误信息
+//
+// 实现逻辑:
+// 1. 获取上传缓存目录路径
+// 2. 调用path.ClearDir清空该目录下的所有内容
+// 3. 如果清理过程中发生错误，记录错误日志并返回错误
+// 注意:
+//
+//	该操作会永久性删除缓存目录中的所有内容，请谨慎使用
 func (c *Control) ClearUploadCache() error {
 	c.logger.Debugf("[control] clear upload cache...")
 	if err := path.ClearDir(c.GetUploadCacheDir()); err != nil {

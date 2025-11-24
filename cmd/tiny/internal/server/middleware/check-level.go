@@ -6,7 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
-	
+
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
 )
@@ -25,9 +25,9 @@ import (
 //	x: /a/b/c/d/e/file	根目录下第三层目录下的文件
 func CheckLevel(c *gin.Context) {
 	filePath := strings.TrimPrefix(c.Param("filename"), conf.FileGroupPrefix)
-	
+
 	c.Set("filename", filePath)
-	
+
 	isD := isDir(filePath)
 	c.Set("isDirectory", isD)
 	isFile := !isD

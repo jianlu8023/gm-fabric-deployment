@@ -3,8 +3,9 @@ package i18n
 import (
 	"net/http/httptest"
 	"testing"
-	
+
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/golang-example/pkg/common/lang"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -75,7 +76,7 @@ func TestGetLanguageFromContext(t *testing.T) {
 			ctx.Request = req
 
 			// 测试获取语言
-			lang := GetLanguageFromContext(ctx)
+			lang := lang.GetLanguageFromContext(ctx)
 			assert.Equal(t, tt.expectedLang, lang)
 		})
 	}
@@ -164,7 +165,7 @@ func TestNormalizeLanguage(t *testing.T) {
 			req := httptest.NewRequest("GET", "/test?lang="+tt.lang, nil)
 			ctx.Request = req
 
-			lang := GetLanguageFromContext(ctx)
+			lang := lang.GetLanguageFromContext(ctx)
 			assert.Equal(t, tt.expectedLang, lang)
 		})
 	}

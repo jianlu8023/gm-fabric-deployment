@@ -53,6 +53,7 @@ http:
   run_mode: release
   tls_enabled: true
   tls_gm: false
+  tls_gm_single_cert: false
   tls_cert_file: certs/openssl/hserver-chain.crt
   tls_key_file: certs/openssl/hserver.key
   tls_rca_cert_file: certs/openssl/root.crt

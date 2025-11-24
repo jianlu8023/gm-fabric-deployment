@@ -62,6 +62,8 @@ http:
   run_mode: release
   tls_enabled: true
   tls_gm: true
+  # 国密TLS是否使用单证书模式，默认false（使用双证书模式：一个用于签名，一个用于加密）
+  tls_gm_single_cert: false
   # gm模式需要两套 签名密钥,加密密钥
   # tls_key_file: "certs/tjfoc/sm2_sign_key.pem,certs/tjfoc/sm2_enc_key.pem"
   # gm模式需要两套 签名证书,加密证书

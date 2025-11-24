@@ -2,7 +2,7 @@ package command
 
 import (
 	"strconv"
-	
+
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
 	"github.com/urfave/cli/v2"
 )

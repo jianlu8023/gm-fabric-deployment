@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	
+
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/archive/zip"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"

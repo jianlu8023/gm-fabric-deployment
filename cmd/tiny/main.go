@@ -6,19 +6,21 @@ import (
 	gohttp "net/http"
 	"os"
 	"os/signal"
+	"path"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/colour"
-	"github.com/jianlu8023/golang-example/cmd/tiny/command"
-	"github.com/jianlu8023/golang-example/cmd/tiny/handle/core"
-	"github.com/jianlu8023/golang-example/cmd/tiny/handle/secure"
+	"github.com/jianlu8023/go-tools/v2/pkg/hash/md5"
+	"github.com/jianlu8023/golang-example/cmd/tiny/internal/command"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container/verify"
-	"github.com/jianlu8023/golang-example/cmd/tiny/server/middleware"
+	"github.com/jianlu8023/golang-example/cmd/tiny/internal/server/handle/core"
+	middleware2 "github.com/jianlu8023/golang-example/cmd/tiny/internal/server/middleware"
 	"github.com/jianlu8023/golang-example/cmd/tiny/templates"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/certificate"
@@ -101,8 +103,6 @@ func main() {
 		return
 	}
 
-	// server.RunCore(mainLogger)
-
 	httpControl, err := http.NewWebServerControl(&config.HttpServerConfig{
 		Enabled:        true,
 		Address:        ":" + strconv.Itoa(conf.Config.Port),
@@ -114,6 +114,7 @@ func main() {
 		TlsRCACertFile: conf.Config.TlsRCACertPath,
 		Http2Enabled:   false,
 		Pprof:          false,
+		UploadDir:      "",
 	},
 		loggerControl,
 	)
@@ -148,19 +149,35 @@ func main() {
 			Desc:            "index",
 		},
 		&commonhttp.MyRouter{
-			Name:            "login-get",
-			Uri:             "login",
-			Method:          gohttp.MethodGet,
-			HandlerFunc:     secure.LoginGet,
+			Name:   "login-get",
+			Uri:    "login",
+			Method: gohttp.MethodGet,
+			HandlerFunc: func(ctx *gin.Context) {
+				ctx.HTML(gohttp.StatusOK, "login.tpl", nil)
+			},
 			Enabled:         true,
 			EnableJWtVerify: false,
 			Desc:            "login-get",
 		},
 		&commonhttp.MyRouter{
-			Name:            "login-post",
-			Uri:             "login",
-			Method:          gohttp.MethodPost,
-			HandlerFunc:     secure.LoginPost,
+			Name:   "login-post",
+			Uri:    "login",
+			Method: gohttp.MethodPost,
+			HandlerFunc: func(ctx *gin.Context) {
+				// 检查帐号密码
+				// 通过则生成session，跳转首页
+				// 不通过则返回登录页
+
+				if ctx.PostForm("username") == md5.SumStringHex(conf.Config.Username) &&
+					ctx.PostForm("password") == md5.SumStringHex(conf.Config.Password) {
+					// 由于session相关代码被注释，我们设置一个简单的cookie用于验证
+					ctx.SetCookie("login", conf.Config.SessionVal, 3600, "/", "", conf.Config.TlsEnabled, true)
+					ctx.JSON(gohttp.StatusOK, gin.H{"code": 1, "message": "登录成功"})
+					return
+				} else {
+					ctx.JSON(gohttp.StatusOK, gin.H{"code": 0, "message": "登录失败"})
+				}
+			},
 			Enabled:         true,
 			EnableJWtVerify: false,
 			Desc:            "login-post",
@@ -196,13 +213,27 @@ func main() {
 				Method:          gohttp.MethodPost,
 				EnableJWtVerify: false,
 				Enabled:         true,
-				HandlerFunc:     core.Uploader,
-				Desc:            "upload",
+				HandlerFunc: func(ctx *gin.Context) {
+					f, err := ctx.FormFile("upload_file")
+					if err != nil {
+						commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "文件上传失败!")
+						return
+					}
+
+					currPath := ctx.PostForm("path")
+					err = ctx.SaveUploadedFile(f, filepath.Join(conf.Config.RootPath, currPath, f.Filename))
+					if err != nil {
+						commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "文件保存失败!")
+						return
+					}
+					ctx.Redirect(gohttp.StatusMovedPermanently, path.Join(conf.FileGroupPrefix, currPath))
+				},
+				Desc: "upload",
 			},
 		},
 		MiddlewaresFunc: []gin.HandlerFunc{
-			middleware.CheckLevel,
-			middleware.CheckLogin,
+			middleware2.CheckLevel,
+			middleware2.CheckLogin,
 		},
 	})
 
@@ -223,7 +254,11 @@ func main() {
 func printInfo(logger *zap.SugaredLogger) {
 	// Print IP information
 	if conf.Config.IP != "" {
-		logger.Infof("Run on   [ %s ]", colour.Blue(fmt.Sprintf("http://%s:%d", conf.Config.IP, conf.Config.Port)))
+		protocol := "http"
+		if conf.Config.TlsEnabled {
+			protocol = "https"
+		}
+		logger.Infof("Run on   [ %s ]", colour.Blue(fmt.Sprintf("%s://%s:%d", protocol, conf.Config.IP, conf.Config.Port)))
 	} else {
 		logger.Infof("%s", colour.Yellow("Warning: [ 暂时获取不到您的IP，可以打开新的命令行窗口输入 ->  ipconfig , 查看您的IP。]"))
 	}
@@ -247,4 +282,11 @@ func printInfo(logger *zap.SugaredLogger) {
 		status = colour.Green(fmt.Sprintf("%t", conf.Config.IsSecure))
 	}
 	logger.Infof("Need Login: [ %s ]", status)
+
+	// Print TLS status
+	status = colour.Red(fmt.Sprintf("%t", conf.Config.TlsEnabled))
+	if conf.Config.TlsEnabled {
+		status = colour.Green(fmt.Sprintf("%t", conf.Config.TlsEnabled))
+	}
+	logger.Infof("TLS Enabled: [ %s ]", status)
 }

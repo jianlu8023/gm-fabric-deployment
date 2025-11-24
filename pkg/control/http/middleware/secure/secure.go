@@ -18,8 +18,9 @@ import (
 // @description 提供TLS安全相关的HTTP头设置，增强Web应用安全性
 // @param logger 日志记录器
 // @param isDevelopment 是否为开发环境
+// @param sslRedirect 是否启用SSL重定向
 // @return gin.HandlerFunc Gin中间件函数
-func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool) gin.HandlerFunc {
+func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool, sslRedirect bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		savedCtx := ctx.Request.Context()
 		defer func() {
@@ -29,7 +30,7 @@ func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool) gin.Hand
 		defer span.End()
 		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 设置HSTS头，强制客户端使用HTTPS
-		if !isDevelopment {
+		if !isDevelopment && sslRedirect {
 			// 315360000秒 = 10年
 			ctx.Header("Strict-Transport-Security", "max-age=315360000; includeSubDomains")
 		}
@@ -66,8 +67,9 @@ func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool) gin.Hand
 // RedirectToHTTPS 创建并返回HTTP重定向到HTTPS的中间件
 // @description 将所有HTTP请求重定向到HTTPS
 // @param httpsPort HTTPS服务端口
+// @param sslRedirect 是否启用SSL重定向
 // @return gin.HandlerFunc Gin中间件函数
-func RedirectToHTTPS(httpsPort int) gin.HandlerFunc {
+func RedirectToHTTPS(httpsPort int, sslRedirect bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		savedCtx := ctx.Request.Context()
 		defer func() {
@@ -76,8 +78,8 @@ func RedirectToHTTPS(httpsPort int) gin.HandlerFunc {
 		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "secure")
 		defer span.End()
 		ctx.Request = ctx.Request.WithContext(tCtx)
-		// 检查是否为HTTPS连接
-		if ctx.Request.TLS == nil {
+		// 检查是否为HTTPS连接，并且启用了SSL重定向
+		if ctx.Request.TLS == nil && sslRedirect {
 			// 构建HTTPS URL
 			host := ctx.Request.Host
 			// 如果主机名包含端口号，替换为HTTPS端口
@@ -101,8 +103,9 @@ func RedirectToHTTPS(httpsPort int) gin.HandlerFunc {
 // @param logger 日志记录器
 // @param isDevelopment 是否为开发环境
 // @param sslHost SSL主机名
+// @param sslRedirect 是否启用SSL重定向
 // @return gin.HandlerFunc Gin中间件函数
-func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost string) gin.HandlerFunc {
+func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost string, sslRedirect bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		savedCtx := ctx.Request.Context()
 		defer func() {
@@ -112,7 +115,7 @@ func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost st
 		defer span.End()
 		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 设置HSTS头，强制客户端使用HTTPS
-		if !isDevelopment {
+		if !isDevelopment && sslRedirect {
 			// 315360000秒 = 10年
 			ctx.Header("Strict-Transport-Security", "max-age=315360000; includeSubDomains")
 		}
@@ -147,8 +150,9 @@ func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost st
 // @description 使用成熟的unrolled/secure包提供TLS安全增强功能
 // @param sslHost SSL主机名
 // @param isDevelopment 是否为开发环境
+// @param sslRedirect 是否启用SSL重定向
 // @return gin.HandlerFunc Gin中间件函数
-func EnableSecurePackageTLS(sslHost string, isDevelopment bool) gin.HandlerFunc {
+func EnableSecurePackageTLS(sslHost string, isDevelopment bool, sslRedirect bool) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		savedCtx := ctx.Request.Context()
 		defer func() {
@@ -196,7 +200,7 @@ func EnableSecurePackageTLS(sslHost string, isDevelopment bool) gin.HandlerFunc 
 		}
 
 		secureMiddleware := secure.New(secure.Options{
-			SSLRedirect:           true,
+			SSLRedirect:           sslRedirect,
 			SSLHost:               sslHost,
 			STSSeconds:            315360000,
 			FrameDeny:             true,

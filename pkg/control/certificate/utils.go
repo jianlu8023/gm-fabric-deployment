@@ -204,3 +204,60 @@ func saveSM2PrivateKey(certPath, name string, privateKey *gmsm2.PrivateKey, logg
 
 	return keyFilePath, nil
 }
+
+// GenerateCertChain 生成证书链文件
+// @param certPath string 证书链保存路径
+// @param certChainName string 证书链名称
+// @param certFilePaths ...string 变长参数，证书文件路径列表，按照顺序添加到证书链中
+// @return string 保存的证书链文件路径
+// @return error 错误信息
+func GenerateCertChain(certPath, certChainName string, certFilePaths ...string) (string, error) {
+	// 检查证书链名称是否已包含任意后缀，如果没有则添加.crt后缀
+	fileName := certChainName
+	// 如果文件名不包含点号（没有后缀），则添加.crt后缀
+	if !strings.Contains(fileName, ".") {
+		fileName += ".crt"
+	}
+
+	// 构造证书链文件路径
+	chainFilePath := filepath.Join(certPath, fileName)
+
+	// 创建证书链文件
+	chainOut, err := os.Create(chainFilePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create certificate chain file: %w", err)
+	}
+
+	defer func() {
+		if err := chainOut.Close(); err != nil {
+			fmt.Printf("close certificate chain {%v} file failed: %v", certChainName, err)
+		}
+	}()
+
+	// 遍历所有证书文件路径
+	for _, certFilePath := range certFilePaths {
+		// 检查证书文件是否存在
+		fileInfo, err := os.Stat(certFilePath)
+		if err != nil {
+			return "", fmt.Errorf("certificate file %s does not exist: %w", certFilePath, err)
+		}
+
+		// 检查是否是文件而非目录
+		if fileInfo.IsDir() {
+			return "", fmt.Errorf("%s is a directory, not a certificate file", certFilePath)
+		}
+
+		// 读取证书文件内容
+		certData, err := os.ReadFile(certFilePath)
+		if err != nil {
+			return "", fmt.Errorf("failed to read certificate file %s: %w", certFilePath, err)
+		}
+
+		// 直接将证书内容写入证书链文件
+		if _, err := chainOut.Write(certData); err != nil {
+			return "", fmt.Errorf("failed to write certificate content to chain file: %w", err)
+		}
+	}
+
+	return chainFilePath, nil
+}
