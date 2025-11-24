@@ -6,6 +6,7 @@ import (
 
 	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/colour"
+	"github.com/jianlu8023/go-tools/v2/pkg/hash/md5"
 	"github.com/spf13/viper"
 	"github.com/urfave/cli/v2"
 )
@@ -79,12 +80,12 @@ func secureAction(c *cli.Context) (ups, error) {
 	// 当填写了 -u 选项并且 -u 的值不为 空 时才设置
 	if is, u := c.IsSet("user"), c.String("user"); is && u != "" {
 		weight |= USER
-		viper.Set("account.custom.user", u)
+		viper.Set("account.custom.user", md5.SumStringHex(u))
 	}
 	// 当填写了 -p 选项并且 -p 的值不为 空 时才设置
 	if is, p := c.IsSet("pass"), c.String("pass"); is && p != "" {
 		weight |= PASS
-		viper.Set("account.custom.pass", p)
+		viper.Set("account.custom.pass", md5.SumStringHex(p))
 	}
 	return weight, Handle(weight)
 }

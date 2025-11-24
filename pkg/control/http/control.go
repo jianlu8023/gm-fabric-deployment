@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -13,8 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
-
+	
 	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
 	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
@@ -23,7 +23,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
-
+	
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	// "gitee.com/zhaochuninhefei/gmgo/gmtls"
 	// gmx509 "gitee.com/zhaochuninhefei/gmgo/x509"
@@ -44,7 +44,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/tjfoc/gmsm/gmtls"
 	gmx509 "github.com/tjfoc/gmsm/x509"
-
+	
 	"github.com/gin-gonic/gin"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"go.uber.org/zap"
@@ -98,11 +98,11 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	engine := gin.New()
 
 	srv := &http.Server{
-		Addr:         serverConfig.Address,
-		Handler:      engine.Handler(),
-		ReadTimeout:  30 * time.Second,  // 设置读取超时
-		WriteTimeout: 60 * time.Second,  // 设置写入超时
-		IdleTimeout:  120 * time.Second, // 设置空闲超时
+		Addr:    serverConfig.Address,
+		Handler: engine.Handler(),
+		// ReadTimeout:  30 * time.Second,  // 设置读取超时
+		// WriteTimeout: 60 * time.Second,  // 设置写入超时
+		// IdleTimeout:  120 * time.Second, // 设置空闲超时
 	}
 
 	// 如果启用HTTP/2且非TLS模式，使用h2c支持HTTP/2 over cleartext
@@ -860,6 +860,10 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 	}
 
 	c.logger.Infof("[control] router group '%s' registered successfully", groupName)
+}
+
+func (c *Control) RegisterHtmlTemplate(templ *template.Template) {
+	c.ginRouter.SetHTMLTemplate(templ)
 }
 
 func (c *Control) deduplicateRouters() {

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/hash/md5"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
 )
 
@@ -17,8 +18,9 @@ func LoginPost(c *gin.Context) {
 	// 检查帐号密码
 	// 通过则生成session，跳转首页
 	// 不通过则返回登录页
-	if c.PostForm("username") == conf.Config.Username &&
-		c.PostForm("password") == conf.Config.Password {
+
+	if c.PostForm("username") == md5.SumStringHex(conf.Config.Username) &&
+		c.PostForm("password") == md5.SumStringHex(conf.Config.Password) {
 		// session := sessions.Default(c)
 		// session.Set("login", conf.Config.SessionVal)
 		// session.Save()

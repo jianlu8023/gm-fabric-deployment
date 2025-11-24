@@ -235,6 +235,7 @@ require (
 	// github.com/go-logr/glogr v1.2.2 // logr的go log实现
 	// github.com/dgraph-io/badger v1.6.2
 	// github.com/dgraph-io/badger/v3 v3.2103.5
+	// github.com/schollz/progressbar/v3  进度条
 	gorm.io/gorm v1.30.0 // gorm数据库orm
 	gorm.io/plugin/opentelemetry v0.1.16 // gorm的opentelemetry插件
 )
