@@ -112,7 +112,7 @@ func main() {
 		TlsKeyFile:     conf.Config.TlsKeyPath,
 		TlsCertFile:    conf.Config.TlsCertPath,
 		TlsRCACertFile: conf.Config.TlsRCACertPath,
-		Http2Enabled:   false,
+		Http2Enabled:   true,
 		Pprof:          false,
 		UploadDir:      "",
 	},
@@ -168,8 +168,8 @@ func main() {
 				// 通过则生成session，跳转首页
 				// 不通过则返回登录页
 
-				if ctx.PostForm("username") == md5.SumStringHex(conf.Config.Username) &&
-					ctx.PostForm("password") == md5.SumStringHex(conf.Config.Password) {
+				if md5.SumStringHex(ctx.PostForm("username")) == conf.Config.Username &&
+					md5.SumStringHex(ctx.PostForm("password")) == conf.Config.Password {
 					// 由于session相关代码被注释，我们设置一个简单的cookie用于验证
 					ctx.SetCookie("login", conf.Config.SessionVal, 3600, "/", "", conf.Config.TlsEnabled, true)
 					ctx.JSON(gohttp.StatusOK, gin.H{"code": 1, "message": "登录成功"})

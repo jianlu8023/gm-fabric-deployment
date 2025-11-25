@@ -3,6 +3,7 @@ package core
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"mime"
@@ -12,9 +13,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/archive/zip"
+	"github.com/jianlu8023/go-tools/v2/pkg/progressbar"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/conf"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 )
@@ -70,13 +73,25 @@ func (a *agent) file(c *gin.Context) {
 	}
 
 	buf := make([]byte, conf.BufferLimit)
-	// bar := pkg.GetBar(a.rel, contentLen, conf.Config.Output)
+	bar := progressbar.NewOptions64(contentLen,
+		progressbar.OptionSetDescription("[green]Downloading[reset] [blue]"+a.rel+"[reset]"),
+		progressbar.OptionSetWidth(10),
+		progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionShowCount(),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Fprint(conf.Config.Output, "\n")
+		}),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetWriter(conf.Config.Output),
+		progressbar.OptionShowBytes(true),
+	)
 
 	// 小于 buf 时直接读取到 buf 中然后返回
-	// if contentLen < int64(len(buf)) {
-	// _, _ = io.CopyBuffer(io.MultiWriter(c.Writer, bar), src, buf)
-	// return
-	// }
+	if contentLen < int64(len(buf)) {
+		_, _ = io.CopyBuffer(io.MultiWriter(c.Writer, bar), src, buf)
+		return
+	}
 	// 超过 buf 的大小时分片传输
 	a.flush(c, src, buf)
 }
@@ -108,11 +123,6 @@ func (a *agent) dir(c *gin.Context) {
 	if err != nil {
 		commonhttp.FailedResponseWithMessage(c, commonhttp.NormalFailed, "压缩目录失败")
 	}
-
-	// err = eutil.Zip(srcZip, filepath.Join(conf.Config.RootPath, a.rel))
-	// if err != nil {
-	// 	handle.ErrorHandle(c, "压缩目录失败, "+err.Error())
-	// }
 
 	buf := make([]byte, conf.BufferLimit)
 	if contentLen < int64(len(buf)) {
@@ -166,8 +176,19 @@ func getFileInfos(c *gin.Context, absPath string) []fileStructure {
 
 func (a *agent) flush(c *gin.Context, src io.Reader, buf []byte) {
 	data := bufio.NewReader(src)
-	// bar := pkg.GetBar(a.rel, getContentLen(a.abs), conf.Config.Output)
-
+	bar := progressbar.NewOptions64(getContentLen(a.abs),
+		progressbar.OptionSetDescription("[green]Downloading[reset] [blue]"+a.rel+"[reset]"),
+		progressbar.OptionSetWidth(10),
+		progressbar.OptionThrottle(65*time.Millisecond),
+		progressbar.OptionShowCount(),
+		progressbar.OptionOnCompletion(func() {
+			_, _ = fmt.Fprint(conf.Config.Output, "\n")
+		}),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetWriter(conf.Config.Output),
+		progressbar.OptionShowBytes(true),
+	)
 	for {
 		_, err := data.Read(buf)
 		if errors.Is(err, io.EOF) {
@@ -177,7 +198,7 @@ func (a *agent) flush(c *gin.Context, src io.Reader, buf []byte) {
 			commonhttp.FailedResponseWithMessage(c, commonhttp.NormalFailed, "服务端内部错误")
 			return
 		}
-		// _, _ = bar.Write(buf)
+		_, _ = bar.Write(buf)
 		_, _ = c.Writer.Write(buf)
 		c.Writer.(http.Flusher).Flush()
 	}
