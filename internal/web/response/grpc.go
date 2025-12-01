@@ -59,4 +59,3 @@ func NewGrpcSendPingMessageResponse(response *pb.BaseResponse) (*GrpcSendPingMes
 	}
 	return &convert, nil
 }
-

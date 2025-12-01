@@ -20,8 +20,8 @@ import (
 // @description 处理Docker网络相关的HTTP请求
 // @struct
 type DockerNetworkHandler struct {
-	*Handler                      // Handler 基础处理器，提供日志功能
-	service *service.DockerNetworkService // service Docker网络服务，处理Docker网络相关的业务逻辑
+	*Handler                               // Handler 基础处理器，提供日志功能
+	service  *service.DockerNetworkService // service Docker网络服务，处理Docker网络相关的业务逻辑
 }
 
 // NewDockerNetworkHandler 创建Docker网络处理器

@@ -1,8 +1,8 @@
 module github.com/jianlu8023/golang-example
 
-go 1.22.0
+go 1.23
 
-toolchain go1.22.10
+toolchain go1.24.4
 
 replace (
 	github.com/Jeffail/gabs/v2 => github.com/Jeffail/gabs/v2 v2.7.0
@@ -26,7 +26,7 @@ replace (
 	github.com/ipfs-cluster/ipfs-cluster => github.com/ipfs-cluster/ipfs-cluster v1.0.8
 	// github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
 	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
-	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20251125123404-88f6caa19ed9
+	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20251201050245-a176b3718c29
 	github.com/jinzhu/copier => github.com/jinzhu/copier v0.4.0
 	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
@@ -328,7 +328,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/koron/go-ssdp v0.0.5 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
@@ -356,12 +356,13 @@ require (
 	github.com/marten-seemann/tcp v0.0.0-20210406111302-dfbc87cc63fd // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.13 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/microsoft/go-mssqldb v1.8.2 // indirect
 	github.com/miekg/dns v1.1.63 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
+	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -387,7 +388,7 @@ require (
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
-	github.com/pierrec/lz4/v4 v4.1.21 // indirect
+	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pion/datachannel v1.5.10 // indirect
 	github.com/pion/dtls/v2 v2.2.12 // indirect
 	github.com/pion/dtls/v3 v3.0.7 // indirect
@@ -421,6 +422,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/schollz/progressbar/v3 v3.18.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.24.10 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
@@ -456,6 +458,7 @@ require (
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/tools v0.30.0 // indirect
 	gonum.org/v1/gonum v0.15.1 // indirect

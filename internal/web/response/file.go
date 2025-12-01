@@ -206,27 +206,27 @@ func NewGetUploadStatusResponse(uploadId, fileName string, fileSize, chunkSize f
 // @description 查询文件列表的响应
 // @struct
 type ListFilesResponse struct {
-	UploadID       string           `json:"upload_id" yaml:"upload_id"`         // 上传ID
-	FileName       string           `json:"file_name" yaml:"file_name"`                         // 文件名
-	FileSize       float64          `json:"file_size" yaml:"file_size"`                         // 文件大小
-	FilePath       string           `json:"file_path" yaml:"file_path"`                         // 文件路径
-	FileHash       string           `json:"file_hash" yaml:"file_hash"`                 // 文件hash
-	FileType       string           `json:"file_type" yaml:"file_type"`                 // 文件类型
-	UploaderId     string           `json:"uploader_id" yaml:"uploader_id"`           // 上传者ID
-	UploadTime     time.Time        `json:"upload_time" yaml:"upload_time"` // 上传时间
-	UpdateTime     time.Time        `json:"update_time" yaml:"update_time"` // 更新时间
-	Status         model.FileStatus `json:"status" yaml:"status"`                          // 使用FileStatus类型
-	ChunkSize      float64          `json:"chunk_size" yaml:"chunk_size"`                      // 分片大小
-	TotalChunks    float64          `json:"total_chunks" yaml:"total_chunks"`                // 总分片数
-	UploadedChunks float64          `json:"uploaded_chunks" yaml:"uploaded_chunks"`       // 已上传分片数
-	LastChunkTime  time.Time        `json:"last_chunk_time" yaml:"last_chunk_time"`              // 最后上传分片时间
-	ExpireTime     time.Time        `json:"expire_time" yaml:"expire_time"`                          // 过期时间
-	DownloadCount  float64          `json:"download_count" yaml:"download_count"`          // 下载次数
-	Description    string           `json:"description" yaml:"description"`                   // 文件描述
-	StorageType    string           `json:"storage_type" yaml:"storage_type"`        // 存储类型
-	IpfsCid        string           `json:"ipfs_cid" yaml:"ipfs_cid"`                    // ipfs cid
-	IsDelete       sql.NullBool     `json:"is_delete" yaml:"is_delete"`                    // 是否删除
-	IsRemove       sql.NullBool     `json:"is_remove" yaml:"is_remove"`                    // 是否移除
+	UploadID       string           `json:"upload_id" yaml:"upload_id"`             // 上传ID
+	FileName       string           `json:"file_name" yaml:"file_name"`             // 文件名
+	FileSize       float64          `json:"file_size" yaml:"file_size"`             // 文件大小
+	FilePath       string           `json:"file_path" yaml:"file_path"`             // 文件路径
+	FileHash       string           `json:"file_hash" yaml:"file_hash"`             // 文件hash
+	FileType       string           `json:"file_type" yaml:"file_type"`             // 文件类型
+	UploaderId     string           `json:"uploader_id" yaml:"uploader_id"`         // 上传者ID
+	UploadTime     time.Time        `json:"upload_time" yaml:"upload_time"`         // 上传时间
+	UpdateTime     time.Time        `json:"update_time" yaml:"update_time"`         // 更新时间
+	Status         model.FileStatus `json:"status" yaml:"status"`                   // 使用FileStatus类型
+	ChunkSize      float64          `json:"chunk_size" yaml:"chunk_size"`           // 分片大小
+	TotalChunks    float64          `json:"total_chunks" yaml:"total_chunks"`       // 总分片数
+	UploadedChunks float64          `json:"uploaded_chunks" yaml:"uploaded_chunks"` // 已上传分片数
+	LastChunkTime  time.Time        `json:"last_chunk_time" yaml:"last_chunk_time"` // 最后上传分片时间
+	ExpireTime     time.Time        `json:"expire_time" yaml:"expire_time"`         // 过期时间
+	DownloadCount  float64          `json:"download_count" yaml:"download_count"`   // 下载次数
+	Description    string           `json:"description" yaml:"description"`         // 文件描述
+	StorageType    string           `json:"storage_type" yaml:"storage_type"`       // 存储类型
+	IpfsCid        string           `json:"ipfs_cid" yaml:"ipfs_cid"`               // ipfs cid
+	IsDelete       sql.NullBool     `json:"is_delete" yaml:"is_delete"`             // 是否删除
+	IsRemove       sql.NullBool     `json:"is_remove" yaml:"is_remove"`             // 是否移除
 }
 
 // MarshalJSON 自定义JSON序列化方法
@@ -360,16 +360,16 @@ func NewFileInfoResponse(id int64, fileName string, fileSize int64, filePath, fi
 // @description 恢复文件上传操作的响应数据
 // @struct
 type ResumeUploadResponse struct {
-	FileName       string    `json:"file_name" yaml:"file_name"`       // 文件名
-	FileSize       float64   `json:"file_size" yaml:"file_size"`       // 文件大小
-	TotalChunks    float64   `json:"total_chunks" yaml:"total_chunks"` // 总分片数
-	ChunkSize      float64   `json:"chunk_size" yaml:"chunk_size"`     // 分片大小
+	FileName       string    `json:"file_name" yaml:"file_name"`             // 文件名
+	FileSize       float64   `json:"file_size" yaml:"file_size"`             // 文件大小
+	TotalChunks    float64   `json:"total_chunks" yaml:"total_chunks"`       // 总分片数
+	ChunkSize      float64   `json:"chunk_size" yaml:"chunk_size"`           // 分片大小
 	UploadedChunks int       `json:"uploaded_chunks" yaml:"uploaded_chunks"` // 已上传分片数
-	ChunkIndices   []int     `json:"chunk_indices" yaml:"chunk_indices"`   // 已上传分片索引列表
-	Progress       float64   `json:"progress" yaml:"progress"`         // 上传进度
-	Status         string    `json:"status" yaml:"status"`             // 上传状态
-	UploadId       string    `json:"upload_id" yaml:"upload_id"`       // 上传ID
-	CreateTime     time.Time `json:"create_time" yaml:"create_time"`   // 创建时间
+	ChunkIndices   []int     `json:"chunk_indices" yaml:"chunk_indices"`     // 已上传分片索引列表
+	Progress       float64   `json:"progress" yaml:"progress"`               // 上传进度
+	Status         string    `json:"status" yaml:"status"`                   // 上传状态
+	UploadId       string    `json:"upload_id" yaml:"upload_id"`             // 上传ID
+	CreateTime     time.Time `json:"create_time" yaml:"create_time"`         // 创建时间
 }
 
 // String 将ResumeUploadResponse转换为字符串

@@ -11,7 +11,7 @@ import (
 // @struct
 type CaptchaValidateRequest struct {
 	CaptchaId string `json:"captcha_id,omitempty" yaml:"captcha_id,omitempty" form:"captchaId" binding:"required"` // CaptchaId 验证码ID
-	Code      string `json:"code,omitempty" yaml:"code,omitempty" form:"code"  binding:"required,min=4,max=6"`      // Code 用户输入的验证码（必填，4-6位）
+	Code      string `json:"code,omitempty" yaml:"code,omitempty" form:"code"  binding:"required,min=4,max=6"`     // Code 用户输入的验证码（必填，4-6位）
 }
 
 // String 将验证码验证请求参数转换为字符串表示
@@ -56,4 +56,3 @@ func (req CaptchaGenerateRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
 }
-

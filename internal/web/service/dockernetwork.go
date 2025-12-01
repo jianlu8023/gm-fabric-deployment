@@ -18,9 +18,9 @@ import (
 // @description 提供Docker网络相关的服务功能，如获取Docker网络列表
 // @struct
 type DockerNetworkService struct {
-	*Service       // Service 基础服务，提供日志功能
+	*Service                                  // Service 基础服务，提供日志功能
 	mapper        *mapper.DockerNetworkMapper // mapper Docker网络映射器，用于数据访问
-	dockerControl *docker.Control // dockerControl Docker控制器，用于Docker操作
+	dockerControl *docker.Control             // dockerControl Docker控制器，用于Docker操作
 }
 
 // NewDockerNetworkService 创建Docker网络服务实例

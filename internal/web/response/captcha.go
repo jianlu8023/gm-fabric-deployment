@@ -95,4 +95,3 @@ func NewCaptchaValidateResponse(valid bool, captchaId string) *CaptchaValidateRe
 		CaptchaId: captchaId,
 	}
 }
-

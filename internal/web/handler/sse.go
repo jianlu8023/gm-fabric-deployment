@@ -16,7 +16,7 @@ import (
 // @description 处理Server-Sent Events相关的HTTP请求
 // @struct
 type SSEHandler struct {
-	*Handler           // Handler 基础处理器，提供日志功能
+	*Handler                       // Handler 基础处理器，提供日志功能
 	sseService *service.SSEService // sseService SSE服务，处理SSE相关的业务逻辑
 }
 

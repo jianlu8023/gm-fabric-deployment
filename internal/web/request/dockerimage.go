@@ -65,4 +65,3 @@ func (req DockerImagePullRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
 }
-

@@ -15,8 +15,8 @@ import (
 // @description 提供Server-Sent Events功能的服务，用于实时推送消息
 // @struct
 type SSEService struct {
-	*Service      // Service 基础服务，提供日志功能
-	sseMapper    *mapper.SSEMapper  // sseMapper SSE映射器，用于数据访问
+	*Service                    // Service 基础服务，提供日志功能
+	sseMapper *mapper.SSEMapper // sseMapper SSE映射器，用于数据访问
 }
 
 // NewSSEService 创建SSE服务实例

@@ -2,7 +2,10 @@ package service
 
 import (
 	"github.com/gin-gonic/gin"
-	systeminfo "github.com/jianlu8023/go-tools/v2/pkg/system/info"
+	systemcpu "github.com/jianlu8023/go-tools/v2/pkg/system/cpu"
+	systemdisk "github.com/jianlu8023/go-tools/v2/pkg/system/disk"
+	systemos "github.com/jianlu8023/go-tools/v2/pkg/system/os"
+	systemram "github.com/jianlu8023/go-tools/v2/pkg/system/ram"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/response"
@@ -18,8 +21,8 @@ import (
 // @description 提供系统相关的服务功能，如获取系统概览信息
 // @struct
 type SystemService struct {
-	*Service          // Service 基础服务，提供日志功能
-	mapper *mapper.SystemMapper // mapper 系统映射器，用于数据访问
+	*Service                      // Service 基础服务，提供日志功能
+	mapper   *mapper.SystemMapper // mapper 系统映射器，用于数据访问
 }
 
 // NewSystemService 创建系统服务实例
@@ -47,8 +50,8 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemO
 	defer span.End()
 	s.logger.Debugf("received system overview request with params: %v", req)
 
-	os := systeminfo.InitOS()
-	cpu, err := systeminfo.InitCPU()
+	os := systemos.SystemOsInfo()
+	cpu, err := systemcpu.SystemCpuInfo()
 	if err != nil {
 		s.logger.Errorf("get cpu info failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取系统cpu信息失败")
@@ -57,7 +60,7 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemO
 		return
 	}
 
-	disk, err := systeminfo.InitDisk()
+	disk, err := systemdisk.SystemDiskInfo()
 	if err != nil {
 		s.logger.Errorf("get disk info failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取系统disk信息失败")
@@ -65,7 +68,7 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemO
 		span.SetStatus(codes.Error, err.Error())
 		return
 	}
-	ram, err := systeminfo.InitRAM()
+	ram, err := systemram.SystemRamInfo()
 	if err != nil {
 		s.logger.Errorf("get ram info failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.NormalFailed, "获取系统ram信息失败")

@@ -33,4 +33,3 @@ func (req DockerNetworkListRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
 }
-

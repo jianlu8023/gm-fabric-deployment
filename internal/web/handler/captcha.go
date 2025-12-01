@@ -21,8 +21,8 @@ import (
 // @description 处理验证码相关的HTTP请求
 // @struct
 type CaptchaHandler struct {
-	*Handler              // Handler 基础处理器，提供日志功能
-	service *service.CaptchaService // service 验证码服务，处理验证码相关的业务逻辑
+	*Handler                         // Handler 基础处理器，提供日志功能
+	service  *service.CaptchaService // service 验证码服务，处理验证码相关的业务逻辑
 }
 
 // NewCaptchaHandler 创建验证码处理器

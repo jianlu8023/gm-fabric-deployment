@@ -34,10 +34,10 @@ import (
 // @description 提供文件相关的服务功能，如文件上传、下载、管理等
 // @struct
 type FileService struct {
-	*Service   // Service 基础服务，提供日志功能
+	*Service                     // Service 基础服务，提供日志功能
 	mapper    *mapper.FileMapper // mapper 文件映射器，用于数据访问
-	uploadDir string // uploadDir 上传文件保存目录
-	tempDir   string // tempDir 临时文件保存目录
+	uploadDir string             // uploadDir 上传文件保存目录
+	tempDir   string             // tempDir 临时文件保存目录
 }
 
 // NewFileService 创建文件服务实例

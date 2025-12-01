@@ -18,9 +18,9 @@ import (
 // @description 实现NodeServiceInterface接口，处理节点相关业务逻辑
 // @struct
 type Libp2pNodeService struct {
-	*Service              // Service 基础服务，提供日志功能
-	mapper               *mapper.Libp2pNodeMapper  // mapper 节点映射器，用于数据访问
-	libp2pControl        *libp2p.Control           // libp2pControl libp2p控制器，用于节点操作
+	*Service                               // Service 基础服务，提供日志功能
+	mapper        *mapper.Libp2pNodeMapper // mapper 节点映射器，用于数据访问
+	libp2pControl *libp2p.Control          // libp2pControl libp2p控制器，用于节点操作
 }
 
 // NewLibp2pNodeService 创建新的节点服务实例

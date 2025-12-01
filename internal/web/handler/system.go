@@ -20,8 +20,8 @@ import (
 // @description 处理系统相关的HTTP请求
 // @struct
 type SystemHandler struct {
-	*Handler              // Handler 基础处理器，提供日志功能
-	service *service.SystemService // service 系统服务，处理系统相关的业务逻辑
+	*Handler                        // Handler 基础处理器，提供日志功能
+	service  *service.SystemService // service 系统服务，处理系统相关的业务逻辑
 }
 
 // NewSystemHandler 创建系统处理器

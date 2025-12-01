@@ -51,9 +51,9 @@ type WebSocketServiceInterface interface {
 // @description WebSocket服务的具体实现，处理WebSocket相关的业务逻辑
 // @struct
 type WebSocketService struct {
-	*Service                 // Service 基础服务，提供日志功能
-	wsMapper  *mapper.WebSocketMapper       // wsMapper WebSocket映射器，用于数据访问
-	wsControl *controlwebsocket.Control     // wsControl WebSocket控制器，用于WebSocket操作
+	*Service                            // Service 基础服务，提供日志功能
+	wsMapper  *mapper.WebSocketMapper   // wsMapper WebSocket映射器，用于数据访问
+	wsControl *controlwebsocket.Control // wsControl WebSocket控制器，用于WebSocket操作
 }
 
 // NewWebSocketService 创建一个新的WebSocketService实例

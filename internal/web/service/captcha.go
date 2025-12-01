@@ -16,7 +16,7 @@ import (
 // @description 处理验证码生成和验证的服务
 // @struct
 type CaptchaService struct {
-	*Service          // Service 基础服务，提供日志功能
+	*Service                        // Service 基础服务，提供日志功能
 	captchaControl *captcha.Control // captchaControl 验证码控制器，用于生成和验证验证码
 }
 

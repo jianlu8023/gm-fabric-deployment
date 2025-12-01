@@ -22,9 +22,9 @@ import (
 // @struct
 
 type MFAService struct {
-	*Service          // Service 基础服务，提供日志功能
-	mfaControl       *mfa.Control      // mfaControl MFA控制器，用于MFA操作
-	userMapper       *mapper.UserMapper // userMapper 用户映射器，用于用户数据访问
+	*Service                      // Service 基础服务，提供日志功能
+	mfaControl *mfa.Control       // mfaControl MFA控制器，用于MFA操作
+	userMapper *mapper.UserMapper // userMapper 用户映射器，用于用户数据访问
 }
 
 // NewMFAService 创建MFA服务实例

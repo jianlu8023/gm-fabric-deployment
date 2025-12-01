@@ -21,8 +21,8 @@ import (
 // @description 处理WebSocket相关的HTTP请求和连接管理
 // @struct
 type WebSocketHandler struct {
-	*Handler                 // Handler 基础处理器，提供日志功能
-	service *service.WebSocketService // service WebSocket服务，处理WebSocket相关的业务逻辑
+	*Handler                           // Handler 基础处理器，提供日志功能
+	service  *service.WebSocketService // service WebSocket服务，处理WebSocket相关的业务逻辑
 }
 
 // NewWebSocketHandler 创建WebSocket处理器

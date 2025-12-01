@@ -55,4 +55,3 @@ func (req Libp2pNodeMyselfRequest) String() string {
 func (req Libp2pNodeMyselfRequest) IsLegal() bool {
 	return true
 }
-

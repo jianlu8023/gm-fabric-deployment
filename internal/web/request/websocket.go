@@ -118,4 +118,3 @@ func (req WSConnectionListRequest) String() string {
 	str, _ := json.MarshalString(req)
 	return str
 }
-

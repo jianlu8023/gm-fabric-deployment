@@ -51,4 +51,3 @@ func (req SystemInitStatusRequest) String() string {
 func (req SystemInitStatusRequest) IsLegal() bool {
 	return true
 }
-
