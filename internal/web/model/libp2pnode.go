@@ -12,6 +12,7 @@ const (
 )
 
 type Libp2pNode struct {
+	Model
 	AutoUid              int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                 // 自增ID
 	NodeId               string       `json:"node_id,omitempty" yaml:"node_id,omitempty" gorm:"column:node_id;type:varchar(256);unique;"`                                      // 节点ID（唯一标识）
 	NodeIp               string       `json:"node_ip,omitempty" yaml:"node_ip,omitempty" gorm:"column:node_ip;type:varchar(256);"`                                             // 节点ip

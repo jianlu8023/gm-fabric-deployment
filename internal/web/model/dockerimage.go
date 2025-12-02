@@ -15,6 +15,7 @@ const (
 // @description 定义Docker镜像的数据结构，包含镜像的基本信息
 // @struct
 type DockerImage struct {
+	Model
 	AutoUid             int               `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                  // 自增id
 	ImageName           []string          `json:"image_name,omitempty" yaml:"image_name,omitempty" gorm:"column:image_name;type:varchar(255);serializer:json"`                      // 镜像名称
 	ImageCreated        int64             `json:"image_created,omitempty" yaml:"image_created,omitempty" gorm:"column:image_created;type:datetime;serializer:unixtime;"`            // 镜像创建时间

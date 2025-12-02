@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/otel/codes"
 
@@ -27,11 +28,11 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		if tokenString == "" {
 			logger.Errorf("JWT认证失败：未提供token...")
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized,
-				map[string]interface{}{
-					"code":    http.StatusUnauthorized,
-					"message": "未提供认证信息",
-					"success": false,
-					"data":    nil,
+				commonhttp.BaseResponse{
+					Code:    http.StatusUnauthorized,
+					Message: "业务处理失败",
+					Success: false,
+					Data:    "未提供认证信息",
 				},
 			)
 			ctx.Abort()
@@ -44,11 +45,11 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
 			logger.Errorf("JWT认证失败：token格式错误...")
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized,
-				map[string]interface{}{
-					"code":    http.StatusUnauthorized,
-					"message": "认证信息格式错误",
-					"success": false,
-					"data":    nil,
+				commonhttp.BaseResponse{
+					Code:    http.StatusUnauthorized,
+					Message: "业务处理失败",
+					Success: false,
+					Data:    "认证信息格式错误",
 				},
 			)
 			ctx.Abort()
@@ -61,11 +62,11 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		if err != nil {
 			logger.Errorf("JWT认证失败：token解析错误: %v", err)
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized,
-				map[string]interface{}{
-					"code":    http.StatusUnauthorized,
-					"message": "认证信息无效或已过期",
-					"success": false,
-					"data":    nil,
+				commonhttp.BaseResponse{
+					Code:    http.StatusUnauthorized,
+					Message: "业务处理失败",
+					Success: false,
+					Data:    "认证信息无效或已过期",
 				},
 			)
 			ctx.Abort()
@@ -78,11 +79,11 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 			if !sessionManager.ValidateSession(claims.SessionID) {
 				logger.Errorf("JWT认证失败：会话已失效: %v", claims.SessionID)
 				ctx.AbortWithStatusJSON(http.StatusUnauthorized,
-					map[string]interface{}{
-						"code":    http.StatusUnauthorized,
-						"message": "会话已失效，请重新登录",
-						"success": false,
-						"data":    nil,
+					commonhttp.BaseResponse{
+						Code:    http.StatusUnauthorized,
+						Message: "业务处理失败",
+						Success: false,
+						Data:    "会话已失效，请重新登录",
 					},
 				)
 				ctx.Abort()

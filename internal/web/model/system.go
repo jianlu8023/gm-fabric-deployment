@@ -15,6 +15,7 @@ const (
 // @description 存储系统的初始化状态信息
 // @struct
 type SystemInit struct {
+	Model
 	Id     uint         `json:"uid,omitempty" yaml:"uid,omitempty" gorm:"primaryKey;check:id=1"`                          // 主键 确保id 始终是1
 	IsInit sql.NullBool `json:"is_init,omitempty" yaml:"is_init,omitempty" gorm:"column:is_init;not null;default:false;"` // 是否已经初始化
 }

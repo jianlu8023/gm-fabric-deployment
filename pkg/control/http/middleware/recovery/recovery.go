@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
@@ -78,6 +79,12 @@ func EnableRecovery(webLogger *zap.SugaredLogger, stack bool) gin.HandlerFunc {
 						err,
 					)
 				}
+				ctx.JSON(http.StatusInternalServerError, commonhttp.BaseResponse{
+					Code:    http.StatusInternalServerError,
+					Message: "业务处理失败",
+					Success: false,
+					Data:    "Server Internal Error",
+				})
 				ctx.AbortWithStatus(http.StatusInternalServerError)
 				span.SetStatus(codes.Error, "")
 			}

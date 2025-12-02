@@ -3,16 +3,18 @@ package jwt
 import (
 	"context"
 	"errors"
-	"sync"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"go.uber.org/zap"
 )
 
 // MemorySessionManager 基于内存的会话管理器实现
 type MemorySessionManager struct {
-	sessions map[string]*Claims
-	mutex    sync.RWMutex
+	// sessions map[string]*Claims
+	// mutex    sync.RWMutex
+	sessions concurrent.Map[string, *Claims]
 	logger   *zap.SugaredLogger
 	ctx      context.Context
 }
@@ -22,7 +24,8 @@ type MemorySessionManager struct {
 // @return *MemorySessionManager 内存会话管理器实例
 func NewMemorySessionManager(logger *zap.SugaredLogger, ctx context.Context) *MemorySessionManager {
 	manager := &MemorySessionManager{
-		sessions: make(map[string]*Claims),
+		// sessions: make(map[string]*Claims),
+		sessions: concurrentmap.NewRWMap[string, *Claims](),
 		logger:   logger,
 		ctx:      ctx,
 	}
@@ -34,10 +37,11 @@ func NewMemorySessionManager(logger *zap.SugaredLogger, ctx context.Context) *Me
 
 // GetSession 获取会话信息
 func (m *MemorySessionManager) GetSession(sessionID string) (*Claims, error) {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
+	// m.mutex.RLock()
+	// defer m.mutex.RUnlock()
 
-	claims, exists := m.sessions[sessionID]
+	// claims, exists := m.sessions[sessionID]
+	claims, exists := m.sessions.Get(sessionID)
 	if !exists {
 		return nil, errors.New("会话不存在")
 	}
@@ -56,19 +60,21 @@ func (m *MemorySessionManager) GetSession(sessionID string) (*Claims, error) {
 
 // SetSession 设置会话信息
 func (m *MemorySessionManager) SetSession(sessionID string, claims *Claims) error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	// m.mutex.Lock()
+	// defer m.mutex.Unlock()
 
-	m.sessions[sessionID] = claims
+	// m.sessions[sessionID] = claims
+	m.sessions.Put(sessionID, claims)
 	return nil
 }
 
 // DeleteSession 删除会话信息
 func (m *MemorySessionManager) DeleteSession(sessionID string) error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	// m.mutex.Lock()
+	// defer m.mutex.Unlock()
 
-	delete(m.sessions, sessionID)
+	// delete(m.sessions, sessionID)
+	m.sessions.Del(sessionID)
 	m.logger.Info("会话已删除", zap.String("sessionID", sessionID))
 	return nil
 }
@@ -96,14 +102,22 @@ func (m *MemorySessionManager) cleanupLoop() {
 			now := time.Now().Unix()
 			expiredCount := 0
 
-			m.mutex.Lock()
-			for sessionID, claims := range m.sessions {
-				if claims.SessionExpires < now {
-					delete(m.sessions, sessionID)
+			// m.mutex.Lock()
+			// for sessionID, claims := range m.sessions {
+			// 	if claims.SessionExpires < now {
+			// 		delete(m.sessions, sessionID)
+			// 		expiredCount++
+			// 	}
+			// }
+			// m.mutex.Unlock()
+			iterator := m.sessions.Iterator()
+			for iterator.HasNext() {
+				item := iterator.Value()
+				if item.Value.SessionExpires < now {
+					m.sessions.Del(item.Key)
 					expiredCount++
 				}
 			}
-			m.mutex.Unlock()
 
 			if expiredCount > 0 {
 				m.logger.Debugf("清理过期会话: %v", expiredCount)
@@ -117,20 +131,22 @@ func (m *MemorySessionManager) cleanupLoop() {
 
 // GetSessionCount 获取当前会话数量
 func (m *MemorySessionManager) GetSessionCount() int {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-	return len(m.sessions)
+	// m.mutex.RLock()
+	// defer m.mutex.RUnlock()
+	// return len(m.sessions)
+	return m.sessions.Len()
 }
 
 // GetAllSessions 获取所有会话信息
 func (m *MemorySessionManager) GetAllSessions() []*Claims {
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
+	// m.mutex.RLock()
+	// defer m.mutex.RUnlock()
 
-	sessions := make([]*Claims, 0, len(m.sessions))
-	for _, claims := range m.sessions {
-		sessions = append(sessions, claims)
-	}
-
-	return sessions
+	// sessions := make([]*Claims, 0, len(m.sessions))
+	// for _, claims := range m.sessions {
+	// 	sessions = append(sessions, claims)
+	// }
+	// return sessions
+	claims := m.sessions.Values()
+	return claims
 }

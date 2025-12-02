@@ -2,9 +2,10 @@ package ratelimit
 
 import (
 	"net/http"
-	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
@@ -15,10 +16,11 @@ import (
 
 // RateLimiter 限流管理器
 type RateLimiter struct {
-	limiters map[string]*rate.Limiter // 存储每个IP的限流器
-	mutex    sync.Mutex               // 用于保护limiters的并发访问
-	rps      rate.Limit               // 每秒请求数
-	burst    int                      // 令牌桶突发大小
+	// limiters map[string]*rate.Limiter // 存储每个IP的限流器
+	// mutex    sync.Mutex                            // 用于保护limiters的并发访问
+	limiters concurrent.Map[string, *rate.Limiter] // 存储每个IP的限流器
+	rps      rate.Limit                            // 每秒请求数
+	burst    int                                   // 令牌桶突发大小
 }
 
 // NewRateLimiter 创建一个新的限流管理器
@@ -27,7 +29,8 @@ type RateLimiter struct {
 // @return *RateLimiter 限流管理器实例
 func NewRateLimiter(rps float64, burst int) *RateLimiter {
 	return &RateLimiter{
-		limiters: make(map[string]*rate.Limiter),
+		// limiters: make(map[string]*rate.Limiter),
+		limiters: concurrentmap.NewRWMap[string, *rate.Limiter](),
 		rps:      rate.Limit(rps),
 		burst:    burst,
 	}
@@ -35,15 +38,17 @@ func NewRateLimiter(rps float64, burst int) *RateLimiter {
 
 // getLimiter 根据IP获取或创建限流器
 func (rl *RateLimiter) getLimiter(ip string) *rate.Limiter {
-	rl.mutex.Lock()
-	defer rl.mutex.Unlock()
+	// rl.mutex.Lock()
+	// defer rl.mutex.Unlock()
 
-	limiter, exists := rl.limiters[ip]
+	// limiter, exists := rl.limiters[ip]
+	limiter, exists := rl.limiters.Get(ip)
 	if !exists {
 		// 为新IP创建限流器
 		limiter = rate.NewLimiter(rl.rps, rl.burst)
 		// 存储限流器
-		rl.limiters[ip] = limiter
+		// rl.limiters[ip] = limiter
+		rl.limiters.Put(ip, limiter)
 	}
 
 	return limiter

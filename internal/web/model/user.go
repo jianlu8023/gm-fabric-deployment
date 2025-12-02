@@ -46,6 +46,7 @@ func defaultColumns() *atomic.Value {
 // @description 定义系统用户的数据结构，包含用户的基本信息
 // @struct
 type UserInfo struct {
+	Model
 	AutoUid           int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                   // 自增ID（主键）
 	UserId            string       `json:"user_id,omitempty" yaml:"user_id,omitempty" gorm:"column:user_id;type:varchar(255);not null;"`                                      // 用户id
 	Username          string       `json:"username,omitempty" yaml:"username,omitempty" gorm:"column:username;type:varchar(255);not null;unique"`                             // 用户名（唯一）

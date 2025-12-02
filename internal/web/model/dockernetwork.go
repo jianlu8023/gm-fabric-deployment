@@ -17,6 +17,7 @@ const (
 // @description 存储Docker网络的详细信息
 // @struct
 type DockerNetwork struct {
+	Model
 	AutoUid               int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                        // 自增ID（主键）
 	NetworkName           string       `json:"network_name,omitempty" yaml:"network_name,omitempty" gorm:"column:network_name;type:varchar(255);not null;"`                            // 网络名称
 	NetworkID             string       `json:"network_id,omitempty" yaml:"network_id,omitempty" gorm:"column:network_id;type:varchar(255);not null;"`                                  // 网络ID（Docker生成的唯一标识）

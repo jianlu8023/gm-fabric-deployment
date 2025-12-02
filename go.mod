@@ -1,8 +1,8 @@
 module github.com/jianlu8023/golang-example
 
-go 1.23
+go 1.22.0
 
-toolchain go1.24.4
+toolchain go1.22.10
 
 replace (
 	github.com/Jeffail/gabs/v2 => github.com/Jeffail/gabs/v2 v2.7.0
@@ -26,7 +26,7 @@ replace (
 	github.com/ipfs-cluster/ipfs-cluster => github.com/ipfs-cluster/ipfs-cluster v1.0.8
 	// github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
 	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
-	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20251201050245-a176b3718c29
+	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20251202022045-4d5a010efdd2
 	github.com/jinzhu/copier => github.com/jinzhu/copier v0.4.0
 	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
@@ -328,7 +328,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.1 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/koron/go-ssdp v0.0.5 // indirect
 	github.com/kr/pretty v0.3.1 // indirect

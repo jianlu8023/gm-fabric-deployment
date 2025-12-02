@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/iphelper"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
@@ -15,9 +17,10 @@ import (
 // RateLimiterJuju 基于github.com/juju/ratelimit库的限流器
 // 这个限流器会为每个客户端IP维护一个令牌桶
 type RateLimiterJuju struct {
-	limiters map[string]*ratelimit.Bucket // 存储每个IP的令牌桶
-	rps      int64                        // 每秒生成的令牌数
-	burst    int                          // 令牌桶的容量
+	// limiters map[string]*ratelimit.Bucket // 存储每个IP的令牌桶
+	limiters concurrent.Map[string, *ratelimit.Bucket] // 存储每个IP的令牌桶
+	rps      int64                                     // 每秒生成的令牌数
+	burst    int                                       // 令牌桶的容量
 }
 
 // NewRateLimiterJuju 创建一个新的RateLimiterJuju实例
@@ -26,7 +29,8 @@ type RateLimiterJuju struct {
 // @return *RateLimiterJuju 限流器实例
 func NewRateLimiterJuju(rps int64, burst int) *RateLimiterJuju {
 	return &RateLimiterJuju{
-		limiters: make(map[string]*ratelimit.Bucket),
+		// limiters: make(map[string]*ratelimit.Bucket),
+		limiters: concurrentmap.NewRWMap[string, *ratelimit.Bucket](),
 		rps:      rps,
 		burst:    burst,
 	}
@@ -37,13 +41,15 @@ func NewRateLimiterJuju(rps int64, burst int) *RateLimiterJuju {
 // @return bool 是否允许通过
 func (rl *RateLimiterJuju) Allow(ip string) bool {
 	// 为IP获取或创建令牌桶
-	bucket, exists := rl.limiters[ip]
+	// bucket, exists := rl.limiters[ip]
+	bucket, exists := rl.limiters.Get(ip)
 	if !exists {
 		// 创建一个新的令牌桶，每秒钟添加rps个令牌，容量为burst
 		// ratelimit.NewBucketWithRate会创建一个令牌桶，参数是每秒添加的令牌数和容量
 		bucket = ratelimit.NewBucketWithRate(float64(rl.rps), int64(rl.burst))
 		// 保存令牌桶，供后续请求使用
-		rl.limiters[ip] = bucket
+		// rl.limiters[ip] = bucket
+		rl.limiters.Put(ip, bucket)
 	}
 
 	// 尝试获取一个令牌，如果成功则返回true，否则返回false
