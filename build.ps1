@@ -77,7 +77,7 @@ function Build-Server {
     "time: $BuildTime" >> server.latest
     
     # 为了与Linux环境保持一致，同时创建.bin文件
-    Copy-Item server.exe server.bin -ErrorAction SilentlyContinue
+    # Copy-Item server.exe server.bin -ErrorAction SilentlyContinue
     
     Write-Host "[SUCCESS] Server built successfully as server.exe (server.bin also created for compatibility)" -ForegroundColor Green
 }
@@ -97,7 +97,7 @@ function Build-Client {
     "time: $BuildTime" >> client.latest
     
     # 为了与Linux环境保持一致，同时创建.bin文件
-    Copy-Item client.exe client.bin -ErrorAction SilentlyContinue
+    # Copy-Item client.exe client.bin -ErrorAction SilentlyContinue
     
     Write-Host "[SUCCESS] Client built successfully as client.exe (client.bin also created for compatibility)" -ForegroundColor Green
 }

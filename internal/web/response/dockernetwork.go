@@ -6,6 +6,7 @@ import (
 
 	"github.com/docker/docker/api/types/network"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/dbpage"
@@ -49,19 +50,19 @@ func (resp DockerNetworkListResponse) MarshalJSON() ([]byte, error) {
 	type Alias DockerNetworkListResponse
 	aux := struct {
 		*Alias
-		NetworkEnableIPv6 bool   `json:"network_enable_ipv6"`
-		NetworkInternal   bool   `json:"network_internal"`
-		NetworkAttachable bool   `json:"network_attachable"`
-		NetworkIngress    bool   `json:"network_ingress"`
-		IsDelete          bool   `json:"is_delete"`
+		NetworkEnableIPv6 *bool  `json:"network_enable_ipv6"`
+		NetworkInternal   *bool  `json:"network_internal"`
+		NetworkAttachable *bool  `json:"network_attachable"`
+		NetworkIngress    *bool  `json:"network_ingress"`
+		IsDelete          *bool  `json:"is_delete"`
 		NetworkCreateTime string `json:"network_create_time"` // 网络创建时间
 	}{
 		Alias:             (*Alias)(&resp),
-		NetworkEnableIPv6: resp.NetworkEnableIPv6.Bool,
-		NetworkInternal:   resp.NetworkInternal.Bool,
-		NetworkAttachable: resp.NetworkAttachable.Bool,
-		NetworkIngress:    resp.NetworkIngress.Bool,
-		IsDelete:          resp.IsDelete.Bool,
+		NetworkEnableIPv6: sqlnull.NullBoolPtr(resp.NetworkEnableIPv6),
+		NetworkInternal:   sqlnull.NullBoolPtr(resp.NetworkInternal),
+		NetworkAttachable: sqlnull.NullBoolPtr(resp.NetworkAttachable),
+		NetworkIngress:    sqlnull.NullBoolPtr(resp.NetworkIngress),
+		IsDelete:          sqlnull.NullBoolPtr(resp.IsDelete),
 		NetworkCreateTime: humantime.HumanTime(resp.NetworkCreateTime, "unknown"),
 	}
 	return json.Marshal(aux)

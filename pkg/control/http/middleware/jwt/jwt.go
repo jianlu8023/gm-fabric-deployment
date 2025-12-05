@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/otel/codes"
@@ -25,7 +26,7 @@ func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.Han
 		defer span.End()
 		// 从Authorization头中获取token
 		tokenString := ctx.GetHeader("Authorization")
-		if tokenString == "" {
+		if stringer.IsBlank(tokenString) {
 			logger.Errorf("JWT认证失败：未提供token...")
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized,
 				commonhttp.BaseResponse{

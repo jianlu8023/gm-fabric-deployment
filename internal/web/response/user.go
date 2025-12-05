@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jinzhu/copier"
@@ -41,11 +42,13 @@ func (resp RegisterUserResponse) MarshalJSON() ([]byte, error) {
 	type Alias RegisterUserResponse
 	aux := struct {
 		*Alias
-		IsDelete      bool   `json:"is_delete"`
+		IsDelete      *bool  `json:"is_delete"`
+		MFAEnabled    *bool  `json:"mfa_enabled"`
 		LastLoginTime string `json:"last_login_time"`
 	}{
 		Alias:         (*Alias)(&resp),
-		IsDelete:      resp.IsDelete.Bool,
+		IsDelete:      sqlnull.NullBoolPtr(resp.IsDelete),
+		MFAEnabled:    sqlnull.NullBoolPtr(resp.MFAEnabled),
 		LastLoginTime: humantime.HumanTimeLower(resp.LastLoginTime, "unknown"),
 	}
 	return json.Marshal(aux)

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/dbpage"
@@ -239,14 +240,14 @@ func (resp ListFilesResponse) MarshalJSON() ([]byte, error) {
 	aux := struct {
 		*Alias
 		Status        string `json:"status" yaml:"status"`                   // 使用FileStatus类型
-		IsDelete      bool   `json:"is_delete" yaml:"is_delete"`             // 是否删除
-		IsRemove      bool   `json:"is_remove" yaml:"is_remove"`             // 是否移除
+		IsDelete      *bool  `json:"is_delete" yaml:"is_delete"`             // 是否删除
+		IsRemove      *bool  `json:"is_remove" yaml:"is_remove"`             // 是否移除
 		LastChunkTime string `json:"last_chunk_time" yaml:"last_chunk_time"` // 最后上传分片时间
 	}{
 		Alias:         (*Alias)(&resp),
 		Status:        string(resp.Status),
-		IsDelete:      resp.IsDelete.Bool,
-		IsRemove:      resp.IsRemove.Bool,
+		IsDelete:      sqlnull.NullBoolPtr(resp.IsDelete),
+		IsRemove:      sqlnull.NullBoolPtr(resp.IsRemove),
 		LastChunkTime: humantime.HumanTime(resp.LastChunkTime, "unknown"),
 	}
 	return json.Marshal(aux)

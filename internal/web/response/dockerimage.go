@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/dbpage"
@@ -34,11 +35,11 @@ func (resp DockerImageListResponse) MarshalJSON() ([]byte, error) {
 	type Alias DockerImageListResponse
 	aux := struct {
 		*Alias
-		IsDelete     bool   `json:"is_delete"`
+		IsDelete     *bool  `json:"is_delete"`
 		ImageCreated string `json:"image_created"`
 	}{
 		Alias:        (*Alias)(&resp),
-		IsDelete:     resp.IsDelete.Bool,
+		IsDelete:     sqlnull.NullBoolPtr(resp.IsDelete),
 		ImageCreated: humantime.HumanTime(resp.ImageCreated, "unknown"),
 	}
 	return json.Marshal(aux)

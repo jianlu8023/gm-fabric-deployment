@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	humantime "github.com/jianlu8023/go-tools/v2/pkg/time"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/dbpage"
@@ -42,13 +43,13 @@ func (resp Libp2pNodeListResponse) MarshalJSON() ([]byte, error) {
 
 	aux := struct {
 		*Alias
-		IsAlive              bool   `json:"is_alive"`
-		IsMySelf             bool   `json:"is_my_self"`
+		IsAlive              *bool  `json:"is_alive"`
+		IsMySelf             *bool  `json:"is_my_self"`
 		LastAliveMessageTime string `json:"last_alive_message_time"`
 	}{
 		Alias:                (*Alias)(&resp),
-		IsAlive:              resp.IsAlive.Bool,
-		IsMySelf:             resp.IsMySelf.Bool,
+		IsAlive:              sqlnull.NullBoolPtr(resp.IsAlive),
+		IsMySelf:             sqlnull.NullBoolPtr(resp.IsMySelf),
 		LastAliveMessageTime: humantime.HumanTimeLower(resp.LastAliveMessageTime, "unknown"),
 	}
 	return json.Marshal(aux)
@@ -110,13 +111,13 @@ func (resp Libp2pNodeMyselfResponse) MarshalJSON() ([]byte, error) {
 
 	aux := struct {
 		*Alias
-		IsAlive              bool   `json:"is_alive"`
-		IsMySelf             bool   `json:"is_my_self"`
+		IsAlive              *bool  `json:"is_alive"`
+		IsMySelf             *bool  `json:"is_my_self"`
 		LastAliveMessageTime string `json:"last_alive_message_time"`
 	}{
 		Alias:                (*Alias)(&resp),
-		IsAlive:              resp.IsAlive.Bool,
-		IsMySelf:             resp.IsMySelf.Bool,
+		IsAlive:              sqlnull.NullBoolPtr(resp.IsAlive),
+		IsMySelf:             sqlnull.NullBoolPtr(resp.IsMySelf),
 		LastAliveMessageTime: humantime.HumanTimeLower(resp.LastAliveMessageTime, "unknown"),
 	}
 	return json.Marshal(aux)
