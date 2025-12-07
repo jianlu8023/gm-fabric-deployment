@@ -13,6 +13,7 @@ import (
 
 	"github.com/jianlu8023/go-tools/v2/pkg/http"
 	"github.com/jianlu8023/go-tools/v2/pkg/sonic"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"github.com/jianlu8023/golang-example/pkg/control/job"
@@ -138,9 +139,13 @@ func main() {
 						RootCAs:            certPool,
 						Certificates:       []tls.Certificate{keyPair},
 					})
-					var objJson interface{}
+					var objJson commonhttp.BaseResponse
 					code, err := client.
-						GetJSON("https://127.0.0.1:8080/example/routers", map[string]interface{}{}, &objJson)
+						GetJSON(
+							"https://127.0.0.1:8080/example/routers",
+							map[string]interface{}{},
+							&objJson,
+						)
 					if err != nil {
 						mainLogger.Errorf("get router failed: %v", err)
 						return
@@ -160,7 +165,10 @@ func main() {
 					mainLogger.Infof("response: %v ", pretty)
 
 					time.Sleep(time.Duration(rand.IntN(1)) * time.Second)
-					body, code, err := client.GET("https://127.0.0.1:8080/example/ping", map[string]interface{}{})
+					body, code, err := client.GET(
+						"https://127.0.0.1:8080/example/ping",
+						map[string]interface{}{},
+					)
 					if err != nil {
 						mainLogger.Errorf("get ping failed: %v", err)
 						return
@@ -175,11 +183,14 @@ func main() {
 					mainLogger.Debugf("response: %v ", string(body))
 
 					time.Sleep(time.Duration(rand.IntN(1)) * time.Second)
-					body, code, err = client.GET("https://127.0.0.1:8080/example/libp2p/list", map[string]interface{}{
-						"isPage":   true,
-						"pageNo":   1,
-						"pageSize": 10,
-					})
+					body, code, err = client.GET(
+						"https://127.0.0.1:8080/example/libp2p/list",
+						map[string]interface{}{
+							"isPage":   true,
+							"pageNo":   1,
+							"pageSize": 10,
+						},
+					)
 					if err != nil {
 						mainLogger.Errorf("get libp2p list failed: %v", err)
 						return
@@ -194,7 +205,10 @@ func main() {
 					mainLogger.Debugf("response: %v ", string(body))
 
 					time.Sleep(time.Duration(rand.IntN(1)) * time.Second)
-					body, code, err = client.POST("https://127.0.0.1:8080/example/ping", nil)
+					body, code, err = client.POST(
+						"https://127.0.0.1:8080/example/ping",
+						nil,
+					)
 					if err != nil {
 						mainLogger.Errorf("post ping failed: %v", err)
 						return
