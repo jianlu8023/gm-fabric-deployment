@@ -187,6 +187,14 @@ func (c *Control) GetCertificateConfig() *CertificateConfig {
 	return c.config.CertificateConfig
 }
 
+// GetGeoIPConfig 获取GeoIP配置
+// @return *GeoIPConfig GeoIP配置
+func (c *Control) GetGeoIPConfig() *GeoIPConfig {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.config.GeoIPConfig
+}
+
 // GetTunnyPoolConfig 获取Tunny线程池配置
 // @return *TunnyPoolConfig Tunny线程池配置
 // func (c *Control) GetTunnyPoolConfig() *TunnyPoolConfig {

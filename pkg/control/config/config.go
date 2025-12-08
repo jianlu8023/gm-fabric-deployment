@@ -532,6 +532,24 @@ func (w *WebRTCConfig) String() string {
 	return string(pretty)
 }
 
+// GeoIPConfig GeoIP配置
+type GeoIPConfig struct {
+	Enabled      bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                   // 是否启用
+	DatabasePath string `json:"database_path,omitempty" yaml:"database_path,omitempty" mapstructure:"database_path"` // 本地数据库文件路径
+	DownloadURL  string `json:"download_url,omitempty" yaml:"download_url,omitempty" mapstructure:"download_url"`    // 数据库下载地址
+	AutoDownload bool   `json:"auto_download,omitempty" yaml:"auto_download,omitempty" mapstructure:"auto_download"` // 是否自动下载数据库
+}
+
+func (g *GeoIPConfig) GoString() string {
+	return g.String()
+}
+
+// String GeoIPConfig的字符串表示
+func (g *GeoIPConfig) String() string {
+	pretty, _ := json.MarshalPretty(g)
+	return string(pretty)
+}
+
 // AuthzConfig 权限控制配置结构体
 type AuthzConfig struct {
 	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用权限控制
@@ -719,6 +737,7 @@ type Config struct {
 	KvDatabaseConfig  *KvDatabaseConfig  `json:"kvdatabase_config,omitempty" yaml:"kvdatabase_config,omitempty" mapstructure:"kvdatabase"`       // KV数据库配置
 	AIConfig          *AIConfig          `json:"ai_config,omitempty" yaml:"ai_config,omitempty" mapstructure:"ai"`                               // AI配置
 	CertificateConfig *CertificateConfig `json:"certificate_config,omitempty" yaml:"certificate_config,omitempty" mapstructure:"certificate"`    // 证书配置
+	GeoIPConfig       *GeoIPConfig       `json:"geoip_config,omitempty" yaml:"geoip_config,omitempty" mapstructure:"geoip"`                      // GeoIP配置
 
 	// TunnyPoolConfig  *TunnyPoolConfig  `json:"tunny_pool_config,omitempty" yaml:"tunny_pool_config,omitempty" mapstructure:"tunny_pool"` // Tunny线程池配置
 }

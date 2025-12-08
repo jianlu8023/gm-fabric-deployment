@@ -33,6 +33,7 @@ replace (
 	github.com/mitchellh/go-homedir => github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure => github.com/mitchellh/mapstructure v1.5.0
 	github.com/mojocn/base64Captcha => github.com/mojocn/base64Captcha v1.3.8
+	github.com/oschwald/geoip2-golang => github.com/oschwald/geoip2-golang v1.13.0 // go1.22 只能使用v1 v2需要go1.24(github.com/oschwald/geoip2-golang/v2 v2.0.1)
 	github.com/pion/interceptor => github.com/pion/interceptor v0.1.41
 	github.com/pion/logging => github.com/pion/logging v0.2.4
 	github.com/pion/webrtc/v4 => github.com/pion/webrtc/v4 v4.1.6
@@ -134,6 +135,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // mapstructure
 	github.com/mojocn/base64Captcha v1.3.8 // 验证码
 	github.com/multiformats/go-multiaddr v0.14.0 // multiaddr
+	github.com/oschwald/geoip2-golang v1.13.0
 	github.com/panjf2000/ants/v2 v2.11.3 // ants 异步方式线程池
 	github.com/pion/interceptor v0.1.41 // pion 拦截器
 	github.com/pion/logging v0.2.4 // pion 日志
@@ -384,6 +386,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/opencontainers/runtime-spec v1.2.0 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
+	github.com/oschwald/maxminddb-golang v1.13.0 // indirect
 	github.com/paulmach/orb v0.11.1 // indirect
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect

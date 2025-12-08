@@ -19,4 +19,5 @@ const (
 	ModuleIpfsCluster = "IpfsCluster"
 	ModuleRedis       = "Redis"
 	ModuleAI          = "Ai"
+	ModuleGeoIP       = "GeoIP"
 )
