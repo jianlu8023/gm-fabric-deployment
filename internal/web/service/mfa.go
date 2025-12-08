@@ -1,9 +1,8 @@
 package service
 
 import (
-	"database/sql"
-
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
@@ -100,7 +99,7 @@ func (s *MFAService) GenerateRecoverySecret(ctx *gin.Context, req *request.MFARe
 		return
 	}
 
-	user.MFAEnabled = sql.NullBool{Bool: true, Valid: true}
+	user.MFAEnabled = sqlnull.TrueToNull()
 	user.MFASecret = secret
 	user.MFAOTPAuthURL = qrCodeURL
 

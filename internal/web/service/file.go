@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"crypto/md5"
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -17,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/go-tools/v2/pkg/random/uuid"
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
@@ -383,10 +383,7 @@ func (s *FileService) UploadChunk(ctx *gin.Context, req *request.FileUploadChunk
 		CalcChunkSize: calcHash,
 		FilePath:      chunkFilePath,
 		UploadTime:    time.Now(),
-		Status: sql.NullBool{
-			Valid: true,
-			Bool:  true,
-		},
+		Status:        sqlnull.TrueToNull(),
 	}
 
 	s.logger.Debugf("分片上传详情: uploadId=%s, chunkIndex=%d, chunkSize=%d, 期望大小=%.0f, 是否最后分片=%t",

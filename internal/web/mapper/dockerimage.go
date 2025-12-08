@@ -1,11 +1,11 @@
 package mapper
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"math"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"github.com/jianlu8023/golang-example/pkg/dbpage"
@@ -54,7 +54,7 @@ func (m *DockerImageMapper) InsertOneWithCheck(imageInfo *model.DockerImage) err
 		}
 		// 镜像不存在，插入
 		// 确保新记录的IsDelete字段为false
-		imageInfo.IsDelete = sql.NullBool{Bool: false, Valid: true}
+		imageInfo.IsDelete = sqlnull.FalseToNull()
 		if err := tx.Model(&model.DockerImage{}).
 			Create(imageInfo).Error; err != nil {
 			return err
@@ -82,7 +82,7 @@ func (m *DockerImageMapper) InsertOrUpdateOne(info *model.DockerImage) error {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				// 记录不存在，创建新记录
 				// 确保新记录的IsDelete字段为false
-				info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+				info.IsDelete = sqlnull.FalseToNull()
 				if err := tx.Model(&model.DockerImage{}).
 					Create(info).Error; err != nil {
 					return err
@@ -93,7 +93,7 @@ func (m *DockerImageMapper) InsertOrUpdateOne(info *model.DockerImage) error {
 		} else {
 			// 记录存在，更新记录
 			// 恢复已逻辑删除的记录（确保IsDelete为false）
-			info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+			info.IsDelete = sqlnull.FalseToNull()
 			info.AutoUid = existInfo.AutoUid
 			if err := tx.Model(&model.DockerImage{}).
 				Where(&model.DockerImage{AutoUid: info.AutoUid}).
@@ -185,7 +185,7 @@ func (m *DockerImageMapper) BatchLogicalDelete(query model.DockerImage) error {
 
 		// 执行逻辑删除，设置IsDelete为true
 		result := db.Updates(&model.DockerImage{
-			IsDelete: sql.NullBool{Bool: true, Valid: true},
+			IsDelete: sqlnull.TrueToNull(),
 		})
 		if result.Error != nil {
 			return fmt.Errorf("批量逻辑删除Docker镜像失败: %w", result.Error)

@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/encoding/base64"
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
-	"github.com/jianlu8023/go-tools/v2/pkg/rand"
+	"github.com/jianlu8023/go-tools/v2/pkg/random/rand"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/request"
 	"github.com/jianlu8023/golang-example/internal/web/response"

@@ -1,8 +1,7 @@
 package mapper
 
 import (
-	"database/sql"
-
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"gorm.io/gorm"
@@ -52,11 +51,8 @@ func (m *SystemMapper) init() {
 		}
 		if count == 0 {
 			if err := tx.Model(&model.SystemInit{}).Create(&model.SystemInit{
-				Id: 1,
-				IsInit: sql.NullBool{
-					Bool:  false,
-					Valid: true,
-				},
+				Id:     1,
+				IsInit: sqlnull.FalseToNull(),
 			}).Error; err != nil {
 				return err
 			}

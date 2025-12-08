@@ -1,10 +1,10 @@
 package mapper
 
 import (
-	"database/sql"
 	"errors"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"gorm.io/gorm"
@@ -42,7 +42,7 @@ func (m *UserMapper) QueryExistUser(query model.UserInfo) (bool, error) {
 	if err := m.db.Model(&model.UserInfo{}).
 		Where(&query).
 		Where(&model.UserInfo{
-			IsDelete: sql.NullBool{Bool: false, Valid: true},
+			IsDelete: sqlnull.FalseToNull(),
 		}).
 		Count(&exist).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -96,10 +96,7 @@ func (m *UserMapper) QueryUserByUsernameAndPassword(
 		&model.UserInfo{
 			Username: username,
 			Password: password,
-			IsDelete: sql.NullBool{
-				Bool:  false,
-				Valid: true,
-			},
+			IsDelete: sqlnull.FalseToNull(),
 		},
 	).First(user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -151,7 +148,7 @@ func (m *UserMapper) QueryUserByQuery(query model.UserInfo) (model.UserInfo, err
 	var user model.UserInfo
 	if err := m.db.Model(&model.UserInfo{}).
 		Where(&query).Where(&model.UserInfo{
-		IsDelete: sql.NullBool{Bool: false, Valid: true},
+		IsDelete: sqlnull.FalseToNull(),
 	}).First(&user).Error; err != nil {
 		return model.UserInfo{}, err
 	}
@@ -169,7 +166,7 @@ func (m *UserMapper) UpdateUser(user *model.UserInfo) error {
 	}
 	return m.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Model(&model.UserInfo{}).Where(&model.UserInfo{
-			IsDelete: sql.NullBool{Bool: false, Valid: true},
+			IsDelete: sqlnull.FalseToNull(),
 			UserId:   user.UserId,
 		}).Updates(user).Error; err != nil {
 			return err

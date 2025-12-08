@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
@@ -10,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/golang-example/internal/web/router"
 	"github.com/jianlu8023/golang-example/pkg/control/job"
 	"github.com/jianlu8023/golang-example/version"
@@ -137,8 +137,8 @@ func main() {
 			if nodeMapper != nil {
 				myself := model.NewLibp2pNode()
 				myself.NodeId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
-				myself.IsAlive = sql.NullBool{Bool: true, Valid: true}
-				myself.IsMySelf = sql.NullBool{Bool: true, Valid: true}
+				myself.IsAlive = sqlnull.TrueToNull()
+				myself.IsMySelf = sqlnull.TrueToNull()
 				myself.LastAliveMessageTime = time.Now()
 				myself.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(serverControl.GetLibp2pControl().GetLocalhostPeerID())
 				if err = nodeMapper.InsertOrUpdate(context.Background(), myself); err != nil {
@@ -156,7 +156,7 @@ func main() {
 				if nodeMapper != nil {
 					info := model.NewLibp2pNode()
 					info.NodeId = msg.From.String()
-					info.IsAlive = sql.NullBool{Bool: true, Valid: true}
+					info.IsAlive = sqlnull.TrueToNull()
 					info.LastAliveMessageTime = time.Now()
 					info.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(msg.From)
 					if err := nodeMapper.InsertOrUpdate(context.Background(), info); err != nil {
@@ -172,7 +172,7 @@ func main() {
 				if nodeMapper != nil {
 					info := model.NewLibp2pNode()
 					info.NodeId = msg.From.String()
-					info.IsAlive = sql.NullBool{Bool: false, Valid: true}
+					info.IsAlive = sqlnull.FalseToNull()
 					info.LastAliveMessageTime = time.Now()
 					// info.NodeIp = serverControl.GetLibp2pControl().GetFirstNonLocalPeerAddress(msg.From)
 					if err := nodeMapper.InsertOrUpdate(context.Background(), info); err != nil {
@@ -204,13 +204,13 @@ func main() {
 						info.NetworkCreateTime = net.Created
 						info.NetworkScope = net.Scope
 						info.NetworkDriver = net.Driver
-						info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
+						info.NetworkEnableIPv6 = sqlnull.BoolToNull(sqlnull.BoolPtr(net.EnableIPv6))
 						info.NetworkIpam = net.IPAM
-						info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
-						info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
-						info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
+						info.NetworkInternal = sqlnull.BoolToNull(sqlnull.BoolPtr(net.Internal))
+						info.NetworkAttachable = sqlnull.BoolToNull(sqlnull.BoolPtr(net.Attachable))
+						info.NetworkIngress = sqlnull.BoolToNull(sqlnull.BoolPtr(net.Ingress))
 						info.NetworkLocationPeerId = msg.From.String()
-						info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+						info.IsDelete = sqlnull.FalseToNull()
 						if err := networkMapper.InsertOrUpdateOne(info); err != nil {
 							mainLogger.Errorf("insert or update network info failed: %v", err)
 						}
@@ -244,7 +244,7 @@ func main() {
 						info.ImageId = img.ID
 						info.ImageCreated = img.Created
 						info.ImageLabels = img.Labels
-						info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+						info.IsDelete = sqlnull.FalseToNull()
 						info.ImageLocationPeerId = msg.From.String()
 						if err := imageMapper.InsertOrUpdateOne(info); err != nil {
 							mainLogger.Errorf("insert or update image info failed: %v", err)
@@ -333,7 +333,7 @@ func main() {
 				for _, img := range imageList {
 					info := model.NewDockerImage()
 					info.ImageName = img.RepoTags
-					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					info.IsDelete = sqlnull.FalseToNull()
 					info.ImageId = img.ID
 					info.ImageCreated = img.Created
 					info.ImageLabels = img.Labels
@@ -363,13 +363,13 @@ func main() {
 					info.NetworkCreateTime = net.Created
 					info.NetworkScope = net.Scope
 					info.NetworkDriver = net.Driver
-					info.NetworkEnableIPv6 = sql.NullBool{Bool: net.EnableIPv6, Valid: true}
+					info.NetworkEnableIPv6 = sqlnull.BoolToNull(sqlnull.BoolPtr(net.EnableIPv6))
 					info.NetworkIpam = net.IPAM
-					info.NetworkInternal = sql.NullBool{Bool: net.Internal, Valid: true}
-					info.NetworkAttachable = sql.NullBool{Bool: net.Attachable, Valid: true}
-					info.NetworkIngress = sql.NullBool{Bool: net.Ingress, Valid: true}
+					info.NetworkInternal = sqlnull.BoolToNull(sqlnull.BoolPtr(net.Internal))
+					info.NetworkAttachable = sqlnull.BoolToNull(sqlnull.BoolPtr(net.Attachable))
+					info.NetworkIngress = sqlnull.BoolToNull(sqlnull.BoolPtr(net.Ingress))
 					info.NetworkLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
-					info.IsDelete = sql.NullBool{Bool: false, Valid: true}
+					info.IsDelete = sqlnull.FalseToNull()
 					if err := networkMapper.InsertOrUpdateOne(info); err != nil {
 						mainLogger.Errorf("insert or update network info failed: %v", err)
 					}

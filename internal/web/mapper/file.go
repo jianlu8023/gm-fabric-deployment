@@ -2,11 +2,11 @@ package mapper
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"math"
 	"time"
-
+	
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
@@ -99,8 +99,10 @@ func (m *FileMapper) GetFileInfoByID(autoUid int) (*model.FileInfo, error) {
 	}
 
 	fileInfo := &model.FileInfo{}
-	if err := m.db.Where("auto_uid = ?", autoUid).First(fileInfo).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+	if err := m.db.Where(&model.FileInfo{
+		AutoUid: autoUid,
+	}).First(fileInfo).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, datasource.ErrNotExists
 		}
 		return nil, err
@@ -116,8 +118,10 @@ func (m *FileMapper) GetFileInfoByUploadID(uploadID string) (*model.FileInfo, er
 	}
 
 	fileInfo := &model.FileInfo{}
-	if err := m.db.Where("upload_id = ?", uploadID).First(fileInfo).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
+	if err := m.db.Where(&model.FileInfo{
+		UploadID: uploadID,
+	}).First(fileInfo).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, datasource.ErrNotExists
 		}
 		return nil, err
@@ -263,7 +267,7 @@ func (m *FileMapper) GetUploadedChunkCount(ctx context.Context, uploadId string)
 	var count int64
 	if err := m.db.WithContext(ctx).Model(&model.FileChunk{}).Where(&model.FileChunk{
 		UploadID: uploadId,
-		IsDelete: sql.NullBool{Bool: false, Valid: true}, // 只查询未删除的记录
+		IsDelete: sqlnull.FalseToNull(), // 只查询未删除的记录
 	}).Count(&count).Error; err != nil {
 		span.SetStatus(codes.Error, err.Error())
 		span.RecordError(err)
@@ -284,7 +288,7 @@ func (m *FileMapper) GetFileChunks(ctx context.Context, query model.FileChunk) (
 	}
 
 	// 添加IsDelete条件，确保只查询未删除的记录
-	query.IsDelete = sql.NullBool{Bool: false, Valid: true}
+	query.IsDelete = sqlnull.FalseToNull()
 	var chunks []model.FileChunk
 	if err := m.db.WithContext(ctx).
 		Model(&model.FileChunk{}).
@@ -313,7 +317,7 @@ func (m *FileMapper) GetUploadedFileChunkIndexes(ctx context.Context, query mode
 	// 修复：使用float64数组接收数据，然后转换为int
 	var chunkIndexes []float64
 	// 添加IsDelete条件，确保只查询未删除的记录
-	query.IsDelete = sql.NullBool{Bool: false, Valid: true}
+	query.IsDelete = sqlnull.FalseToNull()
 	if err := m.db.Model(model.NewFileChunk()).
 		Where(&query).
 		Order("chunk_index ASC").
@@ -417,9 +421,9 @@ func (m *FileMapper) DeleteFileInfo(ctx context.Context, query model.FileInfo) e
 		}
 		if err := tx.WithContext(ctx).Model(model.NewFileInfo()).Where(&query).Where(
 			&model.FileInfo{
-				IsDelete: sql.NullBool{Valid: true, Bool: false},
+				IsDelete: sqlnull.FalseToNull(),
 			}).Updates(&model.FileChunk{
-			IsDelete: sql.NullBool{Bool: true, Valid: true},
+			IsDelete: sqlnull.TrueToNull(),
 		}).Error; err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())
@@ -444,7 +448,7 @@ func (m *FileMapper) DeleteFileChunks(ctx context.Context, query model.FileChunk
 		var count int64
 		if err := tx.WithContext(ctx).Model(model.NewFileChunk()).Where(&query).
 			Where(&model.FileChunk{
-				IsDelete: sql.NullBool{Bool: false, Valid: true},
+				IsDelete: sqlnull.FalseToNull(),
 			}).
 			Count(&count).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -462,9 +466,9 @@ func (m *FileMapper) DeleteFileChunks(ctx context.Context, query model.FileChunk
 		}
 
 		if err := tx.WithContext(ctx).Model(model.NewFileChunk()).Where(&model.FileChunk{
-			IsDelete: sql.NullBool{Valid: true, Bool: false},
+			IsDelete: sqlnull.FalseToNull(),
 		}).Where(&query).Updates(&model.FileChunk{
-			IsDelete: sql.NullBool{Bool: true, Valid: true},
+			IsDelete: sqlnull.TrueToNull(),
 		}).Error; err != nil {
 			span.RecordError(err)
 			span.SetStatus(codes.Error, err.Error())

@@ -1,10 +1,10 @@
 package service
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
@@ -168,7 +168,7 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			image.ImageId = summary.ID
 			image.ImageCreated = summary.Created
 			image.ImageLabels = summary.Labels
-			image.IsDelete = sql.NullBool{Bool: false, Valid: true}
+			image.IsDelete = sqlnull.FalseToNull()
 			image.ImageLocationPeerId = req.PeerId
 			if err := s.mapper.InsertOneWithCheck(image); err != nil {
 				s.logger.Errorf("save docker image failed: %v", err)
