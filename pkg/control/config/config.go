@@ -1,18 +1,7 @@
 package config
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"errors"
-	"fmt"
-	"os"
-	"path/filepath"
-	"time"
-
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
-	"github.com/jianlu8023/go-tools/v2/pkg/path"
-	"github.com/libp2p/go-libp2p/core/crypto"
-	"github.com/libp2p/go-libp2p/core/peer"
 )
 
 // DockerConfig docker配置结构体
@@ -55,88 +44,6 @@ type DataSourceConfig struct {
 	TLSServerName  string `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty" mapstructure:"tls_server_name"`    // TLS服务器名称
 }
 
-// GenMysqlDSN 生成mysql的dsn
-// @return string dsn
-func (d *DataSourceConfig) GenMysqlDSN() string {
-	// 参考 https://github.com/go-sql-driver/mysql#dsn-data-source-name 获取详情
-	// 如果需要正确处理time.Time 需要携带parseTime参数
-	// 需要支持完整utf-8 需要设置charset=utf8mb4
-	// 格式 "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%v)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		d.UserName, d.Password, d.Host, d.Port, d.DataBaseName)
-	// 添加TLS配置
-	if d.TLSEnabled {
-		// 使用自定义TLS配置
-		dsn += "&tls=custom"
-	}
-	return dsn
-}
-
-// GenTiDBDSN 生成tidb的dsn
-// @return string dsn
-func (d *DataSourceConfig) GenTiDBDSN() string {
-	// 格式可用mysql
-	return d.GenMysqlDSN()
-}
-
-// GenPostgresDSN 生成postgres的dsn
-// @return string dsn
-func (d *DataSourceConfig) GenPostgresDSN() string {
-	// 格式 "host=localhost user=gorm password=gorm dbname=gorm port=9920 sslmode=disable TimeZone=Asia/Shanghai"
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%v sslmode=disable TimeZone=Asia/Shanghai",
-		d.Host, d.UserName, d.Password, d.DataBaseName, d.Port)
-}
-
-// GenSqlite3DSN 生成sqlite3的dsn
-// @return string dsn
-func (d *DataSourceConfig) GenSqlite3DSN() string {
-	// 格式 test.db?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL
-	// test.db 数据库名称
-	// _pragma=journal_mode=WAL 设置wal模式
-	// _pragma=synchronous=NORMAL 设置同步模式 NORMAL 性能和数据安全之间平衡 FULL 最安全但最慢 OFF 最快但数据丢失风险最高
-	// _pragma=busy_timeout=5000 设置超时时间
-	if filepath.IsAbs(d.DataBasePath) {
-		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL&charset=utf8mb4&parseTime=True&loc=Local",
-			d.DataBasePath)
-	} else {
-		wd, _ := path.GetWorkDir()
-		dsn := filepath.Clean(filepath.Join(wd, d.DataBasePath))
-		dsnDir := filepath.Dir(dsn)
-		if _, err := os.Stat(dsnDir); os.IsNotExist(err) {
-			// 文件不存在
-			if err := os.MkdirAll(dsnDir, os.FileMode(0o755)); err != nil {
-				panic(err)
-			}
-		}
-		return fmt.Sprintf("%s?_pragma=busy_timeout=5000&_pragma=journal_mode=WAL&_pragma=synchronous=NORMAL&charset=utf8mb4&parseTime=True&loc=Local",
-			dsn)
-	}
-}
-
-// GenGaussDBDSN 生成GaussDB的dsn
-// @return string dsn
-func (d *DataSourceConfig) GenGaussDBDSN() string {
-	// 格式 "host=localhost user=gorm password=gorm dbname=gorm port=8000 sslmode=disable TimeZone=Asia/Shanghai"
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%v sslmode=disable TimeZone=Asia/Shanghai",
-		d.Host, d.UserName, d.Password, d.DataBaseName, d.Port)
-}
-
-// GenSqlServerDSN 生成sqlserver的dsn
-// @return string dsn
-func (d *DataSourceConfig) GenSqlServerDSN() string {
-	// "sqlserver://gorm:LoremIpsum86@localhost:9930?database=gorm"
-	return fmt.Sprintf("sqlserver://%s:%s@%s:%v?database=%s",
-		d.UserName, d.Password, d.Host, d.Port, d.DataBaseName)
-}
-
-// GenClickhouseDSN 生成clickhouse的dsn
-// @return string dsn
-func (d *DataSourceConfig) GenClickhouseDSN() string {
-	// 格式 "clickhouse://gorm:gorm@localhost:9942/gorm?dial_timeout=10s&read_timeout=20s"
-	return fmt.Sprintf("clickhouse://%s:%s@%s:%v/%s?dial_timeout=10s&read_timeout=20s",
-		d.UserName, d.Password, d.Host, d.Port, d.DataBaseName)
-}
-
 // String 返回DataSourceConfig的字符串表示
 // @return string 字符串表示
 func (d *DataSourceConfig) String() string {
@@ -162,40 +69,57 @@ func (l *LoggerConfig) String() string {
 	return string(pretty)
 }
 
+type IPWhiteListConfig struct {
+	Enabled bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用IP白名单
+	IPs     []string `json:"ips,omitempty" yaml:"ips,omitempty" mapstructure:"ips"`             // IP白名单，优先级高于黑名单
+}
+
+func (i *IPWhiteListConfig) String() string {
+	pretty, _ := json.MarshalPretty(i)
+	return string(pretty)
+}
+
+type IPBlackListConfig struct {
+	Enabled bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用IP黑名单
+	IPs     []string `json:"ips,omitempty" yaml:"ips,omitempty" mapstructure:"ips"`             // IP黑名单
+}
+
+func (i *IPBlackListConfig) String() string {
+	pretty, _ := json.MarshalPretty(i)
+	return string(pretty)
+}
+
+type RateLimitConfig struct {
+	Enabled bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用限流
+	RPS     int64  `json:"rps,omitempty" yaml:"rps,omitempty" mapstructure:"rps"`             // 每秒请求数限制
+	Burst   int    `json:"burst,omitempty" yaml:"burst,omitempty" mapstructure:"burst"`       // 令牌桶突发大小
+	Type    string `json:"type,omitempty" yaml:"type,omitempty" mapstructure:"type"`          // 限流类型，可选值：time, ulule, ants, custom, juju
+}
+
+func (r *RateLimitConfig) String() string {
+	pretty, _ := json.MarshalPretty(r)
+	return string(pretty)
+}
+
 // HttpServerConfig http服务配置
 type HttpServerConfig struct {
-	Enabled         bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                  // 是否启用
-	Address         string `json:"address,omitempty" yaml:"address,omitempty" mapstructure:"address"`                                  // 服务地址
-	ContextPath     string `json:"context_path,omitempty" yaml:"context_path,omitempty" mapstructure:"context_path"`                   // 服务上下文路径
-	RunMode         string `json:"run_mode,omitempty" yaml:"run_mode,omitempty" mapstructure:"run_mode" `                              // 服务运行模式
-	TlsEnabled      bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                     // 是否启用TLS
-	TlsGM           bool   `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                     // 是否启用国密TLS
-	TlsGMSingleCert bool   `json:"tls_gm_single_cert,omitempty" yaml:"tls_gm_single_cert,omitempty" mapstructure:"tls_gm_single_cert"` // 国密TLS是否使用单证书模式，默认false（使用双证书模式：一个用于签名，一个用于加密）
-	TlsCertFile     string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `               // TLS证书文件
-	TlsKeyFile      string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                   // TLS私钥文件
-	TlsRCACertFile  string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`    // TLS根证书文件
-	Http2Enabled    bool   `json:"http2_enabled,omitempty" yaml:"http2_enabled,omitempty" mapstructure:"http2_enabled"`                // 是否启用HTTP/2
-	Pprof           bool   `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                        // 是否启用pprof
-	// 文件上传配置
-	UploadDir string `json:"upload_dir,omitempty" yaml:"upload_dir,omitempty" mapstructure:"upload_dir"` // 文件上传目录
-	// 黑白名单配置
-	IPWhiteList struct {
-		Enabled bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用IP白名单
-		IPs     []string `json:"ips,omitempty" yaml:"ips,omitempty" mapstructure:"ips"`             // IP白名单，优先级高于黑名单
-	} `json:"ip_white_list,omitempty" yaml:"ip_white_list,omitempty" mapstructure:"ip_white_list"`
-	IPBlackList struct {
-		Enabled bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用IP黑名单
-		IPs     []string `json:"ips,omitempty" yaml:"ips,omitempty" mapstructure:"ips"`             // IP黑名单
-	} `json:"ip_black_list,omitempty" yaml:"ip_black_list,omitempty" mapstructure:"ip_black_list"`
-	// 限流配置
-	RateLimit struct {
-		Enabled bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用限流
-		RPS     int64  `json:"rps,omitempty" yaml:"rps,omitempty" mapstructure:"rps"`             // 每秒请求数限制
-		Burst   int    `json:"burst,omitempty" yaml:"burst,omitempty" mapstructure:"burst"`       // 令牌桶突发大小
-		Type    string `json:"type,omitempty" yaml:"type,omitempty" mapstructure:"type"`          // 限流类型，可选值：time, ulule, ants, custom, juju
-	} `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`
-	// 国际化配置
-	Language string `json:"language,omitempty" yaml:"language,omitempty" mapstructure:"language"` // 默认语言设置，支持zh,en等
+	Enabled         bool               `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                  // 是否启用
+	Address         string             `json:"address,omitempty" yaml:"address,omitempty" mapstructure:"address"`                                  // 服务地址
+	ContextPath     string             `json:"context_path,omitempty" yaml:"context_path,omitempty" mapstructure:"context_path"`                   // 服务上下文路径
+	RunMode         string             `json:"run_mode,omitempty" yaml:"run_mode,omitempty" mapstructure:"run_mode" `                              // 服务运行模式
+	TlsEnabled      bool               `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                     // 是否启用TLS
+	TlsGM           bool               `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                     // 是否启用国密TLS
+	TlsGMSingleCert bool               `json:"tls_gm_single_cert,omitempty" yaml:"tls_gm_single_cert,omitempty" mapstructure:"tls_gm_single_cert"` // 国密TLS是否使用单证书模式，默认false（使用双证书模式：一个用于签名，一个用于加密）
+	TlsCertFile     string             `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `               // TLS证书文件
+	TlsKeyFile      string             `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                   // TLS私钥文件
+	TlsRCACertFile  string             `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`    // TLS根证书文件
+	Http2Enabled    bool               `json:"http2_enabled,omitempty" yaml:"http2_enabled,omitempty" mapstructure:"http2_enabled"`                // 是否启用HTTP/2
+	Pprof           bool               `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                        // 是否启用pprof
+	UploadDir       string             `json:"upload_dir,omitempty" yaml:"upload_dir,omitempty" mapstructure:"upload_dir"`                         // 文件上传目录
+	IPWhiteList     *IPWhiteListConfig `json:"ip_white_list,omitempty" yaml:"ip_white_list,omitempty" mapstructure:"ip_white_list"`                // 白名单配置
+	IPBlackList     *IPBlackListConfig `json:"ip_black_list,omitempty" yaml:"ip_black_list,omitempty" mapstructure:"ip_black_list"`                // 黑名单配置
+	RateLimit       RateLimitConfig    `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`                         // 限流配置
+	Language        string             `json:"language,omitempty" yaml:"language,omitempty" mapstructure:"language"`                               // 默认语言设置，支持zh,en等 // 国际化配置
 }
 
 // String 返回配置的字符串表示
@@ -261,62 +185,6 @@ func (g *GrpcConfig) String() string {
 	return string(pretty)
 }
 
-const (
-	Ed25519 = "ed25519"
-	Rsa     = "rsa"
-)
-
-// CreateIdentity 生成libp2p身份
-// @param algorithm 身份算法
-// @param rsaKeyLen rsa密钥长度
-// @return Identity libp2p身份
-// @return error 错误信息
-func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
-	ident := Identity{}
-
-	var sk crypto.PrivKey
-	var pk crypto.PubKey
-
-	switch algorithm {
-	case Rsa:
-		fmt.Printf("generate rsa key pair with key length: %d\n", rsaKeyLen)
-		privK, pubK, err := crypto.GenerateKeyPair(crypto.RSA, rsaKeyLen)
-		if err != nil {
-			fmt.Printf("generate rsa key pair failed: %v\n", err)
-			return ident, err
-		}
-		sk = privK
-		pk = pubK
-	case Ed25519:
-		fmt.Println("generate ed25519 key pair")
-		privK, pubK, err := crypto.GenerateEd25519Key(rand.Reader)
-		if err != nil {
-			fmt.Printf("generate ed25519 key pair failed: %v\n", err)
-			return ident, err
-		}
-		sk = privK
-		pk = pubK
-	default:
-		fmt.Println("algorithm no support...")
-		return ident, errors.New("algorithm no support")
-	}
-
-	skBytes, err := crypto.MarshalPrivateKey(sk)
-	if err != nil {
-		fmt.Printf("marshal private key failed: %v\n", err)
-		return ident, err
-	}
-
-	ident.PrivKey = base64.StdEncoding.EncodeToString(skBytes)
-	peerId, err := peer.IDFromPublicKey(pk)
-	if err != nil {
-		fmt.Printf("generate peer id failed: %v\n", err)
-		return ident, err
-	}
-	ident.PeerID = peerId.String()
-	return ident, nil
-}
-
 // Identity 配置身份信息
 type Identity struct {
 	PeerID  string `json:"peer_id,omitempty" yaml:"peer_id,omitempty" mapstructure:"peer_id"`
@@ -328,21 +196,6 @@ type Identity struct {
 func (i *Identity) String() string {
 	pretty, _ := json.MarshalPretty(i)
 	return string(pretty)
-}
-
-// DecodePrivateKey 解码用户的私钥
-// @param passphrase string 私钥密码（当前版本未使用）
-// @return crypto.PrivKey 解码后的私钥对象
-// @return error 解码过程中可能产生的错误
-//
-// nolint: unused
-func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
-	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return crypto.UnmarshalPrivateKey(pkb)
 }
 
 // Libp2pConfig 配置Libp2p
@@ -431,31 +284,6 @@ func (a *AntsPoolConfig) String() string {
 	return string(pretty)
 }
 
-// GetPoolSize 获取线程池大小
-func (a *AntsPoolConfig) GetPoolSize() int {
-	return a.PoolSize
-}
-
-// GetMaxPoolSize 获取最大线程池大小
-func (a *AntsPoolConfig) GetMaxPoolSize() int {
-	return a.MaxPoolSize
-}
-
-// GetExpiryDuration 获取工作协程过期时间
-func (a *AntsPoolConfig) GetExpiryDuration() time.Duration {
-	return time.Duration(a.ExpiryDuration) * time.Second
-}
-
-// IsPreAlloc 是否预分配工作协程
-func (a *AntsPoolConfig) IsPreAlloc() bool {
-	return a.PreAlloc
-}
-
-// IsNonblocking 是否非阻塞模式
-func (a *AntsPoolConfig) IsNonblocking() bool {
-	return a.Nonblocking
-}
-
 // TunnyPoolConfig Tunny线程池配置
 // type TunnyPoolConfig struct {
 // 	Enabled          bool `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                          // 是否启用
@@ -510,18 +338,25 @@ func (f *FabricCAConfig) String() string {
 	return string(pretty)
 }
 
+type ICEServerConfig struct {
+	URL      string `json:"url,omitempty" yaml:"url,omitempty" mapstructure:"url"`                // ICE服务器地址
+	Username string `json:"username,omitempty" yaml:"username,omitempty" mapstructure:"username"` // 用户名
+	Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"` // 密码
+}
+
+func (i *ICEServerConfig) String() string {
+	pretty, _ := json.MarshalPretty(i)
+	return string(pretty)
+}
+
 // WebRTCConfig WebRTC配置
 // @return string WebRTCConfig的字符串表示
 type WebRTCConfig struct {
-	Enabled    bool `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用
-	ICEServers []struct {
-		URL      string `json:"url,omitempty" yaml:"url,omitempty" mapstructure:"url"`                // ICE服务器地址
-		Username string `json:"username,omitempty" yaml:"username,omitempty" mapstructure:"username"` // 用户名
-		Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"` // 密码
-	} `json:"ice_servers,omitempty" yaml:"ice_servers,omitempty" mapstructure:"ice_servers"` // ICE服务器列表（可同时包含STUN和TURN服务器）
-	MinPort      int  `json:"min_port,omitempty" yaml:"min_port,omitempty" mapstructure:"min_port"`                   // 最小端口范围
-	MaxPort      int  `json:"max_port,omitempty" yaml:"max_port,omitempty" mapstructure:"max_port"`                   // 最大端口范围
-	LogInConsole bool `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"` // 是否在控制台打印日志
+	Enabled      bool               `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用
+	ICEServers   []*ICEServerConfig `json:"ice_servers,omitempty" yaml:"ice_servers,omitempty" mapstructure:"ice_servers"`          // ICE服务器列表（可同时包含STUN和TURN服务器）
+	MinPort      int                `json:"min_port,omitempty" yaml:"min_port,omitempty" mapstructure:"min_port"`                   // 最小端口范围
+	MaxPort      int                `json:"max_port,omitempty" yaml:"max_port,omitempty" mapstructure:"max_port"`                   // 最大端口范围
+	LogInConsole bool               `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"` // 是否在控制台打印日志
 	// MaxMessageSize int      `json:"max_message_size,omitempty" yaml:"max_message_size,omitempty" mapstructure:"max_message_size"` // 最大消息大小
 	// ListenAddr     string   `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`                // 监听地址
 }
@@ -566,25 +401,79 @@ func (a *AuthzConfig) String() string {
 	return string(pretty)
 }
 
+type MFAGoogleConfig struct {
+	Issuer string `json:"issuer,omitempty" yaml:"issuer,omitempty" mapstructure:"issuer"` // Google认证器的颁发者名称
+}
+
+func (m *MFAGoogleConfig) String() string {
+	pretty, _ := json.MarshalPretty(m)
+	return string(pretty)
+}
+
+type MFAMicrosoftConfig struct {
+	TenantID     string `json:"tenant_id,omitempty" yaml:"tenant_id,omitempty" mapstructure:"tenant_id"`             // Microsoft租户ID
+	ClientID     string `json:"client_id,omitempty" yaml:"client_id,omitempty" mapstructure:"client_id"`             // Microsoft客户端ID
+	ClientSecret string `json:"client_secret,omitempty" yaml:"client_secret,omitempty" mapstructure:"client_secret"` // Microsoft客户端密钥
+}
+
+func (m *MFAMicrosoftConfig) String() string {
+	pretty, _ := json.MarshalPretty(m)
+	return string(pretty)
+}
+
 // MFAConfig MFA配置
 // @description 多因素认证配置
 // @struct MFAConfig
 type MFAConfig struct {
-	Enabled         bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
-	DefaultProvider string `json:"default_provider,omitempty" yaml:"default_provider,omitempty" mapstructure:"default_provider"` // 默认认证提供商 (google/microsoft)
-	Google          struct {
-		Issuer string `json:"issuer,omitempty" yaml:"issuer,omitempty" mapstructure:"issuer"` // Google认证器的颁发者名称
-	} `json:"google,omitempty" yaml:"google,omitempty" mapstructure:"google"` // Google认证器配置
-	Microsoft struct {
-		TenantID     string `json:"tenant_id,omitempty" yaml:"tenant_id,omitempty" mapstructure:"tenant_id"`             // Microsoft租户ID
-		ClientID     string `json:"client_id,omitempty" yaml:"client_id,omitempty" mapstructure:"client_id"`             // Microsoft客户端ID
-		ClientSecret string `json:"client_secret,omitempty" yaml:"client_secret,omitempty" mapstructure:"client_secret"` // Microsoft客户端密钥
-	} `json:"microsoft,omitempty" yaml:"microsoft,omitempty" mapstructure:"microsoft"` // Microsoft认证器配置
+	Enabled         bool                `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
+	DefaultProvider string              `json:"default_provider,omitempty" yaml:"default_provider,omitempty" mapstructure:"default_provider"` // 默认认证提供商 (google/microsoft)
+	Google          *MFAGoogleConfig    `json:"google,omitempty" yaml:"google,omitempty" mapstructure:"google"`                               // Google认证器配置
+	Microsoft       *MFAMicrosoftConfig `json:"microsoft,omitempty" yaml:"microsoft,omitempty" mapstructure:"microsoft"`                      // Microsoft认证器配置
 }
 
 // String MFAConfig的字符串表示
 // @return string MFAConfig的字符串表示
 func (m *MFAConfig) String() string {
+	pretty, _ := json.MarshalPretty(m)
+	return string(pretty)
+}
+
+type Tracer struct {
+	Exporters      string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
+	OTELProtocol   string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
+	OTELEndpoint   string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
+	OTELInsecure   bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
+	ZipkinEndpoint string `json:"zipkin_endpoint,omitempty" yaml:"zipkin_endpoint,omitempty" mapstructure:"zipkin_endpoint"`
+	FilePath       string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
+}
+
+func (t *Tracer) String() string {
+	pretty, _ := json.MarshalPretty(t)
+	return string(pretty)
+}
+
+type Logger struct {
+	Exporters    string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
+	OTELProtocol string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
+	OTELEndpoint string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
+	OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
+	FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
+}
+
+func (l *Logger) String() string {
+	pretty, _ := json.MarshalPretty(l)
+	return string(pretty)
+}
+
+type Metrics struct {
+	Exporters    string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
+	OTELProtocol string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
+	OTELEndpoint string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
+	OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
+	FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
+}
+
+func (m *Metrics) String() string {
 	pretty, _ := json.MarshalPretty(m)
 	return string(pretty)
 }
@@ -599,31 +488,12 @@ func (m *MFAConfig) String() string {
 // TracerConfig OTEL追踪配置
 // @description 统一管理OpenTelemetry的tracer、logger和meter配置
 type TracerConfig struct {
-	Enabled      bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用
-	ServiceName  string `json:"service_name,omitempty" yaml:"service_name,omitempty" mapstructure:"service_name"`       // 服务名称
-	LogInConsole bool   `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"` // 是否在控制台打印日志
-	Tracer       struct {
-		Exporters      string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
-		OTELProtocol   string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
-		OTELEndpoint   string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
-		OTELInsecure   bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
-		ZipkinEndpoint string `json:"zipkin_endpoint,omitempty" yaml:"zipkin_endpoint,omitempty" mapstructure:"zipkin_endpoint"`
-		FilePath       string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
-	} `json:"tracer,omitempty" yaml:"tracer,omitempty" mapstructure:"tracer"` // Tracer配置
-	Logger struct {
-		Exporters    string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
-		OTELProtocol string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
-		OTELEndpoint string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
-		OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
-		FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
-	} `json:"logger,omitempty" yaml:"logger,omitempty" mapstructure:"logger"` // Logger配置
-	Meter struct {
-		Exporters    string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
-		OTELProtocol string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
-		OTELEndpoint string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
-		OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
-		FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
-	} `json:"meter,omitempty" yaml:"meter,omitempty" mapstructure:"meter"` // Meter配置
+	Enabled      bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用
+	ServiceName  string   `json:"service_name,omitempty" yaml:"service_name,omitempty" mapstructure:"service_name"`       // 服务名称
+	LogInConsole bool     `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"` // 是否在控制台打印日志
+	Tracer       *Tracer  `json:"tracer,omitempty" yaml:"tracer,omitempty" mapstructure:"tracer"`                         // Tracer配置
+	Logger       *Logger  `json:"logger,omitempty" yaml:"logger,omitempty" mapstructure:"logger"`                         // Logger配置
+	Metrics      *Metrics `json:"metrics,omitempty" yaml:"metrics,omitempty" mapstructure:"metrics"`                      // Meter配置
 }
 
 func (c TracerConfig) String() string {
@@ -631,18 +501,25 @@ func (c TracerConfig) String() string {
 	return string(pretty)
 }
 
+type Address struct {
+	Host     string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"` // host
+	Port     int    `json:"port,omitempty" yaml:"port,omitempty" mapstructure:"port"` // port
+	UserName string `json:"user_name,omitempty" yaml:"user_name,omitempty" mapstructure:"user_name"`
+	Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"`
+}
+
+func (a *Address) String() string {
+	pretty, _ := json.MarshalPretty(a)
+	return string(pretty)
+}
+
 type IpfsClusterConfig struct {
-	Enabled         bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
-	Strategy        string `json:"strategy,omitempty" yaml:"strategy,omitempty" mapstructure:"strategy"`                         // 策略
-	TimeOutInterval int    `json:"timeout_interval,omitempty" yaml:"timeout_interval,omitempty" mapstructure:"timeout_interval"` // 超时时间
-	LogLevel        string `json:"log_level,omitempty" yaml:"log_level,omitempty" mapstructure:"log_level"`                      // 日志级别
-	ReTries         int    `json:"retries,omitempty" yaml:"retries,omitempty" mapstructure:"retries"`                            // 重试次数
-	Addresses       []struct {
-		Host     string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"` // host
-		Port     int    `json:"port,omitempty" yaml:"port,omitempty" mapstructure:"port"` // port
-		UserName string `json:"user_name,omitempty" yaml:"user_name,omitempty" mapstructure:"user_name"`
-		Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"`
-	} `json:"addresses,omitempty" yaml:"addresses,omitempty" mapstructure:"addresses"`
+	Enabled         bool       `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
+	Strategy        string     `json:"strategy,omitempty" yaml:"strategy,omitempty" mapstructure:"strategy"`                         // 策略
+	TimeOutInterval int        `json:"timeout_interval,omitempty" yaml:"timeout_interval,omitempty" mapstructure:"timeout_interval"` // 超时时间
+	LogLevel        string     `json:"log_level,omitempty" yaml:"log_level,omitempty" mapstructure:"log_level"`                      // 日志级别
+	ReTries         int        `json:"retries,omitempty" yaml:"retries,omitempty" mapstructure:"retries"`                            // 重试次数
+	Addresses       []*Address `json:"addresses,omitempty" yaml:"addresses,omitempty" mapstructure:"addresses"`
 }
 
 func (c IpfsClusterConfig) String() string {

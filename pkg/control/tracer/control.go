@@ -443,13 +443,13 @@ func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
 
 func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 	var exporters []sdkmetric.Exporter
-	for _, exporterStr := range strings.Split(c.config.Meter.Exporters, ",") {
+	for _, exporterStr := range strings.Split(c.config.Metrics.Exporters, ",") {
 		exporterStr = strings.TrimSpace(exporterStr)
 		switch exporterStr {
 		case ExporterOtlp:
 			protocol := ExporterOtlpProtocolHttp
-			if !stringer.IsBlank(c.config.Meter.OTELProtocol) {
-				protocol = c.config.Meter.OTELProtocol
+			if !stringer.IsBlank(c.config.Metrics.OTELProtocol) {
+				protocol = c.config.Metrics.OTELProtocol
 			}
 			switch protocol {
 			case ExporterOtlpProtocolHttp:
@@ -463,11 +463,11 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 						MaxElapsedTime:  5 * time.Minute,
 					}),
 				}
-				if c.config.Meter.OTELInsecure {
+				if c.config.Metrics.OTELInsecure {
 					opts = append(opts, otlpmetrichttp.WithInsecure())
 				}
-				if !stringer.IsBlank(c.config.Meter.OTELEndpoint) {
-					endpoint := c.config.Meter.OTELEndpoint
+				if !stringer.IsBlank(c.config.Metrics.OTELEndpoint) {
+					endpoint := c.config.Metrics.OTELEndpoint
 
 					parsedURL, err := url.Parse(endpoint)
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
@@ -504,11 +504,11 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 						MaxElapsedTime:  5 * time.Minute,
 					}),
 				}
-				if c.config.Meter.OTELInsecure {
+				if c.config.Metrics.OTELInsecure {
 					opts = append(opts, otlpmetricgrpc.WithInsecure())
 				}
-				if !stringer.IsBlank(c.config.Meter.OTELEndpoint) {
-					endpoint := c.config.Meter.OTELEndpoint
+				if !stringer.IsBlank(c.config.Metrics.OTELEndpoint) {
+					endpoint := c.config.Metrics.OTELEndpoint
 					// 直接使用url.Parse解析
 					parsedURL, err := url.Parse(endpoint)
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
@@ -549,14 +549,14 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 			}
 			exporters = append(exporters, exporter)
 		case ExporterFile:
-			if stringer.IsBlank(c.config.Meter.FilePath) {
+			if stringer.IsBlank(c.config.Metrics.FilePath) {
 				wd, err := path.GetWorkDir()
 				if err != nil {
 					return nil, fmt.Errorf("finding working directory for the OpenTelemetry file exporter: %w", err)
 				}
-				c.config.Meter.FilePath = filepath.Join(wd, "metrics.json")
+				c.config.Metrics.FilePath = filepath.Join(wd, "metrics.json")
 			}
-			exporter, err := newFileMeterExporter(c.config.Meter.FilePath)
+			exporter, err := newFileMeterExporter(c.config.Metrics.FilePath)
 			if err != nil {
 				return nil, err
 			}

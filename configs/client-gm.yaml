@@ -123,13 +123,13 @@ tracer:
     otel_endpoint: "http://127.0.0.1:4317/v1/logs"
     otel_insecure: true
     file_path: "logger.json"
-  # meter配置
-  meter:
+  # metrics配置
+  metrics:
     exporters: "file,none,,"
     otel_protocol: "grpc"
     otel_endpoint: "http://127.0.0.1:4317/v1/metrics"
     otel_insecure: true
-    file_path: "meter.json"
+    file_path: "metrics.json"
 # KvDatabase配置示例
 kvdatabase:
   # 是否启用KvDatabase功能

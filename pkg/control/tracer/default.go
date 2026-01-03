@@ -20,14 +20,7 @@ func getDefaultConfig() *config.TracerConfig {
 		Enabled:      true,
 		ServiceName:  "golang-example",
 		LogInConsole: false,
-		Tracer: struct {
-			Exporters      string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
-			OTELProtocol   string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
-			OTELEndpoint   string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
-			OTELInsecure   bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
-			ZipkinEndpoint string `json:"zipkin_endpoint,omitempty" yaml:"zipkin_endpoint,omitempty" mapstructure:"zipkin_endpoint"`
-			FilePath       string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
-		}{
+		Tracer: &config.Tracer{
 			Exporters:      "none",
 			OTELProtocol:   "grpc",
 			OTELEndpoint:   "http://127.0.0.1:4317",
@@ -35,31 +28,19 @@ func getDefaultConfig() *config.TracerConfig {
 			ZipkinEndpoint: "",
 			FilePath:       "tracer.json",
 		},
-		Logger: struct {
-			Exporters    string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
-			OTELProtocol string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
-			OTELEndpoint string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
-			OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
-			FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
-		}{
+		Logger: &config.Logger{
 			Exporters:    "none",
 			OTELProtocol: "http/protobuf",
 			OTELEndpoint: "http://127.0.0.1:4318",
 			OTELInsecure: true,
 			FilePath:     "logger.json",
 		},
-		Meter: struct {
-			Exporters    string `json:"exporters,omitempty" yaml:"exporters,omitempty" mapstructure:"exporters"`
-			OTELProtocol string `json:"otel_protocol,omitempty" yaml:"otel_protocol,omitempty" mapstructure:"otel_protocol"`
-			OTELEndpoint string `json:"otel_endpoint,omitempty" yaml:"otel_endpoint,omitempty" mapstructure:"otel_endpoint"`
-			OTELInsecure bool   `json:"otel_insecure,omitempty" yaml:"otel_insecure,omitempty" mapstructure:"otel_insecure"`
-			FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
-		}{
+		Metrics: &config.Metrics{
 			Exporters:    "none",
 			OTELProtocol: "http/protobuf",
 			OTELEndpoint: "http://127.0.0.1:4318",
 			OTELInsecure: true,
-			FilePath:     "meter.json",
+			FilePath:     "metrics.json",
 		},
 	}
 }
