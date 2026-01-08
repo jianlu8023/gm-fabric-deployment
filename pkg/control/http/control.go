@@ -633,10 +633,10 @@ func (c *Control) registerDefaultRouter() {
 
 	{
 		// 定义路由
-		allRouterUri := fmt.Sprintf("%s", "routers")
+		allRouterUri := fmt.Sprintf("%s", "endpoints")
 		c.RegisterRouter([]commonhttp.RouterHandler{
 			&commonhttp.MyRouter{
-				Name:   "router",
+				Name:   "endpoints",
 				Uri:    allRouterUri,
 				Method: http.MethodGet,
 				HandlerFunc: func(ctx *gin.Context) {

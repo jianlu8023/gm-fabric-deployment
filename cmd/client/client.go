@@ -142,7 +142,7 @@ func main() {
 					var objJson commonhttp.BaseResponse
 					code, err := client.
 						GetJSON(
-							"https://127.0.0.1:8080/example/routers",
+							"https://127.0.0.1:8080/example/endpoints",
 							map[string]interface{}{},
 							&objJson,
 						)
