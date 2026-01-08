@@ -20,39 +20,20 @@ import (
 // @description 处理Docker镜像相关的HTTP请求
 // @struct
 type DockerImageHandler struct {
-	*Handler                             // Handler 基础处理器，提供日志功能
-	service  *service.DockerImageService // service Docker镜像服务，处理Docker镜像相关的业务逻辑
+	*Handler                            // Handler 基础处理器，提供日志功能
+	service  service.DockerImageService // service Docker镜像服务，处理Docker镜像相关的业务逻辑
 }
 
 // NewDockerImageHandler 创建Docker镜像处理器
 //
 // @param baseHandler *Handler 基础处理器
-// @param service *service.DockerImageService Docker镜像服务
+// @param service service.DockerImageService Docker镜像服务
 // @return *DockerImageHandler Docker镜像处理器实例
-func NewDockerImageHandler(baseHandler *Handler,
-	service *service.DockerImageService,
-) *DockerImageHandler {
+func NewDockerImageHandler(baseHandler *Handler, service service.DockerImageService) *DockerImageHandler {
 	return &DockerImageHandler{
 		Handler: baseHandler,
 		service: service,
 	}
-}
-
-// DockerImageServiceInterface Docker镜像服务接口
-//
-// @description 定义Docker镜像服务需要实现的方法
-// @interface
-type DockerImageServiceInterface interface {
-	// DockerImageList 获取Docker镜像列表
-	//
-	// @param ctx *gin.Context Gin上下文
-	// @param req *request.DockerImageListRequest Docker镜像列表请求参数
-	DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest)
-	// DockerImagePull 拉取Docker镜像
-	//
-	// @param ctx *gin.Context Gin上下文
-	// @param req *request.DockerImagePullRequest Docker镜像拉取请求参数
-	DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest)
 }
 
 // DockerImageList 处理Docker镜像列表请求

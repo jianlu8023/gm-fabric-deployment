@@ -20,17 +20,17 @@ import (
 // @description 处理系统相关的HTTP请求
 // @struct
 type SystemHandler struct {
-	*Handler                        // Handler 基础处理器，提供日志功能
-	service  *service.SystemService // service 系统服务，处理系统相关的业务逻辑
+	*Handler                       // Handler 基础处理器，提供日志功能
+	service  service.SystemService // service 系统服务，处理系统相关的业务逻辑
 }
 
 // NewSystemHandler 创建系统处理器
 //
 // @description 创建并返回一个新的系统处理器实例
 // @param handler *Handler 基础处理器
-// @param service *service.SystemService 系统服务
+// @param service service.SystemService 系统服务
 // @return *SystemHandler 系统处理器实例
-func NewSystemHandler(handler *Handler, service *service.SystemService) *SystemHandler {
+func NewSystemHandler(handler *Handler, service service.SystemService) *SystemHandler {
 	return &SystemHandler{
 		Handler: handler,
 		service: service,

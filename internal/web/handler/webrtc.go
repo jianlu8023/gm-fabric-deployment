@@ -18,11 +18,11 @@ import (
 // WebRTCHandler WebRTC处理器
 type WebRTCHandler struct {
 	*Handler
-	service *service.WebRTCService
+	service service.WebRTCService
 }
 
 // NewWebRTCHandler 创建新的WebRTC处理器
-func NewWebRTCHandler(baseHandler *Handler, webRTCService *service.WebRTCService) *WebRTCHandler {
+func NewWebRTCHandler(baseHandler *Handler, webRTCService service.WebRTCService) *WebRTCHandler {
 	return &WebRTCHandler{
 		Handler: baseHandler,
 		service: webRTCService,

@@ -21,38 +21,21 @@ import (
 // @description 处理验证码相关的HTTP请求
 // @struct
 type CaptchaHandler struct {
-	*Handler                         // Handler 基础处理器，提供日志功能
-	service  *service.CaptchaService // service 验证码服务，处理验证码相关的业务逻辑
+	*Handler                        // Handler 基础处理器，提供日志功能
+	service  service.CaptchaService // service 验证码服务，处理验证码相关的业务逻辑
 }
 
 // NewCaptchaHandler 创建验证码处理器
 //
 // @description 创建并返回一个新的验证码处理器实例
 // @param baseHandler *Handler 基础处理器
-// @param captchaService *service.CaptchaService 验证码服务
+// @param captchaService service.CaptchaService 验证码服务
 // @return *CaptchaHandler 验证码处理器实例
-func NewCaptchaHandler(baseHandler *Handler, captchaService *service.CaptchaService) *CaptchaHandler {
+func NewCaptchaHandler(baseHandler *Handler, captchaService service.CaptchaService) *CaptchaHandler {
 	return &CaptchaHandler{
 		Handler: baseHandler,
 		service: captchaService,
 	}
-}
-
-// CaptchaServiceInterface 验证码服务接口
-//
-// @description 定义验证码服务需要实现的方法
-// @interface
-type CaptchaServiceInterface interface {
-	// GenerateCaptcha 生成验证码
-	//
-	// @param ctx *gin.Context Gin上下文
-	// @param req *request.CaptchaGenerateRequest 验证码生成请求
-	GenerateCaptcha(ctx *gin.Context, req *request.CaptchaGenerateRequest)
-	// ValidateCaptcha 验证验证码
-	//
-	// @param ctx *gin.Context Gin上下文
-	// @param req *request.CaptchaValidateRequest 验证码验证请求
-	ValidateCaptcha(ctx *gin.Context, req *request.CaptchaValidateRequest)
 }
 
 // GenerateCaptchaHandler 生成验证码的处理函数

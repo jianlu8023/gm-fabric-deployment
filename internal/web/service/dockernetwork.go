@@ -13,28 +13,39 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// DockerNetworkService Docker网络服务结构体
+// DockerNetworkService Docker网络服务接口
+//
+// @description 定义Docker网络服务需要实现的方法
+// @interface
+type DockerNetworkService interface {
+	// DockerNetworkList 获取Docker网络列表
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.DockerNetworkListRequest Docker网络列表请求参数
+	DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest)
+}
+
+// dockerNetworkService Docker网络服务结构体
 //
 // @description 提供Docker网络相关的服务功能，如获取Docker网络列表
 // @struct
-type DockerNetworkService struct {
-	*Service                                  // Service 基础服务，提供日志功能
-	mapper        *mapper.DockerNetworkMapper // mapper Docker网络映射器，用于数据访问
-	dockerControl *docker.Control             // dockerControl Docker控制器，用于Docker操作
+type dockerNetworkService struct {
+	*Service                                 // Service 基础服务，提供日志功能
+	mapper        mapper.DockerNetworkMapper // mapper Docker网络映射器，用于数据访问
+	dockerControl *docker.Control            // dockerControl Docker控制器，用于Docker操作
 }
 
 // NewDockerNetworkService 创建Docker网络服务实例
 //
 // @description 创建并返回一个新的Docker网络服务实例
 // @param baseService *Service 基础服务
-// @param mapper *mapper.DockerNetworkMapper Docker网络映射器
+// @param mapper mapper.DockerNetworkMapper Docker网络映射器
 // @param dockerControl *docker.Control Docker控制器
-// @return *DockerNetworkService Docker网络服务实例
+// @return DockerNetworkService Docker网络服务实例
 func NewDockerNetworkService(baseService *Service,
-	mapper *mapper.DockerNetworkMapper,
+	mapper mapper.DockerNetworkMapper,
 	dockerControl *docker.Control,
-) *DockerNetworkService {
-	return &DockerNetworkService{
+) DockerNetworkService {
+	return &dockerNetworkService{
 		Service:       baseService,
 		mapper:        mapper,
 		dockerControl: dockerControl,
@@ -46,7 +57,7 @@ func NewDockerNetworkService(baseService *Service,
 // @description 获取Docker网络列表信息
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerNetworkListRequest Docker网络列表请求参数
-func (s *DockerNetworkService) DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest) {
+func (s *dockerNetworkService) DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerNetworkService", "dockerNetworkList",
 		attribute.String("requestParam", req.String()),
 	)

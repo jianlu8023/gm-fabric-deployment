@@ -21,17 +21,17 @@ import (
 // @description 处理WebSocket相关的HTTP请求和连接管理
 // @struct
 type WebSocketHandler struct {
-	*Handler                           // Handler 基础处理器，提供日志功能
-	service  *service.WebSocketService // service WebSocket服务，处理WebSocket相关的业务逻辑
+	*Handler                          // Handler 基础处理器，提供日志功能
+	service  service.WebSocketService // service WebSocket服务，处理WebSocket相关的业务逻辑
 }
 
 // NewWebSocketHandler 创建WebSocket处理器
 //
 // @description 创建并返回一个新的WebSocket处理器实例
 // @param handler *Handler 基础处理器
-// @param service *service.WebSocketService WebSocket服务
+// @param service service.WebSocketService WebSocket服务
 // @return *WebSocketHandler WebSocket处理器实例
-func NewWebSocketHandler(handler *Handler, service *service.WebSocketService) *WebSocketHandler {
+func NewWebSocketHandler(handler *Handler, service service.WebSocketService) *WebSocketHandler {
 	return &WebSocketHandler{
 		Handler: handler,
 		service: service,

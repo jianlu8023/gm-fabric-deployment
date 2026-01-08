@@ -11,11 +11,24 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// CaptchaService 验证码服务结构体
+type CaptchaService interface {
+	// GenerateCaptcha 生成验证码
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.CaptchaGenerateRequest 验证码生成请求
+	GenerateCaptcha(ctx *gin.Context, req *request.CaptchaGenerateRequest)
+	// ValidateCaptcha 验证验证码
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.CaptchaValidateRequest 验证码验证请求
+	ValidateCaptcha(ctx *gin.Context, req *request.CaptchaValidateRequest)
+}
+
+// captchaService 验证码服务结构体
 //
 // @description 处理验证码生成和验证的服务
 // @struct
-type CaptchaService struct {
+type captchaService struct {
 	*Service                        // Service 基础服务，提供日志功能
 	captchaControl *captcha.Control // captchaControl 验证码控制器，用于生成和验证验证码
 }
@@ -25,9 +38,9 @@ type CaptchaService struct {
 // @description 创建并返回一个新的验证码服务实例
 // @param baseService *Service 基础服务
 // @param captchaControl *captcha.Control 验证码控制器
-// @return *CaptchaService 验证码服务实例
-func NewCaptchaService(baseService *Service, captchaControl *captcha.Control) *CaptchaService {
-	return &CaptchaService{
+// @return CaptchaService 验证码服务实例
+func NewCaptchaService(baseService *Service, captchaControl *captcha.Control) CaptchaService {
+	return &captchaService{
 		Service:        baseService,
 		captchaControl: captchaControl,
 	}
@@ -38,7 +51,7 @@ func NewCaptchaService(baseService *Service, captchaControl *captcha.Control) *C
 // @description 生成验证码图片并返回验证码ID和Base64编码的图片数据
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CaptchaGenerateRequest 生成验证码请求参数
-func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaGenerateRequest) {
+func (s *captchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaGenerateRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaService", "generateCaptcha",
 		attribute.String("requestParam", req.String()),
 	)
@@ -63,7 +76,7 @@ func (s *CaptchaService) GenerateCaptcha(ctx *gin.Context, req *request.CaptchaG
 // @description 验证用户输入的验证码是否正确有效
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CaptchaValidateRequest 验证码验证请求参数
-func (s *CaptchaService) ValidateCaptcha(ctx *gin.Context, req *request.CaptchaValidateRequest) {
+func (s *captchaService) ValidateCaptcha(ctx *gin.Context, req *request.CaptchaValidateRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "captchaService", "validateCaptcha",
 		attribute.String("requestParam", req.String()),
 	)

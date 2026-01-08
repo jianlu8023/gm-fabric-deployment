@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -8,24 +9,34 @@ import (
 	"github.com/jianlu8023/go-tools/v2/pkg/sqlnull"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
+	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/jianlu8023/golang-example/pkg/dbpage"
+	"go.opentelemetry.io/otel/attribute"
 	"gorm.io/gorm"
 )
 
-// DockerImageMapper Docker镜像数据访问层结构体
+type DockerImageMapper interface {
+	InsertOneWithCheck(ctx context.Context, imageInfo *model.DockerImage) error
+	InsertOrUpdateOne(ctx context.Context, info *model.DockerImage) error
+	DockerImageList(ctx context.Context, query model.DockerImage, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerImage], error)
+	BatchLogicalDelete(ctx context.Context, query model.DockerImage) error
+	QueryOneExists(ctx context.Context, query model.DockerImage) (bool, error)
+}
+
+// dockerImageMapper Docker镜像数据访问层结构体
 //
 // @description 提供Docker镜像相关的数据访问操作
 // @struct
-type DockerImageMapper struct {
+type dockerImageMapper struct {
 	*Mapper
 }
 
 // NewDockerImageMapper 创建一个新的DockerImageMapper实例
 //
 // @param baseMapper *Mapper 基础Mapper
-// @return *DockerImageMapper DockerImageMapper实例
-func NewDockerImageMapper(baseMapper *Mapper) *DockerImageMapper {
-	return &DockerImageMapper{
+// @return DockerImageMapper DockerImageMapper实例
+func NewDockerImageMapper(baseMapper *Mapper) DockerImageMapper {
+	return &dockerImageMapper{
 		Mapper: baseMapper,
 	}
 }
@@ -35,13 +46,18 @@ func NewDockerImageMapper(baseMapper *Mapper) *DockerImageMapper {
 // @description 在事务中插入一条Docker镜像信息，如果数据库中已存在相同名称和位置的镜像（包括已逻辑删除的），则返回错误
 // @param imageInfo *model.DockerImage Docker镜像信息
 // @return error 错误信息
-func (m *DockerImageMapper) InsertOneWithCheck(imageInfo *model.DockerImage) error {
+func (m *dockerImageMapper) InsertOneWithCheck(ctx context.Context, imageInfo *model.DockerImage) error {
+	_, span := tracer.StartSpan(ctx, "dockerImageMapper", "insertOneWithCheck")
+	defer span.End()
+	span.SetAttributes(
+		attribute.String("query", imageInfo.String()),
+	)
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
-	return m.db.Transaction(func(tx *gorm.DB) error {
+	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var count int64
-		if err := tx.Model(&model.DockerImage{}).Where(&model.DockerImage{
+		if err := tx.WithContext(ctx).Model(&model.DockerImage{}).Where(&model.DockerImage{
 			ImageName:           imageInfo.ImageName,
 			ImageLocationPeerId: imageInfo.ImageLocationPeerId,
 			// 不限制IsDelete，检查所有记录（包括已逻辑删除的）
@@ -55,7 +71,7 @@ func (m *DockerImageMapper) InsertOneWithCheck(imageInfo *model.DockerImage) err
 		// 镜像不存在，插入
 		// 确保新记录的IsDelete字段为false
 		imageInfo.IsDelete = sqlnull.FalseToNull()
-		if err := tx.Model(&model.DockerImage{}).
+		if err := tx.WithContext(ctx).Model(&model.DockerImage{}).
 			Create(imageInfo).Error; err != nil {
 			return err
 		}
@@ -68,13 +84,13 @@ func (m *DockerImageMapper) InsertOneWithCheck(imageInfo *model.DockerImage) err
 // @description 在事务中插入或更新Docker镜像信息，根据名称和位置确定是否存在
 // @param info *model.DockerImage 要插入或更新的Docker镜像信息
 // @return error 操作结果错误信息
-func (m *DockerImageMapper) InsertOrUpdateOne(info *model.DockerImage) error {
+func (m *dockerImageMapper) InsertOrUpdateOne(ctx context.Context, info *model.DockerImage) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
 	return m.db.Transaction(func(tx *gorm.DB) error {
 		var existInfo model.DockerImage
-		if err := tx.Model(&model.DockerImage{}).Where(&model.DockerImage{
+		if err := tx.WithContext(ctx).Model(&model.DockerImage{}).Where(&model.DockerImage{
 			ImageName:           info.ImageName,
 			ImageLocationPeerId: info.ImageLocationPeerId,
 			// 不限制IsDelete，允许找到已逻辑删除的记录
@@ -83,7 +99,7 @@ func (m *DockerImageMapper) InsertOrUpdateOne(info *model.DockerImage) error {
 				// 记录不存在，创建新记录
 				// 确保新记录的IsDelete字段为false
 				info.IsDelete = sqlnull.FalseToNull()
-				if err := tx.Model(&model.DockerImage{}).
+				if err := tx.WithContext(ctx).Model(&model.DockerImage{}).
 					Create(info).Error; err != nil {
 					return err
 				}
@@ -95,7 +111,7 @@ func (m *DockerImageMapper) InsertOrUpdateOne(info *model.DockerImage) error {
 			// 恢复已逻辑删除的记录（确保IsDelete为false）
 			info.IsDelete = sqlnull.FalseToNull()
 			info.AutoUid = existInfo.AutoUid
-			if err := tx.Model(&model.DockerImage{}).
+			if err := tx.WithContext(ctx).Model(&model.DockerImage{}).
 				Where(&model.DockerImage{AutoUid: info.AutoUid}).
 				Updates(info).Error; err != nil {
 				return err
@@ -114,7 +130,7 @@ func (m *DockerImageMapper) InsertOrUpdateOne(info *model.DockerImage) error {
 // @param pageSize int 每页大小（当isPage为true时有效）
 // @return dbpage.Info[model.DockerImage] 分页结果信息
 // @return error 错误信息
-func (m *DockerImageMapper) DockerImageList(query model.DockerImage, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerImage], error) {
+func (m *dockerImageMapper) DockerImageList(ctx context.Context, query model.DockerImage, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerImage], error) {
 	page := dbpage.Info[model.DockerImage]{}
 	if m.db == nil {
 		return page, datasource.ErrNoDataSourceConn
@@ -126,10 +142,10 @@ func (m *DockerImageMapper) DockerImageList(query model.DockerImage, isPage bool
 	offset := (pageNo - 1) * pageSize
 
 	// 构建查询
-	db := m.db.Model(&model.DockerImage{}).Where(&query)
+	db := m.db.WithContext(ctx).Model(&model.DockerImage{}).Where(&query)
 
 	// 查询总记录数
-	if err := db.Count(&page.Count).Error; err != nil {
+	if err := db.WithContext(ctx).Count(&page.Count).Error; err != nil {
 		return page, err
 	}
 
@@ -142,14 +158,14 @@ func (m *DockerImageMapper) DockerImageList(query model.DockerImage, isPage bool
 	records := make([]model.DockerImage, 0)
 	if isPage {
 		// 分页查询
-		if err := db.Offset(offset).
+		if err := db.WithContext(ctx).Offset(offset).
 			Limit(pageSize).
 			Find(&records).Error; err != nil {
 			return page, err
 		}
 	} else {
 		// 不分页查询
-		if err := db.Find(&records).Error; err != nil {
+		if err := db.WithContext(ctx).Find(&records).Error; err != nil {
 			return page, err
 		}
 	}
@@ -163,18 +179,18 @@ func (m *DockerImageMapper) DockerImageList(query model.DockerImage, isPage bool
 // @description 根据查询条件批量将Docker镜像标记为已删除
 // @param query model.DockerImage 查询条件
 // @return error 操作结果错误信息
-func (m *DockerImageMapper) BatchLogicalDelete(query model.DockerImage) error {
+func (m *dockerImageMapper) BatchLogicalDelete(ctx context.Context, query model.DockerImage) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
 
 	// 开始事务
-	return m.db.Transaction(func(tx *gorm.DB) error {
+	return m.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// 构建查询
-		db := tx.Model(&model.DockerImage{}).Where(&query)
+		db := tx.WithContext(ctx).Model(&model.DockerImage{}).Where(&query)
 
 		var count int64
-		if err := db.Count(&count).Error; err != nil {
+		if err := db.WithContext(ctx).Count(&count).Error; err != nil {
 			return fmt.Errorf("查询Docker镜像记录数失败: %w", err)
 		}
 
@@ -184,7 +200,7 @@ func (m *DockerImageMapper) BatchLogicalDelete(query model.DockerImage) error {
 		}
 
 		// 执行逻辑删除，设置IsDelete为true
-		result := db.Updates(&model.DockerImage{
+		result := db.WithContext(ctx).Updates(&model.DockerImage{
 			IsDelete: sqlnull.TrueToNull(),
 		})
 		if result.Error != nil {
@@ -205,13 +221,13 @@ func (m *DockerImageMapper) BatchLogicalDelete(query model.DockerImage) error {
 // @param query model.DockerImage 查询条件
 // @return bool 是否存在记录
 // @return error 操作结果错误信息
-func (m *DockerImageMapper) QueryOneExists(query model.DockerImage) (bool, error) {
+func (m *dockerImageMapper) QueryOneExists(ctx context.Context, query model.DockerImage) (bool, error) {
 	if m.db == nil {
 		return false, datasource.ErrNoDataSourceConn
 	}
 
 	var count int64
-	if err := m.db.Model(&model.DockerImage{}).Where(&query).Count(&count).Error; err != nil {
+	if err := m.db.WithContext(ctx).Model(&model.DockerImage{}).Where(&query).Count(&count).Error; err != nil {
 		return false, fmt.Errorf("查询Docker镜像存在性失败: %w", err)
 	}
 

@@ -18,22 +18,29 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// WebRTCService WebRTC服务
-type WebRTCService struct {
+type WebRTCService interface {
+	SdpOffer(ctx *gin.Context, req *request.WebRTCOfferRequest)
+	AddICECandidate(ctx *gin.Context, req *request.WebRTCIceCandidateRequest)
+	GetICECandidates(ctx *gin.Context, req *request.GetICECandidatesRequest)
+	CloseConnection(ctx *gin.Context, req *request.CloseConnectionRequest)
+}
+
+// webRTCService WebRTC服务
+type webRTCService struct {
 	*Service
 	webrtcControl *webrtc.Control
 }
 
 // NewWebRTCService 创建新的WebRTC服务
-func NewWebRTCService(baseService *Service, webrtcControl *webrtc.Control) *WebRTCService {
-	return &WebRTCService{
+func NewWebRTCService(baseService *Service, webrtcControl *webrtc.Control) WebRTCService {
+	return &webRTCService{
 		Service:       baseService,
 		webrtcControl: webrtcControl,
 	}
 }
 
 // SdpOffer 处理SDP Offer请求
-func (s *WebRTCService) SdpOffer(ctx *gin.Context, req *request.WebRTCOfferRequest) {
+func (s *webRTCService) SdpOffer(ctx *gin.Context, req *request.WebRTCOfferRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "SdpOffer",
 		attribute.String("requestParam", req.String()),
 	)
@@ -165,7 +172,7 @@ func (s *WebRTCService) SdpOffer(ctx *gin.Context, req *request.WebRTCOfferReque
 }
 
 // AddICECandidate 处理ICE候选
-func (s *WebRTCService) AddICECandidate(ctx *gin.Context, req *request.WebRTCIceCandidateRequest) {
+func (s *webRTCService) AddICECandidate(ctx *gin.Context, req *request.WebRTCIceCandidateRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "AddICECandidate",
 		attribute.String("requestParam", req.String()),
 	)
@@ -207,7 +214,7 @@ func (s *WebRTCService) AddICECandidate(ctx *gin.Context, req *request.WebRTCIce
 }
 
 // GetICECandidates 获取指定连接的ICE候选列表
-func (s *WebRTCService) GetICECandidates(ctx *gin.Context, req *request.GetICECandidatesRequest) {
+func (s *webRTCService) GetICECandidates(ctx *gin.Context, req *request.GetICECandidatesRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "GetICECandidatesRequest",
 		attribute.String("requestParam", req.String()),
 	)
@@ -283,7 +290,7 @@ func (s *WebRTCService) GetICECandidates(ctx *gin.Context, req *request.GetICECa
 }
 
 // CloseConnection 关闭指定的WebRTC连接
-func (s *WebRTCService) CloseConnection(ctx *gin.Context, req *request.CloseConnectionRequest) {
+func (s *webRTCService) CloseConnection(ctx *gin.Context, req *request.CloseConnectionRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "CloseConnection",
 		attribute.String("requestParam", req.String()),
 	)

@@ -13,27 +13,29 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// GrpcService gRPC服务结构体
+type GrpcService interface {
+	GrpcPingMessage(ctx *gin.Context, req *request.GrpcSendPingMessageRequest)
+}
+
+// grpcService gRPC服务结构体
 //
 // @description 提供gRPC相关的服务功能
 // @struct
-type GrpcService struct {
-	*Service                       // Service 基础服务，提供日志功能
-	mapper      *mapper.GrpcMapper // mapper gRPC映射器，用于数据访问
-	grpcControl *grpc.Control      // grpcControl gRPC控制器，用于gRPC操作
+type grpcService struct {
+	*Service                      // Service 基础服务，提供日志功能
+	mapper      mapper.GrpcMapper // mapper gRPC映射器，用于数据访问
+	grpcControl *grpc.Control     // grpcControl gRPC控制器，用于gRPC操作
 }
 
 // NewGrpcService 创建新的gRPC服务实例
 //
 // @description 创建并返回一个新的gRPC服务实例
 // @param baseService *Service 基础服务
-// @param mapper *mapper.GrpcMapper gRPC映射器
+// @param mapper mapper.GrpcMapper gRPC映射器
 // @param grpcControl *grpc.Control gRPC控制器
-// @return *GrpcService gRPC服务实例
-func NewGrpcService(baseService *Service,
-	mapper *mapper.GrpcMapper,
-	grpcControl *grpc.Control) *GrpcService {
-	return &GrpcService{
+// @return GrpcService gRPC服务实例
+func NewGrpcService(baseService *Service, mapper mapper.GrpcMapper, grpcControl *grpc.Control) GrpcService {
+	return &grpcService{
 		Service:     baseService,
 		mapper:      mapper,
 		grpcControl: grpcControl,
@@ -45,7 +47,7 @@ func NewGrpcService(baseService *Service,
 // @description 通过gRPC发送ping消息并返回响应
 // @param ctx *gin.Context HTTP上下文
 // @param req *request.GrpcSendPingMessageRequest gRPC发送ping消息请求
-func (s *GrpcService) GrpcPingMessage(ctx *gin.Context, req *request.GrpcSendPingMessageRequest) {
+func (s *grpcService) GrpcPingMessage(ctx *gin.Context, req *request.GrpcSendPingMessageRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "grpcService", "grpcPingMessage",
 		attribute.String("requestParam", req.String()),
 	)

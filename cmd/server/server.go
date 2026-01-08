@@ -116,9 +116,9 @@ func main() {
 
 	// datasource
 	var (
-		imageMapper   *mapper.DockerImageMapper
-		nodeMapper    *mapper.Libp2pNodeMapper
-		networkMapper *mapper.DockerNetworkMapper
+		imageMapper   mapper.DockerImageMapper
+		nodeMapper    mapper.Libp2pNodeMapper
+		networkMapper mapper.DockerNetworkMapper
 	)
 	{
 		if serverControl.GetDatasourceControl() != nil {
@@ -231,7 +231,7 @@ func main() {
 					}
 
 					// 先将节点的镜像全部逻辑删除 然后有的则恢复
-					if err := imageMapper.BatchLogicalDelete(model.DockerImage{
+					if err := imageMapper.BatchLogicalDelete(context.Background(),model.DockerImage{
 						ImageLocationPeerId: msg.From.String(),
 					}); err != nil {
 						mainLogger.Errorf("batch logical delete docker images failed: %v", err)
@@ -246,7 +246,7 @@ func main() {
 						info.ImageLabels = img.Labels
 						info.IsDelete = sqlnull.FalseToNull()
 						info.ImageLocationPeerId = msg.From.String()
-						if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+						if err := imageMapper.InsertOrUpdateOne(context.Background(),info); err != nil {
 							mainLogger.Errorf("insert or update image info failed: %v", err)
 							continue
 						}
@@ -324,7 +324,7 @@ func main() {
 			mainLogger.Errorf("list docker images failed: %v", err)
 		} else {
 
-			if err := imageMapper.BatchLogicalDelete(model.DockerImage{
+			if err := imageMapper.BatchLogicalDelete(context.Background(),model.DockerImage{
 				ImageLocationPeerId: serverControl.GetLibp2pControl().GetLocalhostPeerID().String(),
 			}); err != nil {
 				mainLogger.Errorf("batch delete docker image failed: %v", err)
@@ -338,7 +338,7 @@ func main() {
 					info.ImageCreated = img.Created
 					info.ImageLabels = img.Labels
 					info.ImageLocationPeerId = serverControl.GetLibp2pControl().GetLocalhostPeerID().String()
-					if err := imageMapper.InsertOrUpdateOne(info); err != nil {
+					if err := imageMapper.InsertOrUpdateOne(context.Background(),info); err != nil {
 						mainLogger.Errorf("insert or update image info failed: %v", err)
 						continue
 					}

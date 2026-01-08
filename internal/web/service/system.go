@@ -16,23 +16,28 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// SystemService 系统服务结构体
+type SystemService interface {
+	GetSystemOverview(ctx *gin.Context, req *request.SystemOverviewRequest)
+	GetSystemInitStatus(ctx *gin.Context, req *request.SystemInitStatusRequest)
+}
+
+// systemService 系统服务结构体
 //
 // @description 提供系统相关的服务功能，如获取系统概览信息
 // @struct
-type SystemService struct {
-	*Service                      // Service 基础服务，提供日志功能
-	mapper   *mapper.SystemMapper // mapper 系统映射器，用于数据访问
+type systemService struct {
+	*Service                     // Service 基础服务，提供日志功能
+	mapper   mapper.SystemMapper // mapper 系统映射器，用于数据访问
 }
 
 // NewSystemService 创建系统服务实例
 //
 // @description 创建并返回一个新的系统服务实例
 // @param service *Service 基础服务
-// @param mapper *mapper.SystemMapper 系统映射器
-// @return *SystemService 系统服务实例
-func NewSystemService(service *Service, mapper *mapper.SystemMapper) *SystemService {
-	return &SystemService{
+// @param mapper mapper.SystemMapper 系统映射器
+// @return SystemService 系统服务实例
+func NewSystemService(service *Service, mapper mapper.SystemMapper) SystemService {
+	return &systemService{
 		Service: service,
 		mapper:  mapper,
 	}
@@ -43,7 +48,7 @@ func NewSystemService(service *Service, mapper *mapper.SystemMapper) *SystemServ
 // @description 获取系统的基本信息，包括操作系统、CPU、磁盘和内存信息
 // @param ctx *gin.Context Gin上下文
 // @param req *request.SystemOverviewRequest 系统概览请求参数
-func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemOverviewRequest) {
+func (s *systemService) GetSystemOverview(ctx *gin.Context, req *request.SystemOverviewRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "systemService", "getSystemOverview",
 		attribute.String("requestParam", req.String()),
 	)
@@ -92,7 +97,7 @@ func (s *SystemService) GetSystemOverview(ctx *gin.Context, req *request.SystemO
 // @description 检查系统是否已经完成初始化配置
 // @param ctx *gin.Context Gin上下文
 // @param req *request.SystemInitStatusRequest 系统初始化状态请求参数
-func (s *SystemService) GetSystemInitStatus(ctx *gin.Context, req *request.SystemInitStatusRequest) {
+func (s *systemService) GetSystemInitStatus(ctx *gin.Context, req *request.SystemInitStatusRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "systemService", "getSystemInitStatus",
 		attribute.String("requestParam", req.String()),
 	)

@@ -18,13 +18,18 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 )
 
-// UserService 用户服务结构体
+type UserService interface {
+	LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
+	RegisterUser(ctx *gin.Context, req *request.UserRegisterRequest)
+}
+
+// userService 用户服务结构体
 //
 // @description 提供用户相关的服务功能，如用户注册、登录等
 // @struct
-type UserService struct {
+type userService struct {
 	*Service                          // Service 基础服务
-	mapper         *mapper.UserMapper // mapper 用户数据访问对象
+	mapper         mapper.UserMapper  // mapper 用户数据访问对象
 	sessionManager jwt.SessionManager // sessionManager 会话管理器
 }
 
@@ -32,13 +37,13 @@ type UserService struct {
 //
 // @description 创建并返回一个新的用户服务实例
 // @param baseService *Service 基础服务
-// @param mapper *mapper.UserMapper 用户映射器
+// @param mapper mapper.UserMapper 用户映射器
 // @param sessionManager jwt.SessionManager 会话管理器
-// @return *UserService 用户服务实例
-func NewUserService(baseService *Service, userMapper *mapper.UserMapper,
+// @return UserService 用户服务实例
+func NewUserService(baseService *Service, userMapper mapper.UserMapper,
 	sessionManager jwt.SessionManager,
-) *UserService {
-	return &UserService{
+) UserService {
+	return &userService{
 		Service:        baseService,
 		mapper:         userMapper,
 		sessionManager: sessionManager,
@@ -50,7 +55,7 @@ func NewUserService(baseService *Service, userMapper *mapper.UserMapper,
 // @description 处理用户注册请求，验证用户邮箱是否已存在，创建新用户
 // @param ctx *gin.Context Gin上下文
 // @param req *request.UserRegisterRequest 用户注册请求参数
-func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRequest) {
+func (s *userService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "userService", "registerUser",
 		attribute.String("requestParam", req.String()),
 	)
@@ -111,7 +116,7 @@ func (s *UserService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 // @description 处理用户登录请求，验证用户凭据，生成JWT令牌和会话
 // @param ctx *gin.Context Gin上下文
 // @param req *request.UserLoginRequest 用户登录请求参数
-func (s *UserService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest) {
+func (s *userService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "userService", "loginUser",
 		attribute.String("requestParam", req.String()),
 	)

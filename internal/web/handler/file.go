@@ -21,17 +21,17 @@ import (
 // @description 处理文件相关的HTTP请求
 // @struct
 type FileHandler struct {
-	*Handler                      // Handler 基础处理器，提供日志功能
-	service  *service.FileService // service 文件服务，处理文件相关的业务逻辑
+	*Handler                     // Handler 基础处理器，提供日志功能
+	service  service.FileService // service 文件服务，处理文件相关的业务逻辑
 }
 
 // NewFileHandler 创建文件处理器
 //
 // @description 创建并返回一个新的文件处理器实例
 // @param baseHandler *Handler 基础处理器
-// @param fileService *service.FileService 文件服务
+// @param fileService service.FileService 文件服务
 // @return *FileHandler 文件处理器实例
-func NewFileHandler(baseHandler *Handler, fileService *service.FileService) *FileHandler {
+func NewFileHandler(baseHandler *Handler, fileService service.FileService) *FileHandler {
 	return &FileHandler{
 		Handler: baseHandler,
 		service: fileService,

@@ -20,34 +20,23 @@ import (
 // @description 处理Docker网络相关的HTTP请求
 // @struct
 type DockerNetworkHandler struct {
-	*Handler                               // Handler 基础处理器，提供日志功能
-	service  *service.DockerNetworkService // service Docker网络服务，处理Docker网络相关的业务逻辑
+	*Handler                              // Handler 基础处理器，提供日志功能
+	service  service.DockerNetworkService // service Docker网络服务，处理Docker网络相关的业务逻辑
 }
 
 // NewDockerNetworkHandler 创建Docker网络处理器
 //
 // @description 创建并返回一个新的Docker网络处理器实例
 // @param baseHandler *Handler 基础handler
-// @param service *service.DockerNetworkService Docker网络相关服务
+// @param service service.DockerNetworkService Docker网络相关服务
 // @return *DockerNetworkHandler Docker网络处理器实例
 func NewDockerNetworkHandler(baseHandler *Handler,
-	service *service.DockerNetworkService,
+	service service.DockerNetworkService,
 ) *DockerNetworkHandler {
 	return &DockerNetworkHandler{
 		Handler: baseHandler,
 		service: service,
 	}
-}
-
-// DockerNetworkServiceInterface Docker网络服务接口
-//
-// @description 定义Docker网络服务需要实现的方法
-// @interface
-type DockerNetworkServiceInterface interface {
-	// DockerNetworkList 获取Docker网络列表
-	// @param ctx *gin.Context Gin上下文
-	// @param req *request.DockerNetworkListRequest Docker网络列表请求参数
-	DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest)
 }
 
 // DockerNetworkList 获取Docker网络列表处理函数

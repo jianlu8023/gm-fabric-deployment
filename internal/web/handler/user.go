@@ -21,16 +21,16 @@ import (
 // @description 处理用户相关的HTTP请求
 // @struct
 type UserHandler struct {
-	*Handler                      // Handler 基础处理器，提供日志功能
-	service  *service.UserService // service 用户服务，处理用户相关的业务逻辑
+	*Handler                     // Handler 基础处理器，提供日志功能
+	service  service.UserService // service 用户服务，处理用户相关的业务逻辑
 }
 
 // NewUserHandler 创建用户处理器
 //
 // @param baseHandler *Handler 基础处理器
-// @param service *service.UserService 用户服务
+// @param service service.UserService 用户服务
 // @return *UserHandler 用户处理器实例
-func NewUserHandler(baseHandler *Handler, userService *service.UserService) *UserHandler {
+func NewUserHandler(baseHandler *Handler, userService service.UserService) *UserHandler {
 	return &UserHandler{
 		Handler: baseHandler,
 		service: userService,

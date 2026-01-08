@@ -14,20 +14,27 @@ import (
 	"gorm.io/gorm"
 )
 
-// Libp2pNodeMapper 节点数据访问层结构体
+type Libp2pNodeMapper interface {
+	NodeList(ctx context.Context, query model.Libp2pNode, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.Libp2pNode], error)
+	NodeMyself(ctx context.Context, peerId string) (model.Libp2pNode, error)
+	InsertOneWithCheck(ctx context.Context, record *model.Libp2pNode) error
+	InsertOrUpdate(ctx context.Context, record *model.Libp2pNode) error
+}
+
+// libp2pNodeMapper 节点数据访问层结构体
 //
 // @description 提供节点相关的数据访问操作
 // @struct
-type Libp2pNodeMapper struct {
+type libp2pNodeMapper struct {
 	*Mapper
 }
 
 // NewLibp2pNodeMapper 创建一个新的NodeMapper实例
 //
 // @param mapper *Mapper 基础Mapper
-// @return *Libp2pNodeMapper NodeMapper实例
-func NewLibp2pNodeMapper(mapper *Mapper) *Libp2pNodeMapper {
-	return &Libp2pNodeMapper{
+// @return Libp2pNodeMapper NodeMapper实例
+func NewLibp2pNodeMapper(mapper *Mapper) Libp2pNodeMapper {
+	return &libp2pNodeMapper{
 		Mapper: mapper,
 	}
 }
@@ -40,9 +47,7 @@ func NewLibp2pNodeMapper(mapper *Mapper) *Libp2pNodeMapper {
 // @param pageSize int64 每页大小
 // @return dbpage.Info[node.Info] 节点列表
 // @return error 错误信息
-func (m *Libp2pNodeMapper) NodeList(ctx context.Context, query model.Libp2pNode,
-	isPage bool, pageNo int, pageSize int,
-) (dbpage.Info[model.Libp2pNode], error) {
+func (m *libp2pNodeMapper) NodeList(ctx context.Context, query model.Libp2pNode, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.Libp2pNode], error) {
 	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "list")
 	defer span.End()
 	span.SetAttributes(
@@ -97,7 +102,7 @@ func (m *Libp2pNodeMapper) NodeList(ctx context.Context, query model.Libp2pNode,
 //
 // @param record *node.Info 节点信息
 // @return error 错误信息，如果节点已存在返回ErrAlreadyExists
-func (m *Libp2pNodeMapper) InsertOneWithCheck(ctx context.Context, record *model.Libp2pNode) error {
+func (m *libp2pNodeMapper) InsertOneWithCheck(ctx context.Context, record *model.Libp2pNode) error {
 	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "insertOrUpdateOneWithCheck")
 	defer span.End()
 	span.SetAttributes(
@@ -136,7 +141,7 @@ func (m *Libp2pNodeMapper) InsertOneWithCheck(ctx context.Context, record *model
 //
 // @param record *node.Info 节点信息
 // @return error 错误信息
-func (m *Libp2pNodeMapper) InsertOrUpdate(ctx context.Context, record *model.Libp2pNode) error {
+func (m *libp2pNodeMapper) InsertOrUpdate(ctx context.Context, record *model.Libp2pNode) error {
 	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "insertOrUpdate")
 	defer span.End()
 	if m.db == nil {
@@ -173,7 +178,7 @@ func (m *Libp2pNodeMapper) InsertOrUpdate(ctx context.Context, record *model.Lib
 	})
 }
 
-func (m *Libp2pNodeMapper) NodeMyself(ctx context.Context, peerId string) (model.Libp2pNode, error) {
+func (m *libp2pNodeMapper) NodeMyself(ctx context.Context, peerId string) (model.Libp2pNode, error) {
 	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "myself")
 	defer span.End()
 	span.SetAttributes(

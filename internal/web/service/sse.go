@@ -10,11 +10,15 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// SSEService SSE服务结构体
+type SSEService interface {
+	SSE(ctx *gin.Context)
+}
+
+// sSEService SSE服务结构体
 //
 // @description 提供Server-Sent Events功能的服务，用于实时推送消息
 // @struct
-type SSEService struct {
+type sSEService struct {
 	*Service                    // Service 基础服务，提供日志功能
 	sseMapper *mapper.SSEMapper // sseMapper SSE映射器，用于数据访问
 }
@@ -24,9 +28,9 @@ type SSEService struct {
 // @description 创建并返回一个新的SSE服务实例
 // @param baseService *Service 基础服务
 // @param sseMapper *mapper.SSEMapper SSE映射器
-// @return *SSEService SSE服务实例
-func NewSSEService(baseService *Service, sseMapper *mapper.SSEMapper) *SSEService {
-	return &SSEService{
+// @return SSEService SSE服务实例
+func NewSSEService(baseService *Service, sseMapper *mapper.SSEMapper) SSEService {
+	return &sSEService{
 		Service:   baseService,
 		sseMapper: sseMapper,
 	}
@@ -36,7 +40,7 @@ func NewSSEService(baseService *Service, sseMapper *mapper.SSEMapper) *SSEServic
 //
 // @description 处理客户端的SSE连接请求，发送示例消息
 // @param ctx *gin.Context Gin上下文
-func (s *SSEService) SSE(ctx *gin.Context) {
+func (s *sSEService) SSE(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "sseService", "sse")
 	defer span.End()
 	s.logger.Debugf("received sse request...")

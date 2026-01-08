@@ -20,17 +20,17 @@ import (
 // @description 处理gRPC相关的HTTP请求
 // @struct
 type GrpcHandler struct {
-	*Handler                      // Handler 基础处理器，提供日志功能
-	service  *service.GrpcService // service gRPC服务，处理gRPC相关的业务逻辑
+	*Handler                     // Handler 基础处理器，提供日志功能
+	service  service.GrpcService // service gRPC服务，处理gRPC相关的业务逻辑
 }
 
 // NewGrpcHandler 创建gRPC处理器
 //
 // @description 创建并返回一个新的gRPC处理器实例
 // @param baseHandler *Handler 基础处理器
-// @param grpcService *service.GrpcService gRPC服务
+// @param grpcService service.GrpcService gRPC服务
 // @return *GrpcHandler gRPC处理器实例
-func NewGrpcHandler(baseHandler *Handler, grpcService *service.GrpcService) *GrpcHandler {
+func NewGrpcHandler(baseHandler *Handler, grpcService service.GrpcService) *GrpcHandler {
 	return &GrpcHandler{
 		Handler: baseHandler,
 		service: grpcService,

@@ -21,38 +21,21 @@ import (
 // @description 处理节点相关的HTTP请求
 // @struct
 type Libp2pNodeHandler struct {
-	*Handler                            // Handler 基础处理器，提供日志功能
-	service  *service.Libp2pNodeService // service 节点服务，处理节点相关的业务逻辑
+	*Handler                           // Handler 基础处理器，提供日志功能
+	service  service.Libp2pNodeService // service 节点服务，处理节点相关的业务逻辑
 }
 
 // NewLibp2pNodeHandler 创建节点处理器
 //
 // @description 创建并返回一个新的节点处理器实例
 // @param handler *Handler 基础处理器
-// @param service *service.Libp2pNodeService 节点服务
+// @param service service.Libp2pNodeService 节点服务
 // @return *Libp2pNodeHandler 节点处理器实例
-func NewLibp2pNodeHandler(handler *Handler, libp2pNodeService *service.Libp2pNodeService) *Libp2pNodeHandler {
+func NewLibp2pNodeHandler(handler *Handler, libp2pNodeService service.Libp2pNodeService) *Libp2pNodeHandler {
 	return &Libp2pNodeHandler{
 		Handler: handler,
 		service: libp2pNodeService,
 	}
-}
-
-// Libp2pNodeServiceInterface 节点服务接口
-//
-// @description 定义节点服务需要实现的方法
-// @interface
-type Libp2pNodeServiceInterface interface {
-	// Libp2pNodeList 获取节点列表
-	//
-	// @param ctx *gin.Context Gin上下文
-	// @param req *request.Libp2pNodeListRequest 节点列表请求参数
-	Libp2pNodeList(ctx *gin.Context, req *request.Libp2pNodeListRequest)
-	// Libp2pNodeMyself 获取本机节点信息
-	//
-	// @param ctx *gin.Context Gin上下文
-	// @param req *request.Libp2pNodeMyselfRequest 本机节点信息请求参数
-	Libp2pNodeMyself(ctx *gin.Context, req *request.Libp2pNodeMyselfRequest)
 }
 
 // Libp2pNodeList 获取节点列表的处理函数

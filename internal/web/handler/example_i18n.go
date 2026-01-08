@@ -21,17 +21,17 @@ import (
 // @description 演示如何在处理函数中使用国际化功能
 // @struct
 type ExampleI18nHandler struct {
-	*Handler                        // Handler 基础处理器，提供日志功能
-	service  *service.SystemService // service 系统服务，处理系统相关的业务逻辑
+	*Handler                       // Handler 基础处理器，提供日志功能
+	service  service.SystemService // service 系统服务，处理系统相关的业务逻辑
 }
 
 // NewExampleI18nHandler 创建国际化示例处理器
 //
 // @description 创建并返回一个新的国际化示例处理器实例
 // @param handler *Handler 基础处理器
-// @param service *service.SystemService 系统服务
+// @param service service.SystemService 系统服务
 // @return *ExampleI18nHandler 国际化示例处理器实例
-func NewExampleI18nHandler(handler *Handler, service *service.SystemService) *ExampleI18nHandler {
+func NewExampleI18nHandler(handler *Handler, service service.SystemService) *ExampleI18nHandler {
 	return &ExampleI18nHandler{
 		Handler: handler,
 		service: service,

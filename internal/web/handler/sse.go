@@ -16,17 +16,17 @@ import (
 // @description 处理Server-Sent Events相关的HTTP请求
 // @struct
 type SSEHandler struct {
-	*Handler                       // Handler 基础处理器，提供日志功能
-	sseService *service.SSEService // sseService SSE服务，处理SSE相关的业务逻辑
+	*Handler                      // Handler 基础处理器，提供日志功能
+	sseService service.SSEService // sseService SSE服务，处理SSE相关的业务逻辑
 }
 
 // NewSSEHandler 创建SSE处理器
 //
 // @description 创建并返回一个新的SSE处理器实例
 // @param baseHandler *Handler 基础处理器
-// @param sseService *service.SSEService SSE服务
+// @param sseService service.SSEService SSE服务
 // @return *SSEHandler SSE处理器实例
-func NewSSEHandler(baseHandler *Handler, sseService *service.SSEService) *SSEHandler {
+func NewSSEHandler(baseHandler *Handler, sseService service.SSEService) *SSEHandler {
 	return &SSEHandler{
 		Handler:    baseHandler,
 		sseService: sseService,

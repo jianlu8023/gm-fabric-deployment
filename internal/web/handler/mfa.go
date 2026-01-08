@@ -21,16 +21,16 @@ import (
 // @struct
 type MFAHandler struct {
 	*Handler                     // Handler 基础处理器
-	service  *service.MFAService // service MFA服务
+	service  service.MFAService // service MFA服务
 }
 
 // NewMFAHandler 创建MFA处理器
 //
 // @description 创建并返回一个新的MFA处理器实例
 // @param baseHandler *Handler 基础处理器
-// @param mfaService *service.MFAService MFA服务
+// @param mfaService service.MFAService MFA服务
 // @return *MFAHandler MFA处理器实例
-func NewMFAHandler(baseHandler *Handler, mfaService *service.MFAService) *MFAHandler {
+func NewMFAHandler(baseHandler *Handler, mfaService service.MFAService) *MFAHandler {
 	return &MFAHandler{
 		Handler: baseHandler,
 		service: mfaService,

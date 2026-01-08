@@ -12,11 +12,17 @@ import (
 	"gorm.io/gorm"
 )
 
-// DockerNetworkMapper Docker网络数据访问层结构体
+type DockerNetworkMapper interface {
+	InsertOrUpdateOne(info *model.DockerNetwork) error
+	BatchLogicalDelete(query model.DockerNetwork) error
+	DockerNetworkList(query model.DockerNetwork, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerNetwork], error)
+}
+
+// dockerNetworkMapper Docker网络数据访问层结构体
 //
 // @description 提供Docker网络相关的数据访问操作
 // @struct
-type DockerNetworkMapper struct {
+type dockerNetworkMapper struct {
 	*Mapper
 }
 
@@ -24,9 +30,9 @@ type DockerNetworkMapper struct {
 //
 // @description 创建并返回一个新的DockerNetworkMapper实例
 // @param baseMapper *Mapper 基础Mapper
-// @return *DockerNetworkMapper DockerNetworkMapper实例
-func NewDockerNetworkMapper(baseMapper *Mapper) *DockerNetworkMapper {
-	return &DockerNetworkMapper{
+// @return DockerNetworkMapper DockerNetworkMapper实例
+func NewDockerNetworkMapper(baseMapper *Mapper) DockerNetworkMapper {
+	return &dockerNetworkMapper{
 		Mapper: baseMapper,
 	}
 }
@@ -36,7 +42,7 @@ func NewDockerNetworkMapper(baseMapper *Mapper) *DockerNetworkMapper {
 // @description 在事务中插入或更新Docker网络信息，根据网络ID和位置确定是否存在
 // @param info *model.DockerNetwork 要插入或更新的Docker网络信息
 // @return error 操作结果错误信息
-func (m *DockerNetworkMapper) InsertOrUpdateOne(info *model.DockerNetwork) error {
+func (m *dockerNetworkMapper) InsertOrUpdateOne(info *model.DockerNetwork) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -83,7 +89,7 @@ func (m *DockerNetworkMapper) InsertOrUpdateOne(info *model.DockerNetwork) error
 // @description 根据查询条件批量将Docker网络标记为已删除
 // @param query model.DockerNetwork 查询条件
 // @return error 操作结果错误信息
-func (m *DockerNetworkMapper) BatchLogicalDelete(query model.DockerNetwork) error {
+func (m *dockerNetworkMapper) BatchLogicalDelete(query model.DockerNetwork) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -129,9 +135,7 @@ func (m *DockerNetworkMapper) BatchLogicalDelete(query model.DockerNetwork) erro
 // @param pageSize int 每页大小（当isPage为true时有效）
 // @return dbpage.Info[model.DockerNetwork] 分页结果信息
 // @return error 错误信息
-func (m *DockerNetworkMapper) DockerNetworkList(query model.DockerNetwork,
-	isPage bool, pageNo int, pageSize int,
-) (dbpage.Info[model.DockerNetwork], error) {
+func (m *dockerNetworkMapper) DockerNetworkList(query model.DockerNetwork, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerNetwork], error) {
 	page := dbpage.Info[model.DockerNetwork]{}
 	if m.db == nil {
 		return page, datasource.ErrNoDataSourceConn

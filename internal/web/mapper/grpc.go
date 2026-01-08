@@ -1,11 +1,14 @@
 package mapper
 
-type GrpcMapper struct {
+type GrpcMapper interface {
+}
+
+type grpcMapper struct {
 	*Mapper
 }
 
-func NewGrpcMapper(baseMapper *Mapper) *GrpcMapper {
-	return &GrpcMapper{
+func NewGrpcMapper(baseMapper *Mapper) GrpcMapper {
+	return &grpcMapper{
 		Mapper: baseMapper,
 	}
 }

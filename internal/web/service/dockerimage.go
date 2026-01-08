@@ -21,37 +21,48 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// DockerImageService Docker镜像服务结构体
+// DockerImageService Docker镜像服务接口
+//
+// @description 定义Docker镜像服务需要实现的方法
+// @interface
+type DockerImageService interface {
+	// DockerImageList 获取Docker镜像列表
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.DockerImageListRequest Docker镜像列表请求参数
+	DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest)
+	// DockerImagePull 拉取Docker镜像
+	//
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.DockerImagePullRequest Docker镜像拉取请求参数
+	DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest)
+}
+
+// dockerImageService Docker镜像服务结构体
 //
 // @description 提供Docker镜像相关的服务功能，如镜像列表查询、镜像拉取等
 // @struct
-type DockerImageService struct {
-	*Service                                   // Service 基础服务，提供日志功能
-	mapper           *mapper.DockerImageMapper // mapper Docker镜像映射器，用于数据访问
-	dockerControl    *docker.Control           // dockerControl Docker控制器，用于Docker操作
-	websocketControl *websocket.Control        // websocketControl WebSocket控制器，用于消息推送
-	libp2pControl    *libp2p.Control           // libp2pControl libp2p控制器，用于节点通信
-	antsPoolControl  *ants.Control             // antsPoolControl 线程池控制器，用于异步任务
+type dockerImageService struct {
+	*Service                                  // Service 基础服务，提供日志功能
+	mapper           mapper.DockerImageMapper // mapper Docker镜像映射器，用于数据访问
+	dockerControl    *docker.Control          // dockerControl Docker控制器，用于Docker操作
+	websocketControl *websocket.Control       // websocketControl WebSocket控制器，用于消息推送
+	libp2pControl    *libp2p.Control          // libp2pControl libp2p控制器，用于节点通信
+	antsPoolControl  *ants.Control            // antsPoolControl 线程池控制器，用于异步任务
 }
 
 // NewDockerImageService 创建Docker镜像服务实例
 //
 // @description 创建并返回一个新的Docker镜像服务实例
 // @param baseService *Service 基础服务
-// @param mapper *mapper.DockerImageMapper Docker镜像映射器
+// @param mapper mapper.DockerImageMapper Docker镜像映射器
 // @param dockerControl *docker.Control Docker控制器
 // @param websocketControl *websocket.Control WebSocket控制器
 // @param libp2pControl *libp2p.Control libp2p控制器
 // @param antsPoolControl *ants.Control 线程池控制器
-// @return *DockerImageService Docker镜像服务实例
-func NewDockerImageService(baseService *Service,
-	mapper *mapper.DockerImageMapper,
-	dockerControl *docker.Control,
-	websocketControl *websocket.Control,
-	libp2pControl *libp2p.Control,
-	antsPoolControl *ants.Control,
-) *DockerImageService {
-	return &DockerImageService{
+// @return *dockerImageService Docker镜像服务实例
+func NewDockerImageService(baseService *Service, mapper mapper.DockerImageMapper, dockerControl *docker.Control, websocketControl *websocket.Control, libp2pControl *libp2p.Control, antsPoolControl *ants.Control) DockerImageService {
+	return &dockerImageService{
 		Service:          baseService,
 		mapper:           mapper,
 		dockerControl:    dockerControl,
@@ -66,7 +77,7 @@ func NewDockerImageService(baseService *Service,
 // @description 根据查询条件获取Docker镜像列表
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerImageListRequest 镜像列表查询请求参数
-func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest) {
+func (s *dockerImageService) DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageService", "dockerImageList",
 		attribute.String("requestParam", req.String()),
 	)
@@ -74,7 +85,7 @@ func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.Dock
 
 	s.logger.Debugf("received docker image list request with params: %v", req)
 
-	page, err := s.mapper.DockerImageList(model.DockerImage{
+	page, err := s.mapper.DockerImageList(ctx.Request.Context(), model.DockerImage{
 		ImageLocationPeerId: req.PeerId,
 	}, req.IsPage, req.PageNo, req.PageSize)
 	if err != nil {
@@ -103,7 +114,7 @@ func (s *DockerImageService) DockerImageList(ctx *gin.Context, req *request.Dock
 // @description 拉取指定名称的Docker镜像到本地或远程节点
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerImagePullRequest 镜像拉取请求参数
-func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest) {
+func (s *dockerImageService) DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageService", "dockerImagePull",
 		attribute.String("requestParam", req.String()),
 	)
@@ -170,7 +181,7 @@ func (s *DockerImageService) DockerImagePull(ctx *gin.Context, req *request.Dock
 			image.ImageLabels = summary.Labels
 			image.IsDelete = sqlnull.FalseToNull()
 			image.ImageLocationPeerId = req.PeerId
-			if err := s.mapper.InsertOneWithCheck(image); err != nil {
+			if err := s.mapper.InsertOneWithCheck(ctx.Request.Context(), image); err != nil {
 				s.logger.Errorf("save docker image failed: %v", err)
 				span.RecordError(err)
 				return
