@@ -14,11 +14,9 @@ type UserMapper interface {
 	UpdateUser(user *model.UserInfo) error
 	QueryExistUser(query model.UserInfo) (bool, error)
 	InsertOneUser(user *model.UserInfo) error
-	QueryUserByUsernameAndPassword(
-		username,
-		password string,
-	) (*model.UserInfo, error)
+	QueryUserByUsernameAndPassword(username, password string) (*model.UserInfo, error)
 	UpdateLastLoginTime(user *model.UserInfo) error
+	QueryUserByQuery(query model.UserInfo) (model.UserInfo, error)
 }
 
 // userMapper 用户数据访问层结构体

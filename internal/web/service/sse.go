@@ -19,17 +19,17 @@ type SSEService interface {
 // @description 提供Server-Sent Events功能的服务，用于实时推送消息
 // @struct
 type sSEService struct {
-	*Service                    // Service 基础服务，提供日志功能
-	sseMapper *mapper.SSEMapper // sseMapper SSE映射器，用于数据访问
+	*Service                   // Service 基础服务，提供日志功能
+	sseMapper mapper.SSEMapper // sseMapper SSE映射器，用于数据访问
 }
 
 // NewSSEService 创建SSE服务实例
 //
 // @description 创建并返回一个新的SSE服务实例
 // @param baseService *Service 基础服务
-// @param sseMapper *mapper.SSEMapper SSE映射器
+// @param sseMapper mapper.SSEMapper SSE映射器
 // @return SSEService SSE服务实例
-func NewSSEService(baseService *Service, sseMapper *mapper.SSEMapper) SSEService {
+func NewSSEService(baseService *Service, sseMapper mapper.SSEMapper) SSEService {
 	return &sSEService{
 		Service:   baseService,
 		sseMapper: sseMapper,
