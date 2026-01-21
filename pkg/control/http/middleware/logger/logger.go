@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,13 +21,18 @@ func Logger() gin.HandlerFunc {
 				// Truncate in a golang < 1.8 safe way
 				params.Latency = params.Latency - params.Latency%time.Second
 			}
+			decodedPath, err := url.QueryUnescape(params.Path)
+			if err != nil {
+				// If decoding fails, fall back to the original path
+				decodedPath = params.Path
+			}
 			return fmt.Sprintf("%v %s %3d %s %13v | %15s |%s %-7s %s %#v\n%s",
 				params.TimeStamp.Format("2006-01-02 15:04:05.000"),
 				statusColor, params.StatusCode, resetColor,
 				params.Latency,
 				params.ClientIP,
 				methodColor, params.Method, resetColor,
-				params.Path,
+				decodedPath,
 				params.ErrorMessage,
 			)
 		},
