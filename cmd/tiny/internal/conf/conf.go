@@ -151,7 +151,7 @@ func setDefault(cfgDir string) error {
 	viper.Set("server.port", Port)
 	viper.Set("server.allow_upload", IsAllowUpload)
 	viper.Set("server.max_level", MaxLevel)
-	viper.Set("server.tls_enabled", false)
+	viper.Set("server.tls_enabled", true)
 	viper.Set("server.tls_cert_path", filepath.Join(cfgDir, "tiny.crt"))
 	viper.Set("server.tls_key_path", filepath.Join(cfgDir, "tiny.key"))
 	viper.Set("server.tls_rca_cert_path", filepath.Join(cfgDir, "root.crt"))

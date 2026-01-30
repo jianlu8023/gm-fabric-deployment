@@ -20,7 +20,7 @@ import (
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/container/verify"
 	"github.com/jianlu8023/golang-example/cmd/tiny/internal/server/handle/core"
-	middleware2 "github.com/jianlu8023/golang-example/cmd/tiny/internal/server/middleware"
+	"github.com/jianlu8023/golang-example/cmd/tiny/internal/server/middleware"
 	"github.com/jianlu8023/golang-example/cmd/tiny/templates"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/certificate"
@@ -49,7 +49,7 @@ func main() {
 		}
 	})
 
-	mainLogger := loggerControl.GenLogger("")
+	mainLogger := loggerControl.GenLogger("myTiny")
 	defer func() {
 		_ = loggerControl.Shutdown()
 
@@ -232,8 +232,8 @@ func main() {
 			},
 		},
 		MiddlewaresFunc: []gin.HandlerFunc{
-			middleware2.CheckLevel,
-			middleware2.CheckLogin,
+			middleware.CheckLevel,
+			middleware.CheckLogin,
 		},
 	})
 

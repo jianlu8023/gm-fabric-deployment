@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -63,7 +62,6 @@ func (a *agent) file(c *gin.Context) {
 	}
 	defer func(src *os.File) { _ = src.Close() }(src)
 
-	log.Println("preparing file...")
 	contentLen := getContentLen(a.abs)
 
 	c.Status(http.StatusOK)
@@ -102,7 +100,6 @@ func (a *agent) dir(c *gin.Context) {
 		return
 	}
 
-	log.Println("preparing archive directory...")
 	contentLen := getContentLen(a.abs)
 	c.Status(http.StatusOK)
 	c.Header("Content-Disposition", "attachment; filename="+filepath.Base(a.rel)+".zip")

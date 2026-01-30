@@ -153,13 +153,17 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	engine.Use(requestid.EnableRequestID(webLogger))
 
 	// 3. IP白名单中间件（如果启用）- 尽早过滤非白名单IP
-	if serverConfig.IPWhiteList.Enabled && len(serverConfig.IPWhiteList.IPs) > 0 {
+	if serverConfig.IPWhiteList != nil &&
+		serverConfig.IPWhiteList.Enabled &&
+		len(serverConfig.IPWhiteList.IPs) > 0 {
 		webLogger.Debugf("[control] register IP white list middleware with %d IPs", len(serverConfig.IPWhiteList.IPs))
 		engine.Use(ipwhitelist.EnableIPWhiteList(webLogger, serverConfig.IPWhiteList.IPs))
 	}
 
 	// 4. IP黑名单中间件（如果启用）- 尽早拒绝黑名单IP
-	if serverConfig.IPBlackList.Enabled && len(serverConfig.IPBlackList.IPs) > 0 {
+	if serverConfig.IPBlackList != nil &&
+		serverConfig.IPBlackList.Enabled &&
+		len(serverConfig.IPBlackList.IPs) > 0 {
 		webLogger.Debugf("[control] register IP black list middleware with %d IPs", len(serverConfig.IPBlackList.IPs))
 		engine.Use(ipblacklist.EnableIPBlackList(webLogger, serverConfig.IPBlackList.IPs))
 	}
@@ -182,7 +186,9 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	engine.Use(cors.EnableCors())
 
 	// 8. 限流中间件（如果启用）- 在业务逻辑前执行
-	if serverConfig.RateLimit.Enabled && serverConfig.RateLimit.RPS > 0 {
+	if serverConfig.RateLimit != nil &&
+		serverConfig.RateLimit.Enabled &&
+		serverConfig.RateLimit.RPS > 0 {
 		// 创建限流配置
 		rateLimitConfig := ratelimit.Config{
 			Type:  ratelimit.Type(serverConfig.RateLimit.Type), // 使用配置文件中的限流类型

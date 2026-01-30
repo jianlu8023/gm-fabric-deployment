@@ -118,7 +118,7 @@ type HttpServerConfig struct {
 	UploadDir       string             `json:"upload_dir,omitempty" yaml:"upload_dir,omitempty" mapstructure:"upload_dir"`                         // 文件上传目录
 	IPWhiteList     *IPWhiteListConfig `json:"ip_white_list,omitempty" yaml:"ip_white_list,omitempty" mapstructure:"ip_white_list"`                // 白名单配置
 	IPBlackList     *IPBlackListConfig `json:"ip_black_list,omitempty" yaml:"ip_black_list,omitempty" mapstructure:"ip_black_list"`                // 黑名单配置
-	RateLimit       RateLimitConfig    `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`                         // 限流配置
+	RateLimit       *RateLimitConfig   `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`                         // 限流配置
 	Language        string             `json:"language,omitempty" yaml:"language,omitempty" mapstructure:"language"`                               // 默认语言设置，支持zh,en等 // 国际化配置
 }
 

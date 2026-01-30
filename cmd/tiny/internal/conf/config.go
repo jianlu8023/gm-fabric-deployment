@@ -45,4 +45,4 @@ var (
 	}
 )
 
-var BufferLimit = 512 * bytes.KibiByte
+var BufferLimit = 512 * bytes.KiB

@@ -1,0 +1,73 @@
+FROM golang:1.22 AS mod-cache
+
+ENV GO111MODULE=on
+ENV GOPROXY=https://goproxy.cn,https://goproxy.io,direct
+ENV GOSUMDB=sum.golang.google.cn
+ENV CGO_ENABLED=1
+ENV CGO_CFLAGS="-g -O2 -Wno-return-local-addr"
+
+WORKDIR /buildspace
+
+COPY go.mod /buildspace/go.mod
+COPY go.sum /buildspace/go.sum
+COPY third_partys /buildspace/third_partys
+
+RUN go mod download -x
+
+FROM mod-cache AS go-build
+
+WORKDIR /buildspace
+
+COPY . .
+
+RUN echo "starting build tiny" && \
+    go build -tags='jsoniter' -trimpath -ldflags="-s -w" -o tiny.bin cmd/tiny/main.go
+
+FROM ubuntu:22.04 AS runner
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list && \
+    sed -i s@/security.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list && \
+    apt-get update && \
+    apt-get install curl tzdata gosu tini -y && \
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    dpkg-reconfigure -f noninteractive tzdata && \
+    apt-get clean cache && \
+    apt-get autoremove -y && \
+    apt-get autoclean && \
+    rm -rf /var/lib/apt/lists/*
+
+
+#创建非 root 用户
+RUN groupadd -r -g 1000 myusers && \
+    useradd -r -u 1000 -m -g myusers appuser && \
+    mkdir -p /home/appuser/mytiny && \
+    mkdir -p /home/appuser/mytiny/data && \
+    mkdir -p /home/appuser/.config/tiny && \
+    chown -R appuser:myusers /home/appuser
+
+WORKDIR /home/appuser/mytiny
+
+COPY --from=go-build --chown=appuser:myusers /buildspace/tiny.bin ./tiny.bin
+
+USER appuser
+
+RUN ./tiny.bin config -r /home/appuser/mytiny/data && \
+    ./tiny.bin config --max 100 && \
+    ./tiny.bin config --port 8192
+
+EXPOSE 8192/tcp
+
+VOLUME /home/appuser/mytiny/data
+
+ENTRYPOINT ["/usr/bin/tini","--"]
+
+HEALTHCHECK --interval=60s \
+            --timeout=5s \
+            --retries=3 \
+            --start-period=30s CMD \
+            curl -ksS https://localhost:8192/endpoints || exit 1
+
+CMD ["/home/appuser/mytiny/tiny.bin"]
