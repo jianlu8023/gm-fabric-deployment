@@ -25,6 +25,9 @@ RUN echo "starting build tiny" && \
 
 FROM ubuntu:22.04 AS runner
 
+
+COPY --from=go-build /buildspace/tiny.bin /home/appuser/mytiny/tiny.bin
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN sed -i s@/archive.ubuntu.com/@/mirrors.aliyun.com/@g /etc/apt/sources.list && \
@@ -45,18 +48,16 @@ RUN groupadd -r -g 1000 myusers && \
     useradd -r -u 1000 -m -g myusers appuser && \
     mkdir -p /home/appuser/mytiny && \
     mkdir -p /home/appuser/mytiny/data && \
-    mkdir -p /home/appuser/.config/tiny && \
     chown -R appuser:myusers /home/appuser
 
 WORKDIR /home/appuser/mytiny
 
-COPY --from=go-build --chown=appuser:myusers /buildspace/tiny.bin ./tiny.bin
-
 USER appuser
 
-RUN ./tiny.bin config -r /home/appuser/mytiny/data && \
-    ./tiny.bin config --max 100 && \
-    ./tiny.bin config --port 8192
+RUN /home/appuser/mytiny/tiny.bin config -a && \
+    /home/appuser/mytiny/tiny.bin config -r /home/appuser/mytiny/data && \
+    /home/appuser/mytiny/tiny.bin config --port 8192 && \
+    /home/appuser/mytiny/tiny.bin config --max 100
 
 EXPOSE 8192/tcp
 
@@ -71,3 +72,4 @@ HEALTHCHECK --interval=60s \
             curl -ksS https://localhost:8192/endpoints || exit 1
 
 CMD ["/home/appuser/mytiny/tiny.bin"]
+
