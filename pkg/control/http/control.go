@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
@@ -74,11 +75,11 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	engine := gin.New()
 
 	srv := &http.Server{
-		Addr:    serverConfig.Address,
-		Handler: engine.Handler(),
-		// ReadTimeout:  30 * time.Second,  // 设置读取超时
-		// WriteTimeout: 60 * time.Second,  // 设置写入超时
-		// IdleTimeout:  120 * time.Second, // 设置空闲超时
+		Addr:         serverConfig.Address,
+		Handler:      engine.Handler(),
+		ReadTimeout:  30 * time.Second,  // 设置读取超时
+		WriteTimeout: 60 * time.Second,  // 设置写入超时
+		IdleTimeout:  120 * time.Second, // 设置空闲超时
 	}
 
 	// 如果启用HTTP/2且非TLS模式，使用h2c支持HTTP/2 over cleartext

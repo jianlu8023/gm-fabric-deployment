@@ -98,7 +98,9 @@ func (c *Control) setupGMTLSConfig() error {
 	}
 
 	// 配置根证书
-	c.setupGMRootCA(gmTLSConfig)
+	if err := c.setupGMRootCA(gmTLSConfig); err != nil {
+		return err
+	}
 
 	c.gmTlsConfig = gmTLSConfig
 	return nil
@@ -134,7 +136,9 @@ func (c *Control) loadGMSingleCert(gmTLSConfig *gmtls.Config) error {
 	c.logger.Infof("[control] 成功加载GM模式单证书: %s -> %s", certFile, keyFile)
 
 	// 配置根证书
-	//c.setupGMRootCA(gmTLSConfig)
+	//if err := c.setupGMRootCA(gmTLSConfig); err != nil {
+	//	return err
+	//}
 
 	//c.gmTlsConfig = gmTLSConfig
 	return nil
@@ -200,23 +204,29 @@ func (c *Control) loadGMDualCert(gmTLSConfig *gmtls.Config) error {
 // setupGMRootCA 配置GM根证书
 // @description 为GM TLS配置根证书，启用客户端证书验证
 // @param gmTLSConfig *gmtls.Config GM TLS配置对象
-func (c *Control) setupGMRootCA(gmTLSConfig *gmtls.Config) {
+// @return error 读取或解析CA证书失败时返回错误
+func (c *Control) setupGMRootCA(gmTLSConfig *gmtls.Config) error {
 	rootCaCertFile := c.config.TlsRCACertFile
 	if stringer.IsBlank(rootCaCertFile) {
-		return
+		return nil
+	}
+
+	caCert, err := os.ReadFile(rootCaCertFile)
+	if err != nil {
+		c.logger.Errorf("[control] failed to read GM CA cert file: %v", err)
+		return fmt.Errorf("读取GM CA证书失败: %v", err)
 	}
 
 	caCertPool := gmx509.NewCertPool()
-	caCert, err := os.ReadFile(rootCaCertFile)
-	if err == nil {
-		if ok := caCertPool.AppendCertsFromPEM(caCert); ok {
-			gmTLSConfig.ClientCAs = caCertPool
-			gmTLSConfig.ClientAuth = gmtls.VerifyClientCertIfGiven // 根据需要验证客户端证书
-			c.logger.Debugf("[control] client certificate verification enabled with GM CA cert: %s", rootCaCertFile)
-		}
-	} else {
-		c.logger.Warnf("[control] failed to read GM CA cert file: %v", err)
+	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+		c.logger.Errorf("[control] failed to parse GM CA cert file: %s", rootCaCertFile)
+		return fmt.Errorf("解析GM CA证书失败: %s", rootCaCertFile)
 	}
+
+	gmTLSConfig.ClientCAs = caCertPool
+	gmTLSConfig.ClientAuth = gmtls.VerifyClientCertIfGiven // 根据需要验证客户端证书
+	c.logger.Debugf("[control] client certificate verification enabled with GM CA cert: %s", rootCaCertFile)
+	return nil
 }
 
 // setupStandardTLSConfig 配置标准TLS
@@ -262,7 +272,9 @@ func (c *Control) setupStandardTLSConfig() error {
 	tlsConfig.Certificates = []tls.Certificate{certificates}
 
 	// 配置根证书
-	c.setupStandardRootCA(tlsConfig)
+	if err := c.setupStandardRootCA(tlsConfig); err != nil {
+		return err
+	}
 
 	c.tlsConfig = tlsConfig
 	return nil
@@ -271,23 +283,29 @@ func (c *Control) setupStandardTLSConfig() error {
 // setupStandardRootCA 配置标准TLS根证书
 // @description 为标准TLS配置根证书，启用客户端证书验证
 // @param tlsConfig *tls.Config 标准TLS配置对象
-func (c *Control) setupStandardRootCA(tlsConfig *tls.Config) {
+// @return error 读取或解析CA证书失败时返回错误
+func (c *Control) setupStandardRootCA(tlsConfig *tls.Config) error {
 	rootCaCertFile := c.config.TlsRCACertFile
 	if stringer.IsBlank(rootCaCertFile) {
-		return
+		return nil
+	}
+
+	caCert, err := os.ReadFile(rootCaCertFile)
+	if err != nil {
+		c.logger.Errorf("[control] failed to read CA cert file: %v", err)
+		return fmt.Errorf("读取CA证书失败: %v", err)
 	}
 
 	caCertPool := x509.NewCertPool()
-	caCert, err := os.ReadFile(rootCaCertFile)
-	if err == nil {
-		if ok := caCertPool.AppendCertsFromPEM(caCert); ok {
-			tlsConfig.ClientCAs = caCertPool
-			tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven // 根据需要验证客户端证书
-			c.logger.Debugf("[control] client certificate verification enabled with CA cert: %s", rootCaCertFile)
-		}
-	} else {
-		c.logger.Warnf("[control] failed to read CA cert file: %v", err)
+	if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
+		c.logger.Errorf("[control] failed to parse CA cert file: %s", rootCaCertFile)
+		return fmt.Errorf("解析CA证书失败: %s", rootCaCertFile)
 	}
+
+	tlsConfig.ClientCAs = caCertPool
+	tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven // 根据需要验证客户端证书
+	c.logger.Debugf("[control] client certificate verification enabled with CA cert: %s", rootCaCertFile)
+	return nil
 }
 
 // registerMiddlewares 注册Gin中间件
