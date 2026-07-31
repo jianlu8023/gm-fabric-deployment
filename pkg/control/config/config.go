@@ -89,6 +89,23 @@ func (i *IPBlackListConfig) String() string {
 	return string(pretty)
 }
 
+// TrustedProxiesConfig 可信代理配置
+//
+// @description 配置可信代理网段，仅当请求的 RemoteAddr 命中该网段时，才信任 X-Forwarded-For / X-Real-IP 头
+// @struct
+type TrustedProxiesConfig struct {
+	Enabled bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用可信代理
+	IPs     []string `json:"ips,omitempty" yaml:"ips,omitempty" mapstructure:"ips"`             // 可信代理网段列表，支持精确 IP 和 CIDR 格式
+}
+
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
+func (t *TrustedProxiesConfig) String() string {
+	pretty, _ := json.MarshalPretty(t)
+	return string(pretty)
+}
+
 type RateLimitConfig struct {
 	Enabled bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用限流
 	RPS     int64  `json:"rps,omitempty" yaml:"rps,omitempty" mapstructure:"rps"`             // 每秒请求数限制
@@ -103,23 +120,24 @@ func (r *RateLimitConfig) String() string {
 
 // HttpServerConfig http服务配置
 type HttpServerConfig struct {
-	Enabled         bool               `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                  // 是否启用
-	Address         string             `json:"address,omitempty" yaml:"address,omitempty" mapstructure:"address"`                                  // 服务地址
-	ContextPath     string             `json:"context_path,omitempty" yaml:"context_path,omitempty" mapstructure:"context_path"`                   // 服务上下文路径
-	RunMode         string             `json:"run_mode,omitempty" yaml:"run_mode,omitempty" mapstructure:"run_mode" `                              // 服务运行模式
-	TlsEnabled      bool               `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                     // 是否启用TLS
-	TlsGM           bool               `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                     // 是否启用国密TLS
-	TlsGMSingleCert bool               `json:"tls_gm_single_cert,omitempty" yaml:"tls_gm_single_cert,omitempty" mapstructure:"tls_gm_single_cert"` // 国密TLS是否使用单证书模式，默认false（使用双证书模式：一个用于签名，一个用于加密）
-	TlsCertFile     string             `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `               // TLS证书文件
-	TlsKeyFile      string             `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                   // TLS私钥文件
-	TlsRCACertFile  string             `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`    // TLS根证书文件
-	Http2Enabled    bool               `json:"http2_enabled,omitempty" yaml:"http2_enabled,omitempty" mapstructure:"http2_enabled"`                // 是否启用HTTP/2
-	Pprof           bool               `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                        // 是否启用pprof
-	UploadDir       string             `json:"upload_dir,omitempty" yaml:"upload_dir,omitempty" mapstructure:"upload_dir"`                         // 文件上传目录
-	IPWhiteList     *IPWhiteListConfig `json:"ip_white_list,omitempty" yaml:"ip_white_list,omitempty" mapstructure:"ip_white_list"`                // 白名单配置
-	IPBlackList     *IPBlackListConfig `json:"ip_black_list,omitempty" yaml:"ip_black_list,omitempty" mapstructure:"ip_black_list"`                // 黑名单配置
-	RateLimit       *RateLimitConfig   `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`                         // 限流配置
-	Language        string             `json:"language,omitempty" yaml:"language,omitempty" mapstructure:"language"`                               // 默认语言设置，支持zh,en等 // 国际化配置
+	Enabled         bool                  `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                  // 是否启用
+	Address         string                `json:"address,omitempty" yaml:"address,omitempty" mapstructure:"address"`                                  // 服务地址
+	ContextPath     string                `json:"context_path,omitempty" yaml:"context_path,omitempty" mapstructure:"context_path"`                   // 服务上下文路径
+	RunMode         string                `json:"run_mode,omitempty" yaml:"run_mode,omitempty" mapstructure:"run_mode" `                              // 服务运行模式
+	TlsEnabled      bool                  `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                     // 是否启用TLS
+	TlsGM           bool                  `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                     // 是否启用国密TLS
+	TlsGMSingleCert bool                  `json:"tls_gm_single_cert,omitempty" yaml:"tls_gm_single_cert,omitempty" mapstructure:"tls_gm_single_cert"` // 国密TLS是否使用单证书模式，默认false（使用双证书模式：一个用于签名，一个用于加密）
+	TlsCertFile     string                `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `               // TLS证书文件
+	TlsKeyFile      string                `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                   // TLS私钥文件
+	TlsRCACertFile  string                `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`    // TLS根证书文件
+	Http2Enabled    bool                  `json:"http2_enabled,omitempty" yaml:"http2_enabled,omitempty" mapstructure:"http2_enabled"`                // 是否启用HTTP/2
+	Pprof           bool                  `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                        // 是否启用pprof
+	UploadDir       string                `json:"upload_dir,omitempty" yaml:"upload_dir,omitempty" mapstructure:"upload_dir"`                         // 文件上传目录
+	IPWhiteList     *IPWhiteListConfig    `json:"ip_white_list,omitempty" yaml:"ip_white_list,omitempty" mapstructure:"ip_white_list"`                // 白名单配置
+	IPBlackList     *IPBlackListConfig    `json:"ip_black_list,omitempty" yaml:"ip_black_list,omitempty" mapstructure:"ip_black_list"`                // 黑名单配置
+	TrustedProxies  *TrustedProxiesConfig `json:"trusted_proxies,omitempty" yaml:"trusted_proxies,omitempty" mapstructure:"trusted_proxies"`          // 可信代理配置，影响 X-Forwarded-For / X-Real-IP 的解析
+	RateLimit       *RateLimitConfig      `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`                         // 限流配置
+	Language        string                `json:"language,omitempty" yaml:"language,omitempty" mapstructure:"language"`                               // 默认语言设置，支持zh,en等 // 国际化配置
 }
 
 // String 返回配置的字符串表示

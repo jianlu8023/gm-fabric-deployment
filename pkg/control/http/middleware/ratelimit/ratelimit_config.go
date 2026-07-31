@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/iphelper"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.uber.org/zap"
 )
@@ -33,8 +34,9 @@ type Config struct {
 // 根据配置选择不同的限流实现方式
 // @param logger 日志记录器
 // @param config 限流配置
+// @param trustedProxies 可信代理网段列表，用于正确解析客户端真实IP；为 nil 时仅使用 RemoteAddr
 // @return gin.HandlerFunc Gin中间件函数
-func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config) gin.HandlerFunc {
+func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
 	// 验证配置
 	if config.RPS <= 0 {
 		logger.Warnf("[RateLimit] Invalid RPS value, rate limiting disabled")
@@ -62,17 +64,17 @@ func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config) gin.Handle
 
 	switch config.Type {
 	case TypeTime:
-		return EnableRateLimit(logger, config.RPS, burst)
+		return EnableRateLimit(logger, config.RPS, burst, trustedProxies)
 	case TypeUlule:
-		return EnableRateLimitUlule(logger, config.RPS, burst)
+		return EnableRateLimitUlule(logger, config.RPS, burst, trustedProxies)
 	case TypeAnts:
-		return EnableRateLimitAnts(logger, config.RPS, burst)
+		return EnableRateLimitAnts(logger, config.RPS, burst, trustedProxies)
 	case TypeCustom:
-		return EnableCustomRateLimit(logger, config.RPS, burst)
+		return EnableCustomRateLimit(logger, config.RPS, burst, trustedProxies)
 	case TypeJuju:
-		return EnableRateLimitJuju(logger, config.RPS, burst)
+		return EnableRateLimitJuju(logger, config.RPS, burst, trustedProxies)
 	default:
 		logger.Warnf("[RateLimit] Unknown rate limit type: %s, using default (time/rate)", config.Type)
-		return EnableRateLimit(logger, config.RPS, burst)
+		return EnableRateLimit(logger, config.RPS, burst, trustedProxies)
 	}
 }

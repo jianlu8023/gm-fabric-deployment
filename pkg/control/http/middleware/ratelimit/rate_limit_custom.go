@@ -68,8 +68,9 @@ func (rl *CustomRateLimiter) Allow() bool {
 // @param logger 日志记录器
 // @param rps 每秒请求数限制
 // @param burst 令牌桶突发大小
+// @param trustedProxies 可信代理网段列表，用于正确解析客户端真实IP；为 nil 时仅使用 RemoteAddr
 // @return gin.HandlerFunc Gin中间件函数
-func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int) gin.HandlerFunc {
+func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
 	// 创建全局限流器管理器
 	limiters := make(map[string]*CustomRateLimiter)
 	limitersMutex := sync.RWMutex{}
@@ -83,7 +84,7 @@ func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int) gin.
 		defer span.End()
 		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 获取客户端IP
-		clientIP := iphelper.GetClientIP(ctx)
+		clientIP := iphelper.GetClientIP(ctx, trustedProxies)
 
 		// 获取或创建该IP的限流器
 		limitersMutex.RLock()

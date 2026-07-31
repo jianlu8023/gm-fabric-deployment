@@ -12,6 +12,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipblacklist"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/iphelper"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipwhitelist"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/language"
 	middlewarelogger "github.com/jianlu8023/golang-example/pkg/control/http/middleware/logger"
@@ -317,6 +318,21 @@ func (c *Control) setupStandardRootCA(tlsConfig *tls.Config) error {
 func (c *Control) registerMiddlewares(engine *gin.Engine) {
 	c.logger.Info("[control] register gin middleware...")
 
+	// 解析可信代理配置，仅当 RemoteAddr 命中可信代理网段时才信任 X-Forwarded-For / X-Real-IP 头
+	// 未配置时 trustedProxiesCIDRList 为 nil，GetClientIP 将仅使用 RemoteAddr，防止 XFF 头被伪造
+	var trustedProxiesCIDRList *iphelper.CIDRList
+	if c.config.TrustedProxies != nil &&
+		c.config.TrustedProxies.Enabled &&
+		len(c.config.TrustedProxies.IPs) > 0 {
+		cidrList, err := iphelper.NewCIDRList(c.config.TrustedProxies.IPs)
+		if err != nil {
+			c.logger.Errorf("[control] failed to parse trusted proxies config: %v, X-Forwarded-For will be ignored", err)
+		} else {
+			trustedProxiesCIDRList = cidrList
+			c.logger.Infof("[control] trusted proxies enabled with %d entries", len(c.config.TrustedProxies.IPs))
+		}
+	}
+
 	// 0. Tracer中间件 - 用于请求追踪
 	if c.tracerControl != nil {
 		engine.Use(otelgin.Middleware(c.tracerControl.GetServiceName(), otelgin.WithTracerProvider(c.tracerControl.TracerProvider())))
@@ -339,7 +355,7 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 		c.config.IPWhiteList.Enabled &&
 		len(c.config.IPWhiteList.IPs) > 0 {
 		c.logger.Debugf("[control] register IP white list middleware with %d IPs", len(c.config.IPWhiteList.IPs))
-		engine.Use(ipwhitelist.EnableIPWhiteList(c.logger, c.config.IPWhiteList.IPs))
+		engine.Use(ipwhitelist.EnableIPWhiteList(c.logger, c.config.IPWhiteList.IPs, trustedProxiesCIDRList))
 	}
 
 	// 4. IP黑名单中间件（如果启用）- 尽早拒绝黑名单IP
@@ -347,7 +363,7 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 		c.config.IPBlackList.Enabled &&
 		len(c.config.IPBlackList.IPs) > 0 {
 		c.logger.Debugf("[control] register IP black list middleware with %d IPs", len(c.config.IPBlackList.IPs))
-		engine.Use(ipblacklist.EnableIPBlackList(c.logger, c.config.IPBlackList.IPs))
+		engine.Use(ipblacklist.EnableIPBlackList(c.logger, c.config.IPBlackList.IPs, trustedProxiesCIDRList))
 	}
 
 	if !c.config.TlsGM {
@@ -378,7 +394,7 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 			Burst: c.config.RateLimit.Burst,
 		}
 		// 使用工厂函数创建限流中间件
-		engine.Use(ratelimit.NewRateLimitMiddleware(c.logger, rateLimitConfig))
+		engine.Use(ratelimit.NewRateLimitMiddleware(c.logger, rateLimitConfig, trustedProxiesCIDRList))
 	}
 
 	// 9. 压缩中间件 - 性能优化，在响应前执行

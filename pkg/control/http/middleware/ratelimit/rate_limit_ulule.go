@@ -21,8 +21,9 @@ import (
 // @param logger 日志记录器
 // @param rps 每秒请求数限制
 // @param burst 令牌桶突发大小
+// @param trustedProxies 可信代理网段列表，用于正确解析客户端真实IP；为 nil 时仅使用 RemoteAddr
 // @return gin.HandlerFunc Gin中间件函数
-func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int) gin.HandlerFunc {
+func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
 	// 使用格式化的速率字符串，支持更灵活的限流配置
 	// 格式示例: "10-S" (每秒10个), "100-M" (每分钟100个), "500-H" (每小时500个)
 	rateStr := fmt.Sprintf("%d-S", rps)
@@ -62,17 +63,17 @@ func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int) gin.H
 		tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitUlule")
 		defer span.End()
 		ctx.Request = ctx.Request.WithContext(tCtx)
-		// 确保正确处理代理后的客户端IP
-		ctx.Request.Header.Set("X-Forwarded-For", ctx.ClientIP())
 
 		// 调用ulule中间件
+		// 注意：ulule 内部使用 gin.ClientIP() 获取客户端IP，不再修改请求头以避免污染后续中间件与上游服务
 		middleware(ctx)
 
 		// 如果请求被限流，记录日志
 		if ctx.IsAborted() && ctx.Writer.Status() == http.StatusTooManyRequests {
-			clientIP := iphelper.GetClientIP(ctx)
+			clientIP := iphelper.GetClientIP(ctx, trustedProxies)
 			logger.Warnf("[RateLimit] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			span.SetStatus(codes.Error, "Too many requests")
+			return
 		}
 		span.SetStatus(codes.Ok, "success")
 	}

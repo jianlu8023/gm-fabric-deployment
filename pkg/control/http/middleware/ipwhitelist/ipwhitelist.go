@@ -16,8 +16,9 @@ import (
 // EnableIPWhiteList 创建并返回IP白名单中间件（支持精确IP和CIDR范围）
 // @param logger 日志记录器
 // @param whiteList IP白名单列表，支持精确IP和CIDR格式的IP范围
+// @param trustedProxies 可信代理网段列表，用于正确解析客户端真实IP；为 nil 时仅使用 RemoteAddr
 // @return gin.HandlerFunc Gin中间件函数
-func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.HandlerFunc {
+func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
 	// 如果白名单为空，则不进行过滤
 	if len(whiteList) == 0 {
 		return func(ctx *gin.Context) {
@@ -67,7 +68,7 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string) gin.Handle
 		defer span.End()
 		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 获取客户端IP
-		clientIP := iphelper.GetClientIP(ctx)
+		clientIP := iphelper.GetClientIP(ctx, trustedProxies)
 		parsedIP := net.ParseIP(clientIP)
 		if parsedIP == nil {
 			logger.Warnf("[IP WhiteList] Invalid IP address: %s, Path: %s", clientIP, ctx.Request.URL.Path)

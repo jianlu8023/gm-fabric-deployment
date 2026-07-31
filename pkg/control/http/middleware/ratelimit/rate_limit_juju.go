@@ -61,8 +61,9 @@ func (rl *RateLimiterJuju) Allow(ip string) bool {
 // @param logger 日志记录器
 // @param rps 每秒请求数限制
 // @param burst 令牌桶突发大小
+// @param trustedProxies 可信代理网段列表，用于正确解析客户端真实IP；为 nil 时仅使用 RemoteAddr
 // @return gin.HandlerFunc Gin中间件函数
-func EnableRateLimitJuju(logger *zap.SugaredLogger, rps int64, burst int) gin.HandlerFunc {
+func EnableRateLimitJuju(logger *zap.SugaredLogger, rps int64, burst int, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
 	// 创建一个限流器实例
 	limiter := NewRateLimiterJuju(rps, burst)
 
@@ -75,7 +76,7 @@ func EnableRateLimitJuju(logger *zap.SugaredLogger, rps int64, burst int) gin.Ha
 		defer span.End()
 		ctx.Request = ctx.Request.WithContext(tCtx)
 		// 获取客户端IP地址
-		clientIP := iphelper.GetClientIP(ctx)
+		clientIP := iphelper.GetClientIP(ctx, trustedProxies)
 
 		// 检查是否允许请求通过
 		if !limiter.Allow(clientIP) {
