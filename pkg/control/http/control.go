@@ -74,6 +74,23 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	webLogger.Debug("[control] generate gin engine...")
 	engine := gin.New()
 
+	// 设置可信代理，影响所有 c.ClientIP() 调用（requestid/secure/logger 中间件及 ulule 限流内部均使用）
+	// 与 registerMiddlewares 中的 trustedProxiesCIDRList 保持一致，避免同一请求在不同位置获取到不同的客户端 IP
+	var trustedProxies []string
+	if serverConfig.TrustedProxies != nil && serverConfig.TrustedProxies.Enabled {
+		trustedProxies = serverConfig.TrustedProxies.IPs
+	} else {
+		// 未启用时传入空切片，gin 将不信任任何代理，c.ClientIP() 仅返回 RemoteAddr，防止 XFF 头被伪造
+		trustedProxies = []string{}
+	}
+	if err := engine.SetTrustedProxies(trustedProxies); err != nil {
+		webLogger.Errorf("[control] failed to set trusted proxies: %v", err)
+	} else if serverConfig.TrustedProxies != nil && serverConfig.TrustedProxies.Enabled {
+		webLogger.Infof("[control] gin trusted proxies enabled with %d entries", len(trustedProxies))
+	} else {
+		webLogger.Info("[control] gin trusted proxies disabled, c.ClientIP() will use RemoteAddr only")
+	}
+
 	srv := &http.Server{
 		Addr:         serverConfig.Address,
 		Handler:      engine.Handler(),
