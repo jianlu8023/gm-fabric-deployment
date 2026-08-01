@@ -14,41 +14,77 @@ import (
 	"gorm.io/gorm"
 )
 
+// Libp2pNodeMapper 节点数据访问接口
+//
+// @description 定义libp2p节点相关的数据访问方法，包括节点列表查询、本机节点查询及节点的插入与更新
+// @interface
 type Libp2pNodeMapper interface {
+	// NodeList 查询节点列表
+	//
+	// @description 根据查询条件获取节点列表，支持分页和不分页查询
+	// @param ctx context.Context 上下文
+	// @param query model.Libp2pNode 查询条件
+	// @param isPage bool 是否分页
+	// @param pageNo int 页码
+	// @param pageSize int 每页大小
+	// @return dbpage.Info[model.Libp2pNode] 节点列表分页结果
+	// @return error 错误信息
 	NodeList(ctx context.Context, query model.Libp2pNode, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.Libp2pNode], error)
+	// NodeMyself 查询本机节点信息
+	//
+	// @description 根据peerId查询本机节点的信息
+	// @param ctx context.Context 上下文
+	// @param peerId string 节点PeerID
+	// @return model.Libp2pNode 节点信息
+	// @return error 错误信息
 	NodeMyself(ctx context.Context, peerId string) (model.Libp2pNode, error)
+	// InsertOneWithCheck 插入节点并检查是否已存在
+	//
+	// @description 在事务中插入节点信息，若节点已存在则返回datasource.ErrAlreadyExists
+	// @param ctx context.Context 上下文
+	// @param record *model.Libp2pNode 节点信息
+	// @return error 错误信息，如果节点已存在返回ErrAlreadyExists
 	InsertOneWithCheck(ctx context.Context, record *model.Libp2pNode) error
+	// InsertOrUpdate 插入或更新节点信息
+	//
+	// @description 在事务中插入或更新节点信息，根据NodeId判断记录是否存在
+	// @param ctx context.Context 上下文
+	// @param record *model.Libp2pNode 节点信息
+	// @return error 错误信息
 	InsertOrUpdate(ctx context.Context, record *model.Libp2pNode) error
 }
 
-// libp2pNodeMapper 节点数据访问层结构体
+// libp2pNodeMapperImpl 节点数据访问层结构体
 //
 // @description 提供节点相关的数据访问操作
 // @struct
-type libp2pNodeMapper struct {
+type libp2pNodeMapperImpl struct {
 	*Mapper
 }
 
 // NewLibp2pNodeMapper 创建一个新的NodeMapper实例
 //
+// @description 创建并返回一个新的Libp2pNodeMapper实例，用于节点相关的数据访问操作
 // @param mapper *Mapper 基础Mapper
 // @return Libp2pNodeMapper NodeMapper实例
 func NewLibp2pNodeMapper(mapper *Mapper) Libp2pNodeMapper {
-	return &libp2pNodeMapper{
+	return &libp2pNodeMapperImpl{
 		Mapper: mapper,
 	}
 }
 
 // NodeList 查询节点列表
 //
+// @description 根据查询条件获取节点列表，支持分页和不分页查询，并集成链路追踪
+// @param ctx context.Context 上下文
 // @param query node.Info 查询条件
 // @param isPage bool 是否分页
 // @param pageNo int64 页码
 // @param pageSize int64 每页大小
 // @return dbpage.Info[node.Info] 节点列表
 // @return error 错误信息
-func (m *libp2pNodeMapper) NodeList(ctx context.Context, query model.Libp2pNode, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.Libp2pNode], error) {
-	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "list")
+func (m *libp2pNodeMapperImpl) NodeList(ctx context.Context, query model.Libp2pNode, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.Libp2pNode], error) {
+	_, span := tracer.StartSpan(ctx, "libp2pNodeMapperImpl", "list")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("query", query.String()),
@@ -100,10 +136,12 @@ func (m *libp2pNodeMapper) NodeList(ctx context.Context, query model.Libp2pNode,
 
 // InsertOneWithCheck 插入节点并检查是否已存在
 //
+// @description 在事务中插入节点信息，若NodeId已存在则返回datasource.ErrAlreadyExists，并集成链路追踪
+// @param ctx context.Context 上下文
 // @param record *node.Info 节点信息
 // @return error 错误信息，如果节点已存在返回ErrAlreadyExists
-func (m *libp2pNodeMapper) InsertOneWithCheck(ctx context.Context, record *model.Libp2pNode) error {
-	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "insertOrUpdateOneWithCheck")
+func (m *libp2pNodeMapperImpl) InsertOneWithCheck(ctx context.Context, record *model.Libp2pNode) error {
+	_, span := tracer.StartSpan(ctx, "libp2pNodeMapperImpl", "insertOrUpdateOneWithCheck")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("insert", record.String()),
@@ -139,10 +177,12 @@ func (m *libp2pNodeMapper) InsertOneWithCheck(ctx context.Context, record *model
 
 // InsertOrUpdate 插入或更新节点信息
 //
+// @description 在事务中插入或更新节点信息，根据NodeId判断记录是否存在，存在则更新，不存在则插入
+// @param ctx context.Context 上下文
 // @param record *node.Info 节点信息
 // @return error 错误信息
-func (m *libp2pNodeMapper) InsertOrUpdate(ctx context.Context, record *model.Libp2pNode) error {
-	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "insertOrUpdate")
+func (m *libp2pNodeMapperImpl) InsertOrUpdate(ctx context.Context, record *model.Libp2pNode) error {
+	_, span := tracer.StartSpan(ctx, "libp2pNodeMapperImpl", "insertOrUpdate")
 	defer span.End()
 	if m.db == nil {
 		span.RecordError(datasource.ErrNoDataSourceConn)
@@ -178,8 +218,15 @@ func (m *libp2pNodeMapper) InsertOrUpdate(ctx context.Context, record *model.Lib
 	})
 }
 
-func (m *libp2pNodeMapper) NodeMyself(ctx context.Context, peerId string) (model.Libp2pNode, error) {
-	_, span := tracer.StartSpan(ctx, "libp2pNodeMapper", "myself")
+// NodeMyself 查询本机节点信息
+//
+// @description 根据peerId查询本机节点的信息，并集成链路追踪
+// @param ctx context.Context 上下文
+// @param peerId string 节点PeerID
+// @return model.Libp2pNode 节点信息
+// @return error 错误信息
+func (m *libp2pNodeMapperImpl) NodeMyself(ctx context.Context, peerId string) (model.Libp2pNode, error) {
+	_, span := tracer.StartSpan(ctx, "libp2pNodeMapperImpl", "myself")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("node_id", peerId),

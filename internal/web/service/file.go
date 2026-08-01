@@ -43,11 +43,11 @@ type FileService interface {
 	CleanupTempDir(ctx *gin.Context, req *request.CleanUpTempDirRequest)
 }
 
-// fileService 文件服务结构体
+// fileServiceImpl 文件服务结构体
 //
 // @description 提供文件相关的服务功能，如文件上传、下载、管理等
 // @struct
-type fileService struct {
+type fileServiceImpl struct {
 	*Service                    // Service 基础服务，提供日志功能
 	mapper    mapper.FileMapper // mapper 文件映射器，用于数据访问
 	uploadDir string            // uploadDir 上传文件保存目录
@@ -74,7 +74,7 @@ func NewFileService(baseService *Service, fileMapper mapper.FileMapper, uploadDi
 	ensureDir(uploadDir)
 	ensureDir(uploadCacheDir)
 
-	return &fileService{
+	return &fileServiceImpl{
 		Service:   baseService,
 		mapper:    fileMapper,
 		uploadDir: uploadDir,
@@ -95,8 +95,8 @@ func ensureDir(dir string) {
 // @description 删除临时文件夹下的所有内容，用于清理上传过程中产生的临时文件
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CleanUpTempDirRequest 清理临时文件夹请求参数
-func (s *fileService) CleanupTempDir(ctx *gin.Context, req *request.CleanUpTempDirRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "cleanupTempDir",
+func (s *fileServiceImpl) CleanupTempDir(ctx *gin.Context, req *request.CleanUpTempDirRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "cleanupTempDir",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -142,8 +142,8 @@ func (s *fileService) CleanupTempDir(ctx *gin.Context, req *request.CleanUpTempD
 // @description 初始化文件上传，为文件生成唯一ID并创建必要的存储结构
 // @param ctx *gin.Context Gin上下文
 // @param req *request.FileInitUploadRequest 初始化上传请求参数
-func (s *fileService) InitUpload(ctx *gin.Context, req *request.FileInitUploadRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "initUpload",
+func (s *fileServiceImpl) InitUpload(ctx *gin.Context, req *request.FileInitUploadRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "initUpload",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -233,8 +233,8 @@ func (s *fileService) InitUpload(ctx *gin.Context, req *request.FileInitUploadRe
 // @description 上传文件分片，支持大文件的分片上传
 // @param ctx *gin.Context Gin上下文
 // @param req *request.FileUploadChunkRequest 上传分片请求参数
-func (s *fileService) UploadChunk(ctx *gin.Context, req *request.FileUploadChunkRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "uploadChunk",
+func (s *fileServiceImpl) UploadChunk(ctx *gin.Context, req *request.FileUploadChunkRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "uploadChunk",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -492,8 +492,8 @@ func (s *fileService) UploadChunk(ctx *gin.Context, req *request.FileUploadChunk
 // @description 合并所有分片文件，完成文件上传过程
 // @param ctx *gin.Context Gin上下文
 // @param req *request.CompleteUploadRequest 完成上传请求参数
-func (s *fileService) CompleteUpload(ctx *gin.Context, req *request.CompleteUploadRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "completeUpload",
+func (s *fileServiceImpl) CompleteUpload(ctx *gin.Context, req *request.CompleteUploadRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "completeUpload",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -742,8 +742,8 @@ func (s *fileService) CompleteUpload(ctx *gin.Context, req *request.CompleteUplo
 // @param ctx *gin.Context HTTP上下文
 // @param fileName string 文件名
 // @param fileSize float64 文件大小
-func (s *fileService) CheckExistingUpload(ctx *gin.Context, fileName string, fileSize float64) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "checkExistingUpload")
+func (s *fileServiceImpl) CheckExistingUpload(ctx *gin.Context, fileName string, fileSize float64) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "checkExistingUpload")
 	defer span.End()
 	s.logger.Debugf("checking existing upload for file: %s, size: %.0f", fileName, fileSize)
 
@@ -801,8 +801,8 @@ func (s *fileService) CheckExistingUpload(ctx *gin.Context, fileName string, fil
 // @description 获取指定文件的上传进度、已上传分片信息和当前状态
 // @param ctx *gin.Context Gin上下文
 // @param req *request.GetUploadStatusRequest 获取上传状态请求参数
-func (s *fileService) GetUploadStatus(ctx *gin.Context, req *request.GetUploadStatusRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "getUploadStatus",
+func (s *fileServiceImpl) GetUploadStatus(ctx *gin.Context, req *request.GetUploadStatusRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "getUploadStatus",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -893,8 +893,8 @@ func (s *fileService) GetUploadStatus(ctx *gin.Context, req *request.GetUploadSt
 // @param ctx context.Context 上下文
 // @param uploadID string 上传ID
 // @param reason string 失败原因
-func (s *fileService) cleanupFailedUpload(ctx context.Context, uploadID string, reason string) {
-	_, span := tracer.StartSpan(ctx, "fileService", "cleanupFailedUpload")
+func (s *fileServiceImpl) cleanupFailedUpload(ctx context.Context, uploadID string, reason string) {
+	_, span := tracer.StartSpan(ctx, "fileServiceImpl", "cleanupFailedUpload")
 	defer span.End()
 
 	s.logger.Warnf("开始清理失败的上传记录: uploadID=%s, 原因=%s", uploadID, reason)
@@ -979,8 +979,8 @@ func calculateFileHash(filePath string) (string, error) {
 // @description 获取文件的下载路径和文件名，用于客户端下载文件
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DownloadFileRequest 下载文件请求参数
-func (s *fileService) DownloadFile(ctx *gin.Context, req *request.DownloadFileRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "downloadFile",
+func (s *fileServiceImpl) DownloadFile(ctx *gin.Context, req *request.DownloadFileRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "downloadFile",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -1055,8 +1055,8 @@ func (s *fileService) DownloadFile(ctx *gin.Context, req *request.DownloadFileRe
 // @description 分页获取文件列表，支持关键词搜索
 // @param ctx *gin.Context Gin上下文
 // @param req *request.ListFilesRequest 列出文件请求参数
-func (s *fileService) ListFiles(ctx *gin.Context, req *request.ListFilesRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "listFiles",
+func (s *fileServiceImpl) ListFiles(ctx *gin.Context, req *request.ListFilesRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "listFiles",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -1095,8 +1095,8 @@ func (s *fileService) ListFiles(ctx *gin.Context, req *request.ListFilesRequest)
 // @description 删除指定的文件，包括文件实体和数据库记录
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DeleteFileRequest 删除文件请求参数
-func (s *fileService) DeleteFile(ctx *gin.Context, req *request.DeleteFileRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "deleteFile",
+func (s *fileServiceImpl) DeleteFile(ctx *gin.Context, req *request.DeleteFileRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "deleteFile",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -1189,8 +1189,8 @@ func (s *fileService) DeleteFile(ctx *gin.Context, req *request.DeleteFileReques
 // @description 根据uploadID恢复上传，获取已上传的分片信息
 // @param ctx *gin.Context Gin上下文
 // @param req *request.ResumeUploadRequest 恢复上传请求参数
-func (s *fileService) ResumeUpload(ctx *gin.Context, req *request.ResumeUploadRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "resumeUpload",
+func (s *fileServiceImpl) ResumeUpload(ctx *gin.Context, req *request.ResumeUploadRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "resumeUpload",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -1271,8 +1271,8 @@ func (s *fileService) ResumeUpload(ctx *gin.Context, req *request.ResumeUploadRe
 // @description 获取指定文件的详细元数据信息
 // @param ctx *gin.Context Gin上下文
 // @param req *request.GetFileMetadataRequest 获取文件元数据请求参数
-func (s *fileService) GetFileMetadata(ctx *gin.Context, req *request.GetFileMetadataRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "fileService", "getFileMetadata",
+func (s *fileServiceImpl) GetFileMetadata(ctx *gin.Context, req *request.GetFileMetadataRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "fileServiceImpl", "getFileMetadata",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()

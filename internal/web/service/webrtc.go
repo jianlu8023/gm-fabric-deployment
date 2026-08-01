@@ -18,30 +18,66 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+// WebRTCService WebRTC服务接口
+//
+// @description 定义WebRTC服务需要实现的方法，包括SDP协商、ICE候选交换和连接管理
+// @interface
 type WebRTCService interface {
+	// SdpOffer 处理SDP Offer请求
+	//
+	// @description 处理WebRTC信令交换的SDP Offer，创建PeerConnection并返回SDP Answer
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.WebRTCOfferRequest SDP Offer请求参数
 	SdpOffer(ctx *gin.Context, req *request.WebRTCOfferRequest)
+	// AddICECandidate 处理ICE候选
+	//
+	// @description 接收客户端提交的ICE候选并添加到指定连接的PeerConnection
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.WebRTCIceCandidateRequest ICE候选请求参数
 	AddICECandidate(ctx *gin.Context, req *request.WebRTCIceCandidateRequest)
+	// GetICECandidates 获取ICE候选列表
+	//
+	// @description 获取指定连接的ICE候选列表
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.GetICECandidatesRequest 获取ICE候选列表请求参数
 	GetICECandidates(ctx *gin.Context, req *request.GetICECandidatesRequest)
+	// CloseConnection 关闭WebRTC连接
+	//
+	// @description 关闭指定的WebRTC连接
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.CloseConnectionRequest 关闭连接请求参数
 	CloseConnection(ctx *gin.Context, req *request.CloseConnectionRequest)
 }
 
-// webRTCService WebRTC服务
-type webRTCService struct {
+// webRTCServiceImpl WebRTC服务结构体
+//
+// @description 提供WebRTC信令交换和连接管理的服务功能
+// @struct
+type webRTCServiceImpl struct {
 	*Service
 	webrtcControl *webrtc.Control
 }
 
 // NewWebRTCService 创建新的WebRTC服务
+//
+// @description 创建并返回一个新的WebRTC服务实例
+// @param baseService *Service 基础服务
+// @param webrtcControl *webrtc.Control WebRTC控制器
+// @return WebRTCService WebRTC服务实例
 func NewWebRTCService(baseService *Service, webrtcControl *webrtc.Control) WebRTCService {
-	return &webRTCService{
+	return &webRTCServiceImpl{
 		Service:       baseService,
 		webrtcControl: webrtcControl,
 	}
 }
 
 // SdpOffer 处理SDP Offer请求
-func (s *webRTCService) SdpOffer(ctx *gin.Context, req *request.WebRTCOfferRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "SdpOffer",
+//
+// @description 处理WebRTC信令交换的SDP Offer，创建PeerConnection并返回SDP Answer
+// @param ctx *gin.Context Gin上下文
+// @param req *request.WebRTCOfferRequest SDP Offer请求参数
+func (s *webRTCServiceImpl) SdpOffer(ctx *gin.Context, req *request.WebRTCOfferRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCServiceImpl", "SdpOffer",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -172,8 +208,8 @@ func (s *webRTCService) SdpOffer(ctx *gin.Context, req *request.WebRTCOfferReque
 }
 
 // AddICECandidate 处理ICE候选
-func (s *webRTCService) AddICECandidate(ctx *gin.Context, req *request.WebRTCIceCandidateRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "AddICECandidate",
+func (s *webRTCServiceImpl) AddICECandidate(ctx *gin.Context, req *request.WebRTCIceCandidateRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCServiceImpl", "AddICECandidate",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -214,8 +250,8 @@ func (s *webRTCService) AddICECandidate(ctx *gin.Context, req *request.WebRTCIce
 }
 
 // GetICECandidates 获取指定连接的ICE候选列表
-func (s *webRTCService) GetICECandidates(ctx *gin.Context, req *request.GetICECandidatesRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "GetICECandidatesRequest",
+func (s *webRTCServiceImpl) GetICECandidates(ctx *gin.Context, req *request.GetICECandidatesRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCServiceImpl", "GetICECandidatesRequest",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -290,8 +326,8 @@ func (s *webRTCService) GetICECandidates(ctx *gin.Context, req *request.GetICECa
 }
 
 // CloseConnection 关闭指定的WebRTC连接
-func (s *webRTCService) CloseConnection(ctx *gin.Context, req *request.CloseConnectionRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCService", "CloseConnection",
+func (s *webRTCServiceImpl) CloseConnection(ctx *gin.Context, req *request.CloseConnectionRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCServiceImpl", "CloseConnection",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()

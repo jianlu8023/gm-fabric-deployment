@@ -1,3 +1,7 @@
+// Package service 提供Web模块的业务逻辑层
+//
+// @Description 实现各业务模块（用户、验证码、系统、节点、Docker镜像、Docker网络、文件、gRPC、MFA、WebRTC、WebSocket等）
+// 的业务逻辑处理，负责调用mapper层进行数据操作，并集成链路追踪和统一响应封装。
 package service
 
 import (

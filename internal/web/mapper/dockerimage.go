@@ -15,28 +15,68 @@ import (
 	"gorm.io/gorm"
 )
 
+// DockerImageMapper Docker镜像数据访问接口
+//
+// @description 定义Docker镜像相关的数据访问方法，包括镜像的插入、更新、查询及批量逻辑删除
+// @interface
 type DockerImageMapper interface {
+	// InsertOneWithCheck 插入一条Docker镜像信息
+	//
+	// @description 插入镜像信息，若已存在（包括已逻辑删除的）则返回datasource.ErrAlreadyExists
+	// @param ctx context.Context 上下文
+	// @param imageInfo *model.DockerImage Docker镜像信息
+	// @return error 错误信息
 	InsertOneWithCheck(ctx context.Context, imageInfo *model.DockerImage) error
+	// InsertOrUpdateOne 插入或更新Docker镜像信息
+	//
+	// @description 插入或更新镜像信息，支持恢复已逻辑删除的记录
+	// @param ctx context.Context 上下文
+	// @param info *model.DockerImage Docker镜像信息
+	// @return error 错误信息
 	InsertOrUpdateOne(ctx context.Context, info *model.DockerImage) error
+	// DockerImageList 查询Docker镜像列表
+	//
+	// @description 根据查询条件获取镜像列表，支持分页和不分页查询
+	// @param ctx context.Context 上下文
+	// @param query model.DockerImage 查询条件
+	// @param isPage bool 是否分页
+	// @param pageNo int 页码
+	// @param pageSize int 每页大小
+	// @return dbpage.Info[model.DockerImage] 分页结果
+	// @return error 错误信息
 	DockerImageList(ctx context.Context, query model.DockerImage, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerImage], error)
+	// BatchLogicalDelete 批量逻辑删除Docker镜像
+	//
+	// @description 根据查询条件批量将镜像标记为已删除
+	// @param ctx context.Context 上下文
+	// @param query model.DockerImage 查询条件
+	// @return error 错误信息
 	BatchLogicalDelete(ctx context.Context, query model.DockerImage) error
+	// QueryOneExists 查询镜像是否存在
+	//
+	// @description 根据查询条件检查镜像是否存在（包括已逻辑删除的）
+	// @param ctx context.Context 上下文
+	// @param query model.DockerImage 查询条件
+	// @return bool 是否存在
+	// @return error 错误信息
 	QueryOneExists(ctx context.Context, query model.DockerImage) (bool, error)
 }
 
-// dockerImageMapper Docker镜像数据访问层结构体
+// dockerImageMapperImpl Docker镜像数据访问层结构体
 //
 // @description 提供Docker镜像相关的数据访问操作
 // @struct
-type dockerImageMapper struct {
+type dockerImageMapperImpl struct {
 	*Mapper
 }
 
 // NewDockerImageMapper 创建一个新的DockerImageMapper实例
 //
+// @description 创建并返回一个新的DockerImageMapper实例，用于Docker镜像相关的数据访问操作
 // @param baseMapper *Mapper 基础Mapper
 // @return DockerImageMapper DockerImageMapper实例
 func NewDockerImageMapper(baseMapper *Mapper) DockerImageMapper {
-	return &dockerImageMapper{
+	return &dockerImageMapperImpl{
 		Mapper: baseMapper,
 	}
 }
@@ -46,8 +86,8 @@ func NewDockerImageMapper(baseMapper *Mapper) DockerImageMapper {
 // @description 在事务中插入一条Docker镜像信息，如果数据库中已存在相同名称和位置的镜像（包括已逻辑删除的），则返回错误
 // @param imageInfo *model.DockerImage Docker镜像信息
 // @return error 错误信息
-func (m *dockerImageMapper) InsertOneWithCheck(ctx context.Context, imageInfo *model.DockerImage) error {
-	_, span := tracer.StartSpan(ctx, "dockerImageMapper", "insertOneWithCheck")
+func (m *dockerImageMapperImpl) InsertOneWithCheck(ctx context.Context, imageInfo *model.DockerImage) error {
+	_, span := tracer.StartSpan(ctx, "dockerImageMapperImpl", "insertOneWithCheck")
 	defer span.End()
 	span.SetAttributes(
 		attribute.String("query", imageInfo.String()),
@@ -84,7 +124,7 @@ func (m *dockerImageMapper) InsertOneWithCheck(ctx context.Context, imageInfo *m
 // @description 在事务中插入或更新Docker镜像信息，根据名称和位置确定是否存在
 // @param info *model.DockerImage 要插入或更新的Docker镜像信息
 // @return error 操作结果错误信息
-func (m *dockerImageMapper) InsertOrUpdateOne(ctx context.Context, info *model.DockerImage) error {
+func (m *dockerImageMapperImpl) InsertOrUpdateOne(ctx context.Context, info *model.DockerImage) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -130,7 +170,7 @@ func (m *dockerImageMapper) InsertOrUpdateOne(ctx context.Context, info *model.D
 // @param pageSize int 每页大小（当isPage为true时有效）
 // @return dbpage.Info[model.DockerImage] 分页结果信息
 // @return error 错误信息
-func (m *dockerImageMapper) DockerImageList(ctx context.Context, query model.DockerImage, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerImage], error) {
+func (m *dockerImageMapperImpl) DockerImageList(ctx context.Context, query model.DockerImage, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerImage], error) {
 	page := dbpage.Info[model.DockerImage]{}
 	if m.db == nil {
 		return page, datasource.ErrNoDataSourceConn
@@ -176,10 +216,11 @@ func (m *dockerImageMapper) DockerImageList(ctx context.Context, query model.Doc
 }
 
 // BatchLogicalDelete 批量逻辑删除Docker镜像信息
+//
 // @description 根据查询条件批量将Docker镜像标记为已删除
 // @param query model.DockerImage 查询条件
 // @return error 操作结果错误信息
-func (m *dockerImageMapper) BatchLogicalDelete(ctx context.Context, query model.DockerImage) error {
+func (m *dockerImageMapperImpl) BatchLogicalDelete(ctx context.Context, query model.DockerImage) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -217,11 +258,12 @@ func (m *dockerImageMapper) BatchLogicalDelete(ctx context.Context, query model.
 }
 
 // QueryOneExists 查询是否存在符合条件的Docker镜像记录
+//
 // @description 根据查询条件检查Docker镜像是否存在（包括已逻辑删除的）
 // @param query model.DockerImage 查询条件
 // @return bool 是否存在记录
 // @return error 操作结果错误信息
-func (m *dockerImageMapper) QueryOneExists(ctx context.Context, query model.DockerImage) (bool, error) {
+func (m *dockerImageMapperImpl) QueryOneExists(ctx context.Context, query model.DockerImage) (bool, error) {
 	if m.db == nil {
 		return false, datasource.ErrNoDataSourceConn
 	}

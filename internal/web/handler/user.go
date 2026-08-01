@@ -27,6 +27,7 @@ type UserHandler struct {
 
 // NewUserHandler 创建用户处理器
 //
+// @description 创建并返回一个新的用户处理器实例
 // @param baseHandler *Handler 基础处理器
 // @param service service.UserService 用户服务
 // @return *UserHandler 用户处理器实例

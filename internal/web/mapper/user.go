@@ -10,29 +10,68 @@ import (
 	"gorm.io/gorm"
 )
 
+// UserMapper 用户数据访问接口
+//
+// @description 定义用户相关的数据访问方法，包括用户的增删改查及登录信息维护
+// @interface
 type UserMapper interface {
+	// UpdateUser 更新用户信息
+	//
+	// @description 根据UserId更新未删除用户的信息
+	// @param user *model.UserInfo 包含要更新的用户信息
+	// @return error 错误信息
 	UpdateUser(user *model.UserInfo) error
+	// QueryExistUser 查询用户是否存在
+	//
+	// @description 根据查询条件检查未删除的用户是否存在
+	// @param query model.UserInfo 查询条件
+	// @return bool 用户是否存在
+	// @return error 错误信息
 	QueryExistUser(query model.UserInfo) (bool, error)
+	// InsertOneUser 插入一个用户
+	//
+	// @description 插入一条用户信息到数据库
+	// @param user *model.UserInfo 用户信息
+	// @return error 错误信息
 	InsertOneUser(user *model.UserInfo) error
+	// QueryUserByUsernameAndPassword 根据用户名和密码查询用户
+	//
+	// @description 根据用户名和密码查询未删除的用户信息
+	// @param username string 用户名
+	// @param password string 密码
+	// @return *model.UserInfo 用户信息
+	// @return error 错误信息，如果用户不存在或密码错误返回自定义错误
 	QueryUserByUsernameAndPassword(username, password string) (*model.UserInfo, error)
+	// UpdateLastLoginTime 更新用户最后登录时间
+	//
+	// @description 更新指定用户的最后登录时间为当前时间
+	// @param user *model.UserInfo 用户信息
+	// @return error 错误信息
 	UpdateLastLoginTime(user *model.UserInfo) error
+	// QueryUserByQuery 根据查询条件查询用户信息
+	//
+	// @description 根据传入的查询条件，查询未被删除的用户信息
+	// @param query model.UserInfo 查询条件
+	// @return model.UserInfo 用户信息
+	// @return error 错误信息
 	QueryUserByQuery(query model.UserInfo) (model.UserInfo, error)
 }
 
-// userMapper 用户数据访问层结构体
+// userMapperImpl 用户数据访问层结构体
 //
 // @description 提供用户相关的数据访问操作
 // @struct
-type userMapper struct {
+type userMapperImpl struct {
 	*Mapper
 }
 
 // NewUserMapper 创建一个新的UserMapper实例
 //
+// @description 创建并返回一个新的UserMapper实例，用于用户相关的数据访问操作
 // @param baseMapper *Mapper 基础Mapper
 // @return UserMapper UserMapper实例
 func NewUserMapper(baseMapper *Mapper) UserMapper {
-	return &userMapper{
+	return &userMapperImpl{
 		Mapper: baseMapper,
 	}
 }
@@ -43,7 +82,7 @@ func NewUserMapper(baseMapper *Mapper) UserMapper {
 // @param query model.UserInfo 查询条件
 // @return bool 用户是否存在
 // @return error 错误信息
-func (m *userMapper) QueryExistUser(query model.UserInfo) (bool, error) {
+func (m *userMapperImpl) QueryExistUser(query model.UserInfo) (bool, error) {
 	if m.db == nil {
 		return false, datasource.ErrNoDataSourceConn
 	}
@@ -72,7 +111,7 @@ func (m *userMapper) QueryExistUser(query model.UserInfo) (bool, error) {
 // @description 插入一条用户信息到数据库
 // @param user *model.UserInfo 用户信息
 // @return error 错误信息
-func (m *userMapper) InsertOneUser(user *model.UserInfo) error {
+func (m *userMapperImpl) InsertOneUser(user *model.UserInfo) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -92,7 +131,7 @@ func (m *userMapper) InsertOneUser(user *model.UserInfo) error {
 // @param password string 密码
 // @return *model.UserInfo 用户信息
 // @return error 错误信息，如果用户不存在或密码错误返回自定义错误
-func (m *userMapper) QueryUserByUsernameAndPassword(
+func (m *userMapperImpl) QueryUserByUsernameAndPassword(
 	username,
 	password string,
 ) (*model.UserInfo, error) {
@@ -124,7 +163,7 @@ func (m *userMapper) QueryUserByUsernameAndPassword(
 // @description 更新指定用户的最后登录时间为当前时间
 // @param user *model.UserInfo 用户信息
 // @return error 错误信息
-func (m *userMapper) UpdateLastLoginTime(user *model.UserInfo) error {
+func (m *userMapperImpl) UpdateLastLoginTime(user *model.UserInfo) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -150,7 +189,7 @@ func (m *userMapper) UpdateLastLoginTime(user *model.UserInfo) error {
 // @param query model.UserInfo 查询条件
 // @return model.UserInfo 用户信息
 // @return error 错误信息
-func (m *userMapper) QueryUserByQuery(query model.UserInfo) (model.UserInfo, error) {
+func (m *userMapperImpl) QueryUserByQuery(query model.UserInfo) (model.UserInfo, error) {
 	if m.db == nil {
 		return model.UserInfo{}, datasource.ErrNoDataSourceConn
 	}
@@ -169,7 +208,7 @@ func (m *userMapper) QueryUserByQuery(query model.UserInfo) (model.UserInfo, err
 // @description 更新指定用户的信息，根据UserId字段确定要更新的用户
 // @param user *model.UserInfo 包含要更新的用户信息
 // @return error 错误信息
-func (m *userMapper) UpdateUser(user *model.UserInfo) error {
+func (m *userMapperImpl) UpdateUser(user *model.UserInfo) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}

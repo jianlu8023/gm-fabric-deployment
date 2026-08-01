@@ -38,11 +38,11 @@ type DockerImageService interface {
 	DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest)
 }
 
-// dockerImageService Docker镜像服务结构体
+// dockerImageServiceImpl Docker镜像服务结构体
 //
 // @description 提供Docker镜像相关的服务功能，如镜像列表查询、镜像拉取等
 // @struct
-type dockerImageService struct {
+type dockerImageServiceImpl struct {
 	*Service                                  // Service 基础服务，提供日志功能
 	mapper           mapper.DockerImageMapper // mapper Docker镜像映射器，用于数据访问
 	dockerControl    *docker.Control          // dockerControl Docker控制器，用于Docker操作
@@ -60,9 +60,9 @@ type dockerImageService struct {
 // @param websocketControl *websocket.Control WebSocket控制器
 // @param libp2pControl *libp2p.Control libp2p控制器
 // @param antsPoolControl *ants.Control 线程池控制器
-// @return *dockerImageService Docker镜像服务实例
+// @return *dockerImageServiceImpl Docker镜像服务实例
 func NewDockerImageService(baseService *Service, mapper mapper.DockerImageMapper, dockerControl *docker.Control, websocketControl *websocket.Control, libp2pControl *libp2p.Control, antsPoolControl *ants.Control) DockerImageService {
-	return &dockerImageService{
+	return &dockerImageServiceImpl{
 		Service:          baseService,
 		mapper:           mapper,
 		dockerControl:    dockerControl,
@@ -77,8 +77,8 @@ func NewDockerImageService(baseService *Service, mapper mapper.DockerImageMapper
 // @description 根据查询条件获取Docker镜像列表
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerImageListRequest 镜像列表查询请求参数
-func (s *dockerImageService) DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageService", "dockerImageList",
+func (s *dockerImageServiceImpl) DockerImageList(ctx *gin.Context, req *request.DockerImageListRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageServiceImpl", "dockerImageList",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -114,8 +114,8 @@ func (s *dockerImageService) DockerImageList(ctx *gin.Context, req *request.Dock
 // @description 拉取指定名称的Docker镜像到本地或远程节点
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerImagePullRequest 镜像拉取请求参数
-func (s *dockerImageService) DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageService", "dockerImagePull",
+func (s *dockerImageServiceImpl) DockerImagePull(ctx *gin.Context, req *request.DockerImagePullRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerImageServiceImpl", "dockerImagePull",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()

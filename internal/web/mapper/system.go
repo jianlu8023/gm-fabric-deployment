@@ -7,15 +7,24 @@ import (
 	"gorm.io/gorm"
 )
 
+// SystemMapper 系统数据访问接口
+//
+// @description 定义系统相关的数据访问方法，包括系统初始化状态的查询
+// @interface
 type SystemMapper interface {
+	// GetSystemInit 获取系统初始化状态
+	//
+	// @description 获取系统的初始化状态，判断系统是否已经完成初始化配置
+	// @return bool 系统是否已初始化
+	// @return error 错误信息
 	GetSystemInit() (bool, error)
 }
 
-// systemMapper 系统数据访问层结构体
+// systemMapperImpl 系统数据访问层结构体
 //
 // @description 提供系统相关的数据访问操作
 // @struct
-type systemMapper struct {
+type systemMapperImpl struct {
 	*Mapper
 }
 
@@ -26,7 +35,7 @@ type systemMapper struct {
 // @return SystemMapper SystemMapper实例
 func NewSystemMapper(mapper *Mapper) SystemMapper {
 
-	m := &systemMapper{Mapper: mapper}
+	m := &systemMapperImpl{Mapper: mapper}
 
 	// 调用init方法
 	// m.init()
@@ -39,7 +48,7 @@ func NewSystemMapper(mapper *Mapper) SystemMapper {
 // @description 获取系统的初始化状态，判断系统是否已经完成初始化配置
 // @return bool 系统是否已初始化
 // @return error 错误信息
-func (m *systemMapper) GetSystemInit() (bool, error) {
+func (m *systemMapperImpl) GetSystemInit() (bool, error) {
 	if m.db == nil {
 		return false, datasource.ErrNoDataSourceConn
 	}
@@ -57,7 +66,7 @@ func (m *systemMapper) GetSystemInit() (bool, error) {
 // init 初始化系统状态数据
 //
 // @description 初始化系统状态数据表，确保系统状态记录存在
-func (m *systemMapper) init() {
+func (m *systemMapperImpl) init() {
 	if m.db == nil {
 		return
 	}

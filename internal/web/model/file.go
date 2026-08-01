@@ -79,14 +79,14 @@ func NewFileInfo() *FileInfo {
 	return &FileInfo{}
 }
 
-// FileChunk 文件分片模型
-//
-// @description 文件分片信息
-// @struct
 const (
 	fileChunkTableName = "t_file_chunk"
 )
 
+// FileChunk 文件分片模型
+//
+// @description 文件分片信息，记录每个分片的索引、大小、哈希值和存储路径
+// @struct
 type FileChunk struct {
 	AutoUid       int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                        // 自增id
 	UploadID      string       `json:"upload_id,omitempty" yaml:"upload_id,omitempty" gorm:"column:upload_id;type:varchar(255);default:'';not null"`           // 上传ID
@@ -97,7 +97,7 @@ type FileChunk struct {
 	FilePath      string       `json:"file_path,omitempty" yaml:"file_path,omitempty" gorm:"column:file_path;type:text;default:'';not null;"`                  // 分片文件路径
 	UploadTime    time.Time    `json:"upload_time,omitempty" yaml:"upload_time,omitempty" gorm:"column:upload_time;type:datetime;default:CURRENT_TIMESTAMP"`   // 上传时间
 	Status        sql.NullBool `json:"status,omitempty" yaml:"status,omitempty" gorm:"column:status;type:tinyint(1);default:1;"`                               // 状态 1: upload 0: missing
-	IsDelete      sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0;"`
+	IsDelete      sql.NullBool `json:"is_delete,omitempty" yaml:"is_delete,omitempty" gorm:"column:is_delete;type:tinyint(1);default:0;"`                      // 是否删除（默认0未删除）
 }
 
 // String 将文件分片信息转换为字符串表示

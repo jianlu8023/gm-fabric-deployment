@@ -12,17 +12,40 @@ import (
 	"gorm.io/gorm"
 )
 
+// DockerNetworkMapper Docker网络数据访问接口
+//
+// @description 定义Docker网络相关的数据访问方法，包括网络的插入或更新、批量逻辑删除及列表查询
+// @interface
 type DockerNetworkMapper interface {
+	// InsertOrUpdateOne 插入或更新Docker网络信息
+	//
+	// @description 插入或更新网络信息，支持恢复已逻辑删除的记录
+	// @param info *model.DockerNetwork Docker网络信息
+	// @return error 错误信息
 	InsertOrUpdateOne(info *model.DockerNetwork) error
+	// BatchLogicalDelete 批量逻辑删除Docker网络
+	//
+	// @description 根据查询条件批量将网络标记为已删除
+	// @param query model.DockerNetwork 查询条件
+	// @return error 错误信息
 	BatchLogicalDelete(query model.DockerNetwork) error
+	// DockerNetworkList 查询Docker网络列表
+	//
+	// @description 根据查询条件获取网络列表，支持分页和不分页查询
+	// @param query model.DockerNetwork 查询条件
+	// @param isPage bool 是否分页
+	// @param pageNo int 页码
+	// @param pageSize int 每页大小
+	// @return dbpage.Info[model.DockerNetwork] 分页结果
+	// @return error 错误信息
 	DockerNetworkList(query model.DockerNetwork, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerNetwork], error)
 }
 
-// dockerNetworkMapper Docker网络数据访问层结构体
+// dockerNetworkMapperImpl Docker网络数据访问层结构体
 //
 // @description 提供Docker网络相关的数据访问操作
 // @struct
-type dockerNetworkMapper struct {
+type dockerNetworkMapperImpl struct {
 	*Mapper
 }
 
@@ -32,7 +55,7 @@ type dockerNetworkMapper struct {
 // @param baseMapper *Mapper 基础Mapper
 // @return DockerNetworkMapper DockerNetworkMapper实例
 func NewDockerNetworkMapper(baseMapper *Mapper) DockerNetworkMapper {
-	return &dockerNetworkMapper{
+	return &dockerNetworkMapperImpl{
 		Mapper: baseMapper,
 	}
 }
@@ -42,7 +65,7 @@ func NewDockerNetworkMapper(baseMapper *Mapper) DockerNetworkMapper {
 // @description 在事务中插入或更新Docker网络信息，根据网络ID和位置确定是否存在
 // @param info *model.DockerNetwork 要插入或更新的Docker网络信息
 // @return error 操作结果错误信息
-func (m *dockerNetworkMapper) InsertOrUpdateOne(info *model.DockerNetwork) error {
+func (m *dockerNetworkMapperImpl) InsertOrUpdateOne(info *model.DockerNetwork) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -86,10 +109,11 @@ func (m *dockerNetworkMapper) InsertOrUpdateOne(info *model.DockerNetwork) error
 }
 
 // BatchLogicalDelete 批量逻辑删除Docker网络信息
+//
 // @description 根据查询条件批量将Docker网络标记为已删除
 // @param query model.DockerNetwork 查询条件
 // @return error 操作结果错误信息
-func (m *dockerNetworkMapper) BatchLogicalDelete(query model.DockerNetwork) error {
+func (m *dockerNetworkMapperImpl) BatchLogicalDelete(query model.DockerNetwork) error {
 	if m.db == nil {
 		return datasource.ErrNoDataSourceConn
 	}
@@ -135,7 +159,7 @@ func (m *dockerNetworkMapper) BatchLogicalDelete(query model.DockerNetwork) erro
 // @param pageSize int 每页大小（当isPage为true时有效）
 // @return dbpage.Info[model.DockerNetwork] 分页结果信息
 // @return error 错误信息
-func (m *dockerNetworkMapper) DockerNetworkList(query model.DockerNetwork, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerNetwork], error) {
+func (m *dockerNetworkMapperImpl) DockerNetworkList(query model.DockerNetwork, isPage bool, pageNo int, pageSize int) (dbpage.Info[model.DockerNetwork], error) {
 	page := dbpage.Info[model.DockerNetwork]{}
 	if m.db == nil {
 		return page, datasource.ErrNoDataSourceConn

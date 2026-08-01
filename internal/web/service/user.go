@@ -18,16 +18,30 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 )
 
+// UserService 用户服务接口
+//
+// @description 定义用户服务需要实现的方法，包括用户注册和登录
+// @interface
 type UserService interface {
+	// LoginUser 用户登录
+	//
+	// @description 处理用户登录请求，验证用户凭据，生成JWT令牌和会话
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.UserLoginRequest 用户登录请求参数
 	LoginUser(ctx *gin.Context, req *request.UserLoginRequest)
+	// RegisterUser 用户注册
+	//
+	// @description 处理用户注册请求，验证用户邮箱是否已存在，创建新用户
+	// @param ctx *gin.Context Gin上下文
+	// @param req *request.UserRegisterRequest 用户注册请求参数
 	RegisterUser(ctx *gin.Context, req *request.UserRegisterRequest)
 }
 
-// userService 用户服务结构体
+// userServiceImpl 用户服务结构体
 //
 // @description 提供用户相关的服务功能，如用户注册、登录等
 // @struct
-type userService struct {
+type userServiceImpl struct {
 	*Service                          // Service 基础服务
 	mapper         mapper.UserMapper  // mapper 用户数据访问对象
 	sessionManager jwt.SessionManager // sessionManager 会话管理器
@@ -43,7 +57,7 @@ type userService struct {
 func NewUserService(baseService *Service, userMapper mapper.UserMapper,
 	sessionManager jwt.SessionManager,
 ) UserService {
-	return &userService{
+	return &userServiceImpl{
 		Service:        baseService,
 		mapper:         userMapper,
 		sessionManager: sessionManager,
@@ -55,8 +69,8 @@ func NewUserService(baseService *Service, userMapper mapper.UserMapper,
 // @description 处理用户注册请求，验证用户邮箱是否已存在，创建新用户
 // @param ctx *gin.Context Gin上下文
 // @param req *request.UserRegisterRequest 用户注册请求参数
-func (s *userService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "userService", "registerUser",
+func (s *userServiceImpl) RegisterUser(ctx *gin.Context, req *request.UserRegisterRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "userServiceImpl", "registerUser",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()
@@ -116,8 +130,8 @@ func (s *userService) RegisterUser(ctx *gin.Context, req *request.UserRegisterRe
 // @description 处理用户登录请求，验证用户凭据，生成JWT令牌和会话
 // @param ctx *gin.Context Gin上下文
 // @param req *request.UserLoginRequest 用户登录请求参数
-func (s *userService) LoginUser(ctx *gin.Context, req *request.UserLoginRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "userService", "loginUser",
+func (s *userServiceImpl) LoginUser(ctx *gin.Context, req *request.UserLoginRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "userServiceImpl", "loginUser",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()

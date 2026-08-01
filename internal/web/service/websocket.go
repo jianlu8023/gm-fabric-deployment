@@ -46,11 +46,11 @@ type WebSocketService interface {
 	GetConnectionListService(ctx *gin.Context, req *request.WSConnectionListRequest, userID string)
 }
 
-// webSocketService WebSocket服务结构体
+// webSocketServiceImpl WebSocket服务结构体
 //
 // @description WebSocket服务的具体实现，处理WebSocket相关的业务逻辑
 // @struct
-type webSocketService struct {
+type webSocketServiceImpl struct {
 	*Service                            // Service 基础服务，提供日志功能
 	wsMapper  mapper.WebSocketMapper    // wsMapper WebSocket映射器，用于数据访问
 	wsControl *controlwebsocket.Control // wsControl WebSocket控制器，用于WebSocket操作
@@ -64,7 +64,7 @@ type webSocketService struct {
 // @param wsControl *controlwebsocket.Control WebSocket控制器
 // @return WebSocketService WebSocket服务实例
 func NewWebSocketService(service *Service, wsMapper mapper.WebSocketMapper, wsControl *controlwebsocket.Control) WebSocketService {
-	ws := &webSocketService{
+	ws := &webSocketServiceImpl{
 		Service:   service,
 		wsMapper:  wsMapper,
 		wsControl: wsControl,
@@ -79,7 +79,7 @@ func NewWebSocketService(service *Service, wsMapper mapper.WebSocketMapper, wsCo
 // initializeMessageHandling 初始化消息处理功能
 //
 // @description 初始化WebSocket消息处理功能，设置各种回调函数
-func (s *webSocketService) initializeMessageHandling() {
+func (s *webSocketServiceImpl) initializeMessageHandling() {
 	if s.wsControl == nil {
 		s.logger.Warnf("[websocket service] wsControl is nil, skipping message handling initialization")
 		return
@@ -111,7 +111,7 @@ func (s *webSocketService) initializeMessageHandling() {
 // registerDefaultMessageHandlers 注册默认消息处理器
 //
 // @description 注册默认的WebSocket消息处理器
-func (s *webSocketService) registerDefaultMessageHandlers() {
+func (s *webSocketServiceImpl) registerDefaultMessageHandlers() {
 	// 注册文本消息处理器
 
 	s.logger.Debugf("[websocket service] default message handlers registered")
@@ -121,7 +121,7 @@ func (s *webSocketService) registerDefaultMessageHandlers() {
 //
 // @description WebSocket连接建立时的回调函数，发送欢迎消息
 // @param conn *controlwebsocket.Connection 连接对象
-func (s *webSocketService) onConnectionEstablished(conn *controlwebsocket.Connection) {
+func (s *webSocketServiceImpl) onConnectionEstablished(conn *controlwebsocket.Connection) {
 	s.logger.Infof("[websocket service] new connection established: %s", conn.NodeID)
 
 	// 可以在这里添加连接建立时的业务逻辑
@@ -152,7 +152,7 @@ func (s *webSocketService) onConnectionEstablished(conn *controlwebsocket.Connec
 // @description 处理发送WebSocket消息请求，根据目标类型进行不同的消息发送处理
 // @param ctx *gin.Context Gin上下文
 // @param req *request.WSMessageRequest WebSocket消息请求参数
-func (s *webSocketService) SendMessageService(ctx *gin.Context, req *request.WSMessageRequest) {
+func (s *webSocketServiceImpl) SendMessageService(ctx *gin.Context, req *request.WSMessageRequest) {
 	s.logger.Debugf("starting websocket send message service...")
 	s.logger.Debugf("request: %v", req)
 
@@ -203,7 +203,7 @@ func (s *webSocketService) SendMessageService(ctx *gin.Context, req *request.WSM
 //
 // @description WebSocket连接关闭时的回调函数
 // @param conn *controlwebsocket.Connection 连接对象
-func (s *webSocketService) onConnectionClosed(conn *controlwebsocket.Connection) {
+func (s *webSocketServiceImpl) onConnectionClosed(conn *controlwebsocket.Connection) {
 	s.logger.Infof("[websocket service] connection closed: %s", conn.NodeID)
 
 	// 可以在这里添加连接关闭时的业务逻辑
@@ -215,7 +215,7 @@ func (s *webSocketService) onConnectionClosed(conn *controlwebsocket.Connection)
 // @description 接收WebSocket消息的通用回调函数
 // @param conn *controlwebsocket.Connection 连接对象
 // @param message controlwebsocket.Message 消息对象
-func (s *webSocketService) onMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
+func (s *webSocketServiceImpl) onMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received message from %s: %s", conn.NodeID, string(message.Content))
 
 	// 可以在这里添加通用的消息处理逻辑
@@ -227,7 +227,7 @@ func (s *webSocketService) onMessageReceived(conn *controlwebsocket.Connection, 
 // @description 接收WebSocket文本消息的回调函数
 // @param conn *controlwebsocket.Connection 连接对象
 // @param message controlwebsocket.Message 消息对象
-func (s *webSocketService) onTextMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
+func (s *webSocketServiceImpl) onTextMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received text message from %s: %s", conn.NodeID, string(message.Content))
 
 	// 这里可以添加特定的文本消息处理逻辑
@@ -239,7 +239,7 @@ func (s *webSocketService) onTextMessageReceived(conn *controlwebsocket.Connecti
 // @description 接收WebSocket二进制消息的回调函数
 // @param conn *controlwebsocket.Connection 连接对象
 // @param message controlwebsocket.Message 消息对象
-func (s *webSocketService) onBinaryMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
+func (s *webSocketServiceImpl) onBinaryMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received binary message from %s: %d bytes", conn.NodeID, len(message.Content))
 
 	// 这里可以添加二进制消息处理逻辑
@@ -251,7 +251,7 @@ func (s *webSocketService) onBinaryMessageReceived(conn *controlwebsocket.Connec
 // @description 接收WebSocket ping消息的回调函数
 // @param conn *controlwebsocket.Connection 连接对象
 // @param message controlwebsocket.Message 消息对象
-func (s *webSocketService) onPingMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
+func (s *webSocketServiceImpl) onPingMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received ping from %s", conn.NodeID)
 	// ping消息通常用于心跳检测，一般不需要特殊处理
 }
@@ -261,7 +261,7 @@ func (s *webSocketService) onPingMessageReceived(conn *controlwebsocket.Connecti
 // @description 接收WebSocket pong消息的回调函数
 // @param conn *controlwebsocket.Connection 连接对象
 // @param message controlwebsocket.Message 消息对象
-func (s *webSocketService) onPongMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
+func (s *webSocketServiceImpl) onPongMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received pong from %s", conn.NodeID)
 	// pong消息用于响应ping，表示连接正常
 }
@@ -271,7 +271,7 @@ func (s *webSocketService) onPongMessageReceived(conn *controlwebsocket.Connecti
 // @description 接收WebSocket关闭消息的回调函数
 // @param conn *controlwebsocket.Connection 连接对象
 // @param message controlwebsocket.Message 消息对象
-func (s *webSocketService) onCloseMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
+func (s *webSocketServiceImpl) onCloseMessageReceived(conn *controlwebsocket.Connection, message controlwebsocket.Message) {
 	s.logger.Debugf("[websocket service] received close message from %s", conn.NodeID)
 	// 处理关闭消息，可以在这里进行最后的资源清理
 }
@@ -282,7 +282,7 @@ func (s *webSocketService) onCloseMessageReceived(conn *controlwebsocket.Connect
 // @param message interface{} 消息对象
 // @return []byte 序列化后的字节数据
 // @return error 错误信息
-func (s *webSocketService) marshalMessage(message interface{}) ([]byte, error) {
+func (s *webSocketServiceImpl) marshalMessage(message interface{}) ([]byte, error) {
 	return json.Marshal(message)
 }
 
@@ -292,7 +292,7 @@ func (s *webSocketService) marshalMessage(message interface{}) ([]byte, error) {
 // @param ctx *gin.Context Gin上下文
 // @param req *request.WSConnectRequest WebSocket连接请求参数
 // @param userId any 用户ID
-func (s *webSocketService) ConnectService(ctx *gin.Context, req *request.WSConnectRequest, userId any) {
+func (s *webSocketServiceImpl) ConnectService(ctx *gin.Context, req *request.WSConnectRequest, userId any) {
 	s.logger.Debugf("starting websocket connect service...")
 	s.logger.Debugf("request: %v", req)
 
@@ -318,7 +318,7 @@ func (s *webSocketService) ConnectService(ctx *gin.Context, req *request.WSConne
 // @description 处理WebSocket断开连接请求，验证用户权限，更新连接状态，移除连接
 // @param ctx *gin.Context Gin上下文
 // @param req *request.WSDisconnectRequest WebSocket断开连接请求参数
-func (s *webSocketService) DisconnectService(ctx *gin.Context, req *request.WSDisconnectRequest) {
+func (s *webSocketServiceImpl) DisconnectService(ctx *gin.Context, req *request.WSDisconnectRequest) {
 	s.logger.Debugf("starting websocket disconnect service for connection: %s", req.NodeID)
 
 	connection := s.wsControl.GetConnection(req.NodeID)
@@ -343,7 +343,7 @@ func (s *webSocketService) DisconnectService(ctx *gin.Context, req *request.WSDi
 // @param ctx *gin.Context Gin上下文
 // @param req *request.WSConnectionListRequest 连接列表请求参数
 // @param userID string 用户ID
-func (s *webSocketService) GetConnectionListService(ctx *gin.Context, req *request.WSConnectionListRequest, userID string) {
+func (s *webSocketServiceImpl) GetConnectionListService(ctx *gin.Context, req *request.WSConnectionListRequest, userID string) {
 	s.logger.Debugf("starting get connection list service for user: %s", userID)
 
 	// 从wsControl中获取所有连接信息

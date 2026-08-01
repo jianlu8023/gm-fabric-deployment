@@ -1,3 +1,6 @@
+// Package router 提供Web模块的路由注册功能
+//
+// @description 负责创建和组装所有业务模块的处理器、服务和路由，返回统一的路由处理器列表
 package router
 
 import (
@@ -30,8 +33,8 @@ import (
 // @param httpControl *http.Control HTTP控制器
 // @param captchaControl *captcha.Control 验证码控制器
 // @param antsPoolControl *ants.Control 线程池控制器
-// @param fabriccaControl *fabricca.Control Fabric CA控制器
 // @param mfaControl *mfa.Control MFA控制器
+// @param webrtcControl *webrtc.Control WebRTC控制器
 // @return []commonhttp.RouterHandler 路由处理器列表
 func NewRouter(loggerControl *logger.Control,
 	libp2pControl *libp2p.Control,

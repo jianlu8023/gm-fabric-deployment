@@ -19,16 +19,18 @@ import (
 // @interface
 type DockerNetworkService interface {
 	// DockerNetworkList 获取Docker网络列表
+	//
+	// @description 获取Docker网络列表信息
 	// @param ctx *gin.Context Gin上下文
 	// @param req *request.DockerNetworkListRequest Docker网络列表请求参数
 	DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest)
 }
 
-// dockerNetworkService Docker网络服务结构体
+// dockerNetworkServiceImpl Docker网络服务结构体
 //
 // @description 提供Docker网络相关的服务功能，如获取Docker网络列表
 // @struct
-type dockerNetworkService struct {
+type dockerNetworkServiceImpl struct {
 	*Service                                 // Service 基础服务，提供日志功能
 	mapper        mapper.DockerNetworkMapper // mapper Docker网络映射器，用于数据访问
 	dockerControl *docker.Control            // dockerControl Docker控制器，用于Docker操作
@@ -45,7 +47,7 @@ func NewDockerNetworkService(baseService *Service,
 	mapper mapper.DockerNetworkMapper,
 	dockerControl *docker.Control,
 ) DockerNetworkService {
-	return &dockerNetworkService{
+	return &dockerNetworkServiceImpl{
 		Service:       baseService,
 		mapper:        mapper,
 		dockerControl: dockerControl,
@@ -57,8 +59,8 @@ func NewDockerNetworkService(baseService *Service,
 // @description 获取Docker网络列表信息
 // @param ctx *gin.Context Gin上下文
 // @param req *request.DockerNetworkListRequest Docker网络列表请求参数
-func (s *dockerNetworkService) DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest) {
-	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerNetworkService", "dockerNetworkList",
+func (s *dockerNetworkServiceImpl) DockerNetworkList(ctx *gin.Context, req *request.DockerNetworkListRequest) {
+	_, span := tracer.StartSpan(ctx.Request.Context(), "dockerNetworkServiceImpl", "dockerNetworkList",
 		attribute.String("requestParam", req.String()),
 	)
 	defer span.End()

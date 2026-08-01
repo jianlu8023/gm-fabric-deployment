@@ -26,6 +26,7 @@ type DockerImageHandler struct {
 
 // NewDockerImageHandler 创建Docker镜像处理器
 //
+// @description 创建并返回一个新的Docker镜像处理器实例
 // @param baseHandler *Handler 基础处理器
 // @param service service.DockerImageService Docker镜像服务
 // @return *DockerImageHandler Docker镜像处理器实例

@@ -15,13 +15,21 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
-// WebRTCHandler WebRTC处理器
+// WebRTCHandler WebRTC处理器结构体
+//
+// @description 处理WebRTC相关的HTTP请求，包括SDP协商、ICE候选交换和连接管理
+// @struct
 type WebRTCHandler struct {
-	*Handler
-	service service.WebRTCService
+	*Handler                       // Handler 基础处理器，提供日志功能
+	service  service.WebRTCService // service WebRTC服务，处理WebRTC相关的业务逻辑
 }
 
-// NewWebRTCHandler 创建新的WebRTC处理器
+// NewWebRTCHandler 创建WebRTC处理器
+//
+// @description 创建并返回一个新的WebRTC处理器实例
+// @param baseHandler *Handler 基础处理器
+// @param webRTCService service.WebRTCService WebRTC服务
+// @return *WebRTCHandler WebRTC处理器实例
 func NewWebRTCHandler(baseHandler *Handler, webRTCService service.WebRTCService) *WebRTCHandler {
 	return &WebRTCHandler{
 		Handler: baseHandler,
@@ -30,6 +38,11 @@ func NewWebRTCHandler(baseHandler *Handler, webRTCService service.WebRTCService)
 }
 
 // sdpOfferHandler 处理SDP Offer请求
+//
+// @description 处理WebRTC信令交换的SDP Offer请求，绑定参数并调用服务层进行SDP协商
+// @method POST
+// @url /webrtc/offer
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *WebRTCHandler) sdpOfferHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCHandler", "sdpOfferHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -69,6 +82,11 @@ func (h *WebRTCHandler) sdpOfferHandler(ctx *gin.Context) {
 }
 
 // iceCandidateHandler 处理ICE候选请求
+//
+// @description 接收客户端提交的ICE候选并调用服务层添加到指定连接的PeerConnection
+// @method POST
+// @url /webrtc/ice
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *WebRTCHandler) iceCandidateHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCHandler", "iceCandidateHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -108,6 +126,11 @@ func (h *WebRTCHandler) iceCandidateHandler(ctx *gin.Context) {
 }
 
 // getICECandidatesHandler 处理获取ICE候选列表的请求
+//
+// @description 根据连接ID从URI参数获取指定连接的ICE候选列表
+// @method GET
+// @url /webrtc/ice/:connectionId
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *WebRTCHandler) getICECandidatesHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCHandler", "getICECandidatesHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -148,6 +171,11 @@ func (h *WebRTCHandler) getICECandidatesHandler(ctx *gin.Context) {
 }
 
 // closeConnectionHandler 处理关闭连接的请求
+//
+// @description 根据连接ID从URI参数关闭指定的WebRTC连接
+// @method POST
+// @url /webrtc/close/:connectionId
+// @param ctx *gin.Context Gin上下文，包含HTTP请求和响应对象
 func (h *WebRTCHandler) closeConnectionHandler(ctx *gin.Context) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "webRTCHandler", "closeConnectionHandler",
 		attribute.String("requestId", requestid.Get(ctx)),
@@ -188,7 +216,10 @@ func (h *WebRTCHandler) closeConnectionHandler(ctx *gin.Context) {
 	span.SetStatus(codes.Ok, "success")
 }
 
-// Routers 返回路由处理器列表
+// Routers 获取WebRTC相关路由列表
+//
+// @description 返回WebRTC相关的所有HTTP路由定义，包括ping、SDP Offer、ICE候选等
+// @return []commonhttp.RouterHandler WebRTC路由处理器列表
 func (h *WebRTCHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{

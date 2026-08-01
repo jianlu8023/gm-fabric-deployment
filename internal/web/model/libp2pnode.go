@@ -11,6 +11,10 @@ const (
 	nodeInfoTableName = "t_node_info"
 )
 
+// Libp2pNode 节点信息模型
+//
+// @description 存储libp2p网络中节点的信息，包括节点ID、IP地址、心跳时间和存活状态
+// @struct
 type Libp2pNode struct {
 	Model
 	AutoUid              int          `json:"auto_uid,omitempty" yaml:"auto_uid,omitempty" gorm:"column:auto_uid;primary_key;auto_increment;"`                                 // 自增ID

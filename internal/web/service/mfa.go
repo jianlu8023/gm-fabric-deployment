@@ -15,17 +15,36 @@ import (
 	"go.opentelemetry.io/otel/codes"
 )
 
+// MFAService MFA服务接口
+//
+// @description 定义MFA服务需要实现的方法，包括密钥生成、验证码校验和二维码生成
+// @interface
 type MFAService interface {
+	// GenerateRecoverySecret 生成MFA密钥
+	//
+	// @description 为用户生成MFA密钥、二维码URL和二维码图片
+	// @param ctx *gin.Context HTTP上下文
+	// @param req *request.MFARecoverySecretRequest 生成密钥请求
 	GenerateRecoverySecret(ctx *gin.Context, req *request.MFARecoverySecretRequest)
+	// VerifyCode 验证MFA代码
+	//
+	// @description 验证用户提供的MFA代码是否有效
+	// @param ctx *gin.Context HTTP上下文
+	// @param req *request.MFAVerifyCodeRequest 验证代码请求
 	VerifyCode(ctx *gin.Context, req *request.MFAVerifyCodeRequest)
+	// GenerateQrCodeImage 生成MFA二维码图片
+	//
+	// @description 为用户生成MFA二维码图片
+	// @param ctx *gin.Context HTTP上下文
+	// @param req *request.MFAQrcodeRequest MFA二维码请求参数
 	GenerateQrCodeImage(ctx *gin.Context, req *request.MFAQrcodeRequest)
 }
 
-// mFAService MFA服务结构体
+// mFAServiceImpl MFA服务结构体
 //
 // @description MFA相关的业务服务
 // @struct
-type mFAService struct {
+type mFAServiceImpl struct {
 	*Service                     // Service 基础服务，提供日志功能
 	userMapper mapper.UserMapper // userMapper 用户映射器，用于用户数据访问
 	mfaControl *mfa.Control      // mfaControl MFA控制器，用于MFA操作
@@ -39,7 +58,7 @@ type mFAService struct {
 // @param mfaControl *mfa.Control MFA控制器
 // @return MFAService MFA服务实例
 func NewMFAService(baseService *Service, userMapper mapper.UserMapper, mfaControl *mfa.Control) MFAService {
-	return &mFAService{
+	return &mFAServiceImpl{
 		Service:    baseService,
 		userMapper: userMapper,
 		mfaControl: mfaControl,
@@ -51,7 +70,7 @@ func NewMFAService(baseService *Service, userMapper mapper.UserMapper, mfaContro
 // @description 为用户生成MFA密钥、二维码URL和二维码图片
 // @param ctx *gin.Context HTTP上下文
 // @param req *request.MFARecoverySecretRequest 生成密钥请求
-func (s *mFAService) GenerateRecoverySecret(ctx *gin.Context, req *request.MFARecoverySecretRequest) {
+func (s *mFAServiceImpl) GenerateRecoverySecret(ctx *gin.Context, req *request.MFARecoverySecretRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaService", "generateRecoverySecret",
 		attribute.String("requestParam", req.String()),
 	)
@@ -135,7 +154,7 @@ func (s *mFAService) GenerateRecoverySecret(ctx *gin.Context, req *request.MFARe
 // @description 验证用户提供的MFA代码是否有效
 // @param ctx *gin.Context HTTP上下文
 // @param req *request.MFAVerifyCodeRequest 验证代码请求
-func (s *mFAService) VerifyCode(ctx *gin.Context, req *request.MFAVerifyCodeRequest) {
+func (s *mFAServiceImpl) VerifyCode(ctx *gin.Context, req *request.MFAVerifyCodeRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaService", "verifyCode",
 		attribute.String("requestParam", req.String()),
 	)
@@ -198,7 +217,7 @@ func (s *mFAService) VerifyCode(ctx *gin.Context, req *request.MFAVerifyCodeRequ
 // @description 为用户生成MFA二维码图片
 // @param ctx *gin.Context HTTP上下文
 // @param req *request.MFAQrcodeRequest MFA二维码请求参数
-func (s *mFAService) GenerateQrCodeImage(ctx *gin.Context, req *request.MFAQrcodeRequest) {
+func (s *mFAServiceImpl) GenerateQrCodeImage(ctx *gin.Context, req *request.MFAQrcodeRequest) {
 	_, span := tracer.StartSpan(ctx.Request.Context(), "mfaService", "generateQrCodeImage",
 		attribute.String("requestParam", req.String()),
 	)

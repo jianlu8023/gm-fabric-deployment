@@ -1,3 +1,6 @@
+// Package handler 提供Web模块的HTTP请求处理器
+//
+// @description 负责接收HTTP请求、绑定参数和参数验证，调用service层处理业务逻辑，并通过统一封装返回响应结果
 package handler
 
 import (
