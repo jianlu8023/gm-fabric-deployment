@@ -1,129 +1,68 @@
 package jwt
 
 import (
-	"net/http"
-	"strings"
 	"time"
 
-	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
-	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	"github.com/jianlu8023/golang-example/pkg/control/tracer"
-	"go.opentelemetry.io/otel/codes"
-
-	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"go.uber.org/zap"
 )
 
-// EnableJWT 启用JWT认证中间件
-// @description 用于验证JWT令牌和会话有效性
-// @param logger Logger实例，用于记录日志
-// @param sessionManager 会话管理器实例
-// @return gin.HandlerFunc Gin中间件函数
-func EnableJWT(logger *zap.SugaredLogger, sessionManager SessionManager) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "jwt")
-		defer span.End()
-		// 从Authorization头中获取token
-		tokenString := ctx.GetHeader("Authorization")
-		if stringer.IsBlank(tokenString) {
-			logger.Errorf("JWT认证失败：未提供token...")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized,
-				commonhttp.BaseResponse{
-					Code:    http.StatusUnauthorized,
-					Message: "业务处理失败",
-					Success: false,
-					Data:    "未提供认证信息",
-				},
-			)
-			ctx.Abort()
-			span.SetStatus(codes.Error, "未提供认证信息")
-			return
-		}
+type JwtManager interface {
+	GetSessionTTL() time.Duration
+	ParseToken(tokenString string) (*Claims, error)
+	GenerateToken(userID, username, role, sessionID string, expireTime int64) (string, *Claims, error)
+}
 
-		// 解析token前缀
-		bearerToken := strings.Split(tokenString, " ")
-		if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
-			logger.Errorf("JWT认证失败：token格式错误...")
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized,
-				commonhttp.BaseResponse{
-					Code:    http.StatusUnauthorized,
-					Message: "业务处理失败",
-					Success: false,
-					Data:    "认证信息格式错误",
-				},
-			)
-			ctx.Abort()
-			span.SetStatus(codes.Error, "认证信息格式错误")
-			return
-		}
+// jwtManagerImpl JWT管理器
+//
+// @description 持有JWT签名密钥与会话有效期，提供令牌生成与解析能力；认证中间件已迁移至 auth 包
+// @struct
+type jwtManagerImpl struct {
+	// secret JWT签名密钥
+	secret []byte
+	// sessionTTL 会话有效期
+	sessionTTL time.Duration
+}
 
-		// 验证token
-		claims, err := ParseToken(bearerToken[1])
-		if err != nil {
-			logger.Errorf("JWT认证失败：token解析错误: %v", err)
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized,
-				commonhttp.BaseResponse{
-					Code:    http.StatusUnauthorized,
-					Message: "业务处理失败",
-					Success: false,
-					Data:    "认证信息无效或已过期",
-				},
-			)
-			ctx.Abort()
-			span.SetStatus(codes.Error, "认证信息无效或已过期")
-			return
-		}
-
-		// 验证会话
-		if sessionManager != nil {
-			if !sessionManager.ValidateSession(claims.SessionID) {
-				logger.Errorf("JWT认证失败：会话已失效: %v", claims.SessionID)
-				ctx.AbortWithStatusJSON(http.StatusUnauthorized,
-					commonhttp.BaseResponse{
-						Code:    http.StatusUnauthorized,
-						Message: "业务处理失败",
-						Success: false,
-						Data:    "会话已失效，请重新登录",
-					},
-				)
-				ctx.Abort()
-				span.SetStatus(codes.Error, "会话已失效，请重新登录")
-				return
-			}
-
-			// 更新会话最后活动时间
-			claims.LastActivityTime = time.Now().Unix()
-			if err = sessionManager.SetSession(claims.SessionID, claims); err != nil {
-				logger.Errorf("设置 Session 失败: %v", err)
-				span.SetStatus(codes.Error, err.Error())
-				span.RecordError(err)
-			}
-		}
-
-		// 将用户信息存储在上下文
-		ctx.Set(UserId, claims.UserID)
-		ctx.Set(UserName, claims.Username)
-		ctx.Set(UserRole, claims.Role)
-		ctx.Set(SessionId, claims.SessionID)
-		ctx.Set(UserClaims, claims)
-
-		ctx.Next()
-		span.SetStatus(codes.Ok, "success")
+// NewManager 创建JWT管理器
+//
+// @description 根据传入的密钥与会话有效期创建JWT管理器；当 secret 为空时回退到默认值（仅用于开发环境），当 sessionTTLSeconds<=0 时使用默认24小时
+// @param secret JWT签名密钥，应从配置文件读取
+// @param sessionTTLSeconds 会话有效期（秒），<=0 时使用默认值86400
+// @return *jwtManagerImpl JWT管理器实例
+func NewManager(secret string, sessionTTLSeconds int) JwtManager {
+	if secret == "" {
+		secret = defaultSecret
+	}
+	if sessionTTLSeconds <= 0 {
+		sessionTTLSeconds = defaultSessionTTLSeconds
+	}
+	return &jwtManagerImpl{
+		secret:     []byte(secret),
+		sessionTTL: time.Duration(sessionTTLSeconds) * time.Second,
 	}
 }
 
+// GetSessionTTL 获取会话有效期
+//
+// @description 返回当前管理器配置的会话有效期，供会话管理器等外部组件使用
+// @return time.Duration 会话有效期
+func (m *jwtManagerImpl) GetSessionTTL() time.Duration {
+	return m.sessionTTL
+}
+
 // ParseToken 解析JWT令牌
+//
+// @description 使用管理器持有的 secret 校验签名并解析令牌
 // @param tokenString JWT令牌字符串
 // @return *Claims 解析后的声明信息
 // @return error 解析过程中的错误
-func ParseToken(tokenString string) (*Claims, error) {
+func (m *jwtManagerImpl) ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		// 验证签名算法
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
 		}
-		return jwtSecret, nil
+		return m.secret, nil
 	})
 	if err != nil {
 		return nil, err
@@ -137,14 +76,17 @@ func ParseToken(tokenString string) (*Claims, error) {
 }
 
 // GenerateToken 生成JWT令牌
+//
+// @description 使用管理器持有的 secret 与 sessionTTL 生成JWT令牌
 // @param userID 用户ID
 // @param username 用户名
 // @param role 用户角色
 // @param sessionID 会话ID
 // @param expireTime 过期时间（秒）
 // @return string 生成的令牌
+// @return *Claims 令牌对应的声明信息
 // @return error 生成过程中的错误
-func GenerateToken(userID, username, role, sessionID string, expireTime int64) (string, *Claims, error) {
+func (m *jwtManagerImpl) GenerateToken(userID, username, role, sessionID string, expireTime int64) (string, *Claims, error) {
 	now := time.Now()
 	claims := &Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -159,13 +101,13 @@ func GenerateToken(userID, username, role, sessionID string, expireTime int64) (
 		Username:         username,
 		Role:             role,
 		SessionID:        sessionID,
-		SessionExpires:   now.Add(sessionTTL).Unix(),
+		SessionExpires:   now.Add(m.sessionTTL).Unix(),
 		LoginTime:        now.Unix(),
 		LastActivityTime: now.Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(m.secret)
 	if err != nil {
 		return "", nil, err
 	}

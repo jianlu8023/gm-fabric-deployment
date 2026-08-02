@@ -1,18 +1,23 @@
 package jwt
 
 import (
-	"time"
-
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var (
-	// jwtSecret JWT签名密钥
-	jwtSecret  = []byte("gm-fabric-deployment-secret")
-	sessionTTL = 24 * time.Hour // 会话有效期
+// 默认值常量
+//
+// @description 仅在配置未提供对应字段时作为兜底默认值使用，禁止直接以默认 secret 上生产环境
+const (
+	// defaultSecret 默认JWT签名密钥，仅在配置未提供时使用，生产环境必须通过配置文件覆盖
+	defaultSecret = "gm-fabric-deployment-secret"
+	// defaultSessionTTLSeconds 默认会话有效期（秒），用于配置默认值
+	defaultSessionTTLSeconds = 86400
 )
 
 // Claims 自定义JWT声明结构体
+//
+// @description 在标准JWT声明基础上扩展用户、会话、租户等业务字段
+// @struct
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID           string   `json:"user_id,omitempty" yaml:"user_id,omitempty"`
@@ -31,17 +36,10 @@ type Claims struct {
 	TenantID         string   `json:"tenant_id,omitempty" yaml:"tenant_id,omitempty"`
 }
 
+// 上下文键常量
+//
+// @description 仅保留 UserClaims（持有 *Claims）；session 相关常量（UserId/UserName/UserRole/SessionId 等）已迁至 session 包
 const (
-	UserClaims     = "user_claims"
-	UserId         = "user_id"
-	UserName       = "user_name"
-	UserRole       = "user_role"
-	SessionId      = "session_id"
-	UserType       = "user_type"
-	PermissionList = "permission_list"
-	ClientIP       = "client_ip"
-	UserAgent      = "user_agent"
-	DeviceID       = "device_id"
-	Scope          = "scope"
-	TenantID       = "tenant_id"
+	// UserClaims gin.Context 中 JWT claims 的存取键，auth 中间件认证通过后写入
+	UserClaims = "user_claims"
 )

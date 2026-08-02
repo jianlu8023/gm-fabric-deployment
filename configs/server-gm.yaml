@@ -73,6 +73,27 @@ http:
     rps: 100       # 每秒请求数限制
     burst: 200     # 令牌桶突发大小
     type: "juju"   # 限流实现类型：time, ulule, ants, custom, juju
+  # 认证配置：编排 JWT 与 Session，由 auth 中间件统一处理
+  # 生产环境必须将 jwt.secret 替换为高强度的随机字符串，禁止使用默认值
+  auth:
+    enabled: true                       # 总开关：是否启用认证
+    token_source: "header"             # token 来源：header | cookie | query | auto
+    token_header: "Authorization"      # token 头名称
+    token_prefix: "Bearer"             # token 前缀
+    sliding_expiration: true           # 滑动过期（每次访问续期）
+    fresh_window: 300                  # 敏感操作二次校验窗口（秒）
+    # JWT 子配置
+    jwt:
+      enabled: true                    # 是否启用 JWT
+      secret: "gm-fabric-deployment-secret-please-change-in-production"  # JWT签名密钥，生产环境必须修改
+      session_ttl: 86400               # 会话有效期（秒），默认86400（24小时）
+    # Session 子配置
+    session:
+      enabled: true                    # 是否启用服务端会话
+      ttl: 86400                       # 会话有效期（秒）
+      cleanup_interval: 3600           # 过期清理间隔（秒），仅 memory 模式
+      store_type: "memory"             # 存储类型：memory | redis
+      sliding_expiration: true         # 滑动过期
 libp2p:
   enabled: true
   listen_addr:

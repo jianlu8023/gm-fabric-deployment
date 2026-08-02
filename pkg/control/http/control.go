@@ -18,7 +18,9 @@ import (
 	"golang.org/x/net/http2/h2c"
 
 	"github.com/jianlu8023/golang-example/pkg/control/config"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/auth"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/session"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"github.com/tjfoc/gmsm/gmtls"
@@ -29,18 +31,18 @@ import (
 )
 
 type Control struct {
-	config         *config.HttpServerConfig
-	server         *http.Server
-	ginRouter      *gin.Engine
-	tlsConfig      *tls.Config
-	gmTlsConfig    *gmtls.Config
-	ctx            context.Context
-	logger         *zap.SugaredLogger
-	sessionManager jwt.SessionManager
-	once           sync.Once
-	tracerControl  *tracer.Control
-	routerGroups   concurrent.Map[string, commonhttp.GroupRouterHandler] // 使用 并发安全的 map
-	routeIndex     map[string]map[string]bool                            // 路由索引，用于快速查找 path -> methods
+	config        *config.HttpServerConfig
+	server        *http.Server
+	ginRouter     *gin.Engine
+	tlsConfig     *tls.Config
+	gmTlsConfig   *gmtls.Config
+	ctx           context.Context
+	logger        *zap.SugaredLogger
+	authenticator auth.Authenticator // authenticator 认证器，编排 jwt 与 session，对外暴露认证能力；为 nil 表示未启用认证
+	once          sync.Once
+	tracerControl *tracer.Control
+	routerGroups  concurrent.Map[string, commonhttp.GroupRouterHandler] // 使用 并发安全的 map
+	routeIndex    map[string]map[string]bool                            // 路由索引，用于快速查找 path -> methods
 }
 
 // NewWebServerControl 创建Web服务器控制器
@@ -122,10 +124,53 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		opt(control)
 	}
 
-	if control.sessionManager == nil {
-		// 创建会话管理器
-		webLogger.Debug("[control] create session manager...")
-		control.sessionManager = jwt.NewMemorySessionManager(webLogger, ctx)
+	// 创建认证器，读取 http.auth 配置
+	if control.authenticator == nil {
+		authCfg := serverConfig.Auth
+
+		if authCfg != nil && authCfg.Enabled {
+			webLogger.Debugf("[control] create authenticator...")
+			var jwtMgr jwt.JwtManager
+			var sessStore session.SessionStore
+
+			// 构造 JWT 管理器
+			if authCfg.JWT != nil && authCfg.JWT.Enabled {
+				jwtSecret := authCfg.JWT.Secret
+				if jwtSecret == "" {
+					webLogger.Warn("[control] jwt secret is empty, fallback to default secret (development only)")
+				}
+				jwtMgr = jwt.NewManager(jwtSecret, authCfg.JWT.SessionTTL)
+			}
+
+			// 构造会话存储
+			if authCfg.Session != nil && authCfg.Session.Enabled {
+				storeType := authCfg.Session.StoreType
+				if storeType == "" {
+					storeType = "memory"
+				}
+				switch storeType {
+				case "memory":
+					sessStore = session.NewMemoryStore(webLogger, ctx, authCfg.Session.TTL, authCfg.Session.CleanupInterval)
+				case "redis":
+					// TODO: 阶段三实现 RedisStore，当前回退到 memory
+					webLogger.Warn("[control] redis session store not implemented yet, fallback to memory")
+					sessStore = session.NewMemoryStore(webLogger, ctx, authCfg.Session.TTL, authCfg.Session.CleanupInterval)
+				default:
+					webLogger.Warnf("[control] unknown session store type: %s, fallback to memory", storeType)
+					sessStore = session.NewMemoryStore(webLogger, ctx, authCfg.Session.TTL, authCfg.Session.CleanupInterval)
+				}
+			}
+
+			// 合法性校验：auth.enabled=true 但 jwt/session 都未启用
+			if jwtMgr == nil && sessStore == nil {
+				webLogger.Errorf("[control] auth enabled but both jwt and session disabled")
+				return nil, errors.New("auth enabled but both jwt and session disabled")
+			}
+
+			control.authenticator = auth.NewAuthManager(jwtMgr, sessStore, webLogger, authCfg)
+		} else {
+			webLogger.Infof("[control] auth disabled, all routes will be public")
+		}
 	}
 
 	// 注册中间件
@@ -188,10 +233,12 @@ func (c *Control) Shutdown() error {
 	return nil
 }
 
-// GetSessionManager 获取会话管理器
-// @return jwt.SessionManager 会话管理器
-func (c *Control) GetSessionManager() jwt.SessionManager {
-	return c.sessionManager
+// GetAuthenticator 获取认证器
+//
+// @description 返回当前 HTTP 控制器持有的认证器；未启用认证时返回 nil，调用方需做空判断
+// @return auth.Authenticator 认证器实例
+func (c *Control) GetAuthenticator() auth.Authenticator {
+	return c.authenticator
 }
 
 // RegisterRouter 注册HTTP路由

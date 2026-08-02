@@ -15,7 +15,7 @@ import (
 	"github.com/jianlu8023/golang-example/internal/web/mapper"
 	"github.com/jianlu8023/golang-example/internal/web/model"
 	"github.com/jianlu8023/golang-example/internal/web/request"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/auth"
 )
 
 // UserService 用户服务接口
@@ -42,25 +42,25 @@ type UserService interface {
 // @description 提供用户相关的服务功能，如用户注册、登录等
 // @struct
 type userServiceImpl struct {
-	*Service                          // Service 基础服务
-	mapper         mapper.UserMapper  // mapper 用户数据访问对象
-	sessionManager jwt.SessionManager // sessionManager 会话管理器
+	*Service                         // Service 基础服务
+	mapper        mapper.UserMapper  // mapper 用户数据访问对象
+	authenticator auth.Authenticator // authenticator 认证器，用于登录/登出/续期
 }
 
 // NewUserService 创建用户服务实例
 //
 // @description 创建并返回一个新的用户服务实例
 // @param baseService *Service 基础服务
-// @param mapper mapper.UserMapper 用户映射器
-// @param sessionManager jwt.SessionManager 会话管理器
+// @param userMapper mapper.UserMapper 用户映射器
+// @param authenticator auth.Authenticator 认证器
 // @return UserService 用户服务实例
 func NewUserService(baseService *Service, userMapper mapper.UserMapper,
-	sessionManager jwt.SessionManager,
+	authenticator auth.Authenticator,
 ) UserService {
 	return &userServiceImpl{
-		Service:        baseService,
-		mapper:         userMapper,
-		sessionManager: sessionManager,
+		Service:       baseService,
+		mapper:        userMapper,
+		authenticator: authenticator,
 	}
 }
 
@@ -152,27 +152,15 @@ func (s *userServiceImpl) LoginUser(ctx *gin.Context, req *request.UserLoginRequ
 		return
 	}
 
-	// 生成会话ID
-	sessionID := uuid.GetUUID()
-	// 生成JWT令牌，过期时间设置为24小时
-	token, claims, err := jwt.GenerateToken(
+	// 通过认证器登录：生成 sessionID、创建会话、签发 token
+	token, err := s.authenticator.Login(
 		strconv.Itoa(user.AutoUid),
 		user.Username,
 		"user", // 默认角色为普通用户
-		sessionID,
-		86400, // 24小时有效期
 	)
 	if err != nil {
-		s.logger.Errorf("generate token failed: %v", err)
+		s.logger.Errorf("login failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "生成认证令牌失败")
-		span.RecordError(err)
-		span.SetStatus(codes.Error, err.Error())
-		return
-	}
-
-	if err = s.sessionManager.SetSession(sessionID, claims); err != nil {
-		s.logger.Errorf("set session failed: %v", err)
-		commonhttp.FailedResponseWithMessage(ctx, commonhttp.BusinessLogicError, "设置会话失败")
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
 		return

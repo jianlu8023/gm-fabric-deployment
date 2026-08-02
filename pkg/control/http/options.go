@@ -3,7 +3,7 @@ package http
 import (
 	"context"
 
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/auth"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 )
 
@@ -33,12 +33,13 @@ func WithContext(ctx context.Context) Option {
 	}
 }
 
-// WithSessionManager 设置会话管理器
-// @description 设置 HTTP 服务器的会话管理器
-// @param sessionManager jwt.SessionManager 会话管理器实例
+// WithAuthenticator 设置认证器
+//
+// @description 设置 HTTP 服务器的认证器，优先使用外部注入的实例；为 nil 时由 Control 根据 AuthConfig 兜底构造
+// @param authenticator auth.Authenticator 认证器实例
 // @return Option 配置函数
-func WithSessionManager(sessionManager jwt.SessionManager) Option {
+func WithAuthenticator(authenticator auth.Authenticator) Option {
 	return func(control *Control) {
-		control.sessionManager = sessionManager
+		control.authenticator = authenticator
 	}
 }

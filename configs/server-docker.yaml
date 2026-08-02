@@ -63,6 +63,12 @@ http:
     rps: 1       # 每秒请求数限制
     burst: 2     # 令牌桶突发大小
     type: "juju"   # 限流实现类型：time, ulule, ants, custom, juju
+  # JWT认证配置
+  # 生产环境必须将 secret 替换为高强度的随机字符串，禁止使用默认值
+  jwt:
+    enabled: true
+    secret: "gm-fabric-deployment-secret-please-change-in-production"  # JWT签名密钥，生产环境必须修改
+    session_ttl: 86400  # 会话有效期（秒），默认86400（24小时）
 libp2p:
   enabled: true
   listen_addr:

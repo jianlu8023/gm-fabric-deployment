@@ -6,7 +6,6 @@ import (
 	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/jwt"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"net/http"
 	"net/http/pprof"
@@ -111,7 +110,9 @@ func (c *Control) initRouters() {
 
 		// 为当前组创建认证和非认证子组
 		authGroup := mainGroup.Group("/")
-		authGroup.Use(jwt.EnableJWT(c.logger, c.sessionManager))
+		if c.authenticator != nil {
+			authGroup.Use(c.authenticator.Middleware())
+		}
 
 		noAuthGroup := mainGroup.Group("/")
 
@@ -179,9 +180,11 @@ func (c *Control) initRouters() {
 	// 		c.logger.Debugf("[control] created new gin router group: %s with full path: %s", groupName, fullPath)
 	// 	}
 	//
-	// 	// 为当前组创建认证和非认证子组
-	// 	authGroup := mainGroup.Group("/")
-	// 	authGroup.Use(jwt.EnableJWT(c.logger, c.sessionManager))
+	//	// 为当前组创建认证和非认证子组
+	// authGroup := mainGroup.Group("/")
+	// if c.authenticator != nil {
+	// 	authGroup.Use(c.authenticator.Middleware())
+	// }
 	//
 	// 	noAuthGroup := mainGroup.Group("/")
 	//

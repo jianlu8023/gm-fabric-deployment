@@ -70,7 +70,7 @@ func NewRouter(loggerControl *logger.Control,
 		baseHandler,
 		service.NewUserService(baseService,
 			mapper.NewUserMapper(baseMapper),
-			httpControl.GetSessionManager(),
+			httpControl.GetAuthenticator(),
 		),
 	)
 	result = append(result, userHandler.Routers()...)

@@ -113,8 +113,75 @@ type RateLimitConfig struct {
 	Type    string `json:"type,omitempty" yaml:"type,omitempty" mapstructure:"type"`          // 限流类型，可选值：time, ulule, ants, custom, juju
 }
 
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
 func (r *RateLimitConfig) String() string {
 	pretty, _ := json.MarshalPretty(r)
+	return string(pretty)
+}
+
+// JWTConfig JWT认证配置
+//
+// @description 配置JWT令牌的签名密钥与会话有效期，密钥应通过配置文件注入而非硬编码在源码中
+// @struct
+type JWTConfig struct {
+	Enabled    bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`             // 是否启用JWT认证
+	Secret     string `json:"secret,omitempty" yaml:"secret,omitempty" mapstructure:"secret"`                // JWT签名密钥，禁止使用默认值上生产环境
+	SessionTTL int    `json:"session_ttl,omitempty" yaml:"session_ttl,omitempty" mapstructure:"session_ttl"` // 会话有效期（秒），默认86400（24小时）
+}
+
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
+func (j *JWTConfig) String() string {
+	pretty, _ := json.MarshalPretty(j)
+	return string(pretty)
+}
+
+// SessionConfig 会话存储配置
+//
+// @description 配置服务端会话的存储方式与生命周期，由 auth 包消费；StoreType=memory 时单机有效，redis 时跨实例共享
+// @struct
+type SessionConfig struct {
+	Enabled           bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                  // 是否启用服务端会话
+	TTL               int    `json:"ttl,omitempty" yaml:"ttl,omitempty" mapstructure:"ttl"`                                              // 会话有效期（秒），<=0 时使用默认 86400
+	CleanupInterval   int    `json:"cleanup_interval,omitempty" yaml:"cleanup_interval,omitempty" mapstructure:"cleanup_interval"`       // 过期清理间隔（秒），仅 memory 模式，<=0 时使用默认 3600
+	StoreType         string `json:"store_type,omitempty" yaml:"store_type,omitempty" mapstructure:"store_type"`                         // 存储类型：memory | redis，默认 memory
+	SlidingExpiration bool   `json:"sliding_expiration,omitempty" yaml:"sliding_expiration,omitempty" mapstructure:"sliding_expiration"` // 滑动过期（每次访问续期）vs 绝对过期
+	SessionIDSource   string `json:"session_id_source,omitempty" yaml:"session_id_source,omitempty" mapstructure:"session_id_source"`    // sessionID 来源：auto | header | cookie | query，仅 session_only 模式用
+	CookieName        string `json:"cookie_name,omitempty" yaml:"cookie_name,omitempty" mapstructure:"cookie_name"`                      // cookie 模式使用的名称，可选
+}
+
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
+func (s *SessionConfig) String() string {
+	pretty, _ := json.MarshalPretty(s)
+	return string(pretty)
+}
+
+// AuthConfig 认证配置
+//
+// @description 认证总配置，编排 JWT 与 Session 两个子配置；Enabled=false 时不构造 Authenticator，所有路由按公开处理
+// @struct
+type AuthConfig struct {
+	Enabled           bool           `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                  // 总开关：是否启用认证
+	TokenSource       string         `json:"token_source,omitempty" yaml:"token_source,omitempty" mapstructure:"token_source"`                   // token 来源：header | cookie | query | auto，默认 auto
+	TokenHeader       string         `json:"token_header,omitempty" yaml:"token_header,omitempty" mapstructure:"token_header"`                   // token 头名称，默认 Authorization
+	TokenPrefix       string         `json:"token_prefix,omitempty" yaml:"token_prefix,omitempty" mapstructure:"token_prefix"`                   // token 前缀，默认 Bearer
+	SlidingExpiration bool           `json:"sliding_expiration,omitempty" yaml:"sliding_expiration,omitempty" mapstructure:"sliding_expiration"` // 滑动过期（每次访问续期）
+	FreshWindow       int            `json:"fresh_window,omitempty" yaml:"fresh_window,omitempty" mapstructure:"fresh_window"`                   // 敏感操作二次校验窗口（秒），<=0 表示不启用
+	OptionalPaths     []string       `json:"optional_paths,omitempty" yaml:"optional_paths,omitempty" mapstructure:"optional_paths"`             // 可选认证放行路径白名单
+	JWT               *JWTConfig     `json:"jwt,omitempty" yaml:"jwt,omitempty" mapstructure:"jwt"`                                              // JWT 子配置
+	Session           *SessionConfig `json:"session,omitempty" yaml:"session,omitempty" mapstructure:"session"`                                  // Session 子配置
+}
+
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
+func (a *AuthConfig) String() string {
+	pretty, _ := json.MarshalPretty(a)
 	return string(pretty)
 }
 
@@ -137,6 +204,7 @@ type HttpServerConfig struct {
 	IPBlackList     *IPBlackListConfig    `json:"ip_black_list,omitempty" yaml:"ip_black_list,omitempty" mapstructure:"ip_black_list"`                // 黑名单配置
 	TrustedProxies  *TrustedProxiesConfig `json:"trusted_proxies,omitempty" yaml:"trusted_proxies,omitempty" mapstructure:"trusted_proxies"`          // 可信代理配置，影响 X-Forwarded-For / X-Real-IP 的解析
 	RateLimit       *RateLimitConfig      `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`                         // 限流配置
+	Auth            *AuthConfig           `json:"auth,omitempty" yaml:"auth,omitempty" mapstructure:"auth"`                                           // 认证配置，编排 JWT 与 Session
 	Language        string                `json:"language,omitempty" yaml:"language,omitempty" mapstructure:"language"`                               // 默认语言设置，支持zh,en等 // 国际化配置
 }
 
