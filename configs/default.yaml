@@ -90,6 +90,18 @@ http:
     rps: 100       # 每秒请求数限制
     burst: 200     # 令牌桶突发大小
     type: "juju"   # 限流实现类型：time, ulule, ants, custom, juju
+  # CORS跨域配置
+  # 安全约束：allow_origins 含 "*" 时 allow_credentials 必须为 false（W3C 规范）
+  cors:
+    enabled: true
+    allow_origins:
+      - "*"                                 # 默认允许所有 Origin，生产环境应改为白名单
+    allow_methods: [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ]
+    allow_headers: [ "Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With" ]
+    expose_headers: [ "Content-Length", "X-Request-Id" ]
+    allow_credentials: false                # 含 "*" 时必须为 false
+    allow_wildcard: false
+    max_age: 7200
   # JWT认证配置
   # 生产环境必须将 secret 替换为高强度的随机字符串，禁止使用默认值
   jwt:

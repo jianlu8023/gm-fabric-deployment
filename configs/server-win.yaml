@@ -85,6 +85,21 @@ http:
     rps: 100       # 每秒请求数限制
     burst: 200     # 令牌桶突发大小
     type: "juju"   # 限流实现类型：time, ulule, ants, custom, juju
+  # CORS跨域配置
+  # 安全约束：allow_origins 含 "*" 时 allow_credentials 必须为 false（W3C 规范）
+  # 携带 Cookie 时必须使用显式 Origin 白名单或子域名通配符（allow_wildcard: true）
+  cors:
+    enabled: true
+    allow_origins:
+      - "http://localhost:8080"           # 开发环境前端
+      - "http://127.0.0.1:8080"
+      - "https://*.jianlu.site"           # 生产环境子域名，需配合 allow_wildcard: true
+    allow_methods: [ "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS" ]
+    allow_headers: [ "Origin", "Content-Length", "Content-Type", "Authorization", "X-Requested-With" ]
+    expose_headers: [ "Content-Length", "X-Request-Id" ]
+    allow_credentials: true               # 携带 Cookie 时必须为 true，且 allow_origins 不可含 "*"
+    allow_wildcard: true                  # 启用子域名通配符匹配
+    max_age: 7200                         # 预检请求缓存时间（秒），2小时
   # 认证配置：编排 JWT 与 Session，由 auth 中间件统一处理
   # 生产环境必须将 jwt.secret 替换为高强度的随机字符串，禁止使用默认值
   auth:

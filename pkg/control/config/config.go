@@ -139,6 +139,29 @@ func (j *JWTConfig) String() string {
 	return string(pretty)
 }
 
+// CORSConfig CORS跨域配置
+//
+// @description 配置CORS中间件的行为，遵循W3C CORS规范：禁止 AllowOrigins 含 "*" 与 AllowCredentials=true 同时使用
+// @struct
+type CORSConfig struct {
+	Enabled          bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                               // 是否启用CORS中间件
+	AllowOrigins     []string `json:"allow_origins,omitempty" yaml:"allow_origins,omitempty" mapstructure:"allow_origins"`             // 允许的Origin白名单，含 "*" 时表示允许所有Origin（此时AllowCredentials必须为false）
+	AllowMethods     []string `json:"allow_methods,omitempty" yaml:"allow_methods,omitempty" mapstructure:"allow_methods"`             // 允许的HTTP方法
+	AllowHeaders     []string `json:"allow_headers,omitempty" yaml:"allow_headers,omitempty" mapstructure:"allow_headers"`             // 允许的请求头
+	ExposeHeaders    []string `json:"expose_headers,omitempty" yaml:"expose_headers,omitempty" mapstructure:"expose_headers"`          // 允许暴露给浏览器的响应头
+	AllowCredentials bool     `json:"allow_credentials,omitempty" yaml:"allow_credentials,omitempty" mapstructure:"allow_credentials"` // 是否允许携带Cookie等凭证，为true时AllowOrigins不可含"*"
+	AllowWildcard    bool     `json:"allow_wildcard,omitempty" yaml:"allow_wildcard,omitempty" mapstructure:"allow_wildcard"`          // 是否启用子域名通配符匹配，如 https://*.example.com
+	MaxAge           int      `json:"max_age,omitempty" yaml:"max_age,omitempty" mapstructure:"max_age"`                               // 预检请求缓存时间（秒），默认0表示不设置
+}
+
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
+func (c *CORSConfig) String() string {
+	pretty, _ := json.MarshalPretty(c)
+	return string(pretty)
+}
+
 // SessionConfig 会话存储配置
 //
 // @description 配置服务端会话的存储方式与生命周期，由 auth 包消费；StoreType=memory 时单机有效，redis 时跨实例共享
@@ -205,6 +228,7 @@ type HttpServerConfig struct {
 	TrustedProxies  *TrustedProxiesConfig `json:"trusted_proxies,omitempty" yaml:"trusted_proxies,omitempty" mapstructure:"trusted_proxies"`          // 可信代理配置，影响 X-Forwarded-For / X-Real-IP 的解析
 	RateLimit       *RateLimitConfig      `json:"rate_limit,omitempty" yaml:"rate_limit,omitempty" mapstructure:"rate_limit"`                         // 限流配置
 	Auth            *AuthConfig           `json:"auth,omitempty" yaml:"auth,omitempty" mapstructure:"auth"`                                           // 认证配置，编排 JWT 与 Session
+	CORS            *CORSConfig           `json:"cors,omitempty" yaml:"cors,omitempty" mapstructure:"cors"`                                           // CORS跨域配置，遵循W3C规范：禁止 "*" 与 AllowCredentials 同时使用
 	Language        string                `json:"language,omitempty" yaml:"language,omitempty" mapstructure:"language"`                               // 默认语言设置，支持zh,en等 // 国际化配置
 }
 

@@ -381,7 +381,9 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 	// engine.Use(secure.EnableUnrolledTLS(webLogger, isDevelopment, serverConfig.Address))
 
 	// 7. CORS中间件 - 跨域处理
-	engine.Use(cors.EnableCors())
+	// 配置驱动：当 c.config.CORS 为 nil 或 Enabled=false 时，EnableCors 内部按运行模式给出默认策略
+	// 安全校验：若 AllowOrigins 含 "*" 且 AllowCredentials=true，EnableCors 会强制降级并记录 error 日志
+	engine.Use(cors.EnableCors(c.config.CORS, c.logger))
 
 	// 8. 限流中间件（如果启用）- 在业务逻辑前执行
 	if c.config.RateLimit != nil &&
