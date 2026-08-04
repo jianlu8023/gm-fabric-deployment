@@ -42,7 +42,11 @@ package session
 //   - 读写并发安全（直接用 RWMap，不手写 sync.RWMutex）
 //   - 后台 goroutine 定期清理过期会话（默认 1h，可配）
 //   - 通过 ctx.Done() 优雅退出清理协程
-//   - Get 内部检查 ExpiresAt < now → 异步删除并返回错误
+//   - Get 内部检查 ExpiresAt < now → 同步删除并返回错误（2026-08-04 修正：原异步 go Delete
+//     存在"逻辑竞态"——异步删除执行前若有 Set 重新写入同一 sessionID 会误删新会话；
+//     且高并发下创建大量 goroutine。concurrent.Map.Del 为 O(1) 加锁操作，同步删除开销极低）
+//   - cleanupLoop 先收集待删除 key 再批量删除，并调用 iterator.Close() 释放快照切片引用
+//     （2026-08-04 修正：原在迭代过程中调用 Del 虽因快照迭代器不会 panic，但逻辑混淆且漏调 Close）
 //   - Validate 直接复用 Get，返回 err == nil，不重复比较 ExpiresAt
 //
 // 四、RedisStore 实现（未来扩展，本次不实现）

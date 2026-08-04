@@ -189,12 +189,16 @@ func (m *authManagerImpl) authSessionOnly(ctx *gin.Context) (*session.Session, b
 		return nil, false
 	}
 
-	// 续期
+	// 续期：LastActivityTime 始终更新；ExpiresAt 仅在滑动过期模式下更新
 	now := time.Now().Unix()
 	sess.LastActivityTime = now
 	if m.cfg != nil && m.cfg.SlidingExpiration {
 		sess.ExpiresAt = now + int64(m.getSessionTTL().Seconds())
-		_ = m.sessionStore.Set(sess.SessionID, sess)
+	}
+	// 无论是否滑动过期，都需将 LastActivityTime 更新写回存储，
+	// 保持 sessionStore 与返回给调用方的 sess 一致（与 authJWTSession 行为对齐）
+	if err = m.sessionStore.Set(sess.SessionID, sess); err != nil {
+		m.logger.Errorf("[auth] session set failed on session_only: %v", err)
 	}
 	return sess, true
 }

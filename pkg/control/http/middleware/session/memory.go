@@ -63,7 +63,7 @@ func (m *memoryStoreImpl) GetTTL() time.Duration {
 
 // Get 获取会话信息
 //
-// @description 从 concurrentmap 读取会话；若 ExpiresAt < now 则异步删除并返回"会话已过期"错误
+// @description 从 concurrentmap 读取会话；若 ExpiresAt < now 则同步删除并返回"会话已过期"错误
 // @param sessionID string 会话唯一标识
 // @return *Session 会话数据
 // @return error 错误信息
@@ -73,10 +73,11 @@ func (m *memoryStoreImpl) Get(sessionID string) (*Session, error) {
 		return nil, errors.New("会话不存在")
 	}
 	if sess.ExpiresAt < time.Now().Unix() {
-		// 异步删除过期会话，避免阻塞读路径
-		go func() {
-			_ = m.Delete(sessionID)
-		}()
+		// 同步删除过期会话：concurrent.Map.Del 内部为 O(1) 加锁操作，开销极低；
+		// 不使用异步 go Delete 是为了避免"逻辑竞态"——
+		// 异步删除执行前若有请求通过 Set 重新设置该 sessionID（如用户重新登录），
+		// 异步 goroutine 会误删新会话；同时避免高并发下创建大量 goroutine。
+		_ = m.Delete(sessionID)
 		return nil, errors.New("会话已过期")
 	}
 	return sess, nil
@@ -136,7 +137,7 @@ func (m *memoryStoreImpl) GetAll() []*Session {
 
 // cleanupLoop 定期清理过期会话
 //
-// @description 按 cleanupInterval 周期遍历会话表，删除 ExpiresAt < now 的会话；通过 ctx.Done() 优雅退出
+// @description 按 cleanupInterval 周期遍历会话表，收集 ExpiresAt < now 的会话 key 后批量删除；通过 ctx.Done() 优雅退出
 // @return
 func (m *memoryStoreImpl) cleanupLoop() {
 	ticker := time.NewTicker(m.cleanupInterval)
@@ -145,17 +146,25 @@ func (m *memoryStoreImpl) cleanupLoop() {
 		select {
 		case <-ticker.C:
 			now := time.Now().Unix()
-			expiredCount := 0
+			// Iterator() 返回快照迭代器（内部已拷贝 entries 切片），
+			// 但仍遵循"遍历与写入分离"原则：先收集待删除 key，遍历结束后批量删除，
+			// 避免在遍历过程中调用 Del 造成逻辑混淆，并便于统一日志统计。
 			iterator := m.sessions.Iterator()
+			var expiredKeys []string
 			for iterator.HasNext() {
 				item := iterator.Value()
 				if item.Value.ExpiresAt < now {
-					m.sessions.Del(item.Key)
-					expiredCount++
+					expiredKeys = append(expiredKeys, item.Key)
 				}
 			}
-			if expiredCount > 0 {
-				m.logger.Debugf("清理过期会话: %d", expiredCount)
+			// 关闭迭代器，释放其内部持有的快照切片引用
+			_ = iterator.Close()
+			// 批量删除过期会话
+			for _, key := range expiredKeys {
+				m.sessions.Del(key)
+			}
+			if len(expiredKeys) > 0 {
+				m.logger.Debugf("清理过期会话: %d", len(expiredKeys))
 			}
 		case <-m.ctx.Done():
 			m.logger.Infof("会话存储清理协程已停止...")
