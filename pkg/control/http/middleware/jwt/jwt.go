@@ -52,15 +52,16 @@ func (m *jwtManagerImpl) GetSessionTTL() time.Duration {
 
 // ParseToken 解析JWT令牌
 //
-// @description 使用管理器持有的 secret 校验签名并解析令牌
+// @description 使用管理器持有的 secret 校验签名并解析令牌；签名算法仅接受 HMAC 系列（与 GenerateToken 的 HS256 对齐）
 // @param tokenString JWT令牌字符串
 // @return *Claims 解析后的声明信息
 // @return error 解析过程中的错误
 func (m *jwtManagerImpl) ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		// 验证签名算法
+		// 校验签名算法：仅接受 HMAC 系列（HS256/HS384/HS512），拒绝 RS256/ES256 等非 HMAC 算法，
+		// 防止算法混淆攻击（如把公钥当作 HMAC 密钥使用）
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
+			return nil, jwt.ErrTokenSignatureInvalid
 		}
 		return m.secret, nil
 	})
@@ -68,11 +69,15 @@ func (m *jwtManagerImpl) ParseToken(tokenString string) (*Claims, error) {
 		return nil, err
 	}
 
+	// ParseWithClaims 返回 nil 错误时 token.Valid 必为 true（见 jwt/v5 parser.go:128），
+	// 此处 fallback 仅在 Claims 类型断言失败时触发（理论上不应发生）。
+	// 返回 ErrTokenInvalidClaims 而非 ErrInvalidKey：此时签名已验证通过，密钥没有问题，
+	// 问题出在 claims 类型上（"token has invalid claims" 语义更准确）
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 		return claims, nil
 	}
 
-	return nil, jwt.ErrInvalidKey
+	return nil, jwt.ErrTokenInvalidClaims
 }
 
 // GenerateToken 生成JWT令牌
