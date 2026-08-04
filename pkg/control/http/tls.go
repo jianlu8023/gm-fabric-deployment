@@ -5,26 +5,15 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"golang.org/x/net/http2"
+	"net"
 	"os"
 	"strings"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipblacklist"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/iphelper"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipwhitelist"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/language"
-	middlewarelogger "github.com/jianlu8023/golang-example/pkg/control/http/middleware/logger"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ratelimit"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/recovery"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
-	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/secure"
 	"github.com/tjfoc/gmsm/gmtls"
 	gmx509 "github.com/tjfoc/gmsm/x509"
-
-	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 // setupTLSConfig 配置TLS（GM TLS或标准TLS）
@@ -57,10 +46,10 @@ func (c *Control) setupGMTLSConfig() error {
 			gmtls.GMTLS_SM2_WITH_SM4_SM3,
 			gmtls.GMTLS_ECDHE_SM2_WITH_SM4_SM3,
 			gmtls.GMTLS_ECDHE_SM2_WITH_SM1_SM3,
-			//gmtls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			//gmtls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			//gmtls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			//gmtls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			// gmtls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			// gmtls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			// gmtls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			// gmtls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 		},
 		SessionTicketsDisabled: false, // 启用会话票据
 	}
@@ -76,7 +65,7 @@ func (c *Control) setupGMTLSConfig() error {
 	// }
 
 	// TODO 目前 没找到支持http2的方法 暂时注释掉
-	//根据HTTP/2配置决定是否启用HTTP/2协议协商
+	// 根据HTTP/2配置决定是否启用HTTP/2协议协商
 	if c.config.Http2Enabled {
 		gmTLSConfig.NextProtos = []string{"h2", "http/1.1"}
 		c.logger.Infof("[control] HTTP/2 enabled for TLS connections")
@@ -137,11 +126,11 @@ func (c *Control) loadGMSingleCert(gmTLSConfig *gmtls.Config) error {
 	c.logger.Infof("[control] 成功加载GM模式单证书: %s -> %s", certFile, keyFile)
 
 	// 配置根证书
-	//if err := c.setupGMRootCA(gmTLSConfig); err != nil {
+	// if err := c.setupGMRootCA(gmTLSConfig); err != nil {
 	//	return err
-	//}
+	// }
 
-	//c.gmTlsConfig = gmTLSConfig
+	// c.gmTlsConfig = gmTLSConfig
 	return nil
 }
 
@@ -198,7 +187,7 @@ func (c *Control) loadGMDualCert(gmTLSConfig *gmtls.Config) error {
 	// 设置证书到GM TLS配置
 	gmTLSConfig.Certificates = certificates
 	c.logger.Infof("[control] 成功加载GM模式两套keypair，签名证书: %s，加密证书: %s", certFiles[0], certFiles[1])
-	//c.gmTlsConfig = gmTLSConfig
+	// c.gmTlsConfig = gmTLSConfig
 	return nil
 }
 
@@ -254,7 +243,7 @@ func (c *Control) setupStandardTLSConfig() error {
 			tls.X25519, // 优先使用X25519椭圆曲线
 			tls.CurveP256,
 		},
-		//PreferServerCipherSuites: true,  // 优先使用服务端加密套件 Deprecated
+		// PreferServerCipherSuites: true,  // 优先使用服务端加密套件 Deprecated
 		SessionTicketsDisabled: false, // 启用会话票据
 	}
 
@@ -312,121 +301,105 @@ func (c *Control) setupStandardRootCA(tlsConfig *tls.Config) error {
 	return nil
 }
 
-// registerMiddlewares 注册Gin中间件
-// @description 注册所有HTTP服务器的中间件，包括日志、恢复、IP过滤、安全、限流等
-// @param engine *gin.Engine Gin引擎实例
-func (c *Control) registerMiddlewares(engine *gin.Engine) {
-	c.logger.Info("[control] register gin middleware...")
-
-	// 解析可信代理配置，仅当 RemoteAddr 命中可信代理网段时才信任 X-Forwarded-For / X-Real-IP 头
-	// 未配置时 trustedProxiesCIDRList 为 nil，GetClientIP 将仅使用 RemoteAddr，防止 XFF 头被伪造
-	var trustedProxiesCIDRList *iphelper.CIDRList
-	if c.config.TrustedProxies != nil &&
-		c.config.TrustedProxies.Enabled &&
-		len(c.config.TrustedProxies.IPs) > 0 {
-		cidrList, err := iphelper.NewCIDRList(c.config.TrustedProxies.IPs)
-		if err != nil {
-			c.logger.Errorf("[control] failed to parse trusted proxies config: %v, X-Forwarded-For will be ignored", err)
-		} else {
-			trustedProxiesCIDRList = cidrList
-			c.logger.Infof("[control] trusted proxies enabled with %d entries", len(c.config.TrustedProxies.IPs))
+func (c *Control) serverGMTls(failedFunc func(err error)) {
+	listener, err := gmtls.Listen("tcp", c.config.Address, c.gmTlsConfig)
+	if err != nil {
+		c.logger.Errorf("[control] failed to create gm TLS listener: %v", err)
+		if failedFunc != nil {
+			failedFunc(err)
 		}
+		return
 	}
 
-	// 0. Tracer中间件 - 用于请求追踪
-	if c.tracerControl != nil {
-		engine.Use(otelgin.Middleware(c.tracerControl.GetServiceName(), otelgin.WithTracerProvider(c.tracerControl.TracerProvider())))
+	// 注意：GM TLS不支持HTTP/2，因为HTTP/2需要的ALPN协议协商和GM TLS不兼容
+	if c.config.Http2Enabled {
+		c.logger.Warnf("[control] HTTP/2 is not supported with GM TLS, falling back to HTTP/1.1")
+		// if err := http2.ConfigureServer(c.server, &http2.Server{}); err != nil {
+		// 	c.logger.Errorf("[control] failed to configure HTTP/2 server: %v", err)
+		// 	if failedFunc != nil {
+		// 		failedFunc(err)
+		// 	}
+		// 	return
+		// }
+		// c.logger.Info("[control] HTTP/2 server configured successfully")
 	}
 
-	// 0. 输出请求信息
-	engine.Use(middlewarelogger.Logger())
-
-	// 1. 恢复中间件（Recovery Middleware）- 应在最前面注册，捕获所有后续中间件的panic
-	engine.Use(recovery.EnableRecovery(c.logger, true))
-
-	// 添加语言支持中间件
-	engine.Use(language.EnableLanguageSupport(c.config.Language))
-
-	// 2. 请求ID中间件 - 为每个请求生成唯一标识
-	engine.Use(requestid.EnableRequestID(c.logger))
-
-	// 3. IP白名单中间件（如果启用）- 尽早过滤非白名单IP
-	if c.config.IPWhiteList != nil &&
-		c.config.IPWhiteList.Enabled &&
-		len(c.config.IPWhiteList.IPs) > 0 {
-		c.logger.Debugf("[control] register IP white list middleware with %d IPs", len(c.config.IPWhiteList.IPs))
-		engine.Use(ipwhitelist.EnableIPWhiteList(c.logger, c.config.IPWhiteList.IPs, trustedProxiesCIDRList))
-	}
-
-	// 4. IP黑名单中间件（如果启用）- 尽早拒绝黑名单IP
-	if c.config.IPBlackList != nil &&
-		c.config.IPBlackList.Enabled &&
-		len(c.config.IPBlackList.IPs) > 0 {
-		c.logger.Debugf("[control] register IP black list middleware with %d IPs", len(c.config.IPBlackList.IPs))
-		engine.Use(ipblacklist.EnableIPBlackList(c.logger, c.config.IPBlackList.IPs, trustedProxiesCIDRList))
-	}
-
-	if !c.config.TlsGM {
-		// TODO gm模式下 会出现一直301的情况
-		// 6. TLS安全中间件 - 安全检查，在基础过滤和追踪后执行
-		// 判断是否为开发环境（根据Gin模式）
-		isDevelopment := gin.Mode() == gin.DebugMode
-		// 使用成熟的unrolled/secure包实现的TLS安全中间件
-		// 推荐在生产环境使用，提供完整的TLS安全保护功能
-		// 只有在启用TLS时才启用SSL重定向
-		engine.Use(secure.EnableSecurePackageTLS(c.config.Address, isDevelopment, c.config.TlsEnabled))
-	}
-
-	// 如果需要使用不依赖外部包的版本，可以取消注释下面这行
-	// engine.Use(secure.EnableUnrolledTLS(webLogger, isDevelopment, serverConfig.Address))
-
-	// 7. CORS中间件 - 跨域处理
-	// 配置驱动：当 c.config.CORS 为 nil 或 Enabled=false 时，EnableCors 内部按运行模式给出默认策略
-	// 安全校验：若 AllowOrigins 含 "*" 且 AllowCredentials=true，EnableCors 会强制降级并记录 error 日志
-	engine.Use(cors.EnableCors(c.config.CORS, c.logger))
-
-	// 8. 限流中间件（如果启用）- 在业务逻辑前执行
-	if c.config.RateLimit != nil &&
-		c.config.RateLimit.Enabled &&
-		c.config.RateLimit.RPS > 0 {
-		// 创建限流配置
-		rateLimitConfig := ratelimit.Config{
-			Type:  ratelimit.Type(c.config.RateLimit.Type), // 使用配置文件中的限流类型
-			RPS:   c.config.RateLimit.RPS,
-			Burst: c.config.RateLimit.Burst,
+	defer func(listener net.Listener) {
+		if err := listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+			c.logger.Errorf("[control] failed to close gm TLS listener: %v", err)
 		}
-		// 使用工厂函数创建限流中间件
-		engine.Use(ratelimit.NewRateLimitMiddleware(c.logger, rateLimitConfig, trustedProxiesCIDRList))
+	}(listener)
+	// 使用srv.Serve启动服务器
+	if err := c.server.Serve(listener); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
+		c.logger.Errorf("[control] HTTPS server error: %v", err)
+		if failedFunc != nil {
+			failedFunc(err)
+		}
+		return
+	}
+}
+
+func (c *Control) serverTls(failedFunc func(err error)) {
+	// 使用tls.Listen创建监听器
+	listener, err := tls.Listen("tcp", c.config.Address, c.tlsConfig)
+	if err != nil {
+		c.logger.Errorf("[control] failed to create TLS listener: %v", err)
+		if failedFunc != nil {
+			failedFunc(err)
+		}
+		return
 	}
 
-	// 9. 压缩中间件 - 性能优化，在响应前执行
-	engine.Use(gzip.EnableGzip())
+	// 为HTTPS服务器启用HTTP/2支持
+	if c.config.Http2Enabled {
+		if err := http2.ConfigureServer(c.server, &http2.Server{}); err != nil {
+			c.logger.Errorf("[control] failed to configure HTTP/2 server: %v", err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
+			return
+		}
+		c.logger.Info("[control] HTTP/2 server configured successfully")
+	}
 
-	// 调试模式，开启 pprof 包，便于开发阶段分析程序性能
-	// gin.DefaultWriter = io.MultiWriter(os.Stdout, io.Discard)
-	// gin.DefaultErrorWriter = io.MultiWriter(os.Stderr, io.Discard)
-	// engine = gin.Default()
-	// 调试模式下开启pprof
-	// pprof.Register(engine)
+	defer func(listener net.Listener) {
+		if err := listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+			c.logger.Errorf("[control] failed to close TLS listener: %v", err)
+		}
+	}(listener)
 
-	// 注册JWT中间件
-	// webLogger.Debugf("[control] register JWT middleware...")
-	// engine.Use(middleware.EnableJWT(webLogger, sessionManager))
+	// 使用srv.Serve启动服务器
+	if err := c.server.Serve(listener); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
+		c.logger.Errorf("[control] HTTPS server error: %v", err)
+		if failedFunc != nil {
+			failedFunc(err)
+		}
+		return
+	}
+}
 
-	// engine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-	// 	// 你的自定义格式
-	// 127.0.0.1 - [2025-09-08 19:57:12.078] "GET /example/ping HTTP/2.0 200 50.066µs "curl/7.68.0" "
-	// "%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
-	// 	return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
-	// 		param.ClientIP,
-	// 		param.TimeStamp.Format("2006-01-02 15:04:05.000"),
-	// 		param.Method,
-	// 		param.Path,
-	// 		param.Request.Proto,
-	// 		param.StatusCode,
-	// 		param.Latency,
-	// 		param.Request.UserAgent(),
-	// 		param.ErrorMessage,
-	// 	)
-	// }))
+func (c *Control) serverNoTls(failedFunc func(err error)) {
+	// 使用普通TCP监听器
+	listener, err := net.Listen("tcp", c.config.Address)
+	if err != nil {
+		c.logger.Errorf("[control] failed to create TCP listener: %v", err)
+		if failedFunc != nil {
+			failedFunc(err)
+		}
+		return
+	}
+	defer func(listener net.Listener) {
+		if err := listener.Close(); err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+			c.logger.Errorf("[control] failed to close TCP listener: %v", err)
+		}
+	}(listener)
+
+	// 使用srv.Serve启动服务器
+	if err := c.server.Serve(listener); err != nil && !commonhttp.IsHttpErrServerClosed(err) {
+		c.logger.Errorf("[control] HTTP server error: %v", err)
+		if failedFunc != nil {
+			failedFunc(err)
+		}
+		return
+	}
 }

@@ -6,7 +6,19 @@ import (
 	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/cors"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/gzip"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipblacklist"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/iphelper"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ipwhitelist"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/language"
+	middlewarelogger "github.com/jianlu8023/golang-example/pkg/control/http/middleware/logger"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ratelimit"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/recovery"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
+	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/secure"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"net/http"
 	"net/http/pprof"
 	"strings"
@@ -670,4 +682,124 @@ func (c *Control) validateRouters(routers []commonhttp.RouterHandler) error {
 	}
 
 	return nil
+}
+
+// registerMiddlewares 注册Gin中间件
+// @description 注册所有HTTP服务器的中间件，包括日志、恢复、IP过滤、安全、限流等
+// @param engine *gin.Engine Gin引擎实例
+func (c *Control) registerMiddlewares(engine *gin.Engine) {
+	c.logger.Info("[control] register gin middleware...")
+
+	// 解析可信代理配置，仅当 RemoteAddr 命中可信代理网段时才信任 X-Forwarded-For / X-Real-IP 头
+	// 未配置时 trustedProxiesCIDRList 为 nil，GetClientIP 将仅使用 RemoteAddr，防止 XFF 头被伪造
+	var trustedProxiesCIDRList *iphelper.CIDRList
+	if c.config.TrustedProxies != nil &&
+		c.config.TrustedProxies.Enabled &&
+		len(c.config.TrustedProxies.IPs) > 0 {
+		cidrList, err := iphelper.NewCIDRList(c.config.TrustedProxies.IPs)
+		if err != nil {
+			c.logger.Errorf("[control] failed to parse trusted proxies config: %v, X-Forwarded-For will be ignored", err)
+		} else {
+			trustedProxiesCIDRList = cidrList
+			c.logger.Infof("[control] trusted proxies enabled with %d entries", len(c.config.TrustedProxies.IPs))
+		}
+	}
+
+	// 0. Tracer中间件 - 用于请求追踪
+	if c.tracerControl != nil {
+		engine.Use(otelgin.Middleware(c.tracerControl.GetServiceName(), otelgin.WithTracerProvider(c.tracerControl.TracerProvider())))
+	}
+
+	// 0. 输出请求信息
+	engine.Use(middlewarelogger.Logger())
+
+	// 1. 恢复中间件（Recovery Middleware）- 应在最前面注册，捕获所有后续中间件的panic
+	// 配置驱动：通过 c.config.Recovery 控制是否输出堆栈、响应消息等
+	engine.Use(recovery.EnableRecovery(c.logger, c.config.Recovery))
+
+	// 添加语言支持中间件
+	engine.Use(language.EnableLanguageSupport(c.config.Language))
+
+	// 2. 请求ID中间件 - 为每个请求生成唯一标识
+	engine.Use(requestid.EnableRequestID(c.logger))
+
+	// 3. IP白名单中间件（如果启用）- 尽早过滤非白名单IP
+	if c.config.IPWhiteList != nil &&
+		c.config.IPWhiteList.Enabled &&
+		len(c.config.IPWhiteList.IPs) > 0 {
+		c.logger.Debugf("[control] register IP white list middleware with %d IPs", len(c.config.IPWhiteList.IPs))
+		engine.Use(ipwhitelist.EnableIPWhiteList(c.logger, c.config.IPWhiteList.IPs, trustedProxiesCIDRList))
+	}
+
+	// 4. IP黑名单中间件（如果启用）- 尽早拒绝黑名单IP
+	if c.config.IPBlackList != nil &&
+		c.config.IPBlackList.Enabled &&
+		len(c.config.IPBlackList.IPs) > 0 {
+		c.logger.Debugf("[control] register IP black list middleware with %d IPs", len(c.config.IPBlackList.IPs))
+		engine.Use(ipblacklist.EnableIPBlackList(c.logger, c.config.IPBlackList.IPs, trustedProxiesCIDRList))
+	}
+
+	if !c.config.TlsGM {
+		// TODO gm模式下 会出现一直301的情况
+		// 6. TLS安全中间件 - 安全检查，在基础过滤和追踪后执行
+		// 判断是否为开发环境（根据Gin模式）
+		isDevelopment := gin.Mode() == gin.DebugMode
+		// 使用成熟的unrolled/secure包实现的TLS安全中间件
+		// 推荐在生产环境使用，提供完整的TLS安全保护功能
+		// 只有在启用TLS时才启用SSL重定向
+		engine.Use(secure.EnableSecurePackageTLS(c.config.Address, isDevelopment, c.config.TlsEnabled))
+	}
+
+	// 如果需要使用不依赖外部包的版本，可以取消注释下面这行
+	// engine.Use(secure.EnableUnrolledTLS(webLogger, isDevelopment, serverConfig.Address))
+
+	// 7. CORS中间件 - 跨域处理
+	// 配置驱动：当 c.config.CORS 为 nil 或 Enabled=false 时，EnableCors 内部按运行模式给出默认策略
+	// 安全校验：若 AllowOrigins 含 "*" 且 AllowCredentials=true，EnableCors 会强制降级并记录 error 日志
+	engine.Use(cors.EnableCors(c.config.CORS, c.logger))
+
+	// 8. 限流中间件（如果启用）- 在业务逻辑前执行
+	if c.config.RateLimit != nil &&
+		c.config.RateLimit.Enabled &&
+		c.config.RateLimit.RPS > 0 {
+		// 创建限流配置
+		rateLimitConfig := ratelimit.Config{
+			Type:  ratelimit.Type(c.config.RateLimit.Type), // 使用配置文件中的限流类型
+			RPS:   c.config.RateLimit.RPS,
+			Burst: c.config.RateLimit.Burst,
+		}
+		// 使用工厂函数创建限流中间件
+		engine.Use(ratelimit.NewRateLimitMiddleware(c.logger, rateLimitConfig, trustedProxiesCIDRList))
+	}
+
+	// 9. 压缩中间件 - 性能优化，在响应前执行
+	engine.Use(gzip.EnableGzip())
+
+	// 调试模式，开启 pprof 包，便于开发阶段分析程序性能
+	// gin.DefaultWriter = io.MultiWriter(os.Stdout, io.Discard)
+	// gin.DefaultErrorWriter = io.MultiWriter(os.Stderr, io.Discard)
+	// engine = gin.Default()
+	// 调试模式下开启pprof
+	// pprof.Register(engine)
+
+	// 注册JWT中间件
+	// webLogger.Debugf("[control] register JWT middleware...")
+	// engine.Use(middleware.EnableJWT(webLogger, sessionManager))
+
+	// engine.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+	// 	// 你的自定义格式
+	// 127.0.0.1 - [2025-09-08 19:57:12.078] "GET /example/ping HTTP/2.0 200 50.066µs "curl/7.68.0" "
+	// "%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+	// 	return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+	// 		param.ClientIP,
+	// 		param.TimeStamp.Format("2006-01-02 15:04:05.000"),
+	// 		param.Method,
+	// 		param.Path,
+	// 		param.Request.Proto,
+	// 		param.StatusCode,
+	// 		param.Latency,
+	// 		param.Request.UserAgent(),
+	// 		param.ErrorMessage,
+	// 	)
+	// }))
 }

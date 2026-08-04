@@ -162,6 +162,25 @@ func (c *CORSConfig) String() string {
 	return string(pretty)
 }
 
+// RecoveryConfig panic恢复中间件配置
+//
+// @description 配置recovery中间件的行为，控制panic恢复后的日志输出、堆栈记录等
+// @struct
+type RecoveryConfig struct {
+	Enabled       bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用recovery中间件，默认true（建议始终启用）
+	EnableStack   bool   `json:"enable_stack,omitempty" yaml:"enable_stack,omitempty" mapstructure:"enable_stack"`       // 是否在日志中输出goroutine堆栈，生产环境建议false避免日志膨胀
+	LogLevel      string `json:"log_level,omitempty" yaml:"log_level,omitempty" mapstructure:"log_level"`                // panic日志级别：error | warn | fatal，默认error
+	CustomMessage string `json:"custom_message,omitempty" yaml:"custom_message,omitempty" mapstructure:"custom_message"` // 自定义响应消息，为空时使用默认"Server Internal Error"
+}
+
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
+func (r *RecoveryConfig) String() string {
+	pretty, _ := json.MarshalPretty(r)
+	return string(pretty)
+}
+
 // SessionConfig 会话存储配置
 //
 // @description 配置服务端会话的存储方式与生命周期，由 auth 包消费；StoreType=memory 时单机有效，redis 时跨实例共享
@@ -223,6 +242,7 @@ type HttpServerConfig struct {
 	Http2Enabled    bool                  `json:"http2_enabled,omitempty" yaml:"http2_enabled,omitempty" mapstructure:"http2_enabled"`                // 是否启用HTTP/2
 	Pprof           bool                  `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                        // 是否启用pprof
 	UploadDir       string                `json:"upload_dir,omitempty" yaml:"upload_dir,omitempty" mapstructure:"upload_dir"`                         // 文件上传目录
+	Recovery        *RecoveryConfig       `json:"recovery,omitempty" yaml:"recovery,omitempty" mapstructure:"recovery"`                               // panic恢复配置，建议始终启用
 	IPWhiteList     *IPWhiteListConfig    `json:"ip_white_list,omitempty" yaml:"ip_white_list,omitempty" mapstructure:"ip_white_list"`                // 白名单配置
 	IPBlackList     *IPBlackListConfig    `json:"ip_black_list,omitempty" yaml:"ip_black_list,omitempty" mapstructure:"ip_black_list"`                // 黑名单配置
 	TrustedProxies  *TrustedProxiesConfig `json:"trusted_proxies,omitempty" yaml:"trusted_proxies,omitempty" mapstructure:"trusted_proxies"`          // 可信代理配置，影响 X-Forwarded-For / X-Real-IP 的解析

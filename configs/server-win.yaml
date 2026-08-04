@@ -65,6 +65,13 @@ http:
   pprof: true
   language: "zh"  # 默认语言设置，支持zh,en
   upload_dir: "uploads"
+  # panic恢复中间件配置
+  # 建议始终启用recovery中间件，防止业务panic导致整个服务崩溃
+  recovery:
+    enabled: true                     # 是否启用recovery中间件，建议始终为true
+    enable_stack: true                # 是否在日志中输出goroutine堆栈，生产环境建议false避免日志膨胀
+    log_level: "error"                # panic日志级别：error | warn | fatal
+    custom_message: ""                # 自定义响应消息，为空时使用默认"Server Internal Error"
   # IP白名单配置
   ip_white_list:
     enabled: false
