@@ -15,7 +15,9 @@ const (
 	TypeTime Type = "time"
 	// TypeUlule 使用ulule/limiter库实现的限流
 	TypeUlule Type = "ulule"
-	// TypeAnts 使用ants库实现的限流
+	// TypeSimple 使用简易令牌桶算法实现的限流（原ants类型，已重命名）
+	TypeSimple Type = "simple"
+	// TypeAnts 使用简易令牌桶算法实现的限流（保留兼容，推荐使用TypeSimple）
 	TypeAnts Type = "ants"
 	// TypeCustom 使用自定义令牌桶算法实现的限流
 	TypeCustom Type = "custom"
@@ -67,8 +69,12 @@ func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config, trustedPro
 		return EnableRateLimit(logger, config.RPS, burst, trustedProxies)
 	case TypeUlule:
 		return EnableRateLimitUlule(logger, config.RPS, burst, trustedProxies)
-	case TypeAnts:
-		return EnableRateLimitAnts(logger, config.RPS, burst, trustedProxies)
+	case TypeSimple, TypeAnts:
+		// TypeAnts 保留兼容，推荐使用 TypeSimple
+		if config.Type == TypeAnts {
+			logger.Warnf("[RateLimit] Type 'ants' is deprecated, please use 'simple' instead")
+		}
+		return EnableSimpleRateLimit(logger, config.RPS, burst, trustedProxies)
 	case TypeCustom:
 		return EnableCustomRateLimit(logger, config.RPS, burst, trustedProxies)
 	case TypeJuju:

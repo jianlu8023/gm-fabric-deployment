@@ -23,6 +23,7 @@ type CustomRateLimiter struct {
 }
 
 // NewCustomRateLimiter 创建自定义令牌桶限流器
+//
 // @param rate 每秒生成的令牌数
 // @param capacity 令牌桶容量
 // @return *CustomRateLimiter 限流器实例
@@ -36,6 +37,7 @@ func NewCustomRateLimiter(rate int64, capacity int64) *CustomRateLimiter {
 }
 
 // Allow 检查是否允许请求通过
+//
 // @return bool true表示允许请求通过，false表示拒绝请求
 func (rl *CustomRateLimiter) Allow() bool {
 	rl.mutex.Lock()
@@ -65,15 +67,16 @@ func (rl *CustomRateLimiter) Allow() bool {
 }
 
 // EnableCustomRateLimit 使用自定义令牌桶算法的限流中间件
+//
 // @param logger 日志记录器
 // @param rps 每秒请求数限制
 // @param burst 令牌桶突发大小
 // @param trustedProxies 可信代理网段列表，用于正确解析客户端真实IP；为 nil 时仅使用 RemoteAddr
 // @return gin.HandlerFunc Gin中间件函数
 func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
-	// 创建全局限流器管理器
-	limiters := make(map[string]*CustomRateLimiter)
-	limitersMutex := sync.RWMutex{}
+	// 获取管理器配置
+	maxSize, expireTime := GetManagerConfig()
+	manager := NewIPRateLimiterManager(maxSize, expireTime)
 
 	return func(ctx *gin.Context) {
 		savedCtx := ctx.Request.Context()
@@ -87,22 +90,22 @@ func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int, trus
 		clientIP := iphelper.GetClientIP(ctx, trustedProxies)
 
 		// 获取或创建该IP的限流器
-		limitersMutex.RLock()
-		limiter, exists := limiters[clientIP]
-		limitersMutex.RUnlock()
+		limiter := manager.GetOrCreate(clientIP, func() interface{} {
+			return NewCustomRateLimiter(rps, int64(burst))
+		})
 
-		if !exists {
-			limitersMutex.Lock()
-			// 双重检查，避免竞态条件
-			if limiter, exists = limiters[clientIP]; !exists {
-				limiter = NewCustomRateLimiter(rps, int64(burst))
-				limiters[clientIP] = limiter
-			}
-			limitersMutex.Unlock()
+		// 类型断言为 *CustomRateLimiter
+		rl, ok := limiter.(*CustomRateLimiter)
+		if !ok {
+			// 理论上不会发生，防御性检查
+			logger.Errorf("[RateLimit] Invalid limiter type for IP: %s", clientIP)
+			ctx.Next()
+			span.SetStatus(codes.Ok, "success")
+			return
 		}
 
 		// 检查是否允许请求
-		if limiter.Allow() {
+		if rl.Allow() {
 			logger.Debugf("[CustomRateLimit] Allowed request from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.Next()
 			span.SetStatus(codes.Ok, "success")
@@ -115,7 +118,7 @@ func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int, trus
 				Data:    "Too many requests",
 				Success: false,
 			})
-			span.SetStatus(codes.Error, "Too may requests")
+			span.SetStatus(codes.Error, "Too many requests")
 			ctx.Abort()
 		}
 	}
