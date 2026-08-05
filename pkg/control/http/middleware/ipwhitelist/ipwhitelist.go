@@ -19,18 +19,10 @@ import (
 // @param trustedProxies 可信代理网段列表，用于正确解析客户端真实IP；为 nil 时仅使用 RemoteAddr
 // @return gin.HandlerFunc Gin中间件函数
 func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
-	// 如果白名单为空，则不进行过滤
+	// 如果白名单为空，则不进行过滤，直接返回空中间件
 	if len(whiteList) == 0 {
 		return func(ctx *gin.Context) {
-			savedCtx := ctx.Request.Context()
-			defer func() {
-				ctx.Request = ctx.Request.WithContext(savedCtx)
-			}()
-			tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
-			defer span.End()
-			ctx.Request = ctx.Request.WithContext(tCtx)
 			ctx.Next()
-			span.SetStatus(codes.Ok, "success")
 		}
 	}
 
