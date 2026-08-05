@@ -15,18 +15,14 @@ var _defaultConfig = "configs/default.yaml"
 // @struct Flags
 // @field ConfigPath 配置文件路径
 // @field ConfigType 配置文件类型(dev, prod等)
-// @field LogLevel 日志级别
-// @field LogFile 日志文件路径
 // @field Debug 是否启用调试模式
 // @field Version 是否显示版本信息
 // @field OtherFlags 存储其他自定义命令行参数
 // @field Parsed 是否已解析命令行参数
 // @field parser go-flags解析器
 type Flags struct {
-	ConfigPath string `long:"config" short:"c" description:"配置文件路径: configs/default.yaml" default:"configs/default.yaml"`
-	ConfigType string `long:"type" short:"t" description:"配置文件类型: dev 或 prod" default:""`
-	// LogLevel    string            `long:"loglevel" description:"日志级别: debug, info, warn, error, fatal"`
-	// LogFile     string            `long:"logfile" description:"日志文件路径: ./logs/app.log"`
+	ConfigPath string            `long:"config" short:"c" description:"配置文件路径: configs/default.yaml" default:"configs/default.yaml"`
+	ConfigType string            `long:"type" short:"t" description:"配置文件类型: dev 或 prod" default:""`
 	Debug      bool              `long:"debug" short:"d" description:"启用调试模式"`
 	Version    bool              `long:"version" short:"v" description:"显示版本信息"`
 	OtherFlags map[string]string // 存储其他自定义命令行参数
@@ -42,10 +38,8 @@ func newFlags() *Flags {
 	f := &Flags{
 		ConfigPath: _defaultConfig, // 默认配置文件路径
 		ConfigType: "",             // 默认不指定配置类型
-		// LogLevel:   "info",                 // 默认日志级别为info
-		// LogFile:    "./logs/app.log",       // 默认日志文件路径
-		Debug:      false, // 默认不启用调试模式
-		Version:    false, // 默认不显示版本信息
+		Debug:      false,          // 默认不启用调试模式
+		Version:    false,          // 默认不显示版本信息
 		OtherFlags: make(map[string]string),
 		Parsed:     false,
 	}
@@ -84,22 +78,70 @@ func (f *Flags) Parse(args []string) error {
 
 	f.Parsed = true
 
+	// Debug模式下记录未知的flag
+	if f.Debug && len(remainingArgs) > 0 {
+		fmt.Printf("warning: unknown flags (ignored by IgnoreUnknown): %v\n", remainingArgs)
+	}
+
 	// 处理剩余的非flag参数
-	// go-flags会自动处理--key=value格式的参数，但这里保留以保持与原代码的兼容性
+	// 支持 --key=value 和 --key value 两种格式
 	for i := 0; i < len(remainingArgs); i++ {
 		arg := remainingArgs[i]
-		// 处理格式为--key=value的参数
-		if strings.HasPrefix(arg, "--") {
-			parts := strings.SplitN(arg[2:], "=", 2)
-			if len(parts) == 2 {
-				f.OtherFlags[parts[0]] = parts[1]
-			} else {
-				// 如果没有值，设置为空字符串
-				f.OtherFlags[parts[0]] = ""
+
+		// 只处理以 -- 开头的参数
+		if !strings.HasPrefix(arg, "--") {
+			continue
+		}
+
+		key, value := "", ""
+		consumedNext := false
+		rest := arg[2:] // 去掉 --
+
+		if idx := strings.Index(rest, "="); idx >= 0 {
+			// --key=value 格式
+			key = rest[:idx]
+			value = rest[idx+1:]
+		} else {
+			// --key value 格式
+			key = rest
+			// 检查下一个参数是否是值（不是以 - 开头）
+			if i+1 < len(remainingArgs) && !strings.HasPrefix(remainingArgs[i+1], "-") {
+				value = remainingArgs[i+1]
+				consumedNext = true
 			}
 		}
+
+		// 验证key的合法性
+		if key != "" && isValidFlagKey(key) {
+			f.OtherFlags[key] = value
+		}
+		if consumedNext {
+			i++ // 跳过已处理的下一个参数
+		}
 	}
+
+	// 验证已知参数的合法性
+	if err := f.validate(); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// validate 验证命令行参数的合法性
+// @return error 验证过程中的错误
+// @description 验证命令行参数的合法性
+func (f *Flags) validate() error {
+	// ConfigType 允许任意值，由业务逻辑自行处理
+	return nil
+}
+
+// isValidFlagKey 验证flag key的合法性
+// @param key flag的key
+// @return bool key是否合法
+// @description 验证flag key的合法性，不允许空字符串和包含空格的key
+func isValidFlagKey(key string) bool {
+	return key != "" && !strings.Contains(key, " ")
 }
 
 // GetString 获取字符串类型的命令行参数
@@ -118,10 +160,6 @@ func (f *Flags) GetString(name string, defaultValue string) string {
 		return f.ConfigPath
 	case "type":
 		return f.ConfigType
-	// case "loglevel":
-	// 	return f.LogLevel
-	// case "logfile":
-	// 	return f.LogFile
 	default:
 		return defaultValue
 	}
@@ -165,8 +203,6 @@ func (f *Flags) GetAllFlags() map[string]interface{} {
 	// 添加标准参数
 	flagsMap["config"] = f.ConfigPath
 	flagsMap["type"] = f.ConfigType
-	// flagsMap["loglevel"] = f.LogLevel
-	// flagsMap["logfile"] = f.LogFile
 	flagsMap["debug"] = f.Debug
 	flagsMap["version"] = f.Version
 
@@ -186,8 +222,6 @@ func (f *Flags) String() string {
 	builder.WriteString("Flags{")
 	builder.WriteString(fmt.Sprintf("ConfigPath='%s', ", f.ConfigPath))
 	builder.WriteString(fmt.Sprintf("ConfigType='%s', ", f.ConfigType))
-	// builder.WriteString(fmt.Sprintf("LogLevel='%s', ", f.LogLevel))
-	// builder.WriteString(fmt.Sprintf("LogFile='%s', ", f.LogFile))
 	builder.WriteString(fmt.Sprintf("Debug=%v, ", f.Debug))
 	builder.WriteString(fmt.Sprintf("Version=%v, ", f.Version))
 	builder.WriteString("OtherFlags={")

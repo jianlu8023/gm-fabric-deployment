@@ -25,7 +25,7 @@ type Control struct {
 // @return *Control 新创建的FlagsControl实例
 // @description 初始化FlagsControl结构体并设置版本号
 func NewFlagsControl(version string) *Control {
-	fmt.Printf("starting new flags control...\n")
+	// fmt.Printf("starting new flags control...\n")
 	return &Control{
 		flags:   newFlags(),
 		version: version,
@@ -36,7 +36,7 @@ func NewFlagsControl(version string) *Control {
 // @param failedFunc 解析失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		fmt.Printf("starting up flags server...\n")
+		// fmt.Printf("starting up flags server...\n")
 		c.mutex.Lock()
 		parseErr := c.flags.Parse(os.Args[1:])
 		if parseErr != nil {
@@ -63,7 +63,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 func (c *Control) Shutdown() error {
 	// 目前没有需要关闭的资源
 	// 这里可以添加清理操作，如关闭文件等
-	fmt.Printf("shutting down flags server...\n")
+	// fmt.Printf("shutting down flags server...\n")
 	return nil
 }
 
@@ -84,24 +84,6 @@ func (c *Control) GetConfigType() string {
 	defer c.mutex.RUnlock()
 	return c.flags.ConfigType
 }
-
-// GetLogLevel 获取日志级别
-// @return string 日志级别
-// @description 获取命令行参数中指定的日志级别
-// func (c *Control) GetLogLevel() string {
-// 	c.mutex.RLock()
-// 	defer c.mutex.RUnlock()
-// 	return c.flags.LogLevel
-// }
-
-// GetLogFile 获取日志文件路径
-// @return string 日志文件路径
-// @description 获取命令行参数中指定的日志文件路径
-// func (c *Control) GetLogFile() string {
-// 	c.mutex.RLock()
-// 	defer c.mutex.RUnlock()
-// 	return c.flags.LogFile
-// }
 
 // IsDebugMode 检查是否启用调试模式
 // @return bool 是否启用调试模式
