@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/iphelper"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
+	"go.opentelemetry.io/otel/codes"
 	"go.uber.org/zap"
 )
 
@@ -50,6 +51,7 @@ func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config, trustedPro
 			}()
 			tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimit")
 			defer span.End()
+			span.SetStatus(codes.Ok, "disabled")
 			ctx.Request = ctx.Request.WithContext(tCtx)
 			ctx.Next()
 		}

@@ -2,10 +2,12 @@ package ratelimit
 
 import (
 	"container/list"
-	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
-	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
+	"context"
 	"sync"
 	"time"
+
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 )
 
 // LimiterEntry 限流器条目，包含限流器实例和元数据
@@ -13,6 +15,7 @@ type LimiterEntry struct {
 	Limiter    interface{}   // 限流器实例（*rate.Limiter、*CustomRateLimiter 等）
 	LastAccess time.Time     // 最后访问时间
 	Element    *list.Element // LRU列表中的元素
+	IP         string        // IP地址，用于O(1)删除
 }
 
 // IPRateLimiterManager IP限流器管理器
@@ -23,28 +26,27 @@ type LimiterEntry struct {
 //  3. LRU淘汰：超过最大条目数时，淘汰最久未使用的限流器
 //  4. 并发安全：支持多goroutine并发访问
 type IPRateLimiterManager struct {
-	mu sync.Mutex // 互斥锁，保护map和lru的并发访问
-	// limiters   map[string]*LimiterEntry // IP到限流器条目的映射
+	mu         sync.Mutex                            // 互斥锁，保护map和lru的并发访问
 	limiters   concurrent.Map[string, *LimiterEntry] // IP到限流器条目的映射
 	lru        *list.List                            // LRU链表，用于淘汰最久未使用的条目
 	maxSize    int                                   // 最大条目数，超过后使用LRU淘汰
 	expireTime time.Duration                         // 过期时间，超过此时间未访问的条目将被清理
-	stopCh     chan struct{}                         // 停止清理协程的通道
+	ctx        context.Context                       // 上下文，用于停止清理协程
 }
 
 // NewIPRateLimiterManager 创建IP限流器管理器
 //
+// @param ctx 上下文，当ctx取消时，后台清理协程会停止
 // @param maxSize 最大条目数，0表示不限制
 // @param expireTime 过期时间，0表示不过期清理
 // @return *IPRateLimiterManager 管理器实例
-func NewIPRateLimiterManager(maxSize int, expireTime time.Duration) *IPRateLimiterManager {
+func NewIPRateLimiterManager(ctx context.Context, maxSize int, expireTime time.Duration) *IPRateLimiterManager {
 	m := &IPRateLimiterManager{
-		// limiters:   make(map[string]*LimiterEntry),
 		limiters:   concurrentmap.NewRWMap[string, *LimiterEntry](),
 		lru:        list.New(),
 		maxSize:    maxSize,
 		expireTime: expireTime,
-		stopCh:     make(chan struct{}),
+		ctx:        ctx,
 	}
 
 	// 如果设置了过期时间，启动后台清理协程
@@ -65,19 +67,12 @@ func (m *IPRateLimiterManager) GetOrCreate(ip string, factory func() interface{}
 	defer m.mu.Unlock()
 
 	// 尝试获取已存在的限流器
-	// if entry, exists := m.limiters[ip]; exists {
-	// 	// 更新最后访问时间
-	// 	entry.LastAccess = time.Now()
-	// 	// 移动到LRU链表头部（表示最近使用）
-	// 	m.lru.MoveToFront(entry.Element)
-	// 	return entry.Limiter
-	// }
-	if enrty, exists := m.limiters.Get(ip); exists {
+	if entry, exists := m.limiters.Get(ip); exists {
 		// 更新最后访问时间
-		enrty.LastAccess = time.Now()
+		entry.LastAccess = time.Now()
 		// 移动到LRU链表头部（表示最近使用）
-		m.lru.MoveToFront(enrty.Element)
-		return enrty.Limiter
+		m.lru.MoveToFront(entry.Element)
+		return entry.Limiter
 	}
 
 	// 创建新的限流器
@@ -87,18 +82,15 @@ func (m *IPRateLimiterManager) GetOrCreate(ip string, factory func() interface{}
 	entry := &LimiterEntry{
 		Limiter:    limiter,
 		LastAccess: time.Now(),
+		IP:         ip,
 	}
 
 	// 添加到LRU链表头部
 	entry.Element = m.lru.PushFront(entry)
 	// 添加到map
-	// m.limiters[ip] = entry
 	m.limiters.Put(ip, entry)
 
 	// 检查是否超过最大条目数
-	// if m.maxSize > 0 && len(m.limiters) > m.maxSize {
-	// 	m.evictLRU()
-	// }
 	if m.maxSize > 0 && m.limiters.Len() > m.maxSize {
 		m.evictLRU()
 	}
@@ -115,7 +107,6 @@ func (m *IPRateLimiterManager) Get(ip string) (interface{}, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// entry, exists := m.limiters[ip]
 	entry, exists := m.limiters.Get(ip)
 	if exists {
 		// 更新最后访问时间
@@ -134,12 +125,6 @@ func (m *IPRateLimiterManager) Delete(ip string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	// if entry, exists := m.limiters[ip]; exists {
-	// 	// 从LRU链表中移除
-	// 	m.lru.Remove(entry.Element)
-	// 	// 从map中删除
-	// 	delete(m.limiters, ip)
-	// }
 	if entry, exists := m.limiters.Get(ip); exists {
 		// 从LRU链表中移除
 		m.lru.Remove(entry.Element)
@@ -154,16 +139,7 @@ func (m *IPRateLimiterManager) Delete(ip string) {
 func (m *IPRateLimiterManager) Size() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	// return len(m.limiters)
 	return m.limiters.Len()
-}
-
-// Close 关闭管理器，停止后台清理协程
-func (m *IPRateLimiterManager) Close() {
-	select {
-	case m.stopCh <- struct{}{}:
-	default:
-	}
 }
 
 // evictLRU 淘汰最久未使用的条目（调用方需持有锁）
@@ -174,22 +150,8 @@ func (m *IPRateLimiterManager) evictLRU() {
 		entry := back.Value.(*LimiterEntry)
 		// 从链表中移除
 		m.lru.Remove(back)
-		// 从map中删除
-		// for ip, e := range m.limiters {
-		// 	if e == entry {
-		// 		delete(m.limiters, ip)
-		// 		break
-		// 	}
-		// }
-		iter := m.limiters.Iterator()
-		if iter.HasNext() {
-			node := iter.Value()
-			ip, e := node.Key, node.Value
-			if e == entry {
-				m.limiters.Del(ip)
-			}
-		}
-
+		// 使用存储的IP直接删除（O(1)操作）
+		m.limiters.Del(entry.IP)
 	}
 }
 
@@ -208,7 +170,7 @@ func (m *IPRateLimiterManager) cleanupLoop() {
 		select {
 		case <-ticker.C:
 			m.cleanupExpired()
-		case <-m.stopCh:
+		case <-m.ctx.Done():
 			return
 		}
 	}
@@ -223,12 +185,6 @@ func (m *IPRateLimiterManager) cleanupExpired() {
 	expiredIPs := make([]string, 0)
 
 	// 收集过期的IP
-	// for ip, entry := range m.limiters {
-	// 	if now.Sub(entry.LastAccess) > m.expireTime {
-	// 		expiredIPs = append(expiredIPs, ip)
-	// 	}
-	// }
-
 	iter := m.limiters.Iterator()
 	for iter.HasNext() {
 		node := iter.Value()
@@ -237,13 +193,10 @@ func (m *IPRateLimiterManager) cleanupExpired() {
 			expiredIPs = append(expiredIPs, node.Key)
 		}
 	}
+	_ = iter.Close()
 
 	// 删除过期的条目
 	for _, ip := range expiredIPs {
-		// if entry, exists := m.limiters[ip]; exists {
-		// 	m.lru.Remove(entry.Element)
-		// 	delete(m.limiters, ip)
-		// }
 		if entry, exists := m.limiters.Get(ip); exists {
 			m.lru.Remove(entry.Element)
 			m.limiters.Del(ip)

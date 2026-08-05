@@ -43,8 +43,6 @@ func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int, trust
 
 	// 使用ulule提供的中间件
 	middleware := mgin.NewMiddleware(limiterInstance, mgin.WithLimitReachedHandler(func(ctx *gin.Context) {
-		_, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "rateLimitUlule")
-		defer span.End()
 		ctx.Header("X-RateLimit-Type", "ulule")
 		ctx.JSON(http.StatusTooManyRequests, commonhttp.BaseResponse{
 			Code:    http.StatusTooManyRequests,
@@ -52,7 +50,6 @@ func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int, trust
 			Data:    "Too many requests",
 			Success: false,
 		})
-		span.SetStatus(codes.Error, "Too many requests")
 	}))
 
 	return func(ctx *gin.Context) {

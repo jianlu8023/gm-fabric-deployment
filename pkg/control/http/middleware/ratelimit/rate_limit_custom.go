@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"context"
 	"net/http"
 	"sync"
 	"time"
@@ -76,7 +77,7 @@ func (rl *CustomRateLimiter) Allow() bool {
 func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
 	// 获取管理器配置
 	maxSize, expireTime := GetManagerConfig()
-	manager := NewIPRateLimiterManager(maxSize, expireTime)
+	manager := NewIPRateLimiterManager(context.Background(), maxSize, expireTime)
 
 	return func(ctx *gin.Context) {
 		savedCtx := ctx.Request.Context()
