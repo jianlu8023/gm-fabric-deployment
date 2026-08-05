@@ -2,7 +2,145 @@ package config
 
 import (
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
+	"reflect"
+	"strings"
 )
+
+// marshalConfig 序列化配置结构体，显示所有字段包括false的bool值
+//
+// @description 通过反射遍历结构体所有字段，将其转换为map[string]interface{}后进行JSON序列化，
+//
+//	确保所有字段（包括false的bool、空字符串等零值字段）都能被正确显示
+//
+// @param v interface{} 需要序列化的结构体指针
+// @return string JSON格式化字符串
+func marshalConfig(v interface{}) string {
+	data, err := json.MarshalPretty(structToMap(v))
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// structToMap 将结构体转换为map[string]interface{}
+//
+// @description 使用反射遍历结构体所有字段，忽略omitempty标签，确保所有字段都能被包含在结果中
+// @param v interface{} 需要转换的结构体
+// @return map[string]interface{} 转换后的map
+func structToMap(v interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	if v == nil {
+		return result
+	}
+	val := reflect.ValueOf(v)
+	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return result
+		}
+		val = val.Elem()
+	}
+	if val.Kind() != reflect.Struct {
+		return result
+	}
+	typ := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+		jsonTag := fieldType.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+		jsonName := strings.Split(jsonTag, ",")[0]
+		if jsonName == "-" || jsonName == "" {
+			continue
+		}
+		// 跳过nil指针和nil切片/映射字段，避免打印null
+		if field.Kind() == reflect.Ptr && field.IsNil() {
+			continue
+		}
+		if (field.Kind() == reflect.Slice || field.Kind() == reflect.Map) && field.IsNil() {
+			continue
+		}
+		result[jsonName] = fieldValueToInterface(field)
+	}
+	return result
+}
+
+// fieldValueToInterface 将字段值转换为interface{}
+//
+// @description 处理不同类型的字段值，包括基本类型、嵌套结构体、指针、切片等
+// @param field reflect.Value 字段值
+// @return interface{} 转换后的值
+func fieldValueToInterface(field reflect.Value) interface{} {
+	switch field.Kind() {
+	case reflect.Ptr:
+		if field.IsNil() {
+			return nil
+		}
+		return structToMap(field.Interface())
+	case reflect.Struct:
+		if field.CanAddr() {
+			return structToMap(field.Addr().Interface())
+		}
+		return structToMap(field.Interface())
+	case reflect.Slice, reflect.Array:
+		if field.IsNil() {
+			return nil
+		}
+		result := make([]interface{}, field.Len())
+		for i := 0; i < field.Len(); i++ {
+			elem := field.Index(i)
+			if elem.Kind() == reflect.Ptr {
+				if elem.IsNil() {
+					result[i] = nil
+				} else {
+					result[i] = fieldValueToInterface(elem)
+				}
+			} else if elem.Kind() == reflect.Struct {
+				if elem.CanAddr() {
+					result[i] = structToMap(elem.Addr().Interface())
+				} else {
+					result[i] = structToMap(elem.Interface())
+				}
+			} else {
+				result[i] = elem.Interface()
+			}
+		}
+		return result
+	case reflect.Map:
+		if field.IsNil() {
+			return nil
+		}
+		result := make(map[string]interface{})
+		for _, key := range field.MapKeys() {
+			result[toString(key)] = fieldValueToInterface(field.MapIndex(key))
+		}
+		return result
+	case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64, reflect.String:
+		return field.Interface()
+	case reflect.Interface:
+		if field.IsNil() {
+			return nil
+		}
+		return fieldValueToInterface(field.Elem())
+	default:
+		return field.Interface()
+	}
+}
+
+// toString 将reflect.Value转换为字符串
+//
+// @description 将map的key转换为字符串类型
+// @param v reflect.Value 需要转换的值
+// @return string 转换后的字符串
+func toString(v reflect.Value) string {
+	if v.Kind() == reflect.String {
+		return v.String()
+	}
+	return ""
+}
 
 // DockerConfig docker配置结构体
 type DockerConfig struct {
@@ -18,9 +156,12 @@ type DockerConfig struct {
 
 // String 返回DockerConfig的字符串表示
 // @return string DockerConfig的字符串表示
-func (d *DockerConfig) String() string {
-	pretty, _ := json.MarshalPretty(d)
-	return string(pretty)
+func (c *DockerConfig) String() string {
+	return marshalConfig(c)
+}
+
+func (c *DockerConfig) GoString() string {
+	return c.String()
 }
 
 // DataSourceConfig 数据源配置结构体
@@ -42,13 +183,20 @@ type DataSourceConfig struct {
 	TLSCAFile      string `json:"tls_ca_file,omitempty" yaml:"tls_ca_file,omitempty" mapstructure:"tls_ca_file"`                // TLS CA证书文件
 	TLSSkipVerify  bool   `json:"tls_skip_verify,omitempty" yaml:"tls_skip_verify,omitempty" mapstructure:"tls_skip_verify"`    // 是否跳过TLS验证
 	TLSServerName  string `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty" mapstructure:"tls_server_name"`    // TLS服务器名称
+	Charset        string `json:"charset,omitempty" yaml:"charset,omitempty" mapstructure:"charset"`                            // 数据库字符集，默认utf8mb4
+	Timezone       string `json:"timezone,omitempty" yaml:"timezone,omitempty" mapstructure:"timezone"`                         // 数据库时区，默认Local(MySQL)或Asia/Shanghai(PostgreSQL)
+	SSLMode        string `json:"ssl_mode,omitempty" yaml:"ssl_mode,omitempty" mapstructure:"ssl_mode"`                         // PostgreSQL SSL模式，默认disable
+	ParseTime      bool   `json:"parse_time,omitempty" yaml:"parse_time,omitempty" mapstructure:"parse_time"`                   // 是否解析时间类型，默认true
 }
 
 // String 返回DataSourceConfig的字符串表示
 // @return string 字符串表示
-func (d *DataSourceConfig) String() string {
-	pretty, _ := json.MarshalPretty(d)
-	return string(pretty)
+func (c *DataSourceConfig) String() string {
+	return marshalConfig(c)
+}
+
+func (c *DataSourceConfig) GoString() string {
+	return c.String()
 }
 
 // LoggerConfig 日志配置
@@ -64,9 +212,12 @@ type LoggerConfig struct {
 
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
-func (l *LoggerConfig) String() string {
-	pretty, _ := json.MarshalPretty(l)
-	return string(pretty)
+func (c *LoggerConfig) String() string {
+	return marshalConfig(c)
+}
+
+func (c *LoggerConfig) GoString() string {
+	return c.String()
 }
 
 type IPWhiteListConfig struct {
@@ -74,9 +225,11 @@ type IPWhiteListConfig struct {
 	IPs     []string `json:"ips,omitempty" yaml:"ips,omitempty" mapstructure:"ips"`             // IP白名单，优先级高于黑名单
 }
 
-func (i *IPWhiteListConfig) String() string {
-	pretty, _ := json.MarshalPretty(i)
-	return string(pretty)
+func (c *IPWhiteListConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *IPWhiteListConfig) GoString() string {
+	return c.String()
 }
 
 type IPBlackListConfig struct {
@@ -84,9 +237,11 @@ type IPBlackListConfig struct {
 	IPs     []string `json:"ips,omitempty" yaml:"ips,omitempty" mapstructure:"ips"`             // IP黑名单
 }
 
-func (i *IPBlackListConfig) String() string {
-	pretty, _ := json.MarshalPretty(i)
-	return string(pretty)
+func (c *IPBlackListConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *IPBlackListConfig) GoString() string {
+	return c.String()
 }
 
 // TrustedProxiesConfig 可信代理配置
@@ -101,9 +256,12 @@ type TrustedProxiesConfig struct {
 // String 返回配置的字符串表示
 //
 // @return string 配置的字符串表示
-func (t *TrustedProxiesConfig) String() string {
-	pretty, _ := json.MarshalPretty(t)
-	return string(pretty)
+func (c *TrustedProxiesConfig) String() string {
+	return marshalConfig(c)
+}
+
+func (c *TrustedProxiesConfig) GoString() string {
+	return c.String()
 }
 
 type RateLimitConfig struct {
@@ -116,9 +274,11 @@ type RateLimitConfig struct {
 // String 返回配置的字符串表示
 //
 // @return string 配置的字符串表示
-func (r *RateLimitConfig) String() string {
-	pretty, _ := json.MarshalPretty(r)
-	return string(pretty)
+func (c *RateLimitConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *RateLimitConfig) GoString() string {
+	return c.String()
 }
 
 // JWTConfig JWT认证配置
@@ -134,9 +294,11 @@ type JWTConfig struct {
 // String 返回配置的字符串表示
 //
 // @return string 配置的字符串表示
-func (j *JWTConfig) String() string {
-	pretty, _ := json.MarshalPretty(j)
-	return string(pretty)
+func (c *JWTConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *JWTConfig) GoString() string {
+	return c.String()
 }
 
 // CORSConfig CORS跨域配置
@@ -158,8 +320,11 @@ type CORSConfig struct {
 //
 // @return string 配置的字符串表示
 func (c *CORSConfig) String() string {
-	pretty, _ := json.MarshalPretty(c)
-	return string(pretty)
+	return marshalConfig(c)
+}
+
+func (c *CORSConfig) GoString() string {
+	return c.String()
 }
 
 // RecoveryConfig panic恢复中间件配置
@@ -176,9 +341,12 @@ type RecoveryConfig struct {
 // String 返回配置的字符串表示
 //
 // @return string 配置的字符串表示
-func (r *RecoveryConfig) String() string {
-	pretty, _ := json.MarshalPretty(r)
-	return string(pretty)
+func (c *RecoveryConfig) String() string {
+	return marshalConfig(c)
+}
+
+func (c *RecoveryConfig) GoString() string {
+	return c.String()
 }
 
 // ResponseLogConfig 响应日志中间件配置
@@ -194,9 +362,11 @@ type ResponseLogConfig struct {
 // String 返回配置的字符串表示
 //
 // @return string 配置的字符串表示
-func (r *ResponseLogConfig) String() string {
-	pretty, _ := json.MarshalPretty(r)
-	return string(pretty)
+func (c *ResponseLogConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *ResponseLogConfig) GoString() string {
+	return c.String()
 }
 
 // SessionConfig 会话存储配置
@@ -216,9 +386,11 @@ type SessionConfig struct {
 // String 返回配置的字符串表示
 //
 // @return string 配置的字符串表示
-func (s *SessionConfig) String() string {
-	pretty, _ := json.MarshalPretty(s)
-	return string(pretty)
+func (c *SessionConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *SessionConfig) GoString() string {
+	return c.String()
 }
 
 // AuthConfig 认证配置
@@ -240,9 +412,11 @@ type AuthConfig struct {
 // String 返回配置的字符串表示
 //
 // @return string 配置的字符串表示
-func (a *AuthConfig) String() string {
-	pretty, _ := json.MarshalPretty(a)
-	return string(pretty)
+func (c *AuthConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *AuthConfig) GoString() string {
+	return c.String()
 }
 
 // HttpServerConfig http服务配置
@@ -273,9 +447,11 @@ type HttpServerConfig struct {
 
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
-func (h *HttpServerConfig) String() string {
-	pretty, _ := json.MarshalPretty(h)
-	return string(pretty)
+func (c *HttpServerConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *HttpServerConfig) GoString() string {
+	return c.String()
 }
 
 // GrpcServerConfig grpc服务配置
@@ -293,9 +469,11 @@ type GrpcServerConfig struct {
 
 // String 返回GrpcServerConfig的JSON格式字符串
 // @return string 返回GrpcServerConfig的JSON格式字符串
-func (g *GrpcServerConfig) String() string {
-	pretty, _ := json.MarshalPretty(g)
-	return string(pretty)
+func (c *GrpcServerConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *GrpcServerConfig) GoString() string {
+	return c.String()
 }
 
 // GrpcClientConfig 配置GrpcClient
@@ -315,9 +493,11 @@ type GrpcClientConfig struct {
 
 // String GrpcClientConfig的字符串表示
 // @return string GrpcClientConfig的字符串表示
-func (g *GrpcClientConfig) String() string {
-	pretty, _ := json.MarshalPretty(g)
-	return string(pretty)
+func (c *GrpcClientConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *GrpcClientConfig) GoString() string {
+	return c.String()
 }
 
 // GrpcConfig 配置Grpc
@@ -329,9 +509,11 @@ type GrpcConfig struct {
 
 // String GrpcConfig的字符串表示
 // @return string GrpcConfig的字符串表示
-func (g *GrpcConfig) String() string {
-	pretty, _ := json.MarshalPretty(g)
-	return string(pretty)
+func (c *GrpcConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *GrpcConfig) GoString() string {
+	return c.String()
 }
 
 // Identity 配置身份信息
@@ -342,9 +524,11 @@ type Identity struct {
 
 // String 返回Identity的字符串表示
 // @return string Identity的字符串表示
-func (i *Identity) String() string {
-	pretty, _ := json.MarshalPretty(i)
-	return string(pretty)
+func (c *Identity) String() string {
+	return marshalConfig(c)
+}
+func (c *Identity) GoString() string {
+	return c.String()
 }
 
 // Libp2pConfig 配置Libp2p
@@ -359,9 +543,11 @@ type Libp2pConfig struct {
 
 // String Libp2pConfig的字符串表示
 // @return string Libp2pConfig的字符串表示
-func (l *Libp2pConfig) String() string {
-	pretty, _ := json.MarshalPretty(l)
-	return string(pretty)
+func (c *Libp2pConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *Libp2pConfig) GoString() string {
+	return c.String()
 }
 
 // CaptchaConfig 验证码配置结构体
@@ -379,8 +565,10 @@ type CaptchaConfig struct {
 // String CaptchConfig的字符串表示
 // @return CaptchConfig的字符串表示
 func (c *CaptchaConfig) String() string {
-	pretty, _ := json.MarshalPretty(c)
-	return string(pretty)
+	return marshalConfig(c)
+}
+func (c *CaptchaConfig) GoString() string {
+	return c.String()
 }
 
 // IpfsConfig IPFS配置
@@ -392,9 +580,11 @@ type IpfsConfig struct {
 
 // String IpfsConfig的字符串表示
 // @return string IpfsConfig的字符串表示
-func (i *IpfsConfig) String() string {
-	pretty, _ := json.MarshalPretty(i)
-	return string(pretty)
+func (c *IpfsConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *IpfsConfig) GoString() string {
+	return c.String()
 }
 
 // EmailConfig 邮件配置
@@ -412,9 +602,11 @@ type EmailConfig struct {
 
 // String EmailConfig的字符串表示
 // @return string EmailConfig的字符串表示
-func (e *EmailConfig) String() string {
-	pretty, _ := json.MarshalPretty(e)
-	return string(pretty)
+func (c *EmailConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *EmailConfig) GoString() string {
+	return c.String()
 }
 
 // AntsPoolConfig Ants线程池配置
@@ -428,9 +620,11 @@ type AntsPoolConfig struct {
 }
 
 // String 返回AntsPoolConfig的字符串表示
-func (a *AntsPoolConfig) String() string {
-	pretty, _ := json.MarshalPretty(a)
-	return string(pretty)
+func (c *AntsPoolConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *AntsPoolConfig) GoString() string {
+	return c.String()
 }
 
 // TunnyPoolConfig Tunny线程池配置
@@ -482,9 +676,11 @@ type FabricCAConfig struct {
 	TestMode            bool   `json:"test_mode,omitempty" yaml:"test_mode,omitempty" mapstructure:"test_mode"`                                        // 是否是开发模式
 }
 
-func (f *FabricCAConfig) String() string {
-	pretty, _ := json.MarshalPretty(f)
-	return string(pretty)
+func (c *FabricCAConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *FabricCAConfig) GoString() string {
+	return c.String()
 }
 
 type ICEServerConfig struct {
@@ -493,9 +689,11 @@ type ICEServerConfig struct {
 	Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"` // 密码
 }
 
-func (i *ICEServerConfig) String() string {
-	pretty, _ := json.MarshalPretty(i)
-	return string(pretty)
+func (c *ICEServerConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *ICEServerConfig) GoString() string {
+	return c.String()
 }
 
 // WebRTCConfig WebRTC配置
@@ -511,9 +709,11 @@ type WebRTCConfig struct {
 }
 
 // String WebRTCConfig的字符串表示
-func (w *WebRTCConfig) String() string {
-	pretty, _ := json.MarshalPretty(w)
-	return string(pretty)
+func (c *WebRTCConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *WebRTCConfig) GoString() string {
+	return c.String()
 }
 
 // GeoIPConfig GeoIP配置
@@ -524,14 +724,13 @@ type GeoIPConfig struct {
 	AutoDownload bool   `json:"auto_download,omitempty" yaml:"auto_download,omitempty" mapstructure:"auto_download"` // 是否自动下载数据库
 }
 
-func (g *GeoIPConfig) GoString() string {
-	return g.String()
+func (c *GeoIPConfig) GoString() string {
+	return c.String()
 }
 
 // String GeoIPConfig的字符串表示
-func (g *GeoIPConfig) String() string {
-	pretty, _ := json.MarshalPretty(g)
-	return string(pretty)
+func (c *GeoIPConfig) String() string {
+	return marshalConfig(c)
 }
 
 // AuthzConfig 权限控制配置结构体
@@ -545,18 +744,22 @@ type AuthzConfig struct {
 }
 
 // String 返回AuthzConfig的字符串表示
-func (a *AuthzConfig) String() string {
-	pretty, _ := json.MarshalPretty(a)
-	return string(pretty)
+func (c *AuthzConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *AuthzConfig) GoString() string {
+	return c.String()
 }
 
 type MFAGoogleConfig struct {
 	Issuer string `json:"issuer,omitempty" yaml:"issuer,omitempty" mapstructure:"issuer"` // Google认证器的颁发者名称
 }
 
-func (m *MFAGoogleConfig) String() string {
-	pretty, _ := json.MarshalPretty(m)
-	return string(pretty)
+func (c *MFAGoogleConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *MFAGoogleConfig) GoString() string {
+	return c.String()
 }
 
 type MFAMicrosoftConfig struct {
@@ -565,9 +768,11 @@ type MFAMicrosoftConfig struct {
 	ClientSecret string `json:"client_secret,omitempty" yaml:"client_secret,omitempty" mapstructure:"client_secret"` // Microsoft客户端密钥
 }
 
-func (m *MFAMicrosoftConfig) String() string {
-	pretty, _ := json.MarshalPretty(m)
-	return string(pretty)
+func (c *MFAMicrosoftConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *MFAMicrosoftConfig) GoString() string {
+	return c.String()
 }
 
 // MFAConfig MFA配置
@@ -582,9 +787,11 @@ type MFAConfig struct {
 
 // String MFAConfig的字符串表示
 // @return string MFAConfig的字符串表示
-func (m *MFAConfig) String() string {
-	pretty, _ := json.MarshalPretty(m)
-	return string(pretty)
+func (c *MFAConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *MFAConfig) GoString() string {
+	return c.String()
 }
 
 type Tracer struct {
@@ -596,9 +803,11 @@ type Tracer struct {
 	FilePath       string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
 }
 
-func (t *Tracer) String() string {
-	pretty, _ := json.MarshalPretty(t)
-	return string(pretty)
+func (c *Tracer) String() string {
+	return marshalConfig(c)
+}
+func (c *Tracer) GoString() string {
+	return c.String()
 }
 
 type Logger struct {
@@ -609,9 +818,11 @@ type Logger struct {
 	FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
 }
 
-func (l *Logger) String() string {
-	pretty, _ := json.MarshalPretty(l)
-	return string(pretty)
+func (c *Logger) String() string {
+	return marshalConfig(c)
+}
+func (c *Logger) GoString() string {
+	return c.String()
 }
 
 type Metrics struct {
@@ -622,9 +833,11 @@ type Metrics struct {
 	FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`
 }
 
-func (m *Metrics) String() string {
-	pretty, _ := json.MarshalPretty(m)
-	return string(pretty)
+func (c *Metrics) String() string {
+	return marshalConfig(c)
+}
+func (c *Metrics) GoString() string {
+	return c.String()
 }
 
 // TracerConfig OTEL追踪配置
@@ -645,9 +858,11 @@ type TracerConfig struct {
 	Metrics      *Metrics `json:"metrics,omitempty" yaml:"metrics,omitempty" mapstructure:"metrics"`                      // Meter配置
 }
 
-func (c TracerConfig) String() string {
-	pretty, _ := json.MarshalPretty(c)
-	return string(pretty)
+func (c *TracerConfig) String() string {
+	return marshalConfig(&c)
+}
+func (c *TracerConfig) GoString() string {
+	return c.String()
 }
 
 type Address struct {
@@ -657,9 +872,11 @@ type Address struct {
 	Password string `json:"password,omitempty" yaml:"password,omitempty" mapstructure:"password"`
 }
 
-func (a *Address) String() string {
-	pretty, _ := json.MarshalPretty(a)
-	return string(pretty)
+func (c *Address) String() string {
+	return marshalConfig(c)
+}
+func (c *Address) GoString() string {
+	return c.String()
 }
 
 type IpfsClusterConfig struct {
@@ -671,9 +888,11 @@ type IpfsClusterConfig struct {
 	Addresses       []*Address `json:"addresses,omitempty" yaml:"addresses,omitempty" mapstructure:"addresses"`
 }
 
-func (c IpfsClusterConfig) String() string {
-	pretty, _ := json.MarshalPretty(c)
-	return string(pretty)
+func (c *IpfsClusterConfig) String() string {
+	return marshalConfig(&c)
+}
+func (c *IpfsClusterConfig) GoString() string {
+	return c.String()
 }
 
 // RedisConfig Redis配置结构体
@@ -688,9 +907,11 @@ type RedisConfig struct {
 
 // String 返回RedisConfig的字符串表示
 // @return string RedisConfig的字符串表示
-func (r *RedisConfig) String() string {
-	pretty, _ := json.MarshalPretty(r)
-	return string(pretty)
+func (c *RedisConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *RedisConfig) GoString() string {
+	return c.String()
 }
 
 // KvDatabaseConfig KV数据库配置结构体
@@ -702,9 +923,11 @@ type KvDatabaseConfig struct {
 
 // String 返回KvDatabaseConfig的字符串表示
 // @return string KvDatabaseConfig的字符串表示
-func (k *KvDatabaseConfig) String() string {
-	pretty, _ := json.MarshalPretty(k)
-	return string(pretty)
+func (c *KvDatabaseConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *KvDatabaseConfig) GoString() string {
+	return c.String()
 }
 
 // AIConfig AI配置结构体
@@ -721,9 +944,11 @@ type AIConfig struct {
 
 // String 返回AIConfig的字符串表示
 // @return string AIConfig的字符串表示
-func (a *AIConfig) String() string {
-	pretty, _ := json.MarshalPretty(a)
-	return string(pretty)
+func (c *AIConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *AIConfig) GoString() string {
+	return c.String()
 }
 
 // CertificateConfig 证书配置结构体
@@ -737,8 +962,10 @@ type CertificateConfig struct {
 // String 返回CertificateConfig的字符串表示
 // @return string CertificateConfig的字符串表示
 func (c *CertificateConfig) String() string {
-	pretty, _ := json.MarshalPretty(c)
-	return string(pretty)
+	return marshalConfig(c)
+}
+func (c *CertificateConfig) GoString() string {
+	return c.String()
 }
 
 // Config 配置
@@ -771,6 +998,8 @@ type Config struct {
 // String 返回配置的字符串表示
 // @return string 配置的字符串表示
 func (c *Config) String() string {
-	pretty, _ := json.MarshalPretty(c)
-	return string(pretty)
+	return marshalConfig(c)
+}
+func (c *Config) GoString() string {
+	return c.String()
 }

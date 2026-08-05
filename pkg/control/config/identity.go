@@ -72,8 +72,8 @@ func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
 // @return error 解码过程中可能产生的错误
 //
 // nolint: unused
-func (i *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
-	pkb, err := base64.StdEncoding.DecodeString(i.PrivKey)
+func (c *Identity) DecodePrivateKey(passphrase string) (crypto.PrivKey, error) {
+	pkb, err := base64.StdEncoding.DecodeString(c.PrivKey)
 	if err != nil {
 		return nil, err
 	}

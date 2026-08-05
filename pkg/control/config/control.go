@@ -18,7 +18,7 @@ type Control struct {
 	flagsControl *flags.Control
 	config       *Config
 	mutex        sync.RWMutex
-	once         sync.Once
+	started      bool
 }
 
 // printConfig 打印配置信息
@@ -204,16 +204,30 @@ func (c *Control) GetGeoIPConfig() *GeoIPConfig {
 // }
 
 // Flush 重新加载配置文件
-// @description 从配置文件重新加载配置
+// @description 从配置文件重新加载配置，支持配置热更新
 // @return error 重新加载过程中的错误
 func (c *Control) Flush() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+
+	fmt.Printf("开始热加载配置...\n")
 	newConfig, err := c.loadConfig()
 	if err != nil {
-		return err
+		fmt.Printf("热加载配置失败: %v\n", err)
+		return fmt.Errorf("热加载配置失败: %w", err)
 	}
+
+	// 验证新配置
+	if err := c.validateConfig(&newConfig); err != nil {
+		fmt.Printf("新配置验证失败: %v\n", err)
+		return fmt.Errorf("新配置验证失败: %w", err)
+	}
+
+	oldConfig := c.config
 	c.config = &newConfig
+	fmt.Printf("配置热加载成功\n")
+	fmt.Printf("旧配置: %s\n", oldConfig.String())
+	fmt.Printf("新配置: %s\n", newConfig.String())
 	return nil
 }
 
@@ -224,42 +238,128 @@ func (c *Control) WatchDog() {
 }
 
 // StartUp 启动配置服务器
-// @description 启动配置服务器
+// @description 启动配置服务器，支持多次调用以实现重新初始化
 // @param failedFunc func(err error) 启动失败回调函数
-//
-//nolint:unused
 func (c *Control) StartUp(failedFunc func(err error)) {
-	c.once.Do(func() {
-		fmt.Printf("starting up config server...\n")
+	c.mutex.Lock()
+	if c.started {
+		c.mutex.Unlock()
+		fmt.Printf("config server already started, skip startup\n")
+		return
+	}
+	c.started = true
+	c.mutex.Unlock()
 
-		// 检查是否请求显示版本信息
-		if c.flagsControl != nil && c.flagsControl.IsVersionRequested() {
-			c.flagsControl.PrintVersion()
-		}
+	// fmt.Printf("starting up config server...\n")
 
-		// 到这里 说明不是请求显示版本信息
-		config, err := c.loadConfig()
-		if err != nil {
-			fmt.Printf("[control] load config failed: %s\n", err)
-			if failedFunc != nil {
-				failedFunc(err)
-			}
+	// 检查是否请求显示版本信息
+	// 注意：这里只打印版本信息，不直接返回，因为后续流程（如 NewServerControlFromFile）
+	// 依赖配置已加载，需要继续执行 loadConfig 以保证 c.config 不为 nil
+	if c.flagsControl != nil && c.flagsControl.IsVersionRequested() {
+		c.flagsControl.PrintVersion()
+	}
+
+	// 加载配置文件
+	config, err := c.loadConfig()
+	if err != nil {
+		fmt.Printf("[control] load config failed: %s\n", err)
+		c.mutex.Lock()
+		c.started = false
+		c.mutex.Unlock()
+		if failedFunc != nil {
+			failedFunc(err)
 			return
 		}
-		c.config = &config
+		return
+	}
+	c.config = &config
 
-		if c.flagsControl.IsDebugMode() {
-			c.printConfig()
-		}
-	})
+	if c.flagsControl.IsDebugMode() {
+		c.printConfig()
+	}
 }
 
 // Shutdown 关闭配置服务器
-// @description 关闭配置服务器（空操作）
+// @description 关闭配置服务器，重置启动状态以支持重新初始化
 // @return error 关闭过程中的错误
 func (c *Control) Shutdown() error {
 	// no-op
 	fmt.Printf("shutting down config server...\n")
+	c.mutex.Lock()
+	c.started = false
+	c.mutex.Unlock()
+	return nil
+}
+
+// validateConfig 验证配置的合法性
+// @description 验证配置的合法性，确保关键配置项满足约束条件
+// @param cfg *Config 需要验证的配置对象
+// @return error 验证过程中发现的错误
+func (c *Control) validateConfig(cfg *Config) error {
+	if cfg == nil {
+		return errors.New("配置对象为空")
+	}
+
+	// 验证HTTP配置
+	if cfg.HttpConfig != nil {
+		if cfg.HttpConfig.Enabled {
+			if cfg.HttpConfig.Address == "" {
+				return errors.New("HTTP服务启用时地址不能为空")
+			}
+			if cfg.HttpConfig.TlsEnabled {
+				if cfg.HttpConfig.TlsCertFile == "" || cfg.HttpConfig.TlsKeyFile == "" {
+					return errors.New("TLS启用时必须配置证书和密钥文件路径")
+				}
+			}
+		}
+	}
+
+	// 验证gRPC配置
+	if cfg.GrpcConfig != nil && cfg.GrpcConfig.Enabled {
+		if cfg.GrpcConfig.Server != nil {
+			if cfg.GrpcConfig.Server.TlsEnabled {
+				if cfg.GrpcConfig.Server.TlsCertFile == "" || cfg.GrpcConfig.Server.TlsKeyFile == "" {
+					return errors.New("gRPC TLS启用时必须配置证书和密钥文件路径")
+				}
+			}
+		}
+	}
+
+	// 验证JWT配置
+	if cfg.HttpConfig != nil && cfg.HttpConfig.Auth != nil {
+		if cfg.HttpConfig.Auth.Enabled {
+			if cfg.HttpConfig.Auth.JWT != nil && cfg.HttpConfig.Auth.JWT.Enabled {
+				if cfg.HttpConfig.Auth.JWT.Secret == "" {
+					return errors.New("JWT启用时Secret不能为空")
+				}
+				if cfg.HttpConfig.Auth.JWT.SessionTTL <= 0 {
+					return errors.New("JWT SessionTTL必须大于0")
+				}
+			}
+		}
+	}
+
+	// 验证数据源配置
+	if cfg.DataSourceConfig != nil && cfg.DataSourceConfig.Enabled {
+		if cfg.DataSourceConfig.DataSourceType == "" {
+			return errors.New("数据源启用时DataSourceType不能为空")
+		}
+		if cfg.DataSourceConfig.TLSEnabled {
+			if cfg.DataSourceConfig.TLSCertFile == "" || cfg.DataSourceConfig.TLSKeyFile == "" {
+				return errors.New("数据源TLS启用时必须配置证书和密钥文件路径")
+			}
+		}
+	}
+
+	// 验证Docker配置
+	if cfg.DockerConfig != nil && cfg.DockerConfig.Enabled {
+		if cfg.DockerConfig.TlsEnabled {
+			if cfg.DockerConfig.TlsCertFile == "" || cfg.DockerConfig.TlsKeyFile == "" {
+				return errors.New("Docker TLS启用时必须配置证书和密钥文件路径")
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -275,21 +375,22 @@ func (c *Control) loadConfig() (Config, error) {
 	fileNameWithoutExt := strings.TrimSuffix(fileName, fileExt)
 	filePath := filepath.Dir(c.flagsControl.GetConfigPath())
 
-	viper.SetConfigName(fileNameWithoutExt)               // 设置配置文件名
-	viper.SetConfigType(strings.TrimPrefix(fileExt, ".")) // 设置配置文件类型 (yaml, json, toml 等)
-	viper.AddConfigPath(filePath)                         // 设置配置文件路径
+	// 使用局部viper实例，避免全局状态污染
+	v := viper.New()
+	v.SetConfigName(fileNameWithoutExt)               // 设置配置文件名
+	v.SetConfigType(strings.TrimPrefix(fileExt, ".")) // 设置配置文件类型 (yaml, json, toml 等)
+	v.AddConfigPath(filePath)                         // 设置配置文件路径
 
 	// 如果指定了 configType, 尝试读取特定环境的配置文件
 	if !stringer.IsBlank(c.flagsControl.GetConfigType()) {
 		envSpecificFileName := fmt.Sprintf("%s-%s", fileNameWithoutExt, c.flagsControl.GetConfigType())
-		viper.SetConfigName(envSpecificFileName) // 尝试读取特定环境的配置文件
+		v.SetConfigName(envSpecificFileName) // 尝试读取特定环境的配置文件
 
-		// viper.AddConfigPath(".") // 放在这里是为了优先查找当前目录下的特定环境配置文件
 		// 尝试读取特定环境的配置文件. 不报错, 如果不存在就继续尝试读取默认配置文件
-		err := viper.ReadInConfig()
+		err := v.ReadInConfig()
 		if err == nil {
-			fmt.Printf("使用配置文件: %s\n", viper.ConfigFileUsed())
-			if err := viper.Unmarshal(&cfg); err != nil {
+			fmt.Printf("使用配置文件: %s\n", v.ConfigFileUsed())
+			if err := v.Unmarshal(&cfg); err != nil {
 				return cfg, fmt.Errorf("解析环境特定配置文件失败: %w", err)
 			}
 			return cfg, nil // 成功读取并解析环境特定配置文件
@@ -301,9 +402,9 @@ func (c *Control) loadConfig() (Config, error) {
 	}
 
 	// 读取默认配置文件
-	viper.SetConfigName(fileNameWithoutExt) // 恢复默认文件名
-	viper.AddConfigPath(filePath)
-	err := viper.ReadInConfig()
+	v.SetConfigName(fileNameWithoutExt) // 恢复默认文件名
+	v.AddConfigPath(filePath)
+	err := v.ReadInConfig()
 	if err != nil {
 		// 如果找不到配置文件，返回错误
 		var configFileNotFoundError viper.ConfigFileNotFoundError
@@ -312,9 +413,9 @@ func (c *Control) loadConfig() (Config, error) {
 		}
 	}
 
-	fmt.Printf("使用配置文件: %s\n", viper.ConfigFileUsed())
+	fmt.Printf("使用配置文件: %s\n", v.ConfigFileUsed())
 
-	if err := viper.Unmarshal(&cfg); err != nil {
+	if err := v.Unmarshal(&cfg); err != nil {
 		return cfg, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 
@@ -330,9 +431,13 @@ func (c *Control) loadConfig() (Config, error) {
 			}
 			cfg.Libp2pConfig.Identity = &ident
 
-			viper.Set("libp2p.identity", cfg.Libp2pConfig.Identity)
-			if err = viper.WriteConfig(); err != nil {
-				return cfg, fmt.Errorf("更新libp2p的identity失败: %w", err)
+			v.Set("libp2p.identity", cfg.Libp2pConfig.Identity)
+			// 获取当前配置文件路径，用于写回
+			configFilePath := v.ConfigFileUsed()
+			if configFilePath != "" {
+				if err = v.WriteConfigAs(configFilePath); err != nil {
+					return cfg, fmt.Errorf("更新libp2p的identity失败: %w", err)
+				}
 			}
 		}
 	}
