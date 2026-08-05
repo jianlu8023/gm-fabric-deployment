@@ -111,13 +111,12 @@ func EnableRecovery(webLogger *zap.SugaredLogger, cfg *config.RecoveryConfig) gi
 						err,
 					)
 				}
-				ctx.JSON(http.StatusInternalServerError, commonhttp.BaseResponse{
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, commonhttp.BaseResponse{
 					Code:    http.StatusInternalServerError,
 					Message: "业务处理失败",
 					Success: false,
 					Data:    customMessage,
 				})
-				ctx.AbortWithStatus(http.StatusInternalServerError)
 				span.SetStatus(codes.Error, "")
 			}
 		}()
