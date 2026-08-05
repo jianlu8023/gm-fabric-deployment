@@ -144,9 +144,9 @@ func main() {
 			HandlerFunc: func(ctx *gin.Context) {
 				ctx.Redirect(gohttp.StatusPermanentRedirect, "/file/")
 			},
-			EnableJWtVerify: false,
-			Enabled:         true,
-			Desc:            "index",
+			EnableAuth: false,
+			Enabled:    true,
+			Desc:       "index",
 		},
 		&commonhttp.MyRouter{
 			Name:   "login-get",
@@ -155,9 +155,9 @@ func main() {
 			HandlerFunc: func(ctx *gin.Context) {
 				ctx.HTML(gohttp.StatusOK, "login.tpl", nil)
 			},
-			Enabled:         true,
-			EnableJWtVerify: false,
-			Desc:            "login-get",
+			Enabled:    true,
+			EnableAuth: false,
+			Desc:       "login-get",
 		},
 		&commonhttp.MyRouter{
 			Name:   "login-post",
@@ -178,9 +178,9 @@ func main() {
 					ctx.JSON(gohttp.StatusOK, gin.H{"code": 0, "message": "登录失败"})
 				}
 			},
-			Enabled:         true,
-			EnableJWtVerify: false,
-			Desc:            "login-post",
+			Enabled:    true,
+			EnableAuth: false,
+			Desc:       "login-post",
 		},
 		&commonhttp.MyRouter{
 			Name:   "ico",
@@ -190,29 +190,29 @@ func main() {
 				file, _ := templates.FS.ReadFile("favicon.ico")
 				ctx.Data(gohttp.StatusOK, "image/x-icon", file)
 			},
-			EnableJWtVerify: false,
-			Enabled:         true,
-			Desc:            "ico",
+			EnableAuth: false,
+			Enabled:    true,
+			Desc:       "ico",
 		},
 	})
 	httpControl.RegisterGroupedRouter(&commonhttp.MyGroupRouter{
 		Group: conf.FileGroupPrefix,
 		Routers: []commonhttp.RouterHandler{
 			&commonhttp.MyRouter{
-				Name:            "download",
-				Uri:             "/*filename",
-				Method:          gohttp.MethodGet,
-				HandlerFunc:     core.Downloader,
-				Enabled:         true,
-				EnableJWtVerify: false,
-				Desc:            "download",
+				Name:        "download",
+				Uri:         "/*filename",
+				Method:      gohttp.MethodGet,
+				HandlerFunc: core.Downloader,
+				Enabled:     true,
+				EnableAuth:  false,
+				Desc:        "download",
 			},
 			&commonhttp.MyRouter{
-				Name:            "upload",
-				Uri:             "/upload",
-				Method:          gohttp.MethodPost,
-				EnableJWtVerify: false,
-				Enabled:         true,
+				Name:       "upload",
+				Uri:        "/upload",
+				Method:     gohttp.MethodPost,
+				EnableAuth: false,
+				Enabled:    true,
 				HandlerFunc: func(ctx *gin.Context) {
 					f, err := ctx.FormFile("upload_file")
 					if err != nil {

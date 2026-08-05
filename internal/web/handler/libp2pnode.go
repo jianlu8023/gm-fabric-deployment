@@ -155,22 +155,22 @@ func (h *Libp2pNodeHandler) Libp2pNodeMyself(ctx *gin.Context) {
 func (h *Libp2pNodeHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
-			Name:            "libp2pNodeList",
-			Uri:             "libp2p/list",
-			Method:          http.MethodGet,
-			HandlerFunc:     h.Libp2pNodeList,
-			Enabled:         true,
-			Desc:            "获取libp2p已发现的节点",
-			EnableJWtVerify: false,
+			Name:        "libp2pNodeList",
+			Uri:         "libp2p/list",
+			Method:      http.MethodGet,
+			HandlerFunc: h.Libp2pNodeList,
+			Enabled:     true,
+			Desc:        "获取libp2p已发现的节点",
+			EnableAuth:  false,
 		},
 		&commonhttp.MyRouter{
-			Name:            "libp2pNodeMyself",
-			Uri:             "libp2p/myself",
-			Method:          http.MethodGet,
-			HandlerFunc:     h.Libp2pNodeMyself,
-			Enabled:         true,
-			Desc:            "获取libp2p本机节点",
-			EnableJWtVerify: false,
+			Name:        "libp2pNodeMyself",
+			Uri:         "libp2p/myself",
+			Method:      http.MethodGet,
+			HandlerFunc: h.Libp2pNodeMyself,
+			Enabled:     true,
+			Desc:        "获取libp2p本机节点",
+			EnableAuth:  false,
 		},
 	}
 }

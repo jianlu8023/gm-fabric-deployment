@@ -6,13 +6,14 @@ import (
 
 // MyRouter 基础路由实现
 type MyRouter struct {
-	Name            string                 `json:"name,omitempty" yaml:"router_name,omitempty"`
-	Uri             string                 `json:"uri,omitempty" yaml:"router_uri,omitempty"`
-	Method          string                 `json:"method,omitempty" yaml:"router_method,omitempty"`
-	HandlerFunc     func(ctx *gin.Context) `json:"-" yaml:"-"`
-	Enabled         bool                   `json:"enabled,omitempty" yaml:"router_enabled,omitempty"`
-	Desc            string                 `json:"desc,omitempty" yaml:"router_desc,omitempty"`
-	EnableJWtVerify bool                   `json:"enable_jwt_verify,omitempty" yaml:"router_enable_jwt_verify,omitempty"`
+	Name               string                 `json:"name,omitempty" yaml:"router_name,omitempty"`
+	Uri                string                 `json:"uri,omitempty" yaml:"router_uri,omitempty"`
+	Method             string                 `json:"method,omitempty" yaml:"router_method,omitempty"`
+	HandlerFunc        func(ctx *gin.Context) `json:"-" yaml:"-"`
+	Enabled            bool                   `json:"enabled,omitempty" yaml:"router_enabled,omitempty"`
+	Desc               string                 `json:"desc,omitempty" yaml:"router_desc,omitempty"`
+	EnableAuth         bool                   `json:"enable_auth,omitempty" yaml:"router_enable_auth,omitempty"`
+	EnableAuthOptional bool                   `json:"enable_auth_optional,omitempty" yaml:"router_enable_auth_optional,omitempty"`
 }
 
 // GetName 获取路由名称
@@ -35,9 +36,14 @@ func (r *MyRouter) GetHandlerFunc() gin.HandlerFunc {
 	return r.HandlerFunc
 }
 
-// GetEnableJWtVerify 获取是否启用JWT验证
-func (r *MyRouter) GetEnableJWtVerify() bool {
-	return r.EnableJWtVerify
+// GetEnableAuth 获取是否启用认证验证
+func (r *MyRouter) GetEnableAuth() bool {
+	return r.EnableAuth
+}
+
+// GetEnableAuthOptional 获取是否启用可选认证
+func (r *MyRouter) GetEnableAuthOptional() bool {
+	return r.EnableAuthOptional
 }
 
 // IsEnabled 检查路由是否启用

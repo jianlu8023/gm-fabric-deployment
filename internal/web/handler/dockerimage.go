@@ -136,22 +136,22 @@ func (h *DockerImageHandler) DockerImagePull(ctx *gin.Context) {
 func (h *DockerImageHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
-			Name:            "DockerImageList",
-			Uri:             "docker/image/list",
-			Method:          http.MethodGet,
-			HandlerFunc:     h.DockerImageList,
-			Enabled:         true,
-			EnableJWtVerify: false,
-			Desc:            "获取docker镜像列表",
+			Name:        "DockerImageList",
+			Uri:         "docker/image/list",
+			Method:      http.MethodGet,
+			HandlerFunc: h.DockerImageList,
+			Enabled:     true,
+			EnableAuth:  false,
+			Desc:        "获取docker镜像列表",
 		},
 		&commonhttp.MyRouter{
-			Name:            "DockerImagePull",
-			Uri:             "docker/image/pull",
-			Method:          http.MethodPost,
-			HandlerFunc:     h.DockerImagePull,
-			Enabled:         true,
-			EnableJWtVerify: false,
-			Desc:            "拉取docker镜像",
+			Name:        "DockerImagePull",
+			Uri:         "docker/image/pull",
+			Method:      http.MethodPost,
+			HandlerFunc: h.DockerImagePull,
+			Enabled:     true,
+			EnableAuth:  false,
+			Desc:        "拉取docker镜像",
 		},
 	}
 }

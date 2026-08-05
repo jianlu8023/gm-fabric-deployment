@@ -93,13 +93,13 @@ func (h *GrpcHandler) SendGrpcPingMessage(ctx *gin.Context) {
 func (h *GrpcHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
-			Name:            "SendGrpcPingMessage",
-			Uri:             "/grpc/send/message/ping",
-			Method:          http.MethodGet,
-			HandlerFunc:     h.SendGrpcPingMessage,
-			Enabled:         true,
-			EnableJWtVerify: false,
-			Desc:            "发送Grpc的pingMessage",
+			Name:        "SendGrpcPingMessage",
+			Uri:         "/grpc/send/message/ping",
+			Method:      http.MethodGet,
+			HandlerFunc: h.SendGrpcPingMessage,
+			Enabled:     true,
+			EnableAuth:  false,
+			Desc:        "发送Grpc的pingMessage",
 		},
 	}
 }

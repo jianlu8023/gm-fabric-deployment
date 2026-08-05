@@ -138,22 +138,22 @@ func (h *SystemHandler) GetSystemInitStatus(ctx *gin.Context) {
 func (h *SystemHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
-			Name:            "systemOverview",
-			Uri:             "system/overview",
-			Enabled:         true,
-			EnableJWtVerify: false,
-			Method:          http.MethodGet,
-			Desc:            "获取系统的总览",
-			HandlerFunc:     h.GetSystemOverview,
+			Name:        "systemOverview",
+			Uri:         "system/overview",
+			Enabled:     true,
+			EnableAuth:  false,
+			Method:      http.MethodGet,
+			Desc:        "获取系统的总览",
+			HandlerFunc: h.GetSystemOverview,
 		},
 		&commonhttp.MyRouter{
-			Name:            "systemInitStatus",
-			Uri:             "system/init",
-			Enabled:         true,
-			EnableJWtVerify: false,
-			Method:          http.MethodGet,
-			Desc:            "获取baas是否进行初始化",
-			HandlerFunc:     h.GetSystemInitStatus,
+			Name:        "systemInitStatus",
+			Uri:         "system/init",
+			Enabled:     true,
+			EnableAuth:  false,
+			Method:      http.MethodGet,
+			Desc:        "获取baas是否进行初始化",
+			HandlerFunc: h.GetSystemInitStatus,
 		},
 	}
 }

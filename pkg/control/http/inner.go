@@ -120,20 +120,29 @@ func (c *Control) initRouters() {
 			c.logger.Debugf("[control] created new gin router group: %s with full path: %s", groupName, fullPath)
 		}
 
-		// 为当前组创建认证和非认证子组
+		// 为当前组创建认证、可选认证和非认证子组
 		authGroup := mainGroup.Group("/")
 		if c.authenticator != nil {
 			authGroup.Use(c.authenticator.Middleware())
+		}
+
+		authOptionalGroup := mainGroup.Group("/")
+		if c.authenticator != nil {
+			authOptionalGroup.Use(c.authenticator.OptionalMiddleware())
 		}
 
 		noAuthGroup := mainGroup.Group("/")
 
 		// 注册该组下的所有路由
 		for _, router := range routers {
-			if router.GetEnableJWtVerify() {
+			switch {
+			case router.GetEnableAuth():
 				c.logger.Debugf("[control] register router uri %s method %s in %s auth group", router.GetUri(), router.GetMethod(), groupName)
 				c.registerRouter(authGroup, router)
-			} else {
+			case router.GetEnableAuthOptional():
+				c.logger.Debugf("[control] register router uri %s method %s in %s auth-optional group", router.GetUri(), router.GetMethod(), groupName)
+				c.registerRouter(authOptionalGroup, router)
+			default:
 				c.logger.Debugf("[control] register router uri %s method %s in %s no-auth group", router.GetUri(), router.GetMethod(), groupName)
 				c.registerRouter(noAuthGroup, router)
 			}
@@ -286,9 +295,9 @@ func (c *Control) registerDefaultRouter() {
 						"routers": c.routerGroups.Values(),
 					})
 				},
-				Enabled:         true,
-				Desc:            "获取全部路由信息",
-				EnableJWtVerify: false,
+				Enabled:    true,
+				Desc:       "获取全部路由信息",
+				EnableAuth: false,
 			},
 		})
 	}
@@ -301,112 +310,112 @@ func (c *Control) registerDefaultRouter() {
 			Group: pprofUri,
 			Routers: []commonhttp.RouterHandler{
 				&commonhttp.MyRouter{
-					Name:            "pprof",
-					Uri:             "/",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Index),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprof",
+					Name:        "pprof",
+					Uri:         "/",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Index),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprof",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofCmdLine",
-					Uri:             "/cmdline",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Cmdline),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofCmdLine",
+					Name:        "pprofCmdLine",
+					Uri:         "/cmdline",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Cmdline),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofCmdLine",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofProfile",
-					Uri:             "/profile",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Profile),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofProfile",
+					Name:        "pprofProfile",
+					Uri:         "/profile",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Profile),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofProfile",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofSymbol",
-					Uri:             "/symbol",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Symbol),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofSymbol",
+					Name:        "pprofSymbol",
+					Uri:         "/symbol",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Symbol),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofSymbol",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofSymbol",
-					Uri:             "/symbol",
-					Method:          http.MethodPost,
-					HandlerFunc:     gin.WrapF(pprof.Symbol),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofSymbol",
+					Name:        "pprofSymbol",
+					Uri:         "/symbol",
+					Method:      http.MethodPost,
+					HandlerFunc: gin.WrapF(pprof.Symbol),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofSymbol",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofTrace",
-					Uri:             "/trace",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Trace),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofTrace",
+					Name:        "pprofTrace",
+					Uri:         "/trace",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Trace),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofTrace",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofAllocs",
-					Uri:             "/allocs",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Handler("allocs").ServeHTTP),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofAllocs",
+					Name:        "pprofAllocs",
+					Uri:         "/allocs",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Handler("allocs").ServeHTTP),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofAllocs",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofBlock",
-					Uri:             "/block",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Handler("block").ServeHTTP),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofBlock",
+					Name:        "pprofBlock",
+					Uri:         "/block",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Handler("block").ServeHTTP),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofBlock",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofGoroutine",
-					Uri:             "/goroutine",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Handler("goroutine").ServeHTTP),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofGoroutine",
+					Name:        "pprofGoroutine",
+					Uri:         "/goroutine",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Handler("goroutine").ServeHTTP),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofGoroutine",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofHeap",
-					Uri:             "/heap",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Handler("heap").ServeHTTP),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofHeap",
+					Name:        "pprofHeap",
+					Uri:         "/heap",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Handler("heap").ServeHTTP),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofHeap",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofMutex",
-					Uri:             "/mutex",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Handler("mutex").ServeHTTP),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofMutex",
+					Name:        "pprofMutex",
+					Uri:         "/mutex",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Handler("mutex").ServeHTTP),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofMutex",
 				},
 				&commonhttp.MyRouter{
-					Name:            "pprofThreadcreate",
-					Uri:             "/threadcreate",
-					Method:          http.MethodGet,
-					HandlerFunc:     gin.WrapF(pprof.Handler("threadcreate").ServeHTTP),
-					EnableJWtVerify: false,
-					Enabled:         true,
-					Desc:            "pprofThreadcreate",
+					Name:        "pprofThreadcreate",
+					Uri:         "/threadcreate",
+					Method:      http.MethodGet,
+					HandlerFunc: gin.WrapF(pprof.Handler("threadcreate").ServeHTTP),
+					EnableAuth:  false,
+					Enabled:     true,
+					Desc:        "pprofThreadcreate",
 				},
 			},
 			MiddlewaresFunc: nil,

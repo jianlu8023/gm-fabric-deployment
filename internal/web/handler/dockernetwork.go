@@ -92,13 +92,13 @@ func (h *DockerNetworkHandler) DockerNetworkList(ctx *gin.Context) {
 func (h *DockerNetworkHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
-			Name:            "DockerNetworkList",
-			Method:          http.MethodGet,
-			Uri:             "docker/network/list",
-			HandlerFunc:     h.DockerNetworkList,
-			Enabled:         true,
-			EnableJWtVerify: false,
-			Desc:            "获取docker网络列表",
+			Name:        "DockerNetworkList",
+			Method:      http.MethodGet,
+			Uri:         "docker/network/list",
+			HandlerFunc: h.DockerNetworkList,
+			Enabled:     true,
+			EnableAuth:  false,
+			Desc:        "获取docker网络列表",
 		},
 	}
 }

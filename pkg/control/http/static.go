@@ -45,12 +45,12 @@ func WithStaticFiles(config StaticFileConfig) Option {
 		// 注册静态文件路由
 		control.RegisterRouter([]commonhttp.RouterHandler{
 			&commonhttp.MyRouter{
-				Name:            "static",
-				Uri:             prefix + "/*filepath",
-				Method:          http.MethodGet,
-				Enabled:         true,
-				Desc:            "静态文件服务",
-				EnableJWtVerify: false, // 明确指定不需要JWT验证
+				Name:       "static",
+				Uri:        prefix + "/*filepath",
+				Method:     http.MethodGet,
+				Enabled:    true,
+				Desc:       "静态文件服务",
+				EnableAuth: false, // 明确指定不需要JWT验证
 				HandlerFunc: func(ctx *gin.Context) {
 					_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "static")
 					defer span.End()

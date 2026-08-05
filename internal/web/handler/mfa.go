@@ -20,7 +20,7 @@ import (
 // @description 处理MFA相关的HTTP请求
 // @struct
 type MFAHandler struct {
-	*Handler                     // Handler 基础处理器
+	*Handler                    // Handler 基础处理器
 	service  service.MFAService // service MFA服务
 }
 
@@ -182,22 +182,22 @@ func (h *MFAHandler) GenerateQrCode(ctx *gin.Context) {
 func (h *MFAHandler) Routers() []commonhttp.RouterHandler {
 	return []commonhttp.RouterHandler{
 		&commonhttp.MyRouter{
-			Name:            "GenerateMFASecret",
-			Uri:             "/mfa/recovery/secret",
-			Method:          http.MethodPost,
-			HandlerFunc:     h.GenerateRecoverySecret,
-			Enabled:         true,
-			Desc:            "生成MFA恢复密钥",
-			EnableJWtVerify: false,
+			Name:        "GenerateMFASecret",
+			Uri:         "/mfa/recovery/secret",
+			Method:      http.MethodPost,
+			HandlerFunc: h.GenerateRecoverySecret,
+			Enabled:     true,
+			Desc:        "生成MFA恢复密钥",
+			EnableAuth:  false,
 		},
 		&commonhttp.MyRouter{
-			Name:            "VerifyMFACode",
-			Uri:             "mfa/verify",
-			Method:          http.MethodPost,
-			HandlerFunc:     h.VerifyMfaCode,
-			Enabled:         true,
-			Desc:            "验证MFA代码",
-			EnableJWtVerify: false,
+			Name:        "VerifyMFACode",
+			Uri:         "mfa/verify",
+			Method:      http.MethodPost,
+			HandlerFunc: h.VerifyMfaCode,
+			Enabled:     true,
+			Desc:        "验证MFA代码",
+			EnableAuth:  false,
 		},
 		&commonhttp.MyRouter{
 			Name:        "GetQRCodeImage",

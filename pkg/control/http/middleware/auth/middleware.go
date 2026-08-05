@@ -25,45 +25,63 @@ func (m *authManagerImpl) Middleware() gin.HandlerFunc {
 		// 把 trace ctx 写回 ctx.Request，避免链路断裂（修正原 jwt 包的遗漏）
 		ctx.Request = ctx.Request.WithContext(tCtx)
 
-		var sess *session.Session
-		var ok bool
-		switch m.mode {
-		case modeJWTSession:
-			sess, ok = m.authJWTSession(ctx)
-		case modeJWTOnly:
-			sess, ok = m.authJWTOnly(ctx)
-		case modeSessionOnly:
-			sess, ok = m.authSessionOnly(ctx)
-		}
+		sess, ok := m.doAuthenticate(ctx)
 		if !ok {
-			// 失败响应已在各 authXxx 内完成，此处仅收尾 span
 			span.SetStatus(codes.Error, "认证失败")
 			return
 		}
 
-		// 注入上下文：当前会话 + 各业务字段（与 session 包常量保持一致）
-		ctx.Set(currentSessionKey, sess)
-		ctx.Set(session.UserId, sess.UserID)
-		ctx.Set(session.UserName, sess.Username)
-		ctx.Set(session.UserRole, sess.Role)
-		ctx.Set(session.UserType, sess.UserType)
-		ctx.Set(session.PermissionList, sess.PermissionList)
-		ctx.Set(session.ClientIP, sess.ClientIP)
-		ctx.Set(session.UserAgent, sess.UserAgent)
-		ctx.Set(session.DeviceID, sess.DeviceID)
-		ctx.Set(session.Scope, sess.Scope)
-		ctx.Set(session.TenantID, sess.TenantID)
-		ctx.Set(session.SessionId, sess.SessionID)
-		ctx.Set(jwt.UserClaims, sess) // 兼容旧代码通过 UserClaims 取用户信息
-
+		m.injectSession(ctx, sess)
 		ctx.Next()
 		span.SetStatus(codes.Ok, "success")
 	}
 }
 
+// doAuthenticate 执行认证逻辑（不创建 span、不调用 ctx.Next）
+//
+// @description 按认证模式分流执行认证，返回会话信息和是否认证通过
+// @param ctx *gin.Context Gin上下文
+// @return *session.Session 会话信息
+// @return bool 是否认证通过
+func (m *authManagerImpl) doAuthenticate(ctx *gin.Context) (*session.Session, bool) {
+	switch m.mode {
+	case modeJWTSession:
+		return m.authJWTSession(ctx)
+	case modeJWTOnly:
+		return m.authJWTOnly(ctx)
+	case modeSessionOnly:
+		return m.authSessionOnly(ctx)
+	}
+	return nil, false
+}
+
+// injectSession 将会话信息注入 Gin 上下文
+//
+// @description 将当前会话及各业务字段注入 Gin 上下文，供后续 Handler 使用
+// @param ctx *gin.Context Gin上下文
+// @param sess *session.Session 会话信息
+func (m *authManagerImpl) injectSession(ctx *gin.Context, sess *session.Session) {
+	ctx.Set(currentSessionKey, sess)
+	ctx.Set(session.UserId, sess.UserID)
+	ctx.Set(session.UserName, sess.Username)
+	ctx.Set(session.UserRole, sess.Role)
+	ctx.Set(session.UserType, sess.UserType)
+	ctx.Set(session.PermissionList, sess.PermissionList)
+	ctx.Set(session.ClientIP, sess.ClientIP)
+	ctx.Set(session.UserAgent, sess.UserAgent)
+	ctx.Set(session.DeviceID, sess.DeviceID)
+	ctx.Set(session.Scope, sess.Scope)
+	ctx.Set(session.TenantID, sess.TenantID)
+	ctx.Set(session.SessionId, sess.SessionID)
+	ctx.Set(jwt.UserClaims, sess) // 兼容旧代码通过 UserClaims 取用户信息
+}
+
 // OptionalMiddleware 可选认证中间件
 //
-// @description 无 token 时放行（不注入用户信息），有 token 则解析并注入；适用于匿名也可访问、登录后享特权的接口
+// @description 无 token 时放行（不注入用户信息），有 token 则解析并注入；
+//
+//	适用于匿名也可访问、登录后享特权的接口（如商品详情、搜索列表等）
+//
 // @return gin.HandlerFunc Gin中间件函数
 func (m *authManagerImpl) OptionalMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -78,8 +96,15 @@ func (m *authManagerImpl) OptionalMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// 有 token 则走完整认证，失败时返回 401（不允许匿名放行带无效 token）
-		m.Middleware()(ctx)
+		// 有 token 则走认证，失败时返回 401（不允许匿名放行带无效 token）
+		sess, ok := m.doAuthenticate(ctx)
+		if !ok {
+			span.SetStatus(codes.Error, "认证失败")
+			return
+		}
+		m.injectSession(ctx, sess)
+		ctx.Next()
+		span.SetStatus(codes.Ok, "success")
 	}
 }
 
@@ -221,7 +246,7 @@ func (m *authManagerImpl) extractBearerToken(ctx *gin.Context) (string, string, 
 		return tokenString, "", true
 	}
 	parts := strings.SplitN(tokenString, " ", 2)
-	if len(parts) != 2 || parts[0] != prefix {
+	if len(parts) != 2 || !strings.EqualFold(parts[0], prefix) {
 		return "", "认证信息格式错误", false
 	}
 	return strings.TrimSpace(parts[1]), "", true

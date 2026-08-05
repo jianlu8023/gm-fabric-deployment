@@ -33,8 +33,10 @@ type RouterHandler interface {
 	IsEnabled() bool
 	// GetDesc 获取路由描述
 	GetDesc() string
-	// GetEnableJWtVerify 获取是否启用jwt验证
-	GetEnableJWtVerify() bool
+	// GetEnableAuth 获取是否启用认证验证
+	GetEnableAuth() bool
+	// GetEnableAuthOptional 获取是否启用可选认证（有 token 则认证，无 token 则放行）
+	GetEnableAuthOptional() bool
 }
 
 // GroupRouterHandler 扩展RouterHandler接口，添加路由组支持
