@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
@@ -83,8 +82,8 @@ func RedirectToHTTPS(httpsPort int, sslRedirect bool) gin.HandlerFunc {
 			// 构建HTTPS URL
 			host := ctx.Request.Host
 			// 如果主机名包含端口号，替换为HTTPS端口
-			if _, _, err := net.SplitHostPort(host); err == nil {
-				host = strings.Split(host, ":")[0]
+			if requestHost, _, err := net.SplitHostPort(host); err == nil {
+				host = requestHost
 			}
 			newURL := fmt.Sprintf("https://%s:%d%s", host, httpsPort, ctx.Request.RequestURI)
 
@@ -153,6 +152,9 @@ func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost st
 // @param sslRedirect 是否启用SSL重定向
 // @return gin.HandlerFunc Gin中间件函数
 func EnableSecurePackageTLS(sslHost string, isDevelopment bool, sslRedirect bool) gin.HandlerFunc {
+	// 预先解析sslHost参数，避免每次请求重复解析
+	sslHostWithoutPort, sslPort := parseSSLHost(sslHost)
+
 	return func(ctx *gin.Context) {
 		savedCtx := ctx.Request.Context()
 		defer func() {
@@ -164,10 +166,11 @@ func EnableSecurePackageTLS(sslHost string, isDevelopment bool, sslRedirect bool
 
 		// 处理sslHost，确保正确解析主机名和端口
 		host := ctx.Request.Host
+		effectiveSSLHost := sslHost
 
 		// 如果sslHost为空，则直接使用请求的主机
 		if stringer.IsBlank(sslHost) {
-			sslHost = host
+			effectiveSSLHost = host
 		} else {
 			// 解析当前请求的主机名和端口
 			requestHost, requestPort, err := net.SplitHostPort(host)
@@ -177,31 +180,23 @@ func EnableSecurePackageTLS(sslHost string, isDevelopment bool, sslRedirect bool
 				requestPort = ""
 			}
 
-			// 解析sslHost参数
-			sslHostWithoutPort, sslPort, sslErr := net.SplitHostPort(sslHost)
-			if sslErr != nil {
-				// 如果sslHost无法分割，说明不包含端口号
-				sslHostWithoutPort = sslHost
-				sslPort = ""
-			}
-
 			// 如果sslHost只有端口号（如":8080"），则使用请求的主机名
 			if stringer.IsBlank(sslHostWithoutPort) && !stringer.IsBlank(sslPort) {
 				if !stringer.IsBlank(requestHost) {
-					sslHost = net.JoinHostPort(requestHost, sslPort)
+					effectiveSSLHost = net.JoinHostPort(requestHost, sslPort)
 				}
 			}
 			// 如果sslHost有主机名但没有端口，而请求有端口，则保留请求的端口
 			if !stringer.IsBlank(sslHostWithoutPort) &&
 				stringer.IsBlank(sslPort) &&
 				!stringer.IsBlank(requestPort) {
-				sslHost = net.JoinHostPort(sslHostWithoutPort, requestPort)
+				effectiveSSLHost = net.JoinHostPort(sslHostWithoutPort, requestPort)
 			}
 		}
 
 		secureMiddleware := secure.New(secure.Options{
 			SSLRedirect:           sslRedirect,
-			SSLHost:               sslHost,
+			SSLHost:               effectiveSSLHost,
 			STSSeconds:            315360000,
 			FrameDeny:             true,
 			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:",
@@ -216,6 +211,24 @@ func EnableSecurePackageTLS(sslHost string, isDevelopment bool, sslRedirect bool
 		ctx.Next()
 		span.SetStatus(codes.Ok, "success")
 	}
+}
+
+// parseSSLHost 解析SSL主机名参数，分离主机名和端口
+//
+// @param sslHost SSL主机名参数（可能包含或不包含端口）
+// @return hostWithoutPort 不包含端口的主机名
+// @return port 端口号（如果有）
+func parseSSLHost(sslHost string) (hostWithoutPort, port string) {
+	if stringer.IsBlank(sslHost) {
+		return "", ""
+	}
+	hostWithoutPort, port, err := net.SplitHostPort(sslHost)
+	if err != nil {
+		// 无法分割说明不包含端口号
+		hostWithoutPort = sslHost
+		port = ""
+	}
+	return
 }
 
 // https://liuqh.icu/2021/06/22/go/gin/integrated/2-zap/
