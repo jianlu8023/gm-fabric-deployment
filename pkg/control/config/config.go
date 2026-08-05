@@ -181,6 +181,24 @@ func (r *RecoveryConfig) String() string {
 	return string(pretty)
 }
 
+// ResponseLogConfig 响应日志中间件配置
+//
+// @description 配置response日志中间件的行为，控制响应体捕获大小、日志级别等；默认不启用，需要时显式开启
+// @struct
+type ResponseLogConfig struct {
+	Enabled      bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用响应日志中间件，默认false（按需开启）
+	MaxBodyBytes int    `json:"max_body_bytes,omitempty" yaml:"max_body_bytes,omitempty" mapstructure:"max_body_bytes"` // 响应体最大捕获字节数，超过部分仅记录长度不缓存，<=0 时使用默认 1024
+	LogLevel     string `json:"log_level,omitempty" yaml:"log_level,omitempty" mapstructure:"log_level"`                // 日志级别：debug | info，默认debug
+}
+
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
+func (r *ResponseLogConfig) String() string {
+	pretty, _ := json.MarshalPretty(r)
+	return string(pretty)
+}
+
 // SessionConfig 会话存储配置
 //
 // @description 配置服务端会话的存储方式与生命周期，由 auth 包消费；StoreType=memory 时单机有效，redis 时跨实例共享
@@ -243,6 +261,7 @@ type HttpServerConfig struct {
 	Pprof           bool                  `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                        // 是否启用pprof
 	UploadDir       string                `json:"upload_dir,omitempty" yaml:"upload_dir,omitempty" mapstructure:"upload_dir"`                         // 文件上传目录
 	Recovery        *RecoveryConfig       `json:"recovery,omitempty" yaml:"recovery,omitempty" mapstructure:"recovery"`                               // panic恢复配置，建议始终启用
+	ResponseLog     *ResponseLogConfig    `json:"response_log,omitempty" yaml:"response_log,omitempty" mapstructure:"response_log"`                   // 响应日志配置，默认不启用，需要时显式开启
 	IPWhiteList     *IPWhiteListConfig    `json:"ip_white_list,omitempty" yaml:"ip_white_list,omitempty" mapstructure:"ip_white_list"`                // 白名单配置
 	IPBlackList     *IPBlackListConfig    `json:"ip_black_list,omitempty" yaml:"ip_black_list,omitempty" mapstructure:"ip_black_list"`                // 黑名单配置
 	TrustedProxies  *TrustedProxiesConfig `json:"trusted_proxies,omitempty" yaml:"trusted_proxies,omitempty" mapstructure:"trusted_proxies"`          // 可信代理配置，影响 X-Forwarded-For / X-Real-IP 的解析

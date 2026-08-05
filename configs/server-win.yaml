@@ -128,6 +128,10 @@ http:
       cleanup_interval: 3600           # 过期清理间隔（秒），仅 memory 模式
       store_type: "memory"             # 存储类型：memory | redis
       sliding_expiration: true         # 滑动过期
+  response_log:
+    enabled: true
+    max_body_bytes: 1024
+    log_level: "debug"
 libp2p:
   enabled: true
   listen_addr:

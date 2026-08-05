@@ -16,6 +16,7 @@ import (
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/ratelimit"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/recovery"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/requestid"
+	middlewareresponse "github.com/jianlu8023/golang-example/pkg/control/http/middleware/response"
 	"github.com/jianlu8023/golang-example/pkg/control/http/middleware/secure"
 	"github.com/jianlu8023/golang-example/pkg/control/tracer"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -719,20 +720,21 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 		engine.Use(otelgin.Middleware(c.tracerControl.GetServiceName(), otelgin.WithTracerProvider(c.tracerControl.TracerProvider())))
 	}
 
-	// 0. 输出请求信息
-	engine.Use(middlewarelogger.Logger())
-
-	// 1. 恢复中间件（Recovery Middleware）- 应在最前面注册，捕获所有后续中间件的panic
+	// 1. 恢复中间件（Recovery Middleware）- 紧跟Tracer之后注册，确保Recovery的span作为Tracer的子span
+	// 捕获所有后续中间件和Handler的panic，防止服务崩溃
 	// 配置驱动：通过 c.config.Recovery 控制是否输出堆栈、响应消息等
 	engine.Use(recovery.EnableRecovery(c.logger, c.config.Recovery))
+
+	// 2. 输出请求信息
+	engine.Use(middlewarelogger.Logger())
 
 	// 添加语言支持中间件
 	engine.Use(language.EnableLanguageSupport(c.config.Language))
 
-	// 2. 请求ID中间件 - 为每个请求生成唯一标识
+	// 3. 请求ID中间件 - 为每个请求生成唯一标识
 	engine.Use(requestid.EnableRequestID(c.logger))
 
-	// 3. IP白名单中间件（如果启用）- 尽早过滤非白名单IP
+	// 4. IP白名单中间件（如果启用）- 尽早过滤非白名单IP
 	if c.config.IPWhiteList != nil &&
 		c.config.IPWhiteList.Enabled &&
 		len(c.config.IPWhiteList.IPs) > 0 {
@@ -740,7 +742,7 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 		engine.Use(ipwhitelist.EnableIPWhiteList(c.logger, c.config.IPWhiteList.IPs, trustedProxiesCIDRList))
 	}
 
-	// 4. IP黑名单中间件（如果启用）- 尽早拒绝黑名单IP
+	// 5. IP黑名单中间件（如果启用）- 尽早拒绝黑名单IP
 	if c.config.IPBlackList != nil &&
 		c.config.IPBlackList.Enabled &&
 		len(c.config.IPBlackList.IPs) > 0 {
@@ -783,6 +785,11 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 
 	// 9. 压缩中间件 - 性能优化，在响应前执行
 	engine.Use(gzip.EnableGzip())
+
+	// 响应日志中间件（如果启用）- 必须位于 Gzip 之后
+	if c.config.ResponseLog != nil && c.config.ResponseLog.Enabled {
+		engine.Use(middlewareresponse.EnableResponseLog(c.logger, c.config.ResponseLog))
+	}
 
 	// 调试模式，开启 pprof 包，便于开发阶段分析程序性能
 	// gin.DefaultWriter = io.MultiWriter(os.Stdout, io.Discard)
