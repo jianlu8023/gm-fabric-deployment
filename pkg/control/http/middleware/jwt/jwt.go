@@ -6,9 +6,34 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// JwtManager JWT管理器接口
+//
+// @description 定义JWT令牌的生成、解析及会话有效期获取能力，供认证中间件与会话管理器依赖使用
+// @interface
 type JwtManager interface {
+	// GetSessionTTL 获取会话有效期
+	//
+	// @description 返回当前管理器配置的会话有效期，供会话管理器等外部组件使用
+	// @return time.Duration 会话有效期
 	GetSessionTTL() time.Duration
+	// ParseToken 解析JWT令牌
+	//
+	// @description 使用管理器持有的 secret 校验签名并解析令牌；签名算法仅接受 HMAC 系列（与 GenerateToken 的 HS256 对齐）
+	// @param tokenString JWT令牌字符串
+	// @return *Claims 解析后的声明信息
+	// @return error 解析过程中的错误
 	ParseToken(tokenString string) (*Claims, error)
+	// GenerateToken 生成JWT令牌
+	//
+	// @description 使用管理器持有的 secret 与 sessionTTL 生成JWT令牌
+	// @param userID 用户ID
+	// @param username 用户名
+	// @param role 用户角色
+	// @param sessionID 会话ID
+	// @param expireTime 过期时间（秒）
+	// @return string 生成的令牌
+	// @return *Claims 令牌对应的声明信息
+	// @return error 生成过程中的错误
 	GenerateToken(userID, username, role, sessionID string, expireTime int64) (string, *Claims, error)
 }
 
