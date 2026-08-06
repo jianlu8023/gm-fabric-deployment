@@ -21,8 +21,8 @@ grpc:
     max_send_msg_size: 5242880
     chunk_size: 4194304
     tls_enabled: true
-    tls_cert_file: certs/openssl/gserver.crt
-    tls_key_file: certs/openssl/gserver.key
+    tls_cert_file: [ certs/openssl/gserver.crt ]
+    tls_key_file: [ certs/openssl/gserver.key ]
     tls_rca_cert_file: certs/openssl/grpc-authority.crt
   client:
     host: 192.168.58.110:65534
@@ -31,8 +31,8 @@ grpc:
     chunk_size: 4194304
     call_timeout: 99999
     tls_enabled: true
-    tls_cert_file: certs/openssl/gclient.crt
-    tls_key_file: certs/openssl/gclient.key
+    tls_cert_file: [ certs/openssl/gclient.crt ]
+    tls_key_file: [ certs/openssl/gclient.key ]
     tls_rca_cert_file: certs/openssl/grpc-authority.crt
     tls_server_name: "gserver.jianlu.site"
 http:
@@ -41,8 +41,8 @@ http:
   context_path: example
   run_mode: release
   tls_enabled: true
-  tls_cert_file: certs/openssl/hserver.crt
-  tls_key_file: certs/openssl/hserver.key
+  tls_cert_file: [ certs/openssl/hserver.crt ]
+  tls_key_file: [ certs/openssl/hserver.key ]
   tls_rca_cert_file: certs/openssl/http-authority.crt
   http2_enabled: true  # 启用HTTP/2支持
 libp2p:

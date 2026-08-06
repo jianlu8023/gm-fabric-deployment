@@ -144,14 +144,14 @@ func toString(v reflect.Value) string {
 
 // DockerConfig docker配置结构体
 type DockerConfig struct {
-	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                         // 是否启用
-	Host           string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                  // host地址
-	APIVersion     string `json:"api_version,omitempty" yaml:"api_version,omitempty" mapstructure:"api_version"`             // docker api版本
-	TlsEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`             // 是否启用tls
-	TlsCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`       // tls证书文件
-	TlsKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`          // tls私钥文件
-	TlsCAFile      string `json:"tls_ca_file,omitempty" yaml:"tls_ca_file,omitempty" mapstructure:"tls_ca_file"`             // tls ca文件
-	DefaultTimeout int    `json:"default_timeout,omitempty" yaml:"default_timeout,omitempty" mapstructure:"default_timeout"` // 默认超时时间
+	Enabled        bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                         // 是否启用
+	Host           string   `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                  // host地址
+	APIVersion     string   `json:"api_version,omitempty" yaml:"api_version,omitempty" mapstructure:"api_version"`             // docker api版本
+	TlsEnabled     bool     `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`             // 是否启用tls
+	TlsCertFile    []string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`       // tls证书文件列表（支持单证书和多证书）
+	TlsKeyFile     []string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`          // tls私钥文件列表（支持单证书和多证书）
+	TlsCAFile      string   `json:"tls_ca_file,omitempty" yaml:"tls_ca_file,omitempty" mapstructure:"tls_ca_file"`             // tls ca文件
+	DefaultTimeout int      `json:"default_timeout,omitempty" yaml:"default_timeout,omitempty" mapstructure:"default_timeout"` // 默认超时时间
 }
 
 // String 返回DockerConfig的字符串表示
@@ -166,27 +166,27 @@ func (c *DockerConfig) GoString() string {
 
 // DataSourceConfig 数据源配置结构体
 type DataSourceConfig struct {
-	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
-	DataSourceType string `json:"data_source_type,omitempty" yaml:"data_source_type,omitempty" mapstructure:"data_source_type"` // 数据源类型 mysql postgres sqlite3
-	UserName       string `json:"db_username,omitempty" yaml:"db_username,omitempty" mapstructure:"db_username"`                // 数据库用户名
-	Password       string `json:"db_password,omitempty" yaml:"db_password,omitempty" mapstructure:"db_password"`                // 数据库密码
-	Host           string `json:"db_host,omitempty" yaml:"db_host,omitempty" mapstructure:"db_host"`                            // 数据库地址
-	Port           int    `json:"db_port,omitempty" yaml:"db_port,omitempty" mapstructure:"db_port"`                            // 数据库端口
-	DataBaseName   string `json:"db_name,omitempty" yaml:"db_name,omitempty" mapstructure:"db_name"`                            // 数据库名称
-	DataBasePath   string `json:"db_path,omitempty" yaml:"db_path,omitempty" mapstructure:"db_path"`                            // sqlite3 使用
-	MaxIdleConn    int    `json:"max_idle_conn,omitempty" yaml:"max_idle_conn,omitempty" mapstructure:"max_idle_conn"`          // 最大空闲连接数
-	MaxOpenConn    int    `json:"max_open_conn,omitempty" yaml:"max_open_conn,omitempty" mapstructure:"max_open_conn"`          // 最大连接数
-	LogInConsole   bool   `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`       // 是否在控制台打印日志
-	TLSEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                // 是否启用TLS
-	TLSCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`          // TLS证书文件
-	TLSKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`             // TLS私钥文件
-	TLSCAFile      string `json:"tls_ca_file,omitempty" yaml:"tls_ca_file,omitempty" mapstructure:"tls_ca_file"`                // TLS CA证书文件
-	TLSSkipVerify  bool   `json:"tls_skip_verify,omitempty" yaml:"tls_skip_verify,omitempty" mapstructure:"tls_skip_verify"`    // 是否跳过TLS验证
-	TLSServerName  string `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty" mapstructure:"tls_server_name"`    // TLS服务器名称
-	Charset        string `json:"charset,omitempty" yaml:"charset,omitempty" mapstructure:"charset"`                            // 数据库字符集，默认utf8mb4
-	Timezone       string `json:"timezone,omitempty" yaml:"timezone,omitempty" mapstructure:"timezone"`                         // 数据库时区，默认Local(MySQL)或Asia/Shanghai(PostgreSQL)
-	SSLMode        string `json:"ssl_mode,omitempty" yaml:"ssl_mode,omitempty" mapstructure:"ssl_mode"`                         // PostgreSQL SSL模式，默认disable
-	ParseTime      bool   `json:"parse_time,omitempty" yaml:"parse_time,omitempty" mapstructure:"parse_time"`                   // 是否解析时间类型，默认true
+	Enabled        bool     `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                            // 是否启用
+	DataSourceType string   `json:"data_source_type,omitempty" yaml:"data_source_type,omitempty" mapstructure:"data_source_type"` // 数据源类型 mysql postgres sqlite3
+	UserName       string   `json:"db_username,omitempty" yaml:"db_username,omitempty" mapstructure:"db_username"`                // 数据库用户名
+	Password       string   `json:"db_password,omitempty" yaml:"db_password,omitempty" mapstructure:"db_password"`                // 数据库密码
+	Host           string   `json:"db_host,omitempty" yaml:"db_host,omitempty" mapstructure:"db_host"`                            // 数据库地址
+	Port           int      `json:"db_port,omitempty" yaml:"db_port,omitempty" mapstructure:"db_port"`                            // 数据库端口
+	DataBaseName   string   `json:"db_name,omitempty" yaml:"db_name,omitempty" mapstructure:"db_name"`                            // 数据库名称
+	DataBasePath   string   `json:"db_path,omitempty" yaml:"db_path,omitempty" mapstructure:"db_path"`                            // sqlite3 使用
+	MaxIdleConn    int      `json:"max_idle_conn,omitempty" yaml:"max_idle_conn,omitempty" mapstructure:"max_idle_conn"`          // 最大空闲连接数
+	MaxOpenConn    int      `json:"max_open_conn,omitempty" yaml:"max_open_conn,omitempty" mapstructure:"max_open_conn"`          // 最大连接数
+	LogInConsole   bool     `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`       // 是否在控制台打印日志
+	TLSEnabled     bool     `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                // 是否启用TLS
+	TLSCertFile    []string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`          // TLS证书文件列表（支持单证书和多证书）
+	TLSKeyFile     []string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`             // TLS私钥文件列表（支持单证书和多证书）
+	TLSCAFile      string   `json:"tls_ca_file,omitempty" yaml:"tls_ca_file,omitempty" mapstructure:"tls_ca_file"`                // TLS CA证书文件
+	TLSSkipVerify  bool     `json:"tls_skip_verify,omitempty" yaml:"tls_skip_verify,omitempty" mapstructure:"tls_skip_verify"`    // 是否跳过TLS验证
+	TLSServerName  string   `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty" mapstructure:"tls_server_name"`    // TLS服务器名称
+	Charset        string   `json:"charset,omitempty" yaml:"charset,omitempty" mapstructure:"charset"`                            // 数据库字符集，默认utf8mb4
+	Timezone       string   `json:"timezone,omitempty" yaml:"timezone,omitempty" mapstructure:"timezone"`                         // 数据库时区，默认Local(MySQL)或Asia/Shanghai(PostgreSQL)
+	SSLMode        string   `json:"ssl_mode,omitempty" yaml:"ssl_mode,omitempty" mapstructure:"ssl_mode"`                         // PostgreSQL SSL模式，默认disable
+	ParseTime      bool     `json:"parse_time,omitempty" yaml:"parse_time,omitempty" mapstructure:"parse_time"`                   // 是否解析时间类型，默认true
 }
 
 // String 返回DataSourceConfig的字符串表示
@@ -428,8 +428,8 @@ type HttpServerConfig struct {
 	TlsEnabled      bool                  `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled" `                     // 是否启用TLS
 	TlsGM           bool                  `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                     // 是否启用国密TLS
 	TlsGMSingleCert bool                  `json:"tls_gm_single_cert,omitempty" yaml:"tls_gm_single_cert,omitempty" mapstructure:"tls_gm_single_cert"` // 国密TLS是否使用单证书模式，默认false（使用双证书模式：一个用于签名，一个用于加密）
-	TlsCertFile     string                `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `               // TLS证书文件
-	TlsKeyFile      string                `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                   // TLS私钥文件
+	TlsCertFile     []string              `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file" `               // TLS证书文件列表（支持单证书和多证书）
+	TlsKeyFile      []string              `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                   // TLS私钥文件列表（支持单证书和多证书）
 	TlsRCACertFile  string                `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`    // TLS根证书文件
 	Http2Enabled    bool                  `json:"http2_enabled,omitempty" yaml:"http2_enabled,omitempty" mapstructure:"http2_enabled"`                // 是否启用HTTP/2
 	Pprof           bool                  `json:"pprof,omitempty" yaml:"pprof,omitempty" mapstructure:"pprof"`                                        // 是否启用pprof
@@ -456,15 +456,15 @@ func (c *HttpServerConfig) GoString() string {
 
 // GrpcServerConfig grpc服务配置
 type GrpcServerConfig struct {
-	Host           string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                        // 服务地址
-	MaxRecvMsgSize int    `json:"max_recv_msg_size,omitempty" yaml:"max_recv_msg_size,omitempty" mapstructure:"max_recv_msg_size"` // 最大接收消息大小
-	MaxSendMsgSize int    `json:"max_send_msg_size,omitempty" yaml:"max_send_msg_size,omitempty" mapstructure:"max_send_msg_size"` // 最大发送消息大小
-	ChunkSize      int    `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" mapstructure:"chunk_size"`                      // 分块大小
-	TlsEnabled     bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                   // 是否启用TLS
-	TlsGM          bool   `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                  // 是否启用国密TLS
-	TlsCertFile    string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`             // TLS证书文件
-	TlsKeyFile     string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件
-	TlsRCACertFile string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
+	Host           string   `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                        // 服务地址
+	MaxRecvMsgSize int      `json:"max_recv_msg_size,omitempty" yaml:"max_recv_msg_size,omitempty" mapstructure:"max_recv_msg_size"` // 最大接收消息大小
+	MaxSendMsgSize int      `json:"max_send_msg_size,omitempty" yaml:"max_send_msg_size,omitempty" mapstructure:"max_send_msg_size"` // 最大发送消息大小
+	ChunkSize      int      `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" mapstructure:"chunk_size"`                      // 分块大小
+	TlsEnabled     bool     `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                   // 是否启用TLS
+	TlsGM          bool     `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                  // 是否启用国密TLS
+	TlsCertFile    []string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`             // TLS证书文件列表（支持单证书和多证书）
+	TlsKeyFile     []string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                // TLS私钥文件列表（支持单证书和多证书）
+	TlsRCACertFile string   `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"` // TLS根证书文件
 }
 
 // String 返回GrpcServerConfig的JSON格式字符串
@@ -478,17 +478,17 @@ func (c *GrpcServerConfig) GoString() string {
 
 // GrpcClientConfig 配置GrpcClient
 type GrpcClientConfig struct {
-	Host               string `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                                        // Grpc服务地址
-	MaxCallRecvMsgSize int    `json:"max_call_recv_msg_size,omitempty" yaml:"max_call_recv_msg_size,omitempty" mapstructure:"max_call_recv_msg_size"`  // 最大接收消息大小
-	MaxCallSendMsgSize int    `json:"max_call_send_msg_size,omitempty" yaml:"max_call_send_msg_size,omitempty" mapstructure:"max_call_send_msg_size" ` // 最大发送消息大小
-	ChunkSize          int    `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" mapstructure:"chunk_size"`                                      // 分块大小
-	CallTimeout        int    `json:"call_timeout,omitempty" yaml:"call_timeout,omitempty" mapstructure:"call_timeout" `                               // 调用超时时间
-	TlsEnabled         bool   `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                                   // 是否启用TLS
-	TlsGM              bool   `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                                  // 是否启用国密TLS
-	TlsCertFile        string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`                             // TLS证书文件
-	TlsKeyFile         string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                                // TLS私钥文件
-	TlsRCACertFile     string `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`                 // TLS根证书文件
-	TlsServerName      string `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty" mapstructure:"tls_server_name"`                       // TLS服务端名称
+	Host               string   `json:"host,omitempty" yaml:"host,omitempty" mapstructure:"host"`                                                        // Grpc服务地址
+	MaxCallRecvMsgSize int      `json:"max_call_recv_msg_size,omitempty" yaml:"max_call_recv_msg_size,omitempty" mapstructure:"max_call_recv_msg_size"`  // 最大接收消息大小
+	MaxCallSendMsgSize int      `json:"max_call_send_msg_size,omitempty" yaml:"max_call_send_msg_size,omitempty" mapstructure:"max_call_send_msg_size" ` // 最大发送消息大小
+	ChunkSize          int      `json:"chunk_size,omitempty" yaml:"chunk_size,omitempty" mapstructure:"chunk_size"`                                      // 分块大小
+	CallTimeout        int      `json:"call_timeout,omitempty" yaml:"call_timeout,omitempty" mapstructure:"call_timeout" `                               // 调用超时时间
+	TlsEnabled         bool     `json:"tls_enabled,omitempty" yaml:"tls_enabled,omitempty" mapstructure:"tls_enabled"`                                   // 是否启用TLS
+	TlsGM              bool     `json:"tls_gm,omitempty" yaml:"tls_gm,omitempty" mapstructure:"tls_gm"`                                                  // 是否启用国密TLS
+	TlsCertFile        []string `json:"tls_cert_file,omitempty" yaml:"tls_cert_file,omitempty" mapstructure:"tls_cert_file"`                             // TLS证书文件列表（支持单证书和多证书）
+	TlsKeyFile         []string `json:"tls_key_file,omitempty" yaml:"tls_key_file,omitempty" mapstructure:"tls_key_file"`                                // TLS私钥文件列表（支持单证书和多证书）
+	TlsRCACertFile     string   `json:"tls_rca_cert_file,omitempty" yaml:"tls_rca_cert_file,omitempty" mapstructure:"tls_rca_cert_file"`                 // TLS根证书文件
+	TlsServerName      string   `json:"tls_server_name,omitempty" yaml:"tls_server_name,omitempty" mapstructure:"tls_server_name"`                       // TLS服务端名称
 }
 
 // String GrpcClientConfig的字符串表示

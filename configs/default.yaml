@@ -11,8 +11,8 @@ datasource:
   max_open_conn: 50
   log_in_console: true
   tls_enabled: false
-  tls_cert_file: certs/openssl/mysqlclient.crt
-  tls_key_file: certs/openssl/mysqlclient.key
+  tls_cert_file: [ certs/openssl/mysqlclient.crt ]
+  tls_key_file: [ certs/openssl/mysqlclient.key ]
   tls_ca_file: certs/openssl/root.crt
   tls_skip_verify: false
   tls_server_name: mysql
@@ -21,8 +21,8 @@ docker:
   host: unix:///var/run/docker.sock
   api_version: ""
   tls_enabled: false
-  tls_cert_file: certs/openssl/dclient.crt
-  tls_key_file: certs/openssl/dclient.key
+  tls_cert_file: [ certs/openssl/dclient.crt ]
+  tls_key_file: [ certs/openssl/dclient.key ]
   tls_ca_file: certs/openssl/docker-authority.crt
   default_timeout: 5
 grpc:
@@ -34,8 +34,8 @@ grpc:
     chunk_size: 4194304
     tls_enabled: true
     tls_gm: true
-    tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
-    tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
+    tls_cert_file: [ "certs/tongsuo/server_sign.crt", "certs/tongsuo/server_enc.crt" ]
+    tls_key_file: [ "certs/tongsuo/server_sign.key", "certs/tongsuo/server_enc.key" ]
     tls_rca_cert_file: "certs/tongsuo/subca.crt"
     # tls_cert_file: certs/normal/gserver.crt
     # tls_key_file: certs/normal/gserver.key
@@ -48,8 +48,8 @@ grpc:
     call_timeout: 99999
     tls_enabled: true
     tls_gm: true
-    tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
-    tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
+    tls_cert_file: [ "certs/tongsuo/client_sign.crt", "certs/tongsuo/client_enc.crt" ]
+    tls_key_file: [ "certs/tongsuo/client_sign.key", "certs/tongsuo/client_enc.key" ]
     tls_rca_cert_file: "certs/tongsuo/subca.crt"
     tls_server_name: "grpc"
     # tls_cert_file: certs/normal/gclient.crt
@@ -69,8 +69,8 @@ http:
   # gm模式需要两套 签名证书,加密证书
   # tls_cert_file: "certs/tjfoc/sm2_sign_cert.cer,certs/tjfoc/sm2_enc_cert.cer"
   # tls_rca_cert_file: certs/tjfoc/SM2_CA.cer
-  tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
-  tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
+  tls_cert_file: [ "certs/tongsuo/server_sign.crt", "certs/tongsuo/server_enc.crt" ]
+  tls_key_file: [ "certs/tongsuo/server_sign.key", "certs/tongsuo/server_enc.key" ]
   tls_rca_cert_file: "certs/tongsuo/subca.crt"
   http2_enabled: true  # 国密TLS模式不支持HTTP/2
   pprof: true

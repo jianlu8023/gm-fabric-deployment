@@ -10,8 +10,8 @@ func getDefaultConfig() *config.DockerConfig {
 		Host:           "unix:///var/run/docker.sock",
 		APIVersion:     "",
 		TlsEnabled:     false,
-		TlsCertFile:    "certs/dclient.crt",
-		TlsKeyFile:     "certs/dclient.key",
+		TlsCertFile:    []string{"certs/dclient.crt"},
+		TlsKeyFile:     []string{"certs/dclient.key"},
 		TlsCAFile:      "certs/root-cat.crt",
 		DefaultTimeout: 5,
 	}

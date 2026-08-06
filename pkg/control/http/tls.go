@@ -83,27 +83,23 @@ func (c *Control) setupGMTLSConfig() error {
 
 	// 双证书模式（默认）
 	c.logger.Info("[control] GM TLS using dual certificate mode")
-	if err := c.loadGMDualCert(gmTLSConfig); err != nil {
-		return err
-	}
-
-	// 配置根证书
-	if err := c.setupGMRootCA(gmTLSConfig); err != nil {
-		return err
-	}
-
-	c.gmTlsConfig = gmTLSConfig
-	return nil
+	return c.loadGMDualCert(gmTLSConfig)
 }
 
 // loadGMSingleCert 加载GM单证书模式
-// @description 加载国密TLS单证书模式，需要提供一个证书和一个密钥文件
+// @description 加载国密TLS单证书模式，从配置数组中取第一对证书和密钥文件
 // @param gmTLSConfig *gmtls.Config GM TLS配置对象
 // @return error 加载过程中可能产生的错误
 func (c *Control) loadGMSingleCert(gmTLSConfig *gmtls.Config) error {
-	// 去除文件路径的空格
-	certFile := strings.TrimSpace(c.config.TlsCertFile)
-	keyFile := strings.TrimSpace(c.config.TlsKeyFile)
+	// 验证证书和密钥文件数量
+	if len(c.config.TlsCertFile) < 1 || len(c.config.TlsKeyFile) < 1 {
+		c.logger.Errorf("[control] GM TLS单证书模式至少需要一对证书和密钥文件，当前证书数量: %d, 密钥数量: %d", len(c.config.TlsCertFile), len(c.config.TlsKeyFile))
+		return errors.New("GM TLS单证书模式至少需要一对证书和密钥文件")
+	}
+
+	// 取第一对证书
+	certFile := strings.TrimSpace(c.config.TlsCertFile[0])
+	keyFile := strings.TrimSpace(c.config.TlsKeyFile[0])
 
 	// 验证文件路径不为空
 	if stringer.IsBlank(certFile) {
@@ -126,28 +122,31 @@ func (c *Control) loadGMSingleCert(gmTLSConfig *gmtls.Config) error {
 	c.logger.Infof("[control] 成功加载GM模式单证书: %s -> %s", certFile, keyFile)
 
 	// 配置根证书
-	// if err := c.setupGMRootCA(gmTLSConfig); err != nil {
-	//	return err
-	// }
+	if err := c.setupGMRootCA(gmTLSConfig); err != nil {
+		return err
+	}
 
-	// c.gmTlsConfig = gmTLSConfig
+	c.gmTlsConfig = gmTLSConfig
 	return nil
 }
 
 // loadGMDualCert 加载GM双证书模式
-// @description 加载国密TLS双证书模式，需要提供两套证书和密钥文件（签名和加密）
+// @description 加载国密TLS双证书模式，从配置数组中加载所有证书和密钥文件对（签名和加密）
 // @param gmTLSConfig *gmtls.Config GM TLS配置对象
 // @return error 加载过程中可能产生的错误
 func (c *Control) loadGMDualCert(gmTLSConfig *gmtls.Config) error {
-	// GM模式需要两套keypair：一个签名，一个加密
-	// 使用逗号分割证书和密钥文件路径
-	certFiles := strings.Split(c.config.TlsCertFile, ",")
-	keyFiles := strings.Split(c.config.TlsKeyFile, ",")
+	// GM模式需要至少两套keypair：一个签名，一个加密
+	certFiles := c.config.TlsCertFile
+	keyFiles := c.config.TlsKeyFile
 
-	// 检查是否提供了两套证书和密钥
-	if len(certFiles) != 2 || len(keyFiles) != 2 {
-		c.logger.Errorf("[control] GM双证书模式必须提供两套keypair（签名和加密），当前证书文件数量: %d, 密钥文件数量: %d", len(certFiles), len(keyFiles))
-		return errors.New("GM双证书模式必须提供两套keypair，请在 tls_cert_file 和 tls_key_file 中使用逗号分割两套证书和密钥文件路径")
+	// 检查证书和密钥文件数量是否匹配且至少有两对
+	if len(certFiles) != len(keyFiles) {
+		c.logger.Errorf("[control] GM双证书模式证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(certFiles), len(keyFiles))
+		return fmt.Errorf("GM双证书模式证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(certFiles), len(keyFiles))
+	}
+	if len(certFiles) < 2 {
+		c.logger.Errorf("[control] GM双证书模式至少需要两套keypair（签名和加密），当前只有 %d 套", len(certFiles))
+		return fmt.Errorf("GM双证书模式至少需要两套keypair（签名和加密），当前只有 %d 套", len(certFiles))
 	}
 
 	// 去除文件路径的空格
@@ -172,9 +171,9 @@ func (c *Control) loadGMDualCert(gmTLSConfig *gmtls.Config) error {
 		}
 	}
 
-	// 加载两套keypair
+	// 加载所有keypair
 	var certificates []gmtls.Certificate
-	for i := 0; i < 2; i++ {
+	for i := 0; i < len(certFiles); i++ {
 		cert, err := gmtls.LoadX509KeyPair(certFiles[i], keyFiles[i])
 		if err != nil {
 			c.logger.Errorf("[control] 加载第%d套GM TLS证书失败: %v", i+1, err)
@@ -186,8 +185,13 @@ func (c *Control) loadGMDualCert(gmTLSConfig *gmtls.Config) error {
 
 	// 设置证书到GM TLS配置
 	gmTLSConfig.Certificates = certificates
-	c.logger.Infof("[control] 成功加载GM模式两套keypair，签名证书: %s，加密证书: %s", certFiles[0], certFiles[1])
-	// c.gmTlsConfig = gmTLSConfig
+	c.logger.Infof("[control] 成功加载GM模式 %d 套keypair", len(certificates))
+	// 配置根证书
+	if err := c.setupGMRootCA(gmTLSConfig); err != nil {
+		return err
+	}
+
+	c.gmTlsConfig = gmTLSConfig
 	return nil
 }
 
@@ -256,13 +260,40 @@ func (c *Control) setupStandardTLSConfig() error {
 		c.logger.Infof("[control] HTTP/2 disabled, using HTTP/1.1 only")
 	}
 
-	// 加载证书
-	certificates, err := tls.LoadX509KeyPair(c.config.TlsCertFile, c.config.TlsKeyFile)
-	if err != nil {
-		c.logger.Errorf("[control] failed to load TLS certificate: %v", err)
-		return err
+	// 验证证书和密钥文件数量匹配
+	if len(c.config.TlsCertFile) != len(c.config.TlsKeyFile) {
+		c.logger.Errorf("[control] TLS证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(c.config.TlsCertFile), len(c.config.TlsKeyFile))
+		return fmt.Errorf("TLS证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(c.config.TlsCertFile), len(c.config.TlsKeyFile))
 	}
-	tlsConfig.Certificates = []tls.Certificate{certificates}
+	if len(c.config.TlsCertFile) == 0 {
+		c.logger.Error("[control] TLS至少需要一对证书和密钥文件")
+		return errors.New("TLS至少需要一对证书和密钥文件")
+	}
+
+	// 加载所有证书
+	var certificates []tls.Certificate
+	for i := 0; i < len(c.config.TlsCertFile); i++ {
+		certFile := strings.TrimSpace(c.config.TlsCertFile[i])
+		keyFile := strings.TrimSpace(c.config.TlsKeyFile[i])
+
+		if stringer.IsBlank(certFile) {
+			c.logger.Errorf("[control] 第%d个TLS证书文件路径为空", i+1)
+			return fmt.Errorf("第%d个TLS证书文件路径为空", i+1)
+		}
+		if stringer.IsBlank(keyFile) {
+			c.logger.Errorf("[control] 第%d个TLS密钥文件路径为空", i+1)
+			return fmt.Errorf("第%d个TLS密钥文件路径为空", i+1)
+		}
+
+		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			c.logger.Errorf("[control] 加载第%d套TLS证书失败: %v", i+1, err)
+			return fmt.Errorf("加载第%d套TLS证书失败: %v", i+1, err)
+		}
+		certificates = append(certificates, cert)
+	}
+	tlsConfig.Certificates = certificates
+	c.logger.Infof("[control] 成功加载 %d 套TLS证书", len(certificates))
 
 	// 配置根证书
 	if err := c.setupStandardRootCA(tlsConfig); err != nil {

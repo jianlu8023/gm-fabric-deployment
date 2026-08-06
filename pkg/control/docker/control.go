@@ -89,11 +89,14 @@ func (dc *Control) initClient() error {
 	// 配置TLS连接
 	if dc.config.TlsEnabled {
 		dc.logger.Debugf("[control] configuring docker client with TLS...")
+		if len(dc.config.TlsCertFile) == 0 || len(dc.config.TlsKeyFile) == 0 {
+			return fmt.Errorf("docker TLS至少需要一对证书和密钥文件")
+		}
 		opts = append(opts,
 			client.WithTLSClientConfig(
 				dc.config.TlsCAFile,
-				dc.config.TlsCertFile,
-				dc.config.TlsKeyFile,
+				dc.config.TlsCertFile[0],
+				dc.config.TlsKeyFile[0],
 			),
 		)
 	}

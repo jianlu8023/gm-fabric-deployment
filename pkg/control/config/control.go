@@ -307,7 +307,7 @@ func (c *Control) validateConfig(cfg *Config) error {
 				return errors.New("HTTP服务启用时地址不能为空")
 			}
 			if cfg.HttpConfig.TlsEnabled {
-				if cfg.HttpConfig.TlsCertFile == "" || cfg.HttpConfig.TlsKeyFile == "" {
+				if len(cfg.HttpConfig.TlsCertFile) == 0 || len(cfg.HttpConfig.TlsKeyFile) == 0 {
 					return errors.New("TLS启用时必须配置证书和密钥文件路径")
 				}
 			}
@@ -318,7 +318,7 @@ func (c *Control) validateConfig(cfg *Config) error {
 	if cfg.GrpcConfig != nil && cfg.GrpcConfig.Enabled {
 		if cfg.GrpcConfig.Server != nil {
 			if cfg.GrpcConfig.Server.TlsEnabled {
-				if cfg.GrpcConfig.Server.TlsCertFile == "" || cfg.GrpcConfig.Server.TlsKeyFile == "" {
+				if len(cfg.GrpcConfig.Server.TlsCertFile) == 0 || len(cfg.GrpcConfig.Server.TlsKeyFile) == 0 {
 					return errors.New("gRPC TLS启用时必须配置证书和密钥文件路径")
 				}
 			}
@@ -345,7 +345,7 @@ func (c *Control) validateConfig(cfg *Config) error {
 			return errors.New("数据源启用时DataSourceType不能为空")
 		}
 		if cfg.DataSourceConfig.TLSEnabled {
-			if cfg.DataSourceConfig.TLSCertFile == "" || cfg.DataSourceConfig.TLSKeyFile == "" {
+			if len(cfg.DataSourceConfig.TLSCertFile) == 0 || len(cfg.DataSourceConfig.TLSKeyFile) == 0 {
 				return errors.New("数据源TLS启用时必须配置证书和密钥文件路径")
 			}
 		}
@@ -354,8 +354,8 @@ func (c *Control) validateConfig(cfg *Config) error {
 	// 验证Docker配置
 	if cfg.DockerConfig != nil && cfg.DockerConfig.Enabled {
 		if cfg.DockerConfig.TlsEnabled {
-			if cfg.DockerConfig.TlsCertFile == "" || cfg.DockerConfig.TlsKeyFile == "" {
-				return errors.New("Docker TLS启用时必须配置证书和密钥文件路径")
+			if len(cfg.DockerConfig.TlsCertFile) == 0 || len(cfg.DockerConfig.TlsKeyFile) == 0 {
+				return errors.New("docker TLS启用时必须配置证书和密钥文件路径")
 			}
 		}
 	}

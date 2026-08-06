@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -103,14 +104,17 @@ func NewClientControl(control *Control) error {
 				ServerName:             control.config.Client.TlsServerName, // 必须与服务器证书的Common Name匹配
 			}
 
-			// GM模式需要两套keypair：一个签名，一个加密
-			// 使用逗号分割证书和密钥文件路径
-			certFiles := strings.Split(control.config.Client.TlsCertFile, ",")
-			keyFiles := strings.Split(control.config.Client.TlsKeyFile, ",")
+			// GM模式需要至少两套keypair：一个签名，一个加密
+			certFiles := control.config.Client.TlsCertFile
+			keyFiles := control.config.Client.TlsKeyFile
 
-			// 检查是否提供了两套证书和密钥
-			if len(certFiles) != 2 || len(keyFiles) != 2 {
-				control.logger.Errorf("[client] GM模式必须提供两套keypair（签名和加密），当前证书文件数量: %d, 密钥文件数量: %d", len(certFiles), len(keyFiles))
+			// 检查证书和密钥文件数量是否匹配且至少有两对
+			if len(certFiles) != len(keyFiles) {
+				control.logger.Errorf("[client] GM模式证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(certFiles), len(keyFiles))
+				return ErrNoCACert
+			}
+			if len(certFiles) < 2 {
+				control.logger.Errorf("[client] GM模式至少需要两套keypair（签名和加密），当前只有 %d 套", len(certFiles))
 				return ErrNoCACert
 			}
 
@@ -136,9 +140,9 @@ func NewClientControl(control *Control) error {
 				}
 			}
 
-			// 加载两套keypair
+			// 加载所有keypair
 			var certificates []gmtls.Certificate
-			for i := 0; i < 2; i++ {
+			for i := 0; i < len(certFiles); i++ {
 				cert, err := gmtls.LoadX509KeyPair(certFiles[i], keyFiles[i])
 				if err != nil {
 					control.logger.Errorf("[client] 加载第%d套GM TLS证书失败: %v", i+1, err)
@@ -150,7 +154,7 @@ func NewClientControl(control *Control) error {
 
 			// 设置证书到GM TLS配置
 			gmTlsConfig.Certificates = certificates
-			control.logger.Infof("[client] 成功加载GM模式两套keypair，签名证书: %s，加密证书: %s", certFiles[0], certFiles[1])
+			control.logger.Infof("[client] 成功加载GM模式 %d 套keypair", len(certificates))
 
 			// 加载CA证书用于验证服务器证书
 			rootCaCertFile := control.config.Client.TlsRCACertFile
@@ -216,13 +220,40 @@ func NewClientControl(control *Control) error {
 				ServerName:             control.config.Client.TlsServerName, // 必须与服务器证书的Common Name匹配
 			}
 
-			// 加载客户端证书（注意：应该使用客户端自己的证书，而不是服务端证书）
-			certificates, err := tls.LoadX509KeyPair(control.config.Client.TlsCertFile, control.config.Client.TlsKeyFile)
-			if err != nil {
-				control.logger.Errorf("[client] failed to load client TLS certificate: %v", err)
-				return err
+			// 验证证书和密钥文件数量匹配
+			if len(control.config.Client.TlsCertFile) != len(control.config.Client.TlsKeyFile) {
+				control.logger.Errorf("[client] TLS证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(control.config.Client.TlsCertFile), len(control.config.Client.TlsKeyFile))
+				return fmt.Errorf("TLS证书和密钥文件数量必须匹配")
 			}
-			tlsConfig.Certificates = []tls.Certificate{certificates}
+			if len(control.config.Client.TlsCertFile) == 0 {
+				control.logger.Error("[client] TLS至少需要一对证书和密钥文件")
+				return errors.New("TLS至少需要一对证书和密钥文件")
+			}
+
+			// 加载所有客户端证书
+			var certificates []tls.Certificate
+			for i := 0; i < len(control.config.Client.TlsCertFile); i++ {
+				certFile := strings.TrimSpace(control.config.Client.TlsCertFile[i])
+				keyFile := strings.TrimSpace(control.config.Client.TlsKeyFile[i])
+
+				if stringer.IsBlank(certFile) {
+					control.logger.Errorf("[client] 第%d个TLS证书文件路径为空", i+1)
+					return fmt.Errorf("第%d个TLS证书文件路径为空", i+1)
+				}
+				if stringer.IsBlank(keyFile) {
+					control.logger.Errorf("[client] 第%d个TLS密钥文件路径为空", i+1)
+					return fmt.Errorf("第%d个TLS密钥文件路径为空", i+1)
+				}
+
+				cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+				if err != nil {
+					control.logger.Errorf("[client] 加载第%d套TLS证书失败: %v", i+1, err)
+					return fmt.Errorf("加载第%d套TLS证书失败: %v", i+1, err)
+				}
+				certificates = append(certificates, cert)
+			}
+			tlsConfig.Certificates = certificates
+			control.logger.Infof("[client] 成功加载 %d 套TLS客户端证书", len(certificates))
 
 			// 加载CA证书用于验证服务器证书
 			rootCaCertFile := control.config.Client.TlsRCACertFile

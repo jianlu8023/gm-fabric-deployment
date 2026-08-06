@@ -43,10 +43,9 @@ func newMysqlConn(dbControl *Control) (*gorm.DB, error) {
 		}
 
 		// 如果配置了客户端证书和私钥，则加载它们
-		if !stringer.IsBlank(dbControl.config.TLSCertFile) &&
-			!stringer.IsBlank(dbControl.config.TLSKeyFile) {
+		if len(dbControl.config.TLSCertFile) > 0 && len(dbControl.config.TLSKeyFile) > 0 {
 			clientCert := make([]tls.Certificate, 0, 1)
-			certs, err := tls.LoadX509KeyPair(dbControl.config.TLSCertFile, dbControl.config.TLSKeyFile)
+			certs, err := tls.LoadX509KeyPair(dbControl.config.TLSCertFile[0], dbControl.config.TLSKeyFile[0])
 			if err != nil {
 				return nil, fmt.Errorf("failed to load client certificate: %v", err)
 			}

@@ -22,8 +22,8 @@ grpc:
     chunk_size: 4194304
     tls_enabled: true
     tls_gm: true
-    tls_cert_file: "certs/tongsuo/server_sign.crt,certs/tongsuo/server_enc.crt"
-    tls_key_file: "certs/tongsuo/server_sign.key,certs/tongsuo/server_enc.key"
+    tls_cert_file: [ "certs/tongsuo/server_sign.crt", "certs/tongsuo/server_enc.crt" ]
+    tls_key_file: [ "certs/tongsuo/server_sign.key", "certs/tongsuo/server_enc.key" ]
     tls_rca_cert_file: "certs/tongsuo/subca.crt"
   client:
     host: 127.0.0.1:65534
@@ -33,8 +33,8 @@ grpc:
     call_timeout: 99999
     tls_enabled: true
     tls_gm: true
-    tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
-    tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
+    tls_cert_file: [ "certs/tongsuo/client_sign.crt", "certs/tongsuo/client_enc.crt" ]
+    tls_key_file: [ "certs/tongsuo/client_sign.key", "certs/tongsuo/client_enc.key" ]
     tls_rca_cert_file: "certs/tongsuo/subca.crt"
     tls_server_name: "grpc"
 http:
@@ -44,8 +44,8 @@ http:
   run_mode: release
   tls_enabled: true
   tls_gm: true
-  tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
-  tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
+  tls_cert_file: [ "certs/tongsuo/client_sign.crt", "certs/tongsuo/client_enc.crt" ]
+  tls_key_file: [ "certs/tongsuo/client_sign.key", "certs/tongsuo/client_enc.key" ]
   tls_rca_cert_file: "certs/tongsuo/subca.crt"
   http2_enabled: true  # 启用HTTP/2支持
 libp2p:

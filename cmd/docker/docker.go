@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	
+
 	"github.com/docker/docker/api/types/container"
 	dockermount "github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
@@ -33,8 +33,8 @@ func main() {
 		Host:           "unix:///var/run/docker.sock",
 		APIVersion:     "",
 		TlsEnabled:     false,
-		TlsCertFile:    "",
-		TlsKeyFile:     "",
+		TlsCertFile:    []string{},
+		TlsKeyFile:     []string{},
 		TlsCAFile:      "",
 		DefaultTimeout: 5,
 	}
