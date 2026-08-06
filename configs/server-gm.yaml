@@ -8,7 +8,7 @@ datasource:
   db_path: db/golang-example.db
   max_idle_conn: 10
   max_open_conn: 50
-  log_in_console: false
+  log_in_console: true
 docker:
   enabled: false
   host: tcp://192.168.58.110:2375
@@ -44,6 +44,7 @@ http:
   run_mode: release
   tls_enabled: true
   tls_gm: true
+  tls_gm_single_cert: false
   # gm模式需要两套 签名密钥,加密密钥
   #tls_key_file: "certs/tjfoc/sm2_sign_key.pem,certs/tjfoc/sm2_enc_key.pem"
   # gm模式需要两套 签名证书,加密证书
@@ -54,7 +55,15 @@ http:
   tls_rca_cert_file: "certs/tongsuo/subca.crt"
   http2_enabled: true  # 国密TLS模式不支持HTTP/2
   pprof: true
+  language: "zh"  # 默认语言设置，支持zh,en
   upload_dir: "uploads"
+  # panic恢复中间件配置
+  # 建议始终启用recovery中间件，防止业务panic导致整个服务崩溃
+  recovery:
+    enabled: true                     # 是否启用recovery中间件，建议始终为true
+    enable_stack: true                # 是否在日志中输出goroutine堆栈，生产环境建议false避免日志膨胀
+    log_level: "error"                # panic日志级别：error | warn | fatal
+    custom_message: ""                # 自定义响应消息，为空时使用默认"Server Internal Error"
   # IP白名单配置
   ip_white_list:
     enabled: false
@@ -67,6 +76,12 @@ http:
     ips:
       - "10.0.0.1"
       - "172.16.0.0/16"
+  # 可信代理配置：仅当请求的 RemoteAddr 命中以下网段时，才信任 X-Forwarded-For / X-Real-IP 头
+  # 未启用时 GetClientIP 仅使用 RemoteAddr，可防止 XFF 头被伪造绕过 IP 黑白名单与限流
+  # 部署在 Nginx/CDN 后方时，应将其网段填入此处
+  trusted_proxies:
+    enabled: false
+    ips: [ "127.0.0.1", "192.168.0.0/16", "10.0.0.0/8" ]
   # 限流配置
   rate_limit:
     enabled: true
@@ -108,6 +123,10 @@ http:
       cleanup_interval: 3600           # 过期清理间隔（秒），仅 memory 模式
       store_type: "memory"             # 存储类型：memory | redis
       sliding_expiration: true         # 滑动过期
+  response_log:
+    enabled: true
+    max_body_bytes: 1024
+    log_level: "debug"
 libp2p:
   enabled: true
   listen_addr:
