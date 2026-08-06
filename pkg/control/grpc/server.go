@@ -30,17 +30,41 @@ import (
 	// "gitee.com/zhaochuninhefei/gmgo/grpc/credentials"
 )
 
-type MessageHandler struct {
-	// handlerMap map[string]func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)
-	handlerMap concurrent.Map[string, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)]
+type MessageHandler interface {
+	RegisterHandler(path string, handle func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error))
+	GetHandler(path string) (func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error), error)
+	PrintHandler()
 }
 
-func (h *MessageHandler) RegisterHandler(path string, handle func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)) {
+var _ MessageHandler = (*messageHandlerImpl)(nil)
+
+func newMessageHandler(logger *zap.SugaredLogger) MessageHandler {
+	return &messageHandlerImpl{
+		handlerMap: concurrentmap.NewRWMap[string, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)](),
+		logger:     logger,
+	}
+}
+
+type messageHandlerImpl struct {
+	// handlerMap map[string]func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)
+	handlerMap concurrent.Map[string, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)]
+	logger     *zap.SugaredLogger
+}
+
+func (h *messageHandlerImpl) PrintHandler() {
+	keys := h.handlerMap.Keys()
+	for _, handlerName := range keys {
+		h.logger.Debugf("[handler] register handler %s", handlerName)
+	}
+}
+
+func (h *messageHandlerImpl) RegisterHandler(path string, handle func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)) {
 	// h.handlerMap[path] = handle
 	h.handlerMap.Put(path, handle)
 }
 
-func (h *MessageHandler) GetHandler(path string) (func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error), error) {
+func (h *messageHandlerImpl) GetHandler(path string) (func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error), error) {
+	h.logger.Debugf("[handler] 正在获取 %v 的handle...", path)
 	// if handle, exists := h.handlerMap[path]; exists {
 	if handle, exists := h.handlerMap.Get(path); exists {
 		return handle, nil
@@ -50,7 +74,7 @@ func (h *MessageHandler) GetHandler(path string) (func(ctx context.Context, in *
 
 type server struct {
 	pb.UnimplementedMessageServiceServer
-	handler      *MessageHandler
+	handler      MessageHandler
 	serverConfig *config.GrpcServerConfig
 	logger       *zap.SugaredLogger
 }
@@ -156,7 +180,26 @@ func (s *server) SendMessageBidi(stream pb.MessageService_SendMessageBidiServer)
 		return nil
 	}
 
+	// handler 返回 nil resp 时（如 (nil, nil)），视为成功但无数据的响应
+	// 此处必须先做 nil 检查，避免后续访问 resp 字段时触发空指针 panic
+	if resp == nil {
+		_ = stream.Send(&pb.Chunk{
+			MessageType: req.MessageType,
+			ClientId:    req.ClientId,
+			Seq:         -1,
+			Payload: &pb.Chunk_Meta{
+				Meta: &pb.Meta{
+					Success:         true,
+					ResponseCode:    200,
+					ResponseMessage: "success",
+				},
+			},
+		})
+		return nil
+	}
+
 	// 发送 meta（将 handler 返回的 success/code/pb 放入 meta）
+	// 此时 resp 已确保不为 nil，可安全访问其字段
 	_ = stream.Send(&pb.Chunk{
 		MessageType: req.MessageType,
 		ClientId:    req.ClientId,
@@ -170,17 +213,24 @@ func (s *server) SendMessageBidi(stream pb.MessageService_SendMessageBidiServer)
 		},
 	})
 
-	// 如果 handler 没有携带数据（nil 或长度 0），直接结束
-	if resp == nil || len(resp.Message) == 0 {
+	// 如果 handler 没有携带数据（长度 0），直接结束
+	if len(resp.Message) == 0 {
 		return nil
 	}
 
 	// 分片下发 resp.Message（data payload）
+	// 校验 ChunkSize，若配置未设置（默认 0）或为非正值，则使用默认值 4KB，避免 end=sent 导致死循环
+	chunkSize := s.serverConfig.ChunkSize
+	if chunkSize <= 0 {
+		chunkSize = 4096 // 默认分块大小 4KB
+	}
+	s.logger.Debugf("[server] using chunk size: %d", chunkSize)
+
 	var outSeq int32 = 0
 	total := len(resp.Message)
 	sent := 0
 	for sent < total {
-		end := sent + s.serverConfig.ChunkSize
+		end := sent + chunkSize
 		if end > total {
 			end = total
 		}
@@ -217,9 +267,10 @@ type ServerControl struct {
 func NewServerControl(control *Control) error {
 	control.logger.Infof("[server] start new server control...")
 	var gServer *grpc.Server
+	serverConfig := control.config.Server
 	opts := []grpc.ServerOption{
-		grpc.MaxRecvMsgSize(control.config.Server.MaxRecvMsgSize),
-		grpc.MaxSendMsgSize(control.config.Server.MaxSendMsgSize),
+		grpc.MaxRecvMsgSize(serverConfig.MaxRecvMsgSize),
+		grpc.MaxSendMsgSize(serverConfig.MaxSendMsgSize),
 	}
 	if control.tracerControl != nil {
 		control.logger.Debugf("[server] starting server with tracer...")
@@ -230,8 +281,8 @@ func NewServerControl(control *Control) error {
 			),
 		))
 	}
-	if control.config.Server.TlsEnabled {
-		if control.config.Server.TlsGM {
+	if serverConfig.TlsEnabled {
+		if serverConfig.TlsGM {
 			control.logger.Debugf("[server] generate gm tls grpc server...")
 
 			gmTlsConfig := &gmtls.Config{
@@ -243,8 +294,8 @@ func NewServerControl(control *Control) error {
 			}
 
 			// GM模式需要至少两套keypair：一个签名，一个加密
-			certFiles := control.config.Server.TlsCertFile
-			keyFiles := control.config.Server.TlsKeyFile
+			certFiles := serverConfig.TlsCertFile
+			keyFiles := serverConfig.TlsKeyFile
 
 			// 检查证书和密钥文件数量是否匹配且至少有两对
 			if len(certFiles) != len(keyFiles) {
@@ -268,13 +319,13 @@ func NewServerControl(control *Control) error {
 			for i, file := range certFiles {
 				if stringer.IsBlank(file) {
 					control.logger.Errorf("[server] 第%d个证书文件路径为空", i+1)
-					return ErrNoCACert
+					return ErrEmptyCertPath
 				}
 			}
 			for i, file := range keyFiles {
 				if stringer.IsBlank(file) {
 					control.logger.Errorf("[server] 第%d个密钥文件路径为空", i+1)
-					return ErrNoCACert
+					return ErrEmptyKeyPath
 				}
 			}
 
@@ -295,7 +346,7 @@ func NewServerControl(control *Control) error {
 			control.logger.Infof("[server] 成功加载GM模式 %d 套keypair", len(certificates))
 
 			// 加载并配置CA证书用于验证客户端证书
-			rootCaCertFile := control.config.Server.TlsRCACertFile
+			rootCaCertFile := serverConfig.TlsRCACertFile
 			if !stringer.IsBlank(rootCaCertFile) {
 				caCertPool := gmx509.NewCertPool()
 				caCert, err := os.ReadFile(rootCaCertFile)
@@ -320,7 +371,7 @@ func NewServerControl(control *Control) error {
 			// 创建凭证
 			transportCredentials := gmcredentials.NewTLS(gmTlsConfig)
 
-			// transportCredentials, err := credentials.NewServerTLSFromFile(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
+			// transportCredentials, err := credentials.NewServerTLSFromFile(serverConfig.TlsCertFile, control.config.Server.TlsKeyFile)
 			// if err != nil {
 			// 	control.logger.Errorf("[server] generate transportCredentials err: %v", err)
 			// 	return nil, err
@@ -352,20 +403,20 @@ func NewServerControl(control *Control) error {
 			}
 
 			// 验证证书和密钥文件数量匹配
-			if len(control.config.Server.TlsCertFile) != len(control.config.Server.TlsKeyFile) {
+			if len(serverConfig.TlsCertFile) != len(serverConfig.TlsKeyFile) {
 				control.logger.Errorf("[server] TLS证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(control.config.Server.TlsCertFile), len(control.config.Server.TlsKeyFile))
 				return fmt.Errorf("TLS证书和密钥文件数量必须匹配")
 			}
-			if len(control.config.Server.TlsCertFile) == 0 {
+			if len(serverConfig.TlsCertFile) == 0 {
 				control.logger.Error("[server] TLS至少需要一对证书和密钥文件")
 				return errors.New("TLS至少需要一对证书和密钥文件")
 			}
 
 			// 加载所有服务端证书
 			var certificates []tls.Certificate
-			for i := 0; i < len(control.config.Server.TlsCertFile); i++ {
-				certFile := strings.TrimSpace(control.config.Server.TlsCertFile[i])
-				keyFile := strings.TrimSpace(control.config.Server.TlsKeyFile[i])
+			for i := 0; i < len(serverConfig.TlsCertFile); i++ {
+				certFile := strings.TrimSpace(serverConfig.TlsCertFile[i])
+				keyFile := strings.TrimSpace(serverConfig.TlsKeyFile[i])
 
 				if stringer.IsBlank(certFile) {
 					control.logger.Errorf("[server] 第%d个TLS证书文件路径为空", i+1)
@@ -387,7 +438,7 @@ func NewServerControl(control *Control) error {
 			control.logger.Infof("[server] 成功加载 %d 套TLS证书", len(certificates))
 
 			// 加载并配置CA证书用于验证客户端证书
-			rootCaCertFile := control.config.Server.TlsRCACertFile
+			rootCaCertFile := serverConfig.TlsRCACertFile
 			if !stringer.IsBlank(rootCaCertFile) {
 				caCertPool := x509.NewCertPool()
 				caCert, err := os.ReadFile(rootCaCertFile)
@@ -412,7 +463,7 @@ func NewServerControl(control *Control) error {
 			// 创建凭证
 			transportCredentials := credentials.NewTLS(tlsConfig)
 
-			// transportCredentials, err := credentials.NewServerTLSFromFile(control.config.Server.TlsCertFile, control.config.Server.TlsKeyFile)
+			// transportCredentials, err := credentials.NewServerTLSFromFile(serverConfig.TlsCertFile, control.config.Server.TlsKeyFile)
 			// if err != nil {
 			// 	control.logger.Errorf("[server] generate transportCredentials err: %v", err)
 			// 	return nil, err
@@ -427,17 +478,14 @@ func NewServerControl(control *Control) error {
 	}
 
 	messageServer := &server{
-		handler: &MessageHandler{
-			// handlerMap: make(map[string]func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)),
-			handlerMap: concurrentmap.NewRWMap[string, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)](),
-		},
-		serverConfig: control.config.Server,
+		handler:      newMessageHandler(control.logger),
+		serverConfig: serverConfig,
 		logger:       control.logger,
 	}
 
 	pb.RegisterMessageServiceServer(gServer, messageServer)
 	control.server = &ServerControl{
-		Config:  control.config.Server,
+		Config:  serverConfig,
 		gServer: gServer,
 		mServer: messageServer,
 		logger:  control.logger,
