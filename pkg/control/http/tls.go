@@ -51,6 +51,9 @@ func (c *Control) setupGMTLSConfig() error {
 			// gmtls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 			// gmtls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 		},
+		CurvePreferences: []gmtls.CurveID{
+			gmtls.X25519, gmtls.CurveP521, gmtls.CurveP384, gmtls.CurveP256,
+		},
 		SessionTicketsDisabled: false, // 启用会话票据
 	}
 
@@ -67,7 +70,8 @@ func (c *Control) setupGMTLSConfig() error {
 	// TODO 目前 没找到支持http2的方法 暂时注释掉
 	// 根据HTTP/2配置决定是否启用HTTP/2协议协商
 	if c.config.Http2Enabled {
-		gmTLSConfig.NextProtos = []string{"h2", "http/1.1"}
+		// gmTLSConfig.NextProtos = []string{"h2", "http/1.1"}
+		gmTLSConfig.NextProtos = []string{"http/1.1"}
 		c.logger.Infof("[control] HTTP/2 enabled for TLS connections")
 	} else {
 		gmTLSConfig.NextProtos = []string{"http/1.1"}
@@ -243,9 +247,12 @@ func (c *Control) setupStandardTLSConfig() error {
 			tls.TLS_AES_128_GCM_SHA256,
 			tls.TLS_AES_256_GCM_SHA384,
 		},
+		// InsecureSkipVerify: false,
 		CurvePreferences: []tls.CurveID{
 			tls.X25519, // 优先使用X25519椭圆曲线
 			tls.CurveP256,
+			tls.CurveP384,
+			tls.CurveP521,
 		},
 		// PreferServerCipherSuites: true,  // 优先使用服务端加密套件 Deprecated
 		SessionTicketsDisabled: false, // 启用会话票据
@@ -345,14 +352,14 @@ func (c *Control) serverGMTls(failedFunc func(err error)) {
 	// 注意：GM TLS不支持HTTP/2，因为HTTP/2需要的ALPN协议协商和GM TLS不兼容
 	if c.config.Http2Enabled {
 		c.logger.Warnf("[control] HTTP/2 is not supported with GM TLS, falling back to HTTP/1.1")
-		// if err := http2.ConfigureServer(c.server, &http2.Server{}); err != nil {
-		// 	c.logger.Errorf("[control] failed to configure HTTP/2 server: %v", err)
-		// 	if failedFunc != nil {
-		// 		failedFunc(err)
-		// 	}
-		// 	return
-		// }
-		// c.logger.Info("[control] HTTP/2 server configured successfully")
+		if err := http2.ConfigureServer(c.server, &http2.Server{}); err != nil {
+			c.logger.Errorf("[control] failed to configure HTTP/2 server: %v", err)
+			if failedFunc != nil {
+				failedFunc(err)
+			}
+			return
+		}
+		c.logger.Info("[control] HTTP/2 server configured successfully")
 	}
 
 	defer func(listener net.Listener) {
