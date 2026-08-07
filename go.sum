@@ -1568,8 +1568,6 @@ github.com/getsentry/sentry-go v0.18.0/go.mod h1:Kgon4Mby+FJ7ZWHFUAZgVaIa8sxHtnR
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
 github.com/gin-contrib/cors v1.7.3 h1:hV+a5xp8hwJoTw7OY+a70FsL8JkVVFTXw9EcfrYUdns=
 github.com/gin-contrib/cors v1.7.3/go.mod h1:M3bcKZhxzsvI+rlRSkkxHyljJt1ESd93COUvemZ79j4=
-github.com/gin-contrib/gzip v1.2.2 h1:iUU/EYCM8ENfkjmZaVrxbjF/ZC267Iqv5S0MMCMEliI=
-github.com/gin-contrib/gzip v1.2.2/go.mod h1:C1a5cacjlDsS20cKnHlZRCPUu57D3qH6B2pV0rl+Y/s=
 github.com/gin-contrib/requestid v1.0.4 h1:h9u+YSCMgrDcn2QlHn9c6P/Zwy4WdXqZLFTmlIAJWpA=
 github.com/gin-contrib/requestid v1.0.4/go.mod h1:2/3cAmLKQ9E2Pr1IrSPR7K8AWiJORo0hLvs0keKsMJw=
 github.com/gin-contrib/sse v1.0.0 h1:y3bT1mUWUxDpW4JLQg/HnTqV4rozuW4tC9eFKTxYI9E=
@@ -1951,8 +1949,8 @@ github.com/jessevdk/go-flags v1.6.1 h1:Cvu5U8UGrLay1rZfv/zP7iLpSHGUZ/Ou68T0iX1bB
 github.com/jessevdk/go-flags v1.6.1/go.mod h1:Mk8T1hIAWpOiJiHa9rJASDK2UGWji0EuPGBnNLMooyc=
 github.com/jianlu8023/go-logger/v2 v2.0.2 h1:gkKMNY0JDOP1ytUZqaEtG/daPWm0BOS0fOy3+LaOCmA=
 github.com/jianlu8023/go-logger/v2 v2.0.2/go.mod h1:3c7SPVBFbn97VskkNOL45tN7GXD/uxEMthrFCrdgOqk=
-github.com/jianlu8023/go-tools/v2 v2.0.0-20260121024516-415f7a4634c9 h1:zx4k2S4oVCEpSq/yFN6nHPAOVDsPQ3O7ZrmZc0fxUI4=
-github.com/jianlu8023/go-tools/v2 v2.0.0-20260121024516-415f7a4634c9/go.mod h1:8T9wsq25xtKrBHtnt7Om14sYgpMCwk6XFUz8NIAKKWk=
+github.com/jianlu8023/go-tools/v2 v2.0.0-20260807044417-4603f9e780e0 h1:ecI5kBQxMp/avWYSW4nYXDxmuWn4I5W2LJ6oHfXMLys=
+github.com/jianlu8023/go-tools/v2 v2.0.0-20260807044417-4603f9e780e0/go.mod h1:8T9wsq25xtKrBHtnt7Om14sYgpMCwk6XFUz8NIAKKWk=
 github.com/jinzhu/copier v0.4.0 h1:w3ciUoD19shMCRargcpm0cm91ytaBhDvuRpz1ODO/U8=
 github.com/jinzhu/copier v0.4.0/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
 github.com/jinzhu/gorm v1.9.12 h1:Drgk1clyWT9t9ERbzHza6Mj/8FY/CqMyVzOiHviMo6Q=

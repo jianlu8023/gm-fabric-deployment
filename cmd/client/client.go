@@ -4,20 +4,21 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/jianlu8023/go-tools/v2/pkg/http"
+	"github.com/jianlu8023/go-tools/v2/pkg/json/sonic"
+	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
+	"github.com/jianlu8023/golang-example/pkg/control/docker"
+	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
+	"github.com/jianlu8023/golang-example/pkg/control/job"
+	"github.com/jianlu8023/golang-example/version"
+	"github.com/tjfoc/gmsm/gmtls"
+	gmx509 "github.com/tjfoc/gmsm/x509"
 	"math/rand/v2"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
-
-	"github.com/jianlu8023/go-tools/v2/pkg/http"
-	"github.com/jianlu8023/go-tools/v2/pkg/sonic"
-	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
-	"github.com/jianlu8023/golang-example/pkg/control/docker"
-	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
-	"github.com/jianlu8023/golang-example/pkg/control/job"
-	"github.com/jianlu8023/golang-example/version"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/pidfile"
@@ -112,33 +113,75 @@ func main() {
 					}
 				},
 			})
+
 			serverControl.GetJobControl().RegisterJob(&job.Job{
 				Name:     "http-request",
 				Interval: time.Duration(rand.IntN(10-5)+5) * time.Second,
 				Task: func() {
 
-					certPool := x509.NewCertPool()
-					rootPem, err := os.ReadFile("certs/openssl/root.crt")
-					if err != nil {
-						mainLogger.Errorf("read root.crt err: %v", err)
-						return
+					var client *http.Client
+					if serverControl.GetConfigControl().GetWebConfig().TlsGM {
+						certPool := gmx509.NewCertPool()
+						rootPem, err := os.ReadFile("certs/tongsuo/subca.crt")
+						if err != nil {
+							mainLogger.Errorf("read root.crt err: %v", err)
+							return
+						}
+						if ok := certPool.AppendCertsFromPEM(rootPem); !ok {
+							mainLogger.Errorf("append root.crt err")
+							return
+						}
+
+						keyPair1, err := gmtls.LoadX509KeyPair("certs/tongsuo/client_sign.crt", "certs/tongsuo/client_sign.key")
+						if err != nil {
+							mainLogger.Errorf("load key pair err: %v", err)
+							return
+						}
+
+						keyPair2, err := gmtls.LoadX509KeyPair("certs/tongsuo/client_enc.crt", "certs/tongsuo/client_enc.key")
+						if err != nil {
+							mainLogger.Errorf("load key pair err: %v", err)
+							return
+						}
+						tlsConfig := &gmtls.Config{
+							GMSupport: &gmtls.GMSupport{
+								WorkMode: gmtls.ModeGMSSLOnly,
+							},
+							Certificates:       []gmtls.Certificate{keyPair1, keyPair2},
+							RootCAs:            certPool,
+							InsecureSkipVerify: false,
+							ServerName:         "grpc",
+						}
+						client = http.NewClientWithGMTls(tlsConfig)
+					} else {
+						certPool := x509.NewCertPool()
+						rootPem, err := os.ReadFile("certs/openssl/root.crt")
+						if err != nil {
+							mainLogger.Errorf("read root.crt err: %v", err)
+							return
+						}
+						if ok := certPool.AppendCertsFromPEM(rootPem); !ok {
+							mainLogger.Errorf("append root.crt err")
+							return
+						}
+
+						keyPair, err := tls.LoadX509KeyPair("certs/openssl/hclient-chain.crt", "certs/openssl/hclient.key")
+						if err != nil {
+							mainLogger.Errorf("load key pair err: %v", err)
+							return
+						}
+
+						client = http.NewClient().SetTLSClientConfig(&tls.Config{
+							InsecureSkipVerify: false,
+							RootCAs:            certPool,
+							Certificates:       []tls.Certificate{keyPair},
+						})
 					}
-					if ok := certPool.AppendCertsFromPEM(rootPem); !ok {
-						mainLogger.Errorf("append root.crt err")
+
+					if client == nil {
 						return
 					}
 
-					keyPair, err := tls.LoadX509KeyPair("certs/openssl/hclient-chain.crt", "certs/openssl/hclient.key")
-					if err != nil {
-						mainLogger.Errorf("load key pair err: %v", err)
-						return
-					}
-
-					client := http.NewClient().SetTLSClientConfig(&tls.Config{
-						InsecureSkipVerify: false,
-						RootCAs:            certPool,
-						Certificates:       []tls.Certificate{keyPair},
-					})
 					var objJson commonhttp.BaseResponse
 					code, err := client.
 						GetJSON(

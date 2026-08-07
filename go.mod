@@ -26,7 +26,7 @@ replace (
 	github.com/ipfs-cluster/ipfs-cluster => github.com/ipfs-cluster/ipfs-cluster v1.0.8
 	// github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
 	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
-	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20260121024516-415f7a4634c9
+	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20260807044417-4603f9e780e0
 	github.com/jinzhu/copier => github.com/jinzhu/copier v0.4.0
 	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
 	github.com/mingrammer/commonregex => github.com/mingrammer/commonregex v1.0.1
@@ -103,7 +103,7 @@ require (
 	github.com/docker/docker v27.3.0+incompatible // 连接docker
 	github.com/docker/go-connections v0.5.0 // create docker container 需要这个库
 	github.com/gin-contrib/cors v1.7.3 // gin cors中间件
-	github.com/gin-contrib/gzip v1.2.2 // gin gzip中间件
+
 	github.com/gin-contrib/requestid v1.0.4 // gin requestid中间件
 	github.com/gin-contrib/sse v1.0.0 // sse
 	github.com/gin-gonic/gin v1.10.1 // gin web框架
@@ -116,6 +116,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // websocket
 	github.com/ipfs-cluster/ipfs-cluster v1.0.8 // ipfs-cluster的sdk
 	github.com/ipfs/boxo v0.27.2 // boxo 简化的ipfs操作
+	// github.com/gin-contrib/gzip v1.2.2 // gin gzip中间件
 	// github.com/hxx258456/ccgo v0.0.3 // grpc v1.44.0 protoc-gen-go-grpc 版本v1.2.0 没有grpc.NewClient 需要使用 grpc.Dial
 	// github.com/hxx258456/fabric-sdk-go-gm v0.0.7 // gmfabric的sdk gm基于2.2.5
 	// github.com/hyperledger/fabric-sdk-go v1.0.0 // fabric的sdk 目前仓库已经归档,貌似后面都在使用admin操作
@@ -198,6 +199,7 @@ require (
 	// github.com/gin-contrib/timeout v1.0.2
 	// github.com/rsms/gotalk v1.3.7
 	// github.com/emmansun/gmsm v0.29.8 // 解密x509证书 v0.27.3
+	// gitee.com/Trisia/gotlcp v1.4.1 // 另外一种gmtls(tlcp)的实现
 	// github.com/sgoby/opencc v0.0.0-20181105060730-5b3b1de2620a // 翻译
 	// gorm.io/driver/sqlite v1.6.0
 	// gorm.io/driver/gaussdb v0.1.0 // toolchain go1.23.4 github.com/HuaweiCloudDeveloper/gaussdb-go
@@ -241,6 +243,8 @@ require (
 	gorm.io/gorm v1.30.0 // gorm数据库orm
 	gorm.io/plugin/opentelemetry v0.1.16 // gorm的opentelemetry插件
 )
+
+require github.com/go-resty/resty/v2 v2.13.1
 
 require (
 	github.com/ALTree/bigfloat v0.0.0-20220102081255-38c8b72a9924 // indirect
@@ -295,7 +299,6 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-resty/resty/v2 v2.13.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
