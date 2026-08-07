@@ -39,6 +39,7 @@ kvdatabase/
 tracer.json
 logger.json
 meter.json
+metrics.json
 
 # Added by goreleaser init:
 dist/
