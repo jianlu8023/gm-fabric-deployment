@@ -147,8 +147,17 @@ libp2p:
     privkey: CAESQJY27DDSC9bEnAfcOE+rCLV6OVm/AETqUCt1swmR7HD9R8VdYQoGM7931nd+BX/URL1JLEGRvXX8IkGCK+boblo=
   protocol_id: /golang-example/msg/1.0.0
   service_tag: golang-example_tags
+  health_check_interval: 60
+  message_queue_size: 1024
+  worker_count: 5
+  broadcast_interval: 5
+  dht_mode: server
   bootstrap_list:
-  #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8cpcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
+  #- "dns4/127.0.0.1/udp/2000/quic-v1/p2p/12D3KooWEmsdj6kGx8pcjZWd4QG4bh4FZGuBEiUULWRgScyNHwe"
+  persistence:
+    enabled: false
+    file_path: data/peerstore-server.json
+    save_interval: 300
 logger:
   default_log_level: debug
   stack_log_level: fatal

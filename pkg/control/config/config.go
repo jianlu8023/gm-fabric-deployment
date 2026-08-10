@@ -518,8 +518,9 @@ func (c *GrpcConfig) GoString() string {
 
 // Identity 配置身份信息
 type Identity struct {
-	PeerID  string `json:"peer_id,omitempty" yaml:"peer_id,omitempty" mapstructure:"peer_id"`
-	PrivKey string `json:"-" yaml:",omitempty" mapstructure:"privkey"`
+	PeerID            string `json:"peer_id,omitempty" yaml:"peer_id,omitempty" mapstructure:"peer_id"`
+	PrivKey           string `json:"-" yaml:",omitempty" mapstructure:"privkey"`
+	PrivKeyPassphrase string `json:"-" yaml:"priv_key_passphrase,omitempty" mapstructure:"priv_key_passphrase"` // 私钥解密口令（预留）
 }
 
 // String 返回Identity的字符串表示
@@ -531,14 +532,39 @@ func (c *Identity) GoString() string {
 	return c.String()
 }
 
+// PersistenceConfig libp2p节点持久化配置
+//
+// @description 配置节点信息的持久化存储，停止服务时保存到文件，启动时从文件加载并尝试重连
+// @struct
+type PersistenceConfig struct {
+	Enabled      bool   `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                   // 是否启用持久化
+	FilePath     string `json:"file_path,omitempty" yaml:"file_path,omitempty" mapstructure:"file_path"`             // 持久化文件路径
+	SaveInterval int    `json:"save_interval,omitempty" yaml:"save_interval,omitempty" mapstructure:"save_interval"` // 定期保存间隔（秒），默认300
+}
+
+// String 返回Identity的字符串表示
+func (c *PersistenceConfig) String() string {
+	return marshalConfig(c)
+}
+
+func (c *PersistenceConfig) GoString() string {
+	return c.String()
+}
+
 // Libp2pConfig 配置Libp2p
 type Libp2pConfig struct {
-	Enabled       bool      `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用
-	ListenAddr    []string  `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`          // 监听地址
-	Identity      *Identity `json:"identity,omitempty" yaml:"identity,omitempty" mapstructure:"identity"`                   // 身份信息
-	ProtocolID    string    `json:"protocol_id,omitempty" yaml:"protocol_id,omitempty" mapstructure:"protocol_id"`          // 协议ID
-	ServiceTag    string    `json:"service_tag,omitempty" yaml:"service_tag,omitempty" mapstructure:"service_tag"`          // mdns服务标签
-	BootstrapList []string  `json:"bootstrap_list,omitempty" yaml:"bootstrap_list,omitempty" mapstructure:"bootstrap_list"` // bootstrap节点列表
+	Enabled             bool               `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                           // 是否启用
+	ListenAddr          []string           `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`                               // 监听地址
+	Identity            *Identity          `json:"identity,omitempty" yaml:"identity,omitempty" mapstructure:"identity"`                                        // 身份信息
+	ProtocolID          string             `json:"protocol_id,omitempty" yaml:"protocol_id,omitempty" mapstructure:"protocol_id"`                               // 协议ID
+	ServiceTag          string             `json:"service_tag,omitempty" yaml:"service_tag,omitempty" mapstructure:"service_tag"`                               // mdns服务标签
+	BootstrapList       []string           `json:"bootstrap_list,omitempty" yaml:"bootstrap_list,omitempty" mapstructure:"bootstrap_list"`                      // bootstrap节点列表
+	HealthCheckInterval int                `json:"health_check_interval,omitempty" yaml:"health_check_interval,omitempty" mapstructure:"health_check_interval"` // 健康检查间隔（秒），默认60
+	Persistence         *PersistenceConfig `json:"persistence,omitempty" yaml:"persistence,omitempty" mapstructure:"persistence"`                               // 节点持久化配置
+	MessageQueueSize    int                `json:"message_queue_size,omitempty" yaml:"message_queue_size,omitempty" mapstructure:"message_queue_size"`          // 消息队列容量，默认1024
+	WorkerCount         int                `json:"worker_count,omitempty" yaml:"worker_count,omitempty" mapstructure:"worker_count"`                            // 消息处理worker协程数，默认5
+	BroadcastInterval   int                `json:"broadcast_interval,omitempty" yaml:"broadcast_interval,omitempty" mapstructure:"broadcast_interval"`          // 广播消息间隔（毫秒），默认5
+	DHTMode             string             `json:"dht_mode,omitempty" yaml:"dht_mode,omitempty" mapstructure:"dht_mode"`                                        // DHT模式（server/client/auto），默认server
 }
 
 // String Libp2pConfig的字符串表示

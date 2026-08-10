@@ -2,14 +2,40 @@ package libp2p
 
 import (
 	"fmt"
+	"github.com/libp2p/go-libp2p/core/protocol"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 
 	"github.com/libp2p/go-libp2p/core/peer"
-	"github.com/libp2p/go-libp2p/core/protocol"
+)
+
+// MessageHandler 消息处理函数类型
+type MessageHandler func(protocolID protocol.ID, msg *Message)
+
+// MessageWithPeer 包含消息和目标节点信息的结构体
+type MessageWithPeer struct {
+	PeerID     peer.ID
+	ProtocolID protocol.ID
+	Msg        *Message
+}
+
+const (
+	MsgBasePing                 = "base/ping"
+	MsgBasePong                 = "base/pong"
+	MsgBaseShutdown             = "base/shutdown"
+	MsgDockerNetworks           = "docker/networks"
+	MsgCollectionNode           = "collection/node"
+	MsgCollectionDockerNetworks = "collection/docker/networks"
+	MsgCollectionDockerImages   = "collection/docker/images"
+	MsgDockerImages             = "docker/images"
+	MsgLibp2pNode               = "libp2p/node"
+	MsgDockerImagePull          = "docker/pull"
 )
 
 // Message 定义消息结构
+//
+// @description P2P消息信封，Content字段当前为明文。
+// TODO(app-layer-encrypt): 接入国密应用层加密后，Content应为密文，收发时需在MarshalJSON/UnmarshalJSON中加解密
 type Message struct {
 	Type    string  `json:"msg_type" yaml:"msg_type"`
 	Content []byte  `json:"msg_content" yaml:"msg_content"`
@@ -18,8 +44,13 @@ type Message struct {
 }
 
 // MarshalJSON 自定义JSON序列化方法
+//
+// @description 将peer.ID转换为字符串进行JSON序列化
+// TODO(app-layer-encrypt): 在序列化前对Content做国密加密
 func (m *Message) MarshalJSON() ([]byte, error) {
-	// 创建一个中间结构体用于JSON序列化
+	if m == nil {
+		return []byte("null"), nil
+	}
 	type Alias Message
 	return json.Marshal(&struct {
 		*Alias
@@ -33,8 +64,10 @@ func (m *Message) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON 自定义JSON反序列化方法
+//
+// @description 将JSON中的字符串转换回peer.ID
+// TODO(app-layer-decrypt): 在反序列化后对Content做国密解密
 func (m *Message) UnmarshalJSON(data []byte) error {
-	// 创建一个中间结构体用于JSON反序列化
 	type Alias Message
 	aux := &struct {
 		*Alias
@@ -68,29 +101,9 @@ func (m *Message) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// MessageHandler 消息处理函数类型
-type MessageHandler func(protocolID protocol.ID, msg *Message)
-
-// MessageWithPeer 包含消息和目标节点信息的结构体
-type MessageWithPeer struct {
-	PeerID     peer.ID
-	ProtocolID protocol.ID
-	Msg        *Message
-}
-
-const (
-	MsgBasePing                 = "base/ping"
-	MsgBasePong                 = "base/pong"
-	MsgBaseShutdown             = "base/shutdown"
-	MsgDockerNetworks           = "docker/networks"
-	MsgCollectionNode           = "collection/node"
-	MsgCollectionDockerNetworks = "collection/docker/networks"
-	MsgCollectionDockerImages   = "collection/docker/images"
-	MsgDockerImages             = "docker/images"
-	MsgLibp2pNode               = "libp2p/node"
-	MsgDockerImagePull          = "docker/pull"
-)
-
+// DockerImagePullContent Docker镜像拉取请求的消息内容
+//
+// @description 作为Message.Content的payload，用于节点间传递镜像拉取请求参数
 type DockerImagePullContent struct {
 	ImageName    string `json:"image_name,omitempty" yaml:"image_name,omitempty"`
 	Platform     string `json:"platform,omitempty" yaml:"platform,omitempty"`
@@ -102,6 +115,9 @@ func (d DockerImagePullContent) MarshalJSON() ([]byte, error) {
 }
 
 func (d DockerImagePullContent) String() string {
-	bytes, _ := json.Marshal(d)
-	return string(bytes)
+	data, err := json.Marshal(d)
+	if err != nil {
+		return fmt.Sprintf("DockerImagePullContent{ImageName: %s, Platform: %s}", d.ImageName, d.Platform)
+	}
+	return string(data)
 }
