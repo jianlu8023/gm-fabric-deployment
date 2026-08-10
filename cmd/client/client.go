@@ -5,26 +5,26 @@ import (
 	"crypto/x509"
 	"fmt"
 	"github.com/jianlu8023/go-tools/v2/pkg/http"
+	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"github.com/jianlu8023/go-tools/v2/pkg/json/sonic"
+	"github.com/jianlu8023/go-tools/v2/pkg/pidfile"
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc/pb"
 	"github.com/jianlu8023/golang-example/pkg/control/job"
+	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
+	"github.com/jianlu8023/golang-example/pkg/control/server"
 	"github.com/jianlu8023/golang-example/version"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/tjfoc/gmsm/gmtls"
 	gmx509 "github.com/tjfoc/gmsm/x509"
 	"math/rand/v2"
+	gohttp "net/http"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
 	"time"
-
-	"github.com/jianlu8023/go-tools/v2/pkg/json"
-	"github.com/jianlu8023/go-tools/v2/pkg/pidfile"
-	"github.com/jianlu8023/golang-example/pkg/control/libp2p"
-	"github.com/jianlu8023/golang-example/pkg/control/server"
-	"github.com/libp2p/go-libp2p/core/protocol"
 )
 
 func main() {
@@ -193,8 +193,8 @@ func main() {
 						mainLogger.Errorf("get router failed: %v", err)
 						return
 					}
-					if code != 200 {
-						if code == 429 {
+					if code != gohttp.StatusOK {
+						if code == gohttp.StatusTooManyRequests {
 							mainLogger.Errorf("get router failed code: %v body: %v", code, objJson)
 						} else {
 							mainLogger.Errorf("get router failed: %v", code)
@@ -216,8 +216,8 @@ func main() {
 						mainLogger.Errorf("get ping failed: %v", err)
 						return
 					}
-					if code != 200 {
-						if code == 429 {
+					if code != gohttp.StatusOK {
+						if code == gohttp.StatusTooManyRequests {
 							mainLogger.Errorf("get ping failed code: %v body: %v", code, string(body))
 						} else {
 							mainLogger.Errorf("get ping failed: %v", code)
@@ -238,8 +238,8 @@ func main() {
 						mainLogger.Errorf("get libp2p list failed: %v", err)
 						return
 					}
-					if code != 200 {
-						if code == 429 {
+					if code != gohttp.StatusOK {
+						if code == gohttp.StatusTooManyRequests {
 							mainLogger.Errorf("get libp2p list failed code: %v body: %v", code, string(body))
 						} else {
 							mainLogger.Errorf("get libp2p list failed: %v", code)
@@ -256,8 +256,8 @@ func main() {
 						mainLogger.Errorf("post ping failed: %v", err)
 						return
 					}
-					if code != 200 {
-						if code == 429 {
+					if code != gohttp.StatusOK {
+						if code == gohttp.StatusTooManyRequests {
 							mainLogger.Errorf("post ping failed code: %v body: %v", code, string(body))
 						} else {
 							mainLogger.Errorf("post ping failed: %v", code)
