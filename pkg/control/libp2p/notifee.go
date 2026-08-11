@@ -21,21 +21,21 @@ func (n *discoveryNotifee) Connected(_ network.Network, c network.Conn) {
 	}
 	if !n.ds.HasPeer(pid) {
 		n.ds.AddPeer(pid)
-		n.ds.logger.Debugf("[libp2p/discovery] peer connected and added to peers: %s", pid)
+		n.ds.logger.Debugf("[libp2p/notifee] peer connected and added to peers: %s", pid)
 	}
 }
 
 // Disconnected 当节点断开连接时触发，由健康检查处理，此处不操作
 func (n *discoveryNotifee) Disconnected(_ network.Network, _ network.Conn) {
-	n.ds.logger.Debugf("disconnetced...")
+	n.ds.logger.Debugf("[libp2p/notifee] disconnetced...")
 }
 
 // Listen 监听地址开始监听时触发
 func (n *discoveryNotifee) Listen(_ network.Network, _ multiaddr.Multiaddr) {
-	n.ds.logger.Debugf("listen...")
+	n.ds.logger.Debugf("[libp2p/notifee] listen...")
 }
 
 // ListenClose 监听地址停止监听时触发
 func (n *discoveryNotifee) ListenClose(_ network.Network, _ multiaddr.Multiaddr) {
-	n.ds.logger.Debugf("listen close...")
+	n.ds.logger.Debugf("[libp2p/notifee] listen close...")
 }

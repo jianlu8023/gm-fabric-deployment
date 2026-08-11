@@ -41,7 +41,7 @@ func buildLibConfig(cfg *config.CORSConfig, logger *zap.SugaredLogger) gincors.C
 	allowOrigins := cfg.AllowOrigins
 	allowCredentials := cfg.AllowCredentials
 	if hasWildcardOrigin(allowOrigins) && allowCredentials {
-		logger.Error("[cors] 配置违规：AllowOrigins 含 \"*\" 且 AllowCredentials=true，" +
+		logger.Error("[http/cors] 配置违规：AllowOrigins 含 \"*\" 且 AllowCredentials=true，" +
 			"违反 W3C CORS 规范，已强制将 AllowCredentials 降级为 false。" +
 			"如需携带 Cookie，请改为显式 Origin 白名单或子域名通配符（allow_wildcard: true）")
 		allowCredentials = false
@@ -50,10 +50,10 @@ func buildLibConfig(cfg *config.CORSConfig, logger *zap.SugaredLogger) gincors.C
 	// 若白名单为空，按运行模式兜底
 	if len(allowOrigins) == 0 {
 		if gin.Mode() == gin.DebugMode {
-			logger.Warn("[cors] AllowOrigins 为空且处于开发模式，默认允许所有 Origin（不携带凭证）")
+			logger.Warn("[http/cors] AllowOrigins 为空且处于开发模式，默认允许所有 Origin（不携带凭证）")
 			allowOrigins = []string{wildcardOrigin}
 		} else {
-			logger.Warn("[cors] AllowOrigins 为空且处于发布模式，默认拒绝所有跨域请求；" +
+			logger.Warn("[http/cors] AllowOrigins 为空且处于发布模式，默认拒绝所有跨域请求；" +
 				"请在配置文件中显式设置 allow_origins")
 		}
 	}
@@ -76,7 +76,7 @@ func buildLibConfig(cfg *config.CORSConfig, logger *zap.SugaredLogger) gincors.C
 
 	// 生产环境告警：允许所有 Origin + 关闭凭证是公开 API 模式，应确认是否符合预期
 	if hasWildcardOrigin(allowOrigins) && gin.Mode() != gin.DebugMode {
-		logger.Warn("[cors] 当前允许所有 Origin（*），仅适用于公开 API；" +
+		logger.Warn("[http/cors] 当前允许所有 Origin（*），仅适用于公开 API；" +
 			"若需携带凭证请改为白名单模式")
 	}
 

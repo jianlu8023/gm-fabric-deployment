@@ -72,7 +72,7 @@ func EnableRecovery(webLogger *zap.SugaredLogger, cfg *config.RecoveryConfig) gi
 
 				httpRequest, _ := httputil.DumpRequest(ctx.Request, false)
 				if brokenPipe {
-					webLogger.Errorf("request url %v with request %v failed: %v",
+					webLogger.Errorf("[http/Recovery] request url %v with request %v failed: %v",
 						ctx.Request.URL.Path,
 						string(httpRequest),
 						err,
@@ -89,23 +89,23 @@ func EnableRecovery(webLogger *zap.SugaredLogger, cfg *config.RecoveryConfig) gi
 				}
 
 				if enableStack {
-					webLogger.Errorf("request url %v with request %v with stack %v failed: %v",
+					webLogger.Errorf("[http/Recovery] request url %v with request %v with stack %v failed: %v",
 						ctx.Request.URL.Path,
 						string(httpRequest),
 						string(debug.Stack()),
 						err,
 					)
-					// webLogger.Error("[Recovery from panic]",
+					// webLogger.Error("[http/Recovery]",
 					// 	zap.Any("error", err),
 					// 	zap.String("request", string(httpRequest)),
 					// 	zap.String("stack", string(debug.Stack())),
 					// )
 				} else {
-					// webLogger.Error("[Recovery from panic]",
+					// webLogger.Error("[http/Recovery]",
 					// 	zap.Any("error", err),
 					// 	zap.String("request", string(httpRequest)),
 					// )
-					webLogger.Errorf("request url %v with request %v failed: %v",
+					webLogger.Errorf("[http/Recovery] request url %v with request %v failed: %v",
 						ctx.Request.URL.Path,
 						string(httpRequest),
 						err,

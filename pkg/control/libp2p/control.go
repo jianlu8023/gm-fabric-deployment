@@ -92,7 +92,8 @@ func NewLibp2pControl(libp2pConfig *config.Libp2pConfig, loggerControl *logger.C
 		}),
 		loggerControl,
 	)
-	libp2pLogger := loggerControl.GenLogger(logger.ModuleLibp2p)
+	// libp2pLogger := loggerControl.GenLogger(logger.ModuleLibp2p)
+	libp2pLogger := loggerControl.GenLogger("")
 	libp2pLogger.Infof("[libp2p/control] starting new libp2p control...")
 
 	// 创建上下文

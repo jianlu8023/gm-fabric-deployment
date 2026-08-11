@@ -42,7 +42,7 @@ type Config struct {
 func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config, trustedProxies *iphelper.CIDRList) gin.HandlerFunc {
 	// 验证配置
 	if config.RPS <= 0 {
-		logger.Warnf("[RateLimit] Invalid RPS value, rate limiting disabled")
+		logger.Warnf("[http/RateLimit] Invalid RPS value, rate limiting disabled")
 		// 返回一个空中间件，不做任何处理
 		return func(ctx *gin.Context) {
 			savedCtx := ctx.Request.Context()
@@ -64,7 +64,7 @@ func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config, trustedPro
 	}
 
 	// 根据类型选择不同的限流实现
-	logger.Infof("[RateLimit] Creating %s rate limiter with RPS: %d, burst: %d", config.Type, config.RPS, burst)
+	logger.Infof("[http/RateLimit] Creating %s rate limiter with RPS: %d, burst: %d", config.Type, config.RPS, burst)
 
 	switch config.Type {
 	case TypeTime:
@@ -74,7 +74,7 @@ func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config, trustedPro
 	case TypeSimple, TypeAnts:
 		// TypeAnts 保留兼容，推荐使用 TypeSimple
 		if config.Type == TypeAnts {
-			logger.Warnf("[RateLimit] Type 'ants' is deprecated, please use 'simple' instead")
+			logger.Warnf("[http/RateLimit] Type 'ants' is deprecated, please use 'simple' instead")
 		}
 		return EnableSimpleRateLimit(logger, config.RPS, burst, trustedProxies)
 	case TypeCustom:
@@ -82,7 +82,7 @@ func NewRateLimitMiddleware(logger *zap.SugaredLogger, config Config, trustedPro
 	case TypeJuju:
 		return EnableRateLimitJuju(logger, config.RPS, burst, trustedProxies)
 	default:
-		logger.Warnf("[RateLimit] Unknown rate limit type: %s, using default (time/rate)", config.Type)
+		logger.Warnf("[http/RateLimit] Unknown rate limit type: %s, using default (time/rate)", config.Type)
 		return EnableRateLimit(logger, config.RPS, burst, trustedProxies)
 	}
 }

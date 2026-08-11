@@ -48,8 +48,9 @@ func NewAuthzControl(authzConfig *config.AuthzConfig, loggerControl *logger.Cont
 		loggerControl,
 	)
 
-	authzLogger := loggerControl.GenLogger(logger.ModuleAuthZ)
-	authzLogger.Infof("[authz] start new authz control...")
+	// authzLogger := loggerControl.GenLogger(logger.ModuleAuthZ)
+	authzLogger := loggerControl.GenLogger("")
+	authzLogger.Infof("[authz/control] start new authz control...")
 
 	ctx := context.Background()
 
@@ -60,7 +61,7 @@ func NewAuthzControl(authzConfig *config.AuthzConfig, loggerControl *logger.Cont
 		ctx:    ctx,
 	}
 
-	authzLogger.Infof("[authz] authz control initialized successfully")
+	authzLogger.Infof("[authz/control] authz control initialized successfully")
 	return control
 }
 
@@ -69,7 +70,7 @@ func NewAuthzControl(authzConfig *config.AuthzConfig, loggerControl *logger.Cont
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Infof("[authz] starting up authz control...")
+			c.logger.Infof("[authz/control] starting up authz control...")
 			// 如果启用了权限控制，初始化enforcer
 			if err := c.initEnforcer(); err != nil {
 				if failedFunc != nil {
@@ -77,7 +78,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 				}
 				return
 			}
-			c.logger.Infof("[authz] authz control is enabled and ready")
+			c.logger.Infof("[authz/control] authz control is enabled and ready")
 		}
 	})
 }
@@ -85,17 +86,17 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // Shutdown 关闭权限控制服务
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
-	c.logger.Infof("[authz] shutting down authz control...")
+	c.logger.Infof("[authz/control] shutting down authz control...")
 	// 权限控制器没有需要特别关闭的资源
 	// 主要是记录关闭日志
-	c.logger.Infof("[authz] authz control shutdown completed")
+	c.logger.Infof("[authz/control] authz control shutdown completed")
 	return nil
 }
 
 // initEnforcer 初始化enforcer
 // @return error 错误信息
 func (c *Control) initEnforcer() error {
-	c.logger.Debugf("[authz] initializing enforcer...")
+	c.logger.Debugf("[authz/control] initializing enforcer...")
 
 	// 确保文件存在
 	if c.config.AutoCreateFile {
@@ -107,7 +108,7 @@ func (c *Control) initEnforcer() error {
 	// 加载模型和策略
 	model, err := casbinmodel.NewModelFromFile(c.config.ModelFile)
 	if err != nil {
-		c.logger.Errorf("[authz] failed to load model file: %v", err)
+		c.logger.Errorf("[authz/control] failed to load model file: %v", err)
 		return err
 	}
 
@@ -116,7 +117,7 @@ func (c *Control) initEnforcer() error {
 	// 创建enforcer
 	enforcer, err := casbin.NewEnforcer(model, adapter)
 	if err != nil {
-		c.logger.Errorf("[authz] failed to create enforcer: %v", err)
+		c.logger.Errorf("[authz/control] failed to create enforcer: %v", err)
 		return err
 	}
 
@@ -129,12 +130,12 @@ func (c *Control) initEnforcer() error {
 
 	// 加载策略
 	if err := enforcer.LoadPolicy(); err != nil {
-		c.logger.Errorf("[authz] failed to load policy: %v", err)
+		c.logger.Errorf("[authz/control] failed to load policy: %v", err)
 		return err
 	}
 
 	c.enforcer = enforcer
-	c.logger.Debugf("[authz] enforcer initialized successfully")
+	c.logger.Debugf("[authz/control] enforcer initialized successfully")
 	return nil
 }
 
@@ -174,24 +175,24 @@ m = r.sub == p.sub && r.obj == p.obj && r.act == p.act`
 func (c *Control) CheckPermission(sub, obj, act string) (bool, error) {
 	// 如果权限控制未启用，默认返回配置的默认值
 	if !c.config.Enabled {
-		c.logger.Debugf("[authz] authz not enabled, default allow: %v", c.config.DefaultAllow)
+		c.logger.Debugf("[authz/control] authz not enabled, default allow: %v", c.config.DefaultAllow)
 		return c.config.DefaultAllow, nil
 	}
 
 	// 检查enforcer是否初始化
 	if c.enforcer == nil {
-		c.logger.Errorf("[authz] enforcer not initialized")
+		c.logger.Errorf("[authz/control] enforcer not initialized")
 		return c.config.DefaultAllow, fmt.Errorf("enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] checking permission: sub=%s, obj=%s, act=%s", sub, obj, act)
+	c.logger.Debugf("[authz/control] checking permission: sub=%s, obj=%s, act=%s", sub, obj, act)
 	ok, err := c.enforcer.Enforce(sub, obj, act)
 	if err != nil {
-		c.logger.Errorf("[authz] permission check failed: %v", err)
+		c.logger.Errorf("[authz/control] permission check failed: %v", err)
 		return c.config.DefaultAllow, err
 	}
 
-	c.logger.Debugf("[authz] permission check result: %v", ok)
+	c.logger.Debugf("[authz/control] permission check result: %v", ok)
 	return ok, nil
 }
 
@@ -206,7 +207,7 @@ func (c *Control) AddPolicy(sub, obj, act string) (bool, error) {
 		return false, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] adding policy: sub=%s, obj=%s, act=%s", sub, obj, act)
+	c.logger.Debugf("[authz/control] adding policy: sub=%s, obj=%s, act=%s", sub, obj, act)
 	return c.enforcer.AddPolicy(sub, obj, act)
 }
 
@@ -221,7 +222,7 @@ func (c *Control) RemovePolicy(sub, obj, act string) (bool, error) {
 		return false, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] removing policy: sub=%s, obj=%s, act=%s", sub, obj, act)
+	c.logger.Debugf("[authz/control] removing policy: sub=%s, obj=%s, act=%s", sub, obj, act)
 	return c.enforcer.RemovePolicy(sub, obj, act)
 }
 
@@ -232,7 +233,7 @@ func (c *Control) SavePolicy() error {
 		return fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] saving policy")
+	c.logger.Debugf("[authz/control] saving policy")
 	return c.enforcer.SavePolicy()
 }
 
@@ -243,7 +244,7 @@ func (c *Control) LoadPolicy() error {
 		return fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] loading policy")
+	c.logger.Debugf("[authz/control] loading policy")
 	return c.enforcer.LoadPolicy()
 }
 
@@ -256,7 +257,7 @@ func (c *Control) GetRolesForUser(user string) ([]string, error) {
 		return []string{}, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] getting roles for user: %s", user)
+	c.logger.Debugf("[authz/control] getting roles for user: %s", user)
 	return c.enforcer.GetRolesForUser(user)
 }
 
@@ -270,7 +271,7 @@ func (c *Control) AddRoleForUser(user, role string) (bool, error) {
 		return false, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] adding role for user: user=%s, role=%s", user, role)
+	c.logger.Debugf("[authz/control] adding role for user: user=%s, role=%s", user, role)
 	return c.enforcer.AddRoleForUser(user, role)
 }
 
@@ -284,7 +285,7 @@ func (c *Control) RemoveRoleForUser(user, role string) (bool, error) {
 		return false, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] removing role for user: user=%s, role=%s", user, role)
+	c.logger.Debugf("[authz/control] removing role for user: user=%s, role=%s", user, role)
 	return c.enforcer.DeleteRoleForUser(user, role)
 }
 
@@ -296,7 +297,7 @@ func (c *Control) GetAllSubjects() ([]string, error) {
 		return []string{}, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] getting all subjects")
+	c.logger.Debugf("[authz/control] getting all subjects")
 	return c.enforcer.GetAllSubjects()
 }
 
@@ -308,7 +309,7 @@ func (c *Control) GetAllObjects() ([]string, error) {
 		return []string{}, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] getting all objects")
+	c.logger.Debugf("[authz/control] getting all objects")
 	return c.enforcer.GetAllObjects()
 }
 
@@ -320,7 +321,7 @@ func (c *Control) GetAllActions() ([]string, error) {
 		return []string{}, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] getting all actions")
+	c.logger.Debugf("[authz/control] getting all actions")
 	return c.enforcer.GetAllActions()
 }
 
@@ -332,6 +333,6 @@ func (c *Control) GetAllRoles() ([]string, error) {
 		return []string{}, fmt.Errorf("authz not enabled or enforcer not initialized")
 	}
 
-	c.logger.Debugf("[authz] getting all roles")
+	c.logger.Debugf("[authz/control] getting all roles")
 	return c.enforcer.GetAllRoles()
 }

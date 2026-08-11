@@ -105,7 +105,7 @@ func NewAuthManager(jwtManager jwt.JwtManager, sessionStore session.SessionStore
 		cfg:          cfg,
 	}
 	m.mode = m.resolveMode()
-	m.logger.Infof("[auth] authenticator created with mode: %s", m.mode)
+	m.logger.Infof("[http/auth] authenticator created with mode: %s", m.mode)
 	return m
 }
 
@@ -142,7 +142,7 @@ func (m *authManagerImpl) resolveMode() authMode {
 		return modeSessionOnly
 	default:
 		// 两者都未启用，回退到 jwt_session 模式（启动校验应由 control 层拦截）
-		m.logger.Warnf("[auth] both jwt and session disabled, fallback to jwt_session mode")
+		m.logger.Warnf("[http/auth] both jwt and session disabled, fallback to jwt_session mode")
 		return modeJWTSession
 	}
 }

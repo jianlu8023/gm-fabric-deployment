@@ -35,7 +35,7 @@ func (m *authManagerImpl) Login(userID, username, role string) (string, error) {
 			ExpiresAt:        expiresAt,
 		}
 		if err := m.sessionStore.Set(sessionID, sess); err != nil {
-			m.logger.Errorf("[auth] session set failed on login: %v", err)
+			m.logger.Errorf("[http/auth] session set failed on login: %v", err)
 			return "", err
 		}
 	}
@@ -44,7 +44,7 @@ func (m *authManagerImpl) Login(userID, username, role string) (string, error) {
 	if m.jwtManager != nil {
 		token, _, err := m.jwtManager.GenerateToken(userID, username, role, sessionID, int64(ttl.Seconds()))
 		if err != nil {
-			m.logger.Errorf("[auth] jwt generate failed on login: %v", err)
+			m.logger.Errorf("[http/auth] jwt generate failed on login: %v", err)
 			return "", err
 		}
 		return token, nil
@@ -65,7 +65,7 @@ func (m *authManagerImpl) Logout(sessionID string) error {
 		return nil
 	}
 	if err := m.sessionStore.Delete(sessionID); err != nil {
-		m.logger.Errorf("[auth] session delete failed on logout: %v", err)
+		m.logger.Errorf("[http/auth] session delete failed on logout: %v", err)
 		return err
 	}
 	return nil
@@ -85,7 +85,7 @@ func (m *authManagerImpl) Refresh(sessionID string) (string, error) {
 
 	sess, err := m.sessionStore.Get(sessionID)
 	if err != nil {
-		m.logger.Errorf("[auth] session get failed on refresh: %v", err)
+		m.logger.Errorf("[http/auth] session get failed on refresh: %v", err)
 		return "", err
 	}
 
@@ -94,7 +94,7 @@ func (m *authManagerImpl) Refresh(sessionID string) (string, error) {
 	sess.LastActivityTime = now
 	sess.ExpiresAt = now + int64(ttl.Seconds())
 	if err = m.sessionStore.Set(sessionID, sess); err != nil {
-		m.logger.Errorf("[auth] session set failed on refresh: %v", err)
+		m.logger.Errorf("[http/auth] session set failed on refresh: %v", err)
 		return "", err
 	}
 
@@ -102,7 +102,7 @@ func (m *authManagerImpl) Refresh(sessionID string) (string, error) {
 	if m.jwtManager != nil {
 		token, _, err := m.jwtManager.GenerateToken(sess.UserID, sess.Username, sess.Role, sessionID, int64(ttl.Seconds()))
 		if err != nil {
-			m.logger.Errorf("[auth] jwt generate failed on refresh: %v", err)
+			m.logger.Errorf("[http/auth] jwt generate failed on refresh: %v", err)
 			return "", err
 		}
 		return token, nil

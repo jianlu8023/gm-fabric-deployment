@@ -43,8 +43,9 @@ func NewJobControl(loggerControl *logger.Control, antsPoolControl *ants.Control)
 		}),
 		loggerControl,
 	)
-	jobLogger := loggerControl.GenLogger(logger.ModuleJob)
-	jobLogger.Infof("[control] starting create job control...")
+	// jobLogger := loggerControl.GenLogger(logger.ModuleJob)
+	jobLogger := loggerControl.GenLogger("")
+	jobLogger.Infof("[job/control] starting create job control...")
 	ctx, cancel := context.WithCancel(context.Background())
 
 	control := &Control{
@@ -59,11 +60,11 @@ func NewJobControl(loggerControl *logger.Control, antsPoolControl *ants.Control)
 
 // StartAllRegisterJobs 启动所有注册的作业
 func (c *Control) StartAllRegisterJobs() {
-	c.logger.Debugf("[control] starting all register jobs...")
+	c.logger.Debugf("[job/control] starting all register jobs...")
 	c.jobMutex.Lock()
 	defer c.jobMutex.Unlock()
 	for _, job := range c.jobs {
-		c.logger.Debugf("[control] starting job name: %s", job.Name)
+		c.logger.Debugf("[job/control] starting job name: %s", job.Name)
 		c.wg.Add(1)
 		// if err := c.antsPoolControl.Submit(func() {
 		// 	c.runJob(job)
@@ -76,37 +77,37 @@ func (c *Control) StartAllRegisterJobs() {
 
 // StopAllRegisterJobs 停止所有注册的作业
 func (c *Control) StopAllRegisterJobs() {
-	c.logger.Debugf("[control] stopping all register jobs...")
+	c.logger.Debugf("[job/control] stopping all register jobs...")
 	c.cancel()
 	c.wg.Wait()
-	c.logger.Infof("[control] all register jobs stopped...")
+	c.logger.Infof("[job/control] all register jobs stopped...")
 }
 
 // RegisterJob 注册一个新的作业
 // @param j *Job 要注册的作业对象
 func (c *Control) RegisterJob(j *Job) {
 	if c.antsPoolControl == nil {
-		c.logger.Warnf("[control] no runner ants pool, skip register job...")
+		c.logger.Warnf("[job/control] no runner ants pool, skip register job...")
 		return
 	}
 
-	c.logger.Debugf("[control] register job name: %s", j.Name)
+	c.logger.Debugf("[job/control] register job name: %s", j.Name)
 
 	c.jobMutex.Lock()
 	defer c.jobMutex.Unlock()
 
-	c.logger.Debugf("[control] register job to jobs...")
+	c.logger.Debugf("[job/control] register job to jobs...")
 	c.jobs = append(c.jobs, j)
 
 	c.wg.Add(1)
 	// if err := c.antsPoolControl.Submit(func() {
 	// 	c.runJob(j)
 	// }); err != nil {
-	// 	c.logger.Warnf("[control] failed to register job name: %s", j.Name)
+	// 	c.logger.Warnf("[job/control] failed to register job name: %s", j.Name)
 	// }
 	go c.runJob(j)
 
-	c.logger.Infof("[control] register job name: %s successfully...", j.Name)
+	c.logger.Infof("[job/control] register job name: %s successfully...", j.Name)
 }
 
 // runJob 运行指定的作业
@@ -114,17 +115,17 @@ func (c *Control) RegisterJob(j *Job) {
 func (c *Control) runJob(job *Job) {
 	defer c.wg.Done()
 	ticker := time.NewTicker(job.Interval)
-	c.logger.Infof("[control] starting job name: %s", job.Name)
+	c.logger.Infof("[job/control] starting job name: %s", job.Name)
 	for {
 		select {
 		case <-c.ctx.Done():
-			c.logger.Infof("[control] job name: %s closed", job.Name)
+			c.logger.Infof("[job/control] job name: %s closed", job.Name)
 			return
 		case <-ticker.C:
-			c.logger.Debugf("[control] job name: %s running on ants pool...", job.Name)
+			c.logger.Debugf("[job/control] job name: %s running on ants pool...", job.Name)
 			// job.Task()
 			if err := c.antsPoolControl.Submit(job.Task); err != nil {
-				c.logger.Warnf("[control] submit job to ants pool failed: %v", err)
+				c.logger.Warnf("[job/control] submit job to ants pool failed: %v", err)
 			}
 		}
 	}
@@ -134,7 +135,7 @@ func (c *Control) runJob(job *Job) {
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		c.logger.Infof("[control] starting job server...")
+		c.logger.Infof("[job/control] starting job server...")
 		c.StartAllRegisterJobs()
 	})
 }
@@ -142,7 +143,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // Shutdown 关闭作业服务器
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
-	c.logger.Infof("[control] shutting down job server...")
+	c.logger.Infof("[job/control] shutting down job server...")
 	c.StopAllRegisterJobs()
 	return nil
 }

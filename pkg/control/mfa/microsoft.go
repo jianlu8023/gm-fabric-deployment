@@ -59,12 +59,12 @@ func (m *MicrosoftProvider) GenerateSecret(userID string) (string, string, error
 		Digits:      otp.DigitsSix,
 	})
 	if err != nil {
-		m.logger.Errorf("[control] failed to generate Microsoft TOTP key: %v", err)
+		m.logger.Errorf("[mfa/microsoft] failed to generate Microsoft TOTP key: %v", err)
 		return "", "", ErrGenerateSecretFailed
 	}
 
 	// 存储密钥
-	m.logger.Debugf("[control] Microsoft MFA secret generated for user: %s", userID)
+	m.logger.Debugf("[mfa/microsoft] Microsoft MFA secret generated for user: %s", userID)
 
 	// 返回密钥和二维码URL
 	return key.Secret(), key.URL(), nil
@@ -79,7 +79,7 @@ func (m *MicrosoftProvider) VerifyCode(secret string, code string) bool {
 	// 验证代码
 	valid := totp.Validate(code, secret)
 
-	m.logger.Debugf("[control] Microsoft MFA code validation for valid: %v", valid)
+	m.logger.Debugf("[mfa/microsoft] Microsoft MFA code validation for valid: %v", valid)
 	return valid
 }
 
@@ -90,7 +90,7 @@ func (m *MicrosoftProvider) GenerateQrCode(otpauthURL string) string {
 	// 创建二维码
 	qr, err := qrcode.New(otpauthURL, qrcode.Medium)
 	if err != nil {
-		m.logger.Errorf("[control] failed to create QR code: %v", err)
+		m.logger.Errorf("[mfa/microsoft] failed to create QR code: %v", err)
 		return ""
 	}
 
@@ -100,7 +100,7 @@ func (m *MicrosoftProvider) GenerateQrCode(otpauthURL string) string {
 	// 生成PNG并转换为Base64
 	qrBytes, err := qr.PNG(240)
 	if err != nil {
-		m.logger.Errorf("[control] failed to generate QR code PNG: %v", err)
+		m.logger.Errorf("[mfa/microsoft] failed to generate QR code PNG: %v", err)
 		return ""
 	}
 

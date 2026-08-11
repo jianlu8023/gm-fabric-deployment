@@ -10,7 +10,7 @@ func main() {
 		DefaultLogLevel: "debug",
 		StackLogLevel:   "error",
 		PrintFormat:     "console",
-		FilePath:        "./logs/app.log",
+		FilePath:        "./logs/logger.log",
 		MaxAge:          7,
 		RotationTime:    1,
 		LoggerLevel: map[string]string{

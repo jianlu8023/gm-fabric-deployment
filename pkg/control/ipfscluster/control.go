@@ -54,7 +54,8 @@ func NewIpfsClusterControl(ipfsClusterConfig *config.IpfsClusterConfig, loggerCo
 		}),
 		loggerControl,
 	)
-	ipfsClusterLogger := loggerControl.GenLogger(logger.ModuleIpfsCluster)
+	// ipfsClusterLogger := loggerControl.GenLogger(logger.ModuleIpfsCluster)
+	ipfsClusterLogger := loggerControl.GenLogger("")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -73,9 +74,9 @@ func NewIpfsClusterControl(ipfsClusterConfig *config.IpfsClusterConfig, loggerCo
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Debugf("[control] starting up ipfs cluster control...")
+			c.logger.Debugf("[ipfscluster/control] starting up ipfs cluster control...")
 			if err := c.initSDK(); err != nil {
-				c.logger.Errorf("[control] failed to init ipfs cluster sdk, err: %s", err.Error())
+				c.logger.Errorf("[ipfscluster/control] failed to init ipfs cluster sdk, err: %s", err.Error())
 				if failedFunc != nil {
 					failedFunc(err)
 				}
@@ -83,13 +84,13 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 			version, err := c.Version()
 			if err != nil {
-				c.logger.Errorf("[control] failed to get ipfs cluster version, err: %s", err.Error())
+				c.logger.Errorf("[ipfscluster/control] failed to get ipfs cluster version, err: %s", err.Error())
 				if failedFunc != nil {
 					failedFunc(err)
 				}
 				return
 			}
-			c.logger.Debugf("[control] ipfs cluster version: %s", version)
+			c.logger.Debugf("[ipfscluster/control] ipfs cluster version: %s", version)
 		}
 	})
 }
@@ -98,7 +99,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // @description 关闭IPFS集群控制器并释放资源
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
-	c.logger.Debugf("[control] shutting down ipfs cluster control...")
+	c.logger.Debugf("[ipfscluster/control] shutting down ipfs cluster control...")
 	c.cancel()
 	return nil
 }
@@ -107,12 +108,12 @@ func (c *Control) Shutdown() error {
 // @description 根据配置信息初始化IPFS集群客户端配置列表
 // @return []*client.Config IPFS集群客户端配置列表
 func (c *Control) initConfigs() []*client.Config {
-	c.logger.Debugf("[control] init ipfs cluster clients configs...")
+	c.logger.Debugf("[ipfscluster/control] init ipfs cluster clients configs...")
 	configs := make([]*client.Config, 0, len(c.config.Addresses))
 
 	for _, address := range c.config.Addresses {
 		if stringer.IsBlank(address.Host) || address.Port == 0 {
-			c.logger.Warnf("[control] invalid ipfs cluster address [%s:%d]", address.Host, address.Port)
+			c.logger.Warnf("[ipfscluster/control] invalid ipfs cluster address [%s:%d]", address.Host, address.Port)
 			continue
 		}
 		configs = append(configs, &client.Config{
@@ -132,10 +133,10 @@ func (c *Control) initConfigs() []*client.Config {
 // @description 根据配置和负载均衡策略初始化IPFS集群SDK客户端
 // @return error 初始化过程中可能产生的错误
 func (c *Control) initSDK() error {
-	c.logger.Debugf("[control] init ipfs cluster clients...")
+	c.logger.Debugf("[ipfscluster/control] init ipfs cluster clients...")
 	configs := c.initConfigs()
 	if len(configs) == 0 {
-		c.logger.Errorf("[control] no valid ipfs cluster address")
+		c.logger.Errorf("[ipfscluster/control] no valid ipfs cluster address")
 		return errors.New("no valid ipfs cluster address")
 	}
 
@@ -144,7 +145,7 @@ func (c *Control) initSDK() error {
 		// 使用节点轮询的方式
 		sdk, err := client.NewLBClient(&client.RoundRobin{}, configs, c.config.ReTries)
 		if err != nil {
-			c.logger.Errorf("[control] init ipfs cluster client failed: %s", err)
+			c.logger.Errorf("[ipfscluster/control] init ipfs cluster client failed: %s", err)
 			return err
 		}
 		c.sdk = sdk
@@ -152,15 +153,15 @@ func (c *Control) initSDK() error {
 		// 使用节点故障转移的方式
 		sdk, err := client.NewLBClient(&client.Failover{}, configs, c.config.ReTries)
 		if err != nil {
-			c.logger.Errorf("[control] init ipfs cluster client failed: %s", err)
+			c.logger.Errorf("[ipfscluster/control] init ipfs cluster client failed: %s", err)
 			return err
 		}
 		c.sdk = sdk
 	default:
-		c.logger.Warnf("unknown strategy type: %s, use address[0] create default sdk...", c.config.Strategy)
+		c.logger.Warnf("[ipfscluster/control] unknown strategy type: %s, use address[0] create default sdk...", c.config.Strategy)
 		sdk, err := client.NewDefaultClient(configs[0])
 		if err != nil {
-			c.logger.Errorf("[control] init ipfs cluster client failed: %s", err)
+			c.logger.Errorf("[ipfscluster/control] init ipfs cluster client failed: %s", err)
 			return err
 		}
 		c.sdk = sdk
@@ -174,10 +175,10 @@ func (c *Control) initSDK() error {
 // @return string IPFS集群版本号
 // @return error 获取过程中可能产生的错误
 func (c *Control) Version() (string, error) {
-	c.logger.Debugf("[control] get ipfs cluster version...")
+	c.logger.Debugf("[ipfscluster/control] get ipfs cluster version...")
 	version, err := c.sdk.Version(c.ctx)
 	if err != nil {
-		c.logger.Errorf("[control] get ipfs cluster version failed: %s", err)
+		c.logger.Errorf("[ipfscluster/control] get ipfs cluster version failed: %s", err)
 		return "", err
 	}
 	return version.Version, nil
@@ -192,7 +193,7 @@ func (c *Control) Version() (string, error) {
 // @return []api.AddedOutput 添加结果列表
 // @return error 添加过程中可能产生的错误
 func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, expireAt time.Duration) ([]api.AddedOutput, error) {
-	c.logger.Debugf("[control] add directory to ipfs cluster...")
+	c.logger.Debugf("[ipfscluster/control] add directory to ipfs cluster...")
 
 	var results []api.AddedOutput
 	var errors []error
@@ -201,7 +202,7 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 	var files []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			c.logger.Errorf("[control] access path %s failed: %s", path, err)
+			c.logger.Errorf("[ipfscluster/control] access path %s failed: %s", path, err)
 			return err
 		}
 
@@ -214,11 +215,11 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 	})
 
 	if err != nil {
-		c.logger.Errorf("[control] walk directory %s failed: %s", dir, err)
+		c.logger.Errorf("[ipfscluster/control] walk directory %s failed: %s", dir, err)
 		return nil, err
 	}
 
-	c.logger.Debugf("[control] found %d files in directory %s", len(files), dir)
+	c.logger.Debugf("[ipfscluster/control] found %d files in directory %s", len(files), dir)
 
 	// 使用带缓冲的通道来控制并发数
 	const maxWorkers = 5
@@ -236,7 +237,7 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 				// 获取相对路径作为文件名
 				relPath, err := filepath.Rel(dir, filePath)
 				if err != nil {
-					c.logger.Errorf("[control] get relative path for %s failed: %s", filePath, err)
+					c.logger.Errorf("[ipfscluster/control] get relative path for %s failed: %s", filePath, err)
 					errorChan <- err
 					continue
 				}
@@ -244,7 +245,7 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 				// 调用 AddOneFile 方法添加单个文件
 				result, err := c.AddOneFile(relPath, filePath, replicationMin, replicationMax, expireAt)
 				if err != nil {
-					c.logger.Errorf("[control] add file %s failed: %s", filePath, err)
+					c.logger.Errorf("[ipfscluster/control] add file %s failed: %s", filePath, err)
 					errorChan <- err
 					continue
 				}
@@ -274,22 +275,22 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 		select {
 		case result := <-resultChan:
 			results = append(results, result)
-			c.logger.Debugf("[control] added file successfully, cid: %s", result.Cid)
+			c.logger.Debugf("[ipfscluster/control] added file successfully, cid: %s", result.Cid)
 		case err := <-errorChan:
 			errors = append(errors, err)
 		case <-c.ctx.Done():
-			c.logger.Errorf("[control] add directory timeout or cancelled")
+			c.logger.Errorf("[ipfscluster/control] add directory timeout or cancelled")
 			return results, c.ctx.Err()
 		}
 	}
 
-	c.logger.Debugf("[control] add directory completed. Success: %d, Failures: %d", len(results), len(errors))
+	c.logger.Debugf("[ipfscluster/control] add directory completed. Success: %d, Failures: %d", len(results), len(errors))
 
 	// 如果有错误，返回部分结果和错误信息
 	if len(errors) > 0 {
 		// 可以根据需要决定是否返回错误
 		// 这里选择记录错误但返回已成功添加的文件
-		c.logger.Warnf("[control] add directory completed with %d errors", len(errors))
+		c.logger.Warnf("[ipfscluster/control] add directory completed with %d errors", len(errors))
 	}
 
 	return results, nil
@@ -305,7 +306,7 @@ func (c *Control) AddDirectory(dir string, replicationMin, replicationMax int, e
 // @return api.AddedOutput 添加结果
 // @return error 添加过程中可能产生的错误
 func (c *Control) AddOneFile(fileName, filePath string, replicationMin, replicationMax int, expireAt time.Duration) (api.AddedOutput, error) {
-	c.logger.Debugf("[control] add one file to ipfs cluster...")
+	c.logger.Debugf("[ipfscluster/control] add one file to ipfs cluster...")
 	defaultParams := api.DefaultAddParams()
 	defaultParams.CidVersion = 1
 	defaultParams.ExpireAt = time.Now().Add(expireAt)
@@ -330,7 +331,7 @@ func (c *Control) AddOneFile(fileName, filePath string, replicationMin, replicat
 		defer close(out)
 		err := c.sdk.Add(c.ctx, []string{filePath}, defaultParams, out)
 		if err != nil {
-			c.logger.Errorf("[control] add one file to ipfs cluster failed: %s", err)
+			c.logger.Errorf("[ipfscluster/control] add one file to ipfs cluster failed: %s", err)
 			errCh <- err
 			return
 		}
@@ -338,24 +339,24 @@ func (c *Control) AddOneFile(fileName, filePath string, replicationMin, replicat
 
 	select {
 	case result := <-out:
-		c.logger.Debugf("[control] add one file to ipfs cluster success, cid: %s", result.Cid)
+		c.logger.Debugf("[ipfscluster/control] add one file to ipfs cluster success, cid: %s", result.Cid)
 		return result, nil
 	case err := <-errCh:
 		if err != nil {
-			c.logger.Errorf("[control] add one file to ipfs cluster failed: %s", err)
+			c.logger.Errorf("[ipfscluster/control] add one file to ipfs cluster failed: %s", err)
 			return api.AddedOutput{}, err
 		}
 		// 如果errCh中没有错误，继续等待结果
 		select {
 		case result := <-out:
-			c.logger.Debugf("[control] add one file to ipfs cluster success, cid: %s", result.Cid)
+			c.logger.Debugf("[ipfscluster/control] add one file to ipfs cluster success, cid: %s", result.Cid)
 			return result, nil
 		case <-c.ctx.Done():
-			c.logger.Errorf("[control] add one file to ipfs cluster timeout or cancelled")
+			c.logger.Errorf("[ipfscluster/control] add one file to ipfs cluster timeout or cancelled")
 			return api.AddedOutput{}, c.ctx.Err()
 		}
 	case <-c.ctx.Done():
-		c.logger.Errorf("[control] add one file to ipfs cluster timeout or cancelled")
+		c.logger.Errorf("[ipfscluster/control] add one file to ipfs cluster timeout or cancelled")
 		return api.AddedOutput{}, c.ctx.Err()
 	}
 }
@@ -366,13 +367,13 @@ func (c *Control) AddOneFile(fileName, filePath string, replicationMin, replicat
 // @return io.Reader 文件内容读取器
 // @return error 获取过程中可能产生的错误
 func (c *Control) CatOneFile(cid string) (io.Reader, error) {
-	c.logger.Debugf("[control] cat one file from ipfs cluster, cid: %s", cid)
+	c.logger.Debugf("[ipfscluster/control] cat one file from ipfs cluster, cid: %s", cid)
 	sh := c.sdk.IPFS(c.ctx)
-	c.logger.Debugf("[control] setting timeout for ipfs cluster cat command")
+	c.logger.Debugf("[ipfscluster/control] setting timeout for ipfs cluster cat command")
 	sh.SetTimeout(time.Duration(c.config.TimeOutInterval) * time.Second)
 	cat, err := shell.Cat(sh, c.ctx, cid, true)
 	if err != nil {
-		c.logger.Errorf("[control] cat one file from ipfs cluster failed: %s", err)
+		c.logger.Errorf("[ipfscluster/control] cat one file from ipfs cluster failed: %s", err)
 		return nil, err
 	}
 	return cat, nil
@@ -383,16 +384,16 @@ func (c *Control) CatOneFile(cid string) (io.Reader, error) {
 // @param cid string 文件的CID
 // @return error 删除过程中可能产生的错误
 func (c *Control) DeleteOneFile(cid string) error {
-	c.logger.Debugf("[control] delete one file from ipfs cluster, cid: %s", cid)
+	c.logger.Debugf("[ipfscluster/control] delete one file from ipfs cluster, cid: %s", cid)
 	deleteCid, err := api.DecodeCid(cid)
 	if err != nil {
-		c.logger.Errorf("[control] decode cid failed: %v", err)
+		c.logger.Errorf("[ipfscluster/control] decode cid failed: %v", err)
 		return err
 	}
 
 	_, err = c.sdk.Unpin(c.ctx, deleteCid)
 	if err != nil {
-		c.logger.Errorf("[control] unpin cid failed: %v", err)
+		c.logger.Errorf("[ipfscluster/control] unpin cid failed: %v", err)
 		return err
 	}
 	return nil
@@ -403,10 +404,10 @@ func (c *Control) DeleteOneFile(cid string) error {
 // @param local bool 是否只在本地执行
 // @return error 执行过程中可能产生的错误
 func (c *Control) RepoGC(local bool) error {
-	c.logger.Debugf("[control] repo gc...")
+	c.logger.Debugf("[ipfscluster/control] repo gc...")
 	_, err := c.sdk.RepoGC(c.ctx, local)
 	if err != nil {
-		c.logger.Errorf("[control] repo gc failed: %v", err)
+		c.logger.Errorf("[ipfscluster/control] repo gc failed: %v", err)
 		return err
 	}
 
@@ -424,11 +425,11 @@ func (c *Control) RepoGC(local bool) error {
 // @param outPath string 输出文件路径
 // @return error 下载过程中可能产生的错误
 func (c *Control) DownloadOneFile(cid string, outPath string) error {
-	c.logger.Debugf("[control] download one file from ipfs cluster, cid: %s, outPath: %s", cid, outPath)
+	c.logger.Debugf("[ipfscluster/control] download one file from ipfs cluster, cid: %s, outPath: %s", cid, outPath)
 	ipfs := c.sdk.IPFS(c.ctx)
 	ipfs.SetTimeout(time.Duration(c.config.TimeOutInterval) * time.Second)
 	if err := shell.Get(ipfs, c.ctx, cid, outPath, true); err != nil {
-		c.logger.Errorf("[control] download one file from ipfs cluster failed: %v", err)
+		c.logger.Errorf("[ipfscluster/control] download one file from ipfs cluster failed: %v", err)
 		return err
 	}
 	return nil

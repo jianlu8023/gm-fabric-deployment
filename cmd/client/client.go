@@ -35,7 +35,7 @@ func main() {
 		return
 	}
 
-	mainLogger := serverControl.GetLoggerControl().GenLogger("main")
+	mainLogger := serverControl.GetLoggerControl().GenLogger("")
 
 	mainLogger.Infof("start server version %v", version.Version)
 

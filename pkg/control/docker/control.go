@@ -52,8 +52,9 @@ func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.C
 		}),
 		loggerControl,
 	)
-	dockerLogger := loggerControl.GenLogger(logger.ModuleDocker)
-	dockerLogger.Infof("[control] starting new docker control...")
+	// dockerLogger := loggerControl.GenLogger(logger.ModuleDocker)
+	dockerLogger := loggerControl.GenLogger("")
+	dockerLogger.Infof("[docker/control] starting new docker control...")
 
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -66,7 +67,7 @@ func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.C
 		config: dockerConfig,
 	}
 
-	dockerLogger.Infof("[control] docker control started successfully")
+	dockerLogger.Infof("[docker/control] docker control started successfully")
 	return dc
 }
 
@@ -74,7 +75,7 @@ func NewDockerControl(dockerConfig *config.DockerConfig, loggerControl *logger.C
 // @description 初始化Docker客户端连接
 // @return error 初始化过程中的错误
 func (dc *Control) initClient() error {
-	dc.logger.Debugf("[control] initializing docker client...")
+	dc.logger.Debugf("[docker/control] initializing docker client...")
 
 	// 设置Docker客户端选项
 	opts := []client.Opt{
@@ -88,7 +89,7 @@ func (dc *Control) initClient() error {
 
 	// 配置TLS连接
 	if dc.config.TlsEnabled {
-		dc.logger.Debugf("[control] configuring docker client with TLS...")
+		dc.logger.Debugf("[docker/control] configuring docker client with TLS...")
 		if len(dc.config.TlsCertFile) == 0 || len(dc.config.TlsKeyFile) == 0 {
 			return fmt.Errorf("docker TLS至少需要一对证书和密钥文件")
 		}
@@ -109,7 +110,7 @@ func (dc *Control) initClient() error {
 	// 创建Docker客户端
 	cli, err := client.NewClientWithOpts(opts...)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to create docker client: %v", err)
+		dc.logger.Errorf("[docker/control] failed to create docker client: %v", err)
 		return err
 	}
 
@@ -125,7 +126,7 @@ func (dc *Control) StartUp(failedFunc func(err error)) {
 		if dc.config.Enabled {
 			// 初始化Docker客户端
 			if err := dc.initClient(); err != nil {
-				dc.logger.Errorf("[control] docker initialization client failed: %v", err)
+				dc.logger.Errorf("[docker/control] docker initialization client failed: %v", err)
 				dc.cancel()
 				if failedFunc != nil {
 					failedFunc(err)
@@ -133,18 +134,18 @@ func (dc *Control) StartUp(failedFunc func(err error)) {
 				return
 			}
 
-			dc.logger.Debugf("[control] docker service is already running...")
+			dc.logger.Debugf("[docker/control] docker service is already running...")
 			// 测试连接
 			version, err := dc.client.ServerVersion(dc.ctx)
 			if err != nil {
-				dc.logger.Errorf("[control] failed to connect to docker daemon: %v", err)
+				dc.logger.Errorf("[docker/control] failed to connect to docker daemon: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
 				return
 			}
 
-			dc.logger.Infof("[control] connected to docker daemon, version: %s", version.Version)
+			dc.logger.Infof("[docker/control] connected to docker daemon, version: %s", version.Version)
 		}
 	})
 }
@@ -153,15 +154,15 @@ func (dc *Control) StartUp(failedFunc func(err error)) {
 // @description 关闭Docker客户端连接并释放资源
 // @return error 关闭过程中的错误
 func (dc *Control) Shutdown() error {
-	dc.logger.Infof("[control] shutting down docker control...")
+	dc.logger.Infof("[docker/control] shutting down docker control...")
 	dc.cancel()
 	if dc.client != nil {
 		if err := dc.client.Close(); err != nil {
-			dc.logger.Errorf("[control] failed to close docker client: %v", err)
+			dc.logger.Errorf("[docker/control] failed to close docker client: %v", err)
 			return err
 		}
 	}
-	dc.logger.Infof("[control] docker control shutdown successfully")
+	dc.logger.Infof("[docker/control] docker control shutdown successfully")
 	return nil
 }
 
@@ -172,7 +173,7 @@ func (dc *Control) Shutdown() error {
 // @return []network.Summary 网络资源列表
 // @return error 错误信息
 func (dc *Control) ListNetworks(networkListFilters ...func(args *[]filters.KeyValuePair)) ([]network.Summary, error) {
-	dc.logger.Debugf("[control] listing networks...")
+	dc.logger.Debugf("[docker/control] listing networks...")
 	if dc.client == nil {
 		return nil, ErrNoAliveDockerClient
 	}
@@ -188,7 +189,7 @@ func (dc *Control) ListNetworks(networkListFilters ...func(args *[]filters.KeyVa
 
 	networkList, err := dc.client.NetworkList(dc.ctx, opts)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to list networks: %v", err)
+		dc.logger.Errorf("[docker/control] failed to list networks: %v", err)
 		return nil, err
 	}
 	return networkList, nil
@@ -202,7 +203,7 @@ func (dc *Control) ListNetworks(networkListFilters ...func(args *[]filters.KeyVa
 // @return network.Summary 网络资源
 // @return error 错误信息
 func (dc *Control) GetNetwork(networkListFilters ...func(args *[]filters.KeyValuePair)) (network.Summary, error) {
-	dc.logger.Debugf("[control] getting network...")
+	dc.logger.Debugf("[docker/control] getting network...")
 	if dc.client == nil {
 		return network.Summary{}, ErrNoAliveDockerClient
 	}
@@ -211,7 +212,7 @@ func (dc *Control) GetNetwork(networkListFilters ...func(args *[]filters.KeyValu
 		networkListFilters...,
 	)
 	if err != nil {
-		dc.logger.Errorf("[control] get network failed: %v", err)
+		dc.logger.Errorf("[docker/control] get network failed: %v", err)
 		return network.Summary{}, err
 	}
 	if len(listNetworks) == 0 {
@@ -231,18 +232,18 @@ func (dc *Control) GetNetwork(networkListFilters ...func(args *[]filters.KeyValu
 func (dc *Control) CreateNetwork(networkName string, driver string,
 	networkCreateOpts ...func(create *network.CreateOptions),
 ) (network.Summary, error) {
-	dc.logger.Debugf("[control] creating net: %s, driver: %s", networkName, driver)
+	dc.logger.Debugf("[docker/control] creating net: %s, driver: %s", networkName, driver)
 	if dc.client == nil {
 		return network.Summary{}, ErrNoAliveDockerClient
 	}
 
-	dc.logger.Debugf("[control] check net %s exists...", networkName)
+	dc.logger.Debugf("[docker/control] check net %s exists...", networkName)
 	if net, err := dc.GetNetwork(WithNetworkQueryName(networkName)); err == nil {
 		// net exists
-		dc.logger.Debugf("[control] net %s exists", networkName)
+		dc.logger.Debugf("[docker/control] net %s exists", networkName)
 		return net, err
 	} else {
-		dc.logger.Debugf("[control] net %s need creating...", networkName)
+		dc.logger.Debugf("[docker/control] net %s need creating...", networkName)
 	}
 
 	ipv6Default := false
@@ -260,10 +261,10 @@ func (dc *Control) CreateNetwork(networkName string, driver string,
 
 	resp, err := dc.client.NetworkCreate(dc.ctx, networkName, networkOpts)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to create net: %v", err)
+		dc.logger.Errorf("[docker/control] failed to create net: %v", err)
 		return network.Summary{}, err
 	}
-	dc.logger.Infof("[control] net %v created sucesfully, ID %s", networkName, resp.ID)
+	dc.logger.Infof("[docker/control] net %v created sucesfully, ID %s", networkName, resp.ID)
 
 	return dc.GetNetwork(WithNetworkQueryName(networkName), WithNetworkQueryID(resp.ID))
 }
@@ -274,23 +275,23 @@ func (dc *Control) CreateNetwork(networkName string, driver string,
 //
 // @returns error 错误信息
 func (dc *Control) RemoveNetwork(networkId string) error {
-	dc.logger.Debugf("[control] removing network: %s", networkId)
+	dc.logger.Debugf("[docker/control] removing network: %s", networkId)
 
 	if dc.client == nil {
 		return ErrNoAliveDockerClient
 	}
 
 	if err := dc.client.NetworkRemove(dc.ctx, networkId); err != nil {
-		dc.logger.Errorf("[control] failed to remove network: %v", err)
+		dc.logger.Errorf("[docker/control] failed to remove network: %v", err)
 		return err
 	}
-	dc.logger.Infof("[control] network %s removed sucesfully", networkId)
+	dc.logger.Infof("[docker/control] network %s removed sucesfully", networkId)
 	return nil
 }
 
 func (dc *Control) InspectNetwork(networkId string) (network.Inspect, error) {
 	// InspectNetwork 和 GetNetwork 结果一样
-	dc.logger.Infof("[control] inspecting network...")
+	dc.logger.Infof("[docker/control] inspecting network...")
 	if dc.client == nil {
 		return network.Inspect{}, ErrNoAliveDockerClient
 	}
@@ -299,7 +300,7 @@ func (dc *Control) InspectNetwork(networkId string) (network.Inspect, error) {
 
 	inspect, err := dc.client.NetworkInspect(dc.ctx, networkId, opts)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to inspect network: %v", err)
+		dc.logger.Errorf("[docker/control] failed to inspect network: %v", err)
 		return network.Inspect{}, err
 	}
 	return inspect, nil
@@ -311,7 +312,7 @@ func (dc *Control) InspectNetwork(networkId string) (network.Inspect, error) {
 //
 // @returns error 错误信息
 func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *image.PullOptions)) error {
-	dc.logger.Infof("[control] pulling image: %s", imageName)
+	dc.logger.Infof("[docker/control] pulling image: %s", imageName)
 	if dc.client == nil {
 		return ErrNoAliveDockerClient
 	}
@@ -327,12 +328,12 @@ func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *im
 	// 获取拉取镜像的输出流
 	resp, err := dc.client.ImagePull(context.Background(), imageName, options)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to pull image %s: %v", imageName, err)
+		dc.logger.Errorf("[docker/control] failed to pull image %s: %v", imageName, err)
 		return err
 	}
 	defer func(resp io.ReadCloser) {
 		if err := resp.Close(); err != nil {
-			dc.logger.Errorf("[control] failed to close response: %v", err)
+			dc.logger.Errorf("[docker/control] failed to close response: %v", err)
 		}
 	}(resp)
 
@@ -342,36 +343,36 @@ func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *im
 		line := scanner.Text()
 		var jm jsonmessage.JSONMessage // 使用docker的JSONMessage结构
 		if err := json.Unmarshal([]byte(line), &jm); err != nil {
-			dc.logger.Errorf("[control] failed to unmarshal json: %v, line: %s", err, line)
+			dc.logger.Errorf("[docker/control] failed to unmarshal json: %v, line: %s", err, line)
 			continue
 		}
 
 		// 检查是否有错误
 		if jm.Error != nil {
-			dc.logger.Errorf("[control] failed to pull image %s: %v", imageName, jm.Error)
+			dc.logger.Errorf("[docker/control] failed to pull image %s: %v", imageName, jm.Error)
 			return jm.Error
 		}
 
 		// 输出状态信息
 		if jm.ID != "" && jm.Status != "" {
-			dc.logger.Infof("[control] pulling %s: %s: %s", imageName, jm.ID, jm.Status)
+			dc.logger.Infof("[docker/control] pulling %s: %s: %s", imageName, jm.ID, jm.Status)
 		} else if jm.Status != "" {
-			dc.logger.Infof("[control] pulling %s: %s", imageName, jm.Status)
+			dc.logger.Infof("[docker/control] pulling %s: %s", imageName, jm.Status)
 		}
 
 		// 输出进度详情（调试用）
 		if jm.Progress != nil {
-			dc.logger.Debugf("[control] pulling %s: progress: %s", imageName, jm.Progress.String())
+			dc.logger.Debugf("[docker/control] pulling %s: progress: %s", imageName, jm.Progress.String())
 		}
 	}
 
 	// 检查scanner是否有错误
 	if err := scanner.Err(); err != nil {
-		dc.logger.Errorf("[control] error reading response: %v", err)
+		dc.logger.Errorf("[docker/control] error reading response: %v", err)
 		return err
 	}
 
-	dc.logger.Infof("[control] image %s pulled successfully", imageName)
+	dc.logger.Infof("[docker/control] image %s pulled successfully", imageName)
 	return nil
 }
 
@@ -382,7 +383,7 @@ func (dc *Control) PullImage(imageName string, pullImageOpts ...func(options *im
 // @return []image.DeleteResponse 镜像删除响应项列表
 // @return error 删除过程中的错误
 func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *image.RemoveOptions)) ([]image.DeleteResponse, error) {
-	dc.logger.Debugf("[control] removing image: %s", imageId)
+	dc.logger.Debugf("[docker/control] removing image: %s", imageId)
 	if dc.client == nil {
 		return nil, ErrNoAliveDockerClient
 	}
@@ -395,17 +396,17 @@ func (dc *Control) RemoveImage(imageId string, removeImageOpts ...func(options *
 
 	resp, err := dc.client.ImageRemove(dc.ctx, imageId, opts)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to remove image: %s", err)
+		dc.logger.Errorf("[docker/control] failed to remove image: %s", err)
 		return nil, err
 	}
 	return resp, nil
 }
 
 func (dc *Control) GetImage(imageListFilters ...func(args *[]filters.KeyValuePair)) (image.Summary, error) {
-	dc.logger.Debugf("[control] getting image...")
+	dc.logger.Debugf("[docker/control] getting image...")
 	images, err := dc.ListImages(imageListFilters...)
 	if err != nil {
-		dc.logger.Errorf("[control] getting image info failed: %v", err)
+		dc.logger.Errorf("[docker/control] getting image info failed: %v", err)
 		return image.Summary{}, err
 	}
 	if len(images) == 0 {
@@ -420,7 +421,7 @@ func (dc *Control) GetImage(imageListFilters ...func(args *[]filters.KeyValuePai
 // @return []image.Summary 镜像摘要列表
 // @return error 列出过程中的错误
 func (dc *Control) ListImages(imageListFilters ...func(args *[]filters.KeyValuePair)) ([]image.Summary, error) {
-	dc.logger.Debugf("[control] listing images...")
+	dc.logger.Debugf("[docker/control] listing images...")
 	if dc.client == nil {
 		return nil, ErrNoAliveDockerClient
 	}
@@ -437,7 +438,7 @@ func (dc *Control) ListImages(imageListFilters ...func(args *[]filters.KeyValueP
 	}
 	imageList, err := dc.client.ImageList(dc.ctx, opts)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to list images: %v", err)
+		dc.logger.Errorf("[docker/control] failed to list images: %v", err)
 		return nil, err
 	}
 	return imageList, nil
@@ -455,7 +456,7 @@ func (dc *Control) CreateContainer(containerName string, imageName string,
 	config *container.Config, hostConfig *container.HostConfig,
 	networkingConfig *network.NetworkingConfig,
 ) (string, error) {
-	dc.logger.Infof("[control] creating container: %s with image: %s", containerName, imageName)
+	dc.logger.Infof("[docker/control] creating container: %s with image: %s", containerName, imageName)
 	if dc.client == nil {
 		return "", ErrNoAliveDockerClient
 	}
@@ -463,11 +464,11 @@ func (dc *Control) CreateContainer(containerName string, imageName string,
 	// 创建容器
 	resp, err := dc.client.ContainerCreate(dc.ctx, config, hostConfig, networkingConfig, nil, containerName)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to create container %s: %v", containerName, err)
+		dc.logger.Errorf("[docker/control] failed to create container %s: %v", containerName, err)
 		return "", err
 	}
 
-	dc.logger.Infof("[control] container %s created successfully, ID: %s", containerName, resp.ID)
+	dc.logger.Infof("[docker/control] container %s created successfully, ID: %s", containerName, resp.ID)
 	return resp.ID, nil
 	// return "nil", nil
 }
@@ -477,18 +478,18 @@ func (dc *Control) CreateContainer(containerName string, imageName string,
 // @param containerID string 容器ID
 // @return error 启动过程中的错误
 func (dc *Control) StartContainer(containerID string) error {
-	dc.logger.Infof("[control] starting container: %s", containerID)
+	dc.logger.Infof("[docker/control] starting container: %s", containerID)
 	if dc.client == nil {
 		return ErrNoAliveDockerClient
 	}
 
 	// 启动容器
 	if err := dc.client.ContainerStart(dc.ctx, containerID, container.StartOptions{}); err != nil {
-		dc.logger.Errorf("[control] failed to start container %s: %v", containerID, err)
+		dc.logger.Errorf("[docker/control] failed to start container %s: %v", containerID, err)
 		return err
 	}
 
-	dc.logger.Infof("[control] container %s started successfully", containerID)
+	dc.logger.Infof("[docker/control] container %s started successfully", containerID)
 	return nil
 }
 
@@ -498,7 +499,7 @@ func (dc *Control) StartContainer(containerID string) error {
 // @param timeout int 停止超时时间
 // @return error 停止过程中的错误
 func (dc *Control) StopContainer(containerID string, timeout int) error {
-	dc.logger.Infof("[control] stopping container: %s", containerID)
+	dc.logger.Infof("[docker/control] stopping container: %s", containerID)
 	if dc.client == nil {
 		return ErrNoAliveDockerClient
 	}
@@ -510,11 +511,11 @@ func (dc *Control) StopContainer(containerID string, timeout int) error {
 
 	// 停止容器
 	if err := dc.client.ContainerStop(dc.ctx, containerID, opts); err != nil {
-		dc.logger.Errorf("[control] failed to stop container %s: %v", containerID, err)
+		dc.logger.Errorf("[docker/control] failed to stop container %s: %v", containerID, err)
 		return err
 	}
 
-	dc.logger.Infof("[control] container %s stopped successfully", containerID)
+	dc.logger.Infof("[docker/control] container %s stopped successfully", containerID)
 	return nil
 }
 
@@ -524,7 +525,7 @@ func (dc *Control) StopContainer(containerID string, timeout int) error {
 // @param force bool 是否强制删除
 // @return error 删除过程中的错误
 func (dc *Control) RemoveContainer(containerID string, force bool) error {
-	dc.logger.Infof("[control] removing container: %s", containerID)
+	dc.logger.Infof("[docker/control] removing container: %s", containerID)
 
 	if dc.client == nil {
 		return ErrNoAliveDockerClient
@@ -537,11 +538,11 @@ func (dc *Control) RemoveContainer(containerID string, force bool) error {
 
 	// 删除容器
 	if err := dc.client.ContainerRemove(dc.ctx, containerID, opts); err != nil {
-		dc.logger.Errorf("[control] failed to remove container %s: %v", containerID, err)
+		dc.logger.Errorf("[docker/control] failed to remove container %s: %v", containerID, err)
 		return err
 	}
 
-	dc.logger.Infof("[control] container %s removed successfully", containerID)
+	dc.logger.Infof("[docker/control] container %s removed successfully", containerID)
 	return nil
 }
 
@@ -553,7 +554,7 @@ func (dc *Control) RemoveContainer(containerID string, force bool) error {
 func (dc *Control) ListContainers(all bool, size bool, latest bool,
 	since, before string, limit int, containerQueryFilters ...func(args *[]filters.KeyValuePair),
 ) ([]container.Summary, error) {
-	dc.logger.Infof("[control] listing containers, all: %v", all)
+	dc.logger.Infof("[docker/control] listing containers, all: %v", all)
 	if dc.client == nil {
 		return nil, ErrNoAliveDockerClient
 	}
@@ -577,24 +578,24 @@ func (dc *Control) ListContainers(all bool, size bool, latest bool,
 	// 列出容器
 	containers, err := dc.client.ContainerList(dc.ctx, opts)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to list containers: %v", err)
+		dc.logger.Errorf("[docker/control] failed to list containers: %v", err)
 		return nil, err
 	}
 
-	dc.logger.Infof("[control] listed %d containers successfully", len(containers))
+	dc.logger.Infof("[docker/control] listed %d containers successfully", len(containers))
 	return containers, nil
 	// return nil, nil
 }
 
 func (dc *Control) GetContainer(containerName string) (container.Summary, error) {
-	dc.logger.Infof("[control] get container containerName: %v", containerName)
+	dc.logger.Infof("[docker/control] get container containerName: %v", containerName)
 	if dc.client == nil {
 		return container.Summary{}, ErrNoAliveDockerClient
 	}
 
 	containers, err := dc.ListContainers(false, false, true, "", "", 1, WithContainerQueryName(containerName))
 	if err != nil {
-		dc.logger.Errorf("[control] failed to get container: %v", err)
+		dc.logger.Errorf("[docker/control] failed to get container: %v", err)
 		return container.Summary{}, err
 	}
 	if len(containers) == 0 {
@@ -611,7 +612,7 @@ func (dc *Control) GetContainer(containerName string) (container.Summary, error)
 // @return string 容器状态
 // @return error 获取过程中的错误
 func (dc *Control) GetContainerStatus(containerID string) (string, error) {
-	dc.logger.Infof("[control] getting status for container: %s", containerID)
+	dc.logger.Infof("[docker/control] getting status for container: %s", containerID)
 
 	if dc.client == nil {
 		return "", ErrNoAliveDockerClient
@@ -620,12 +621,12 @@ func (dc *Control) GetContainerStatus(containerID string) (string, error) {
 	// 查看容器详情
 	inspect, err := dc.client.ContainerInspect(dc.ctx, containerID)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to inspect container %s: %v", containerID, err)
+		dc.logger.Errorf("[docker/control] failed to inspect container %s: %v", containerID, err)
 		return "", err
 	}
 
 	status := inspect.State.Status
-	dc.logger.Infof("[control] container %s status: %s", containerID, status)
+	dc.logger.Infof("[docker/control] container %s status: %s", containerID, status)
 	return status, nil
 }
 
@@ -636,7 +637,7 @@ func (dc *Control) GetContainerStatus(containerID string) (string, error) {
 // @return string 命令执行结果
 // @return error 执行过程中的错误
 func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, error) {
-	dc.logger.Infof("[control] executing command in container %s: %v", containerID, cmd)
+	dc.logger.Infof("[docker/control] executing command in container %s: %v", containerID, cmd)
 	if dc.client == nil {
 		return "", ErrNoAliveDockerClient
 	}
@@ -650,7 +651,7 @@ func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, err
 	// 创建执行
 	resp, err := dc.client.ContainerExecCreate(dc.ctx, containerID, execConfig)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to create exec in container %s: %v", containerID, err)
+		dc.logger.Errorf("[docker/control] failed to create exec in container %s: %v", containerID, err)
 		return "", err
 	}
 
@@ -660,7 +661,7 @@ func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, err
 	// 开始执行
 	execResp, err := dc.client.ContainerExecAttach(dc.ctx, resp.ID, execAttachOpts)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to start exec in container %s: %v", containerID, err)
+		dc.logger.Errorf("[docker/control] failed to start exec in container %s: %v", containerID, err)
 		return "", err
 	}
 	defer execResp.Close()
@@ -668,10 +669,10 @@ func (dc *Control) ExecuteCommand(containerID string, cmd []string) (string, err
 	// 读取执行结果
 	output, err := io.ReadAll(execResp.Reader)
 	if err != nil {
-		dc.logger.Errorf("[control] failed to read exec output: %v", err)
+		dc.logger.Errorf("[docker/control] failed to read exec output: %v", err)
 		return "", err
 	}
 
-	dc.logger.Infof("[control] command executed successfully in container %s", containerID)
+	dc.logger.Infof("[docker/control] command executed successfully in container %s", containerID)
 	return string(output), nil
 }

@@ -2,8 +2,10 @@ package flags
 
 import (
 	"fmt"
+	"github.com/jianlu8023/go-tools/v2/pkg/colour"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/jessevdk/go-flags"
 )
@@ -80,7 +82,7 @@ func (f *Flags) Parse(args []string) error {
 
 	// Debug模式下记录未知的flag
 	if f.Debug && len(remainingArgs) > 0 {
-		fmt.Printf("warning: unknown flags (ignored by IgnoreUnknown): %v\n", remainingArgs)
+		fmt.Printf("%v  [%v]  flags/glags.go:85  [flags/control]  warning: unknown flags (ignored by IgnoreUnknown): %v\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Yellow("WARN "), remainingArgs)
 	}
 
 	// 处理剩余的非flag参数

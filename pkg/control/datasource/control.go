@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jianlu8023/go-logger/v2/dblogger"
+	dblogger "github.com/jianlu8023/go-logger/db-logger/v2"
 	"github.com/jianlu8023/go-tools/v2/pkg/check"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"github.com/jianlu8023/golang-example/pkg/control/logger"
@@ -34,23 +34,23 @@ type Control struct {
 // @description 注册需要在启动时自动迁移的表结构
 // @param tables ...interface{} 要自动迁移的表结构
 func (c *Control) RegisterAutoMigrateTable(tables ...interface{}) {
-	c.logger.Debugf("[control] register auto migrate table...")
+	c.logger.Debugf("[database/control] register auto migrate table...")
 
 	c.autoMigrateMutex.Lock()
 	defer c.autoMigrateMutex.Unlock()
 	c.autoMigrateTable = append(c.autoMigrateTable, tables...)
-	c.logger.Debugf("[control] register auto migrate table successfully...")
+	c.logger.Debugf("[database/control] register auto migrate table successfully...")
 }
 
 // autoMigrate 自动迁移表（内部方法）
 // @description 根据注册的表结构自动创建或更新数据库表
 // @return error 迁移过程中可能产生的错误
 func (c *Control) autoMigrate() error {
-	c.logger.Debugf("[control] auto migrate table...")
+	c.logger.Debugf("[database/control] auto migrate table...")
 	c.autoMigrateMutex.RLock()
 	defer c.autoMigrateMutex.RUnlock()
 	if err := c.dbConn.WithContext(c.ctx).AutoMigrate(c.autoMigrateTable...); err != nil {
-		c.logger.Errorf("[control] auto migrate table failed: %s", err)
+		c.logger.Errorf("[database/control] auto migrate table failed: %s", err)
 		return err
 	}
 	return nil
@@ -60,11 +60,11 @@ func (c *Control) autoMigrate() error {
 // @description 手动触发已注册表结构的自动迁移操作
 // @return error 迁移过程中可能产生的错误
 func (c *Control) ReAutoMigrate() error {
-	c.logger.Debugf("[control] call auto migrate table by hand...")
+	c.logger.Debugf("[database/control] call auto migrate table by hand...")
 	c.autoMigrateMutex.RLock()
 	defer c.autoMigrateMutex.RUnlock()
 	if err := c.dbConn.WithContext(c.ctx).AutoMigrate(c.autoMigrateTable...); err != nil {
-		c.logger.Errorf("[control] auto migrate table failed: %s", err)
+		c.logger.Errorf("[database/control] auto migrate table failed: %s", err)
 		return err
 	}
 	return nil
@@ -95,13 +95,13 @@ func (c *Control) GetConn() *gorm.DB {
 func (c *Control) setConnPool() error {
 	sqlDB, err := c.dbConn.WithContext(c.ctx).DB()
 	if err != nil {
-		c.logger.Errorf("[control] faild from gorm.DB get sql.DB to set pool: %v", err)
+		c.logger.Errorf("[database/control] faild from gorm.DB get sql.DB to set pool: %v", err)
 		return err
 	}
 	sqlDB.SetMaxIdleConns(c.config.MaxIdleConn)
 	sqlDB.SetMaxOpenConns(c.config.MaxOpenConn)
 	sqlDB.SetConnMaxLifetime(time.Minute)
-	c.logger.Debugf("[control] success to set conn pool...")
+	c.logger.Debugf("[database/control] success to set conn pool...")
 	return nil
 }
 
@@ -111,26 +111,26 @@ func (c *Control) setConnPool() error {
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Debugf("[control] call db ping instead startup...")
+			c.logger.Debugf("[database/control] call db ping instead startup...")
 			sqlDB, err := c.dbConn.WithContext(c.ctx).DB()
 			if err != nil {
-				c.logger.Errorf("[control] failed from gorm.DB get sql.DB: %v", err)
+				c.logger.Errorf("[database/control] failed from gorm.DB get sql.DB: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
 				return
 			}
 			if err = sqlDB.Ping(); err != nil {
-				c.logger.Errorf("[control] failed from sqlDB.Ping: %v", err)
+				c.logger.Errorf("[database/control] failed from sqlDB.Ping: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
 				return
 			}
 
-			c.logger.Debugf("[control] starting to auto migrate tables...")
+			c.logger.Debugf("[database/control] starting to auto migrate tables...")
 			if err := c.autoMigrate(); err != nil {
-				c.logger.Errorf("[control] auto migrate table failed: %v", err)
+				c.logger.Errorf("[database/control] auto migrate table failed: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
@@ -144,14 +144,14 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // @description 关闭数据库连接并释放相关资源
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
-	c.logger.Debugf("[control] shutdown datasource...")
+	c.logger.Debugf("[database/control] shutdown datasource...")
 	sqlDB, err := c.dbConn.DB()
 	if err != nil {
-		c.logger.Errorf("[control] failed from gorm.DB get sql.DB: %v", err)
+		c.logger.Errorf("[database/control] failed from gorm.DB get sql.DB: %v", err)
 		return err
 	}
 	if err = sqlDB.Close(); err != nil {
-		c.logger.Errorf("[control] failed from sqlDB.Close: %v", err)
+		c.logger.Errorf("[database/control] failed from sqlDB.Close: %v", err)
 		return err
 	}
 	return nil
@@ -163,67 +163,67 @@ func (c *Control) Shutdown() error {
 func (c *Control) initDBConn() error {
 	switch c.config.DataSourceType {
 	case Mysql:
-		c.logger.Debugf("[control] using mysql data source...")
+		c.logger.Debugf("[database/control] using mysql data source...")
 		conn, err := newMysqlConn(c)
 		if err != nil {
-			c.logger.Error("[control] failed to create mysql connection: %v", err)
+			c.logger.Error("[database/control] failed to create mysql connection: %v", err)
 			return err
 		}
-		c.logger.Debugf("[control] mysql connection create success...")
+		c.logger.Debugf("[database/control] mysql connection create success...")
 		c.dbConn = conn.WithContext(c.ctx)
 	case Postgres:
-		c.logger.Debugf("[control] using postgres data source...")
+		c.logger.Debugf("[database/control] using postgres data source...")
 		conn, err := newPostgresConn(c)
 		if err != nil {
-			c.logger.Error("[control] failed to create postgres connection: %v", err)
+			c.logger.Error("[database/control] failed to create postgres connection: %v", err)
 			return err
 		}
-		c.logger.Debugf("[control] postgres connection create success...")
+		c.logger.Debugf("[database/control] postgres connection create success...")
 		c.dbConn = conn.WithContext(c.ctx)
 	case Sqlite3:
-		c.logger.Debugf("[control] using sqlite3 data source...")
+		c.logger.Debugf("[database/control] using sqlite3 data source...")
 		conn, err := newSqlite3Conn(c)
 		if err != nil {
-			c.logger.Error("[control] failed to create sqlite3 connection: %v", err)
+			c.logger.Error("[database/control] failed to create sqlite3 connection: %v", err)
 			return err
 		}
-		c.logger.Debugf("[control] sqlite3 connection create success...")
+		c.logger.Debugf("[database/control] sqlite3 connection create success...")
 		c.dbConn = conn.WithContext(c.ctx)
 	case TiDB:
-		c.logger.Debugf("[control] using tidb data source...")
+		c.logger.Debugf("[database/control] using tidb data source...")
 		conn, err := newTiDBConn(c)
 		if err != nil {
-			c.logger.Error("[control] failed to create tidb connection: %v", err)
+			c.logger.Error("[database/control] failed to create tidb connection: %v", err)
 			return err
 		}
-		c.logger.Debugf("[control] tidb connection create success...")
+		c.logger.Debugf("[database/control] tidb connection create success...")
 		c.dbConn = conn.WithContext(c.ctx)
 	case SqlServer:
-		c.logger.Debugf("[control] using sqlserver data source...")
+		c.logger.Debugf("[database/control] using sqlserver data source...")
 		conn, err := newSqlServerConn(c)
 		if err != nil {
-			c.logger.Error("[control] failed to create sqlserver connection: %v", err)
+			c.logger.Error("[database/control] failed to create sqlserver connection: %v", err)
 			return err
 		}
-		c.logger.Debugf("[control] sqlserver connection create success...")
+		c.logger.Debugf("[database/control] sqlserver connection create success...")
 		c.dbConn = conn.WithContext(c.ctx)
 	case Clickhouse:
-		c.logger.Debugf("[control] using clickhouse data source...")
+		c.logger.Debugf("[database/control] using clickhouse data source...")
 		conn, err := newClickhouseConn(c)
 		if err != nil {
-			c.logger.Error("[control] failed to create clickhouse connection: %v", err)
+			c.logger.Error("[database/control] failed to create clickhouse connection: %v", err)
 			return err
 		}
-		c.logger.Debugf("[control] clickhouse connection create success...")
+		c.logger.Debugf("[database/control] clickhouse connection create success...")
 		c.dbConn = conn.WithContext(c.ctx)
 	default:
-		c.logger.Warnf("[control] unknown data source type: %s", c.config.DataSourceType)
+		c.logger.Warnf("[database/control] unknown data source type: %s", c.config.DataSourceType)
 		return ErrUnknownDataSourceType
 	}
 
-	c.logger.Debugf("[control] set db conn pool...")
+	c.logger.Debugf("[database/control] set db conn pool...")
 	if err := c.setConnPool(); err != nil {
-		c.logger.Errorf("[control] failed to set db conn pool: %v", err)
+		c.logger.Errorf("[database/control] failed to set db conn pool: %v", err)
 		return err
 	}
 	return nil
@@ -251,8 +251,9 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 		}),
 		loggerControl,
 	)
-	dsLogger := loggerControl.GenLogger(logger.ModuleDataSource)
-	dsLogger.Infof("[control] starting new datasource control...")
+	// dsLogger := loggerControl.GenLogger(logger.ModuleDataSource)
+	dsLogger := loggerControl.GenLogger("")
+	dsLogger.Infof("[database/control] starting new datasource control...")
 
 	control := &Control{
 		config:           dbConfig,
@@ -265,7 +266,7 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 		opt(control)
 	}
 
-	dsLogger.Debugf("[control] starting init db connection...")
+	dsLogger.Debugf("[database/control] starting init db connection...")
 	if err := control.initDBConn(); err != nil {
 		return nil, err
 	}
@@ -278,7 +279,7 @@ func NewDataSourceControl(dbConfig *config.DataSourceConfig, loggerControl *logg
 				tracing.WithRecordStackTrace(),
 			),
 		); err != nil {
-			control.logger.Errorf("[control] tracer plugin init failed, err: %v", err)
+			control.logger.Errorf("[database/control] tracer plugin init failed, err: %v", err)
 			return nil, err
 		}
 	}

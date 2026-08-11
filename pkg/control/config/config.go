@@ -1,6 +1,8 @@
 package config
 
 import (
+	"time"
+
 	"github.com/jianlu8023/go-tools/v2/pkg/json"
 	"reflect"
 	"strings"
@@ -416,6 +418,33 @@ func (c *AuthConfig) String() string {
 	return marshalConfig(c)
 }
 func (c *AuthConfig) GoString() string {
+	return c.String()
+}
+
+// WebSocketConfig WebSocket服务配置
+//
+// @description WebSocket控制器配置，控制启用状态、心跳、读写超时、缓冲与跨域校验
+// @struct
+type WebSocketConfig struct {
+	Enabled          bool          `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                               // 是否启用
+	PingInterval     time.Duration `json:"ping_interval,omitempty" yaml:"ping_interval,omitempty" mapstructure:"ping_interval"`             // 心跳ping间隔，默认54s
+	PongWait         time.Duration `json:"pong_wait,omitempty" yaml:"pong_wait,omitempty" mapstructure:"pong_wait"`                         // 等待pong超时时间，默认60s
+	WriteWait        time.Duration `json:"write_wait,omitempty" yaml:"write_wait,omitempty" mapstructure:"write_wait"`                      // 单次写操作超时，默认10s
+	MaxMessageSize   int64         `json:"max_message_size,omitempty" yaml:"max_message_size,omitempty" mapstructure:"max_message_size"`    // 单帧最大消息字节数，默认4096
+	SendBufferSize   int           `json:"send_buffer_size,omitempty" yaml:"send_buffer_size,omitempty" mapstructure:"send_buffer_size"`    // 每连接发送通道缓冲大小，默认256
+	ReadBufferSize   int           `json:"read_buffer_size,omitempty" yaml:"read_buffer_size,omitempty" mapstructure:"read_buffer_size"`    // 升级时读缓冲字节数，默认1024
+	WriteBufferSize  int           `json:"write_buffer_size,omitempty" yaml:"write_buffer_size,omitempty" mapstructure:"write_buffer_size"` // 升级时写缓冲字节数，默认1024
+	HandshakeTimeout time.Duration `json:"handshake_timeout,omitempty" yaml:"handshake_timeout,omitempty" mapstructure:"handshake_timeout"` // 握手超时，默认10s
+	CheckOrigins     []string      `json:"check_origins,omitempty" yaml:"check_origins,omitempty" mapstructure:"check_origins"`             // 允许的Origin列表，为空表示允许全部（仅开发环境）
+}
+
+// String 返回配置的字符串表示
+//
+// @return string 配置的字符串表示
+func (c *WebSocketConfig) String() string {
+	return marshalConfig(c)
+}
+func (c *WebSocketConfig) GoString() string {
 	return c.String()
 }
 
@@ -999,6 +1028,7 @@ type Config struct {
 	GrpcConfig        *GrpcConfig        `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty" mapstructure:"grpc"`                         // grpc配置
 	LoggerConfig      *LoggerConfig      `json:"logger_config,omitempty" yaml:"logger_config,omitempty" mapstructure:"logger"`                   // logger配置
 	HttpConfig        *HttpServerConfig  `json:"http_config,omitempty" yaml:"http_config,omitempty" mapstructure:"http"`                         // http配置
+	WebSocketConfig   *WebSocketConfig   `json:"websocket_config,omitempty" yaml:"websocket_config,omitempty" mapstructure:"websocket"`          // websocket配置
 	Libp2pConfig      *Libp2pConfig      `json:"libp2p_config,omitempty" yaml:"libp2p_config,omitempty" mapstructure:"libp2p"`                   // libp2p配置
 	DataSourceConfig  *DataSourceConfig  `json:"datasource_config,omitempty" yaml:"datasource_config,omitempty" mapstructure:"datasource"`       // 数据源配置
 	DockerConfig      *DockerConfig      `json:"docker_config,omitempty" yaml:"docker_config,omitempty" mapstructure:"docker"`                   // docker配置

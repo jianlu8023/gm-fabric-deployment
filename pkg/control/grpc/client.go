@@ -50,7 +50,7 @@ type ClientControl struct {
 }
 
 func NewClientControl(control *Control) error {
-	control.logger.Infof("[client] start new grpc client control...")
+	control.logger.Infof("[grpc/client] start new grpc client control...")
 	var gClient *grpc.ClientConn
 	clientConfig := control.config.Client
 	var err error
@@ -61,7 +61,7 @@ func NewClientControl(control *Control) error {
 	}
 
 	if control.tracerControl != nil {
-		control.logger.Debugf("[client] starting client with tracer...")
+		control.logger.Debugf("[grpc/client] starting client with tracer...")
 		opts = append(opts,
 			grpc.WithStatsHandler(
 				otelgrpc.NewClientHandler(
@@ -74,7 +74,7 @@ func NewClientControl(control *Control) error {
 
 	if clientConfig.TlsEnabled {
 		if clientConfig.TlsGM {
-			control.logger.Debugf("[client] generate gm tls grpc client...")
+			control.logger.Debugf("[grpc/client] generate gm tls grpc client...")
 
 			gmTlsConfig := &gmtls.Config{
 				GMSupport: &gmtls.GMSupport{
@@ -91,11 +91,11 @@ func NewClientControl(control *Control) error {
 
 			// 检查证书和密钥文件数量是否匹配且至少有两对
 			if len(certFiles) != len(keyFiles) {
-				control.logger.Errorf("[client] GM模式证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(certFiles), len(keyFiles))
+				control.logger.Errorf("[grpc/client] GM模式证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(certFiles), len(keyFiles))
 				return ErrNoCACert
 			}
 			if len(certFiles) < 2 {
-				control.logger.Errorf("[client] GM模式至少需要两套keypair（签名和加密），当前只有 %d 套", len(certFiles))
+				control.logger.Errorf("[grpc/client] GM模式至少需要两套keypair（签名和加密），当前只有 %d 套", len(certFiles))
 				return ErrNoCACert
 			}
 
@@ -110,13 +110,13 @@ func NewClientControl(control *Control) error {
 			// 验证文件路径不为空
 			for i, file := range certFiles {
 				if stringer.IsBlank(file) {
-					control.logger.Errorf("[client] 第%d个证书文件路径为空", i+1)
+					control.logger.Errorf("[grpc/client] 第%d个证书文件路径为空", i+1)
 					return ErrNoCACert
 				}
 			}
 			for i, file := range keyFiles {
 				if stringer.IsBlank(file) {
-					control.logger.Errorf("[client] 第%d个密钥文件路径为空", i+1)
+					control.logger.Errorf("[grpc/client] 第%d个密钥文件路径为空", i+1)
 					return ErrNoCACert
 				}
 			}
@@ -126,16 +126,16 @@ func NewClientControl(control *Control) error {
 			for i := 0; i < len(certFiles); i++ {
 				cert, err := gmtls.LoadX509KeyPair(certFiles[i], keyFiles[i])
 				if err != nil {
-					control.logger.Errorf("[client] 加载第%d套GM TLS证书失败: %v", i+1, err)
+					control.logger.Errorf("[grpc/client] 加载第%d套GM TLS证书失败: %v", i+1, err)
 					return err
 				}
 				certificates = append(certificates, cert)
-				control.logger.Debugf("[client] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
+				control.logger.Debugf("[grpc/client] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
 			}
 
 			// 设置证书到GM TLS配置
 			gmTlsConfig.Certificates = certificates
-			control.logger.Infof("[client] 成功加载GM模式 %d 套keypair", len(certificates))
+			control.logger.Infof("[grpc/client] 成功加载GM模式 %d 套keypair", len(certificates))
 
 			// 加载CA证书用于验证服务器证书
 			rootCaCertFile := clientConfig.TlsRCACertFile
@@ -143,17 +143,17 @@ func NewClientControl(control *Control) error {
 				caCertPool := gmx509.NewCertPool()
 				caCert, err := os.ReadFile(rootCaCertFile)
 				if err != nil {
-					control.logger.Errorf("[client] failed to read CA cert file: %v", err)
+					control.logger.Errorf("[grpc/client] failed to read CA cert file: %v", err)
 					return err
 				}
 				if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-					control.logger.Errorf("[client] failed to append CA cert to pool")
+					control.logger.Errorf("[grpc/client] failed to append CA cert to pool")
 					return ErrFailAppendCert
 				}
 				gmTlsConfig.RootCAs = caCertPool
-				control.logger.Debugf("[client] mutual TLS enabled, server certificate will be verified")
+				control.logger.Debugf("[grpc/client] mutual TLS enabled, server certificate will be verified")
 			} else {
-				control.logger.Warnf("[client] CA cert file is not configured for mutual TLS")
+				control.logger.Warnf("[grpc/client] CA cert file is not configured for mutual TLS")
 				return ErrNoCACert
 			}
 
@@ -166,11 +166,11 @@ func NewClientControl(control *Control) error {
 			gClient, err = grpc.NewClient(clientConfig.Host, opts...)
 			// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 			if err != nil {
-				control.logger.Errorf("[client] generate tls client err: %v", err)
+				control.logger.Errorf("[grpc/client] generate tls client err: %v", err)
 				return err
 			}
 		} else {
-			control.logger.Debugf("[client] generate tls client client...")
+			control.logger.Debugf("[grpc/client] generate tls client client...")
 
 			// var transportCredentials credentials.TransportCredentials
 			// transportCredentials, err = credentials.NewClientTLSFromFile(clientConfig.TlsRCACertFile,
@@ -203,11 +203,11 @@ func NewClientControl(control *Control) error {
 
 			// 验证证书和密钥文件数量匹配
 			if len(clientConfig.TlsCertFile) != len(clientConfig.TlsKeyFile) {
-				control.logger.Errorf("[client] TLS证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(control.config.Client.TlsCertFile), len(control.config.Client.TlsKeyFile))
+				control.logger.Errorf("[grpc/client] TLS证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(control.config.Client.TlsCertFile), len(control.config.Client.TlsKeyFile))
 				return fmt.Errorf("TLS证书和密钥文件数量必须匹配")
 			}
 			if len(clientConfig.TlsCertFile) == 0 {
-				control.logger.Error("[client] TLS至少需要一对证书和密钥文件")
+				control.logger.Error("[grpc/client] TLS至少需要一对证书和密钥文件")
 				return errors.New("TLS至少需要一对证书和密钥文件")
 			}
 
@@ -218,23 +218,23 @@ func NewClientControl(control *Control) error {
 				keyFile := strings.TrimSpace(clientConfig.TlsKeyFile[i])
 
 				if stringer.IsBlank(certFile) {
-					control.logger.Errorf("[client] 第%d个TLS证书文件路径为空", i+1)
+					control.logger.Errorf("[grpc/client] 第%d个TLS证书文件路径为空", i+1)
 					return fmt.Errorf("第%d个TLS证书文件路径为空", i+1)
 				}
 				if stringer.IsBlank(keyFile) {
-					control.logger.Errorf("[client] 第%d个TLS密钥文件路径为空", i+1)
+					control.logger.Errorf("[grpc/client] 第%d个TLS密钥文件路径为空", i+1)
 					return fmt.Errorf("第%d个TLS密钥文件路径为空", i+1)
 				}
 
 				cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 				if err != nil {
-					control.logger.Errorf("[client] 加载第%d套TLS证书失败: %v", i+1, err)
+					control.logger.Errorf("[grpc/client] 加载第%d套TLS证书失败: %v", i+1, err)
 					return fmt.Errorf("加载第%d套TLS证书失败: %v", i+1, err)
 				}
 				certificates = append(certificates, cert)
 			}
 			tlsConfig.Certificates = certificates
-			control.logger.Infof("[client] 成功加载 %d 套TLS客户端证书", len(certificates))
+			control.logger.Infof("[grpc/client] 成功加载 %d 套TLS客户端证书", len(certificates))
 
 			// 加载CA证书用于验证服务器证书
 			rootCaCertFile := clientConfig.TlsRCACertFile
@@ -242,17 +242,17 @@ func NewClientControl(control *Control) error {
 				caCertPool := x509.NewCertPool()
 				caCert, err := os.ReadFile(rootCaCertFile)
 				if err != nil {
-					control.logger.Errorf("[client] failed to read CA cert file: %v", err)
+					control.logger.Errorf("[grpc/client] failed to read CA cert file: %v", err)
 					return err
 				}
 				if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-					control.logger.Errorf("[client] failed to append CA cert to pool")
+					control.logger.Errorf("[grpc/client] failed to append CA cert to pool")
 					return ErrFailAppendCert
 				}
 				tlsConfig.RootCAs = caCertPool
-				control.logger.Debugf("[client] mutual TLS enabled, server certificate will be verified")
+				control.logger.Debugf("[grpc/client] mutual TLS enabled, server certificate will be verified")
 			} else {
-				control.logger.Warnf("[client] CA cert file is not configured for mutual TLS")
+				control.logger.Warnf("[grpc/client] CA cert file is not configured for mutual TLS")
 				return ErrNoCACert
 			}
 
@@ -265,17 +265,17 @@ func NewClientControl(control *Control) error {
 			gClient, err = grpc.NewClient(clientConfig.Host, opts...)
 			// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 			if err != nil {
-				control.logger.Errorf("[client] generate tls client err: %v", err)
+				control.logger.Errorf("[grpc/client] generate tls client err: %v", err)
 				return err
 			}
 		}
 	} else {
-		control.logger.Debugf("[client] generate no tls client server...")
+		control.logger.Debugf("[grpc/client] generate no tls client server...")
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		gClient, err = grpc.NewClient(clientConfig.Host, opts...)
 		// gClient, err = grpc.Dial(clientConfig.Host, opts...)
 		if err != nil {
-			control.logger.Errorf("[client] generate no tls client server err: %v", err)
+			control.logger.Errorf("[grpc/client] generate no tls client server err: %v", err)
 			return err
 		}
 	}
@@ -292,7 +292,7 @@ func NewClientControl(control *Control) error {
 }
 
 func (c *ClientControl) Stop() error {
-	c.logger.Infof("[client] grpc client stop...")
+	c.logger.Infof("[grpc/client] grpc client stop...")
 
 	// 使用独立的短超时上下文发送 shutdown 消息，避免服务端不可达时阻塞过久（CallTimeout 默认分钟级）
 	// 此处使用 context.Background() 作为父上下文，防止 c.ctx 已被取消导致 shutdown 消息无法发出
@@ -304,18 +304,18 @@ func (c *ClientControl) Stop() error {
 		MessageType: BaseShutdown,
 		ClientId:    c.config.Host,
 	}); sendErr != nil {
-		c.logger.Warnf("[client] send shutdown message err: %v", sendErr)
+		c.logger.Warnf("[grpc/client] send shutdown message err: %v", sendErr)
 	}
 
 	if err := c.gClient.Close(); err != nil {
-		c.logger.Errorf("[client] grpc client close err: %v", err)
+		c.logger.Errorf("[grpc/client] grpc client close err: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (c *ClientControl) SendMessage(req *pb.BaseRequest) (*pb.BaseResponse, error) {
-	c.logger.Debugf("[client] grpc client send message messageType %v", req.MessageType)
+	c.logger.Debugf("[grpc/client] grpc client send message messageType %v", req.MessageType)
 	return c.SendMessageBidi(req, 0)
 }
 
@@ -327,7 +327,7 @@ func (c *ClientControl) SendMessage(req *pb.BaseRequest) (*pb.BaseResponse, erro
 // @return *pb.BaseResponse 响应
 // @return error 错误信息
 func (c *ClientControl) SendMessageWithCtx(ctx context.Context, req *pb.BaseRequest) (*pb.BaseResponse, error) {
-	c.logger.Debugf("[client] grpc client send message with ctx messageType %v", req.MessageType)
+	c.logger.Debugf("[grpc/client] grpc client send message with ctx messageType %v", req.MessageType)
 	return c.SendMessageBidiWithCtx(ctx, req, 0)
 }
 

@@ -18,8 +18,6 @@ import (
 
 type Control struct {
 	loggerConfig *config.LoggerConfig
-	// _logMap      map[string]*zap.SugaredLogger
-	// _loggerLevel map[string]string
 	_logMap      concurrent.Map[string, *zap.SugaredLogger]
 	_loggerLevel concurrent.Map[string, string]
 	loggerMutex  sync.RWMutex
@@ -37,14 +35,11 @@ func NewLoggerControl(loggerConfig *config.LoggerConfig) *Control {
 	)
 	loggerLevel := concurrentmap.NewRWMap[string, string]()
 	for logger, level := range loggerConfig.LoggerLevel {
-		// loggerLevel[strings.ToLower(logger)] = level
 		loggerLevel.Put(strings.ToLower(logger), level)
 	}
 
 	return &Control{
 		loggerConfig: loggerConfig,
-		// _logMap:      make(map[string]*zap.SugaredLogger),
-		// _loggerLevel: loggerLevel,
 		_logMap:      concurrentmap.NewRWMap[string, *zap.SugaredLogger](),
 		_loggerLevel: loggerLevel,
 	}
@@ -142,7 +137,9 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 	}
 
 	logger := glog.NewSugaredLogger(opts...)
-
+	if logger == nil {
+		fmt.Println("logger == nil ", moduleName)
+	}
 	c._logMap.Put(moduleName, logger)
 
 	return logger
@@ -151,12 +148,12 @@ func (c *Control) GenLogger(moduleName string) *zap.SugaredLogger {
 func (c *Control) StartUp(failedFunc func(err error)) {
 	// no-op
 	c.once.Do(func() {
-		fmt.Printf("starting up logger server...\n")
+		// fmt.Printf("starting up logger server...\n")
 	})
 }
 
 func (c *Control) Shutdown() error {
-	fmt.Printf("shutting down logger server...\n")
+	// fmt.Printf("shutting down logger server...\n")
 	// no-op
 	return nil
 }

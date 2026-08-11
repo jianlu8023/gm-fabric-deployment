@@ -101,7 +101,7 @@ func (m *memoryStoreImpl) Set(sessionID string, sess *Session) error {
 // @return error 错误信息
 func (m *memoryStoreImpl) Delete(sessionID string) error {
 	m.sessions.Del(sessionID)
-	m.logger.Info("会话已删除", zap.String("sessionID", sessionID))
+	m.logger.Info("[http/session] 会话已删除", zap.String("sessionID", sessionID))
 	return nil
 }
 
@@ -113,7 +113,7 @@ func (m *memoryStoreImpl) Delete(sessionID string) error {
 func (m *memoryStoreImpl) Validate(sessionID string) bool {
 	_, err := m.Get(sessionID)
 	if err != nil {
-		m.logger.Debug("会话验证失败", zap.String("sessionID", sessionID), zap.Error(err))
+		m.logger.Debug("[http/session] 会话验证失败", zap.String("sessionID", sessionID), zap.Error(err))
 		return false
 	}
 	return true
@@ -164,10 +164,10 @@ func (m *memoryStoreImpl) cleanupLoop() {
 				m.sessions.Del(key)
 			}
 			if len(expiredKeys) > 0 {
-				m.logger.Debugf("清理过期会话: %d", len(expiredKeys))
+				m.logger.Debugf("[http/session] 清理过期会话: %d", len(expiredKeys))
 			}
 		case <-m.ctx.Done():
-			m.logger.Infof("会话存储清理协程已停止...")
+			m.logger.Infof("[http/session] 会话存储清理协程已停止...")
 			return
 		}
 	}

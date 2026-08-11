@@ -23,7 +23,7 @@ func EnableRequestID(webLogger *zap.SugaredLogger) gin.HandlerFunc {
 			tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "requestId")
 			defer span.End()
 			ctx.Request = ctx.Request.WithContext(tCtx)
-			webLogger.Debugf("clientIp: %s requestProto %v requestURL: %s requestMethod: %s agent: %v requestID %v",
+			webLogger.Debugf("[http/RequestID] clientIp: %s requestProto %v requestURL: %s requestMethod: %s agent: %v requestID %v",
 				ctx.ClientIP(), ctx.Request.Proto, ctx.Request.URL.String(), ctx.Request.Method, ctx.Request.UserAgent(), requestID)
 			span.SetStatus(codes.Ok, "success")
 		}),

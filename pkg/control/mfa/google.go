@@ -21,19 +21,20 @@ type googleAuth struct {
 	Secret       string
 	ExpireSecond uint64
 	Digits       int
+	logger       *zap.SugaredLogger
 }
 
 func (g *googleAuth) Totp() string {
 	count := uint64(time.Now().Unix()) / g.ExpireSecond
 	key, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(g.Secret)
 	if err != nil {
-		fmt.Printf("generate key failed: %v\n", err)
+		g.logger.Errorf("[mfa/google] generate key failed: %v\n", err)
 		return ""
 	}
 	codeInt := g.totp(key, count, g.Digits)
 	intFormat := fmt.Sprintf("%%0%dd", g.Digits)
 	code := fmt.Sprintf(intFormat, codeInt)
-	fmt.Printf("code: %s\n", code)
+	g.logger.Debugf("[mfa/google] code: %v\n", code)
 	return code
 }
 func (g *googleAuth) Qr(label, issuer string) string {
@@ -106,12 +107,12 @@ func (g *GoogleProvider) GenerateSecret(userID string) (string, string, error) {
 		Digits:      otp.DigitsSix,
 	})
 	if err != nil {
-		g.logger.Errorf("[control] failed to generate Google TOTP key: %v", err)
+		g.logger.Errorf("[mfa/google] failed to generate Google TOTP key: %v", err)
 		return "", "", ErrGenerateSecretFailed
 	}
 
 	// 存储密钥
-	g.logger.Debugf("[control] Google MFA secret generated for user: %s", userID)
+	g.logger.Debugf("[mfa/google] Google MFA secret generated for user: %s", userID)
 
 	// 返回密钥和二维码URL
 	return key.Secret(), key.URL(), nil
@@ -125,7 +126,7 @@ func (g *GoogleProvider) VerifyCode(secret string, code string) bool {
 
 	// 验证代码
 	valid := totp.Validate(code, secret)
-	g.logger.Debugf("[control] Google MFA code validation for valid: %v", valid)
+	g.logger.Debugf("[mfa/google] Google MFA code validation for valid: %v", valid)
 	return valid
 }
 
@@ -136,7 +137,7 @@ func (g *GoogleProvider) GenerateQrCode(otpauthURL string) string {
 	// 创建二维码
 	qr, err := qrcode.New(otpauthURL, qrcode.Medium)
 	if err != nil {
-		g.logger.Errorf("[control] failed to create QR code: %v", err)
+		g.logger.Errorf("[mfa/google] failed to create QR code: %v", err)
 		return ""
 	}
 
@@ -146,7 +147,7 @@ func (g *GoogleProvider) GenerateQrCode(otpauthURL string) string {
 	// 生成PNG并转换为Base64
 	qrBytes, err := qr.PNG(240)
 	if err != nil {
-		g.logger.Errorf("[control] failed to generate QR code PNG: %v", err)
+		g.logger.Errorf("[mfa/google] failed to generate QR code PNG: %v", err)
 		return ""
 	}
 

@@ -2,8 +2,10 @@ package flags
 
 import (
 	"fmt"
+	"github.com/jianlu8023/go-tools/v2/pkg/colour"
 	"os"
 	"sync"
+	"time"
 )
 
 // Control 命令行参数控制器
@@ -51,7 +53,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		c.mutex.Unlock()
 
 		if c.IsDebugMode() {
-			fmt.Printf("flags: %s\n", c.flags.String())
+			fmt.Printf("%v  [%v]  flags/flags.go:56  [flags/control]  flags: %s\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Magenta("DEBUG"), c.flags.String())
 		}
 		// fmt.Printf("flags control StartUp method finished...\n")
 	})

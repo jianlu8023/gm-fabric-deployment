@@ -103,11 +103,12 @@ func NewTracerControl(tracerConfig *config.TracerConfig, loggerControl *logger.C
 		}),
 		loggerControl,
 	)
-	tracerLogger := loggerControl.GenLogger(logger.ModuleTracer)
+	// tracerLogger := loggerControl.GenLogger(logger.ModuleTracer)
+	tracerLogger := loggerControl.GenLogger("")
 
 	// 如果传入的ctx为nil，则使用context.Background()作为默认值
 	if ctx == nil {
-		tracerLogger.Warnf("[control] tracer context is nil, using new context...")
+		tracerLogger.Warnf("[tracer/control] tracer context is nil, using new context...")
 		ctx = context.Background()
 	}
 
@@ -119,13 +120,13 @@ func NewTracerControl(tracerConfig *config.TracerConfig, loggerControl *logger.C
 	}
 	otel.SetLogger(control.traceLogger)
 	if err := control.setProvider(); err != nil {
-		control.logger.Errorf("[control] set provider failed: %v", err)
+		control.logger.Errorf("[tracer/control] set provider failed: %v", err)
 		return nil, err
 	}
 
 	// 自动设置为全局单例实例
 	// SetInstance内部使用了instanceOnce.Do，确保只会设置一次
-	control.logger.Debugf("[control] setting singleton instance...")
+	control.logger.Debugf("[tracer/control] setting singleton instance...")
 	setInstance(control)
 
 	return control, nil
@@ -133,45 +134,45 @@ func NewTracerControl(tracerConfig *config.TracerConfig, loggerControl *logger.C
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Debugf("[control] starting tracer server...")
+			c.logger.Debugf("[tracer/control] starting tracer server...")
 			c.init()
 		}
 	})
 }
 
 func (c *Control) Shutdown() error {
-	c.logger.Debug("[control] shutting down tracer server...")
+	c.logger.Debug("[tracer/control] shutting down tracer server...")
 	if err := c.tracerProvider.Shutdown(c.ctx); err != nil {
-		c.logger.Errorf("[control] shutting down tracer provider failed: %v", err)
+		c.logger.Errorf("[tracer/control] shutting down tracer provider failed: %v", err)
 		return err
 	}
 	if err := c.loggerProvider.Shutdown(c.ctx); err != nil {
-		c.logger.Errorf("[control] shutting down logger provider failed: %v", err)
+		c.logger.Errorf("[tracer/control] shutting down logger provider failed: %v", err)
 		return err
 	}
 	if err := c.meterProvider.Shutdown(c.ctx); err != nil {
-		c.logger.Errorf("[control] shutting down meter provider failed: %v", err)
+		c.logger.Errorf("[tracer/control] shutting down meter provider failed: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (c *Control) TracerProvider() shutdownTracerProvider {
-	c.logger.Debugf("[control] get tracer provider...")
+	c.logger.Debugf("[tracer/control] get tracer provider...")
 	c.providerMutex.RLock()
 	defer c.providerMutex.RUnlock()
 	return c.tracerProvider
 }
 
 func (c *Control) LoggerProvider() shutdownLoggerProvider {
-	c.logger.Debugf("[control] get logger provider...")
+	c.logger.Debugf("[tracer/control] get logger provider...")
 	c.providerMutex.RLock()
 	defer c.providerMutex.RUnlock()
 	return c.loggerProvider
 }
 
 func (c *Control) MeterProvider() shutdownMeterProvider {
-	c.logger.Debugf("[control] get meter provider...")
+	c.logger.Debugf("[tracer/control] get meter provider...")
 	c.providerMutex.RLock()
 	defer c.providerMutex.RUnlock()
 	return c.meterProvider
@@ -209,7 +210,7 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
 						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
 						// 有schema
-						c.logger.Debugf("[control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
 						// 检查是否有path，如果没有则添加/v1/traces
 						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
 							if parsedURL.Path == "/" {
@@ -221,7 +222,7 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 						opts = append(opts, otlptracehttp.WithEndpointURL(endpoint))
 					} else {
 						// 没有schema
-						c.logger.Debugf("[control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
 						opts = append(opts, otlptracehttp.WithEndpoint(endpoint))
 					}
 				}
@@ -250,7 +251,7 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
 						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
 						// 有schema
-						c.logger.Debugf("[control] grpc protocol endpoint (with scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] grpc protocol endpoint (with scheme): %v", endpoint)
 						// 检查是否有path，如果没有则添加/v1/traces
 						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
 							if parsedURL.Path == "/" {
@@ -262,7 +263,7 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 						opts = append(opts, otlptracegrpc.WithEndpointURL(endpoint))
 					} else {
 						// 没有schema
-						c.logger.Debugf("[control] grpc protocol endpoint (without scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] grpc protocol endpoint (without scheme): %v", endpoint)
 						opts = append(opts, otlptracegrpc.WithEndpoint(endpoint))
 					}
 				}
@@ -306,7 +307,7 @@ func (c *Control) initTracerExporters() ([]sdktrace.SpanExporter, error) {
 			}
 			exporters = append(exporters, exporter)
 		default:
-			c.logger.Warnf("[control] unknown or unsupported exporter '%s'", exporterStr)
+			c.logger.Warnf("[tracer/control] unknown or unsupported exporter '%s'", exporterStr)
 			// return nil, fmt.Errorf("unknown or unsupported exporter '%s'", exporterStr)
 		}
 	}
@@ -345,7 +346,7 @@ func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
 						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
 						// 有schema
-						c.logger.Debugf("[control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
 						// 检查是否有path，如果没有则添加/v1/logs
 						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
 							if parsedURL.Path == "/" {
@@ -357,7 +358,7 @@ func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
 						opts = append(opts, otlploghttp.WithEndpointURL(endpoint))
 					} else {
 						// 没有schema
-						c.logger.Debugf("[control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
 						opts = append(opts, otlploghttp.WithEndpoint(endpoint))
 					}
 				}
@@ -386,7 +387,7 @@ func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
 						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
 						// 有schema
-						c.logger.Debugf("[control] grpc protocol endpoint (with scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] grpc protocol endpoint (with scheme): %v", endpoint)
 						// 检查是否有path，如果没有则添加/v1/logs
 						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
 							if parsedURL.Path == "/" {
@@ -398,7 +399,7 @@ func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
 						opts = append(opts, otlploggrpc.WithEndpointURL(endpoint))
 					} else {
 						// 没有schema
-						c.logger.Debugf("[control] grpc protocol endpoint (without scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] grpc protocol endpoint (without scheme): %v", endpoint)
 						opts = append(opts, otlploggrpc.WithEndpoint(endpoint))
 					}
 				}
@@ -434,7 +435,7 @@ func (c *Control) initLoggerExporters() ([]sdklog.Exporter, error) {
 			}
 			exporters = append(exporters, exporter)
 		default:
-			c.logger.Warnf("[control] unknown or unsupported exporter '%s'", exporterStr)
+			c.logger.Warnf("[tracer/control] unknown or unsupported exporter '%s'", exporterStr)
 			// return nil, fmt.Errorf("unknown or unsupported exporter '%s'", exporterStr)
 		}
 	}
@@ -473,7 +474,7 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
 						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
 						// 有schema
-						c.logger.Debugf("[control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] http/protobuf protocol endpoint (with scheme): %v", endpoint)
 						// 检查是否有path，如果没有则添加/v1/metrics
 						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
 							if parsedURL.Path == "/" {
@@ -485,7 +486,7 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 						opts = append(opts, otlpmetrichttp.WithEndpointURL(endpoint))
 					} else {
 						// 没有schema
-						c.logger.Debugf("[control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] http/protobuf protocol endpoint (without scheme): %v", endpoint)
 						opts = append(opts, otlpmetrichttp.WithEndpoint(endpoint))
 					}
 				}
@@ -514,7 +515,7 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 					if err == nil && (stringer.CompareIgnoreCase(parsedURL.Scheme, "http") ||
 						stringer.CompareIgnoreCase(parsedURL.Scheme, "https")) {
 						// 有schema
-						c.logger.Debugf("[control] grpc protocol endpoint (with scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] grpc protocol endpoint (with scheme): %v", endpoint)
 						// 检查是否有path，如果没有则添加/v1/metrics
 						if stringer.IsBlank(parsedURL.Path) || parsedURL.Path == "/" {
 							if parsedURL.Path == "/" {
@@ -526,7 +527,7 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 						opts = append(opts, otlpmetricgrpc.WithEndpointURL(endpoint))
 					} else {
 						// 没有schema
-						c.logger.Debugf("[control] grpc protocol endpoint (without scheme): %v", endpoint)
+						c.logger.Debugf("[tracer/control] grpc protocol endpoint (without scheme): %v", endpoint)
 						opts = append(opts, otlpmetricgrpc.WithEndpoint(endpoint))
 					}
 				}
@@ -562,7 +563,7 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 			}
 			exporters = append(exporters, exporter)
 		default:
-			c.logger.Warnf("[control] unknown or unsupported exporter '%s'", exporterStr)
+			c.logger.Warnf("[tracer/control] unknown or unsupported exporter '%s'", exporterStr)
 			// 	return nil, fmt.Errorf("unknown or unsupported exporter '%s'", exporterStr)
 		}
 	}
@@ -570,12 +571,12 @@ func (c *Control) initMeterExporters() ([]sdkmetric.Exporter, error) {
 }
 
 func (c *Control) GetServiceName() string {
-	c.logger.Debugf("[control] get service name...")
+	c.logger.Debugf("[tracer/control] get service name...")
 	return c.config.ServiceName
 }
 
 func (c *Control) newProvider() error {
-	c.logger.Debugf("[control] starting generate provider...")
+	c.logger.Debugf("[tracer/control] starting generate provider...")
 
 	// 创建 resourceEnd
 	resMid, err := resource.New(
@@ -590,7 +591,7 @@ func (c *Control) newProvider() error {
 		resource.WithHost(),
 	)
 	if err != nil {
-		c.logger.Errorf("[control] create resource failed: %v", err)
+		c.logger.Errorf("[tracer/control] create resource failed: %v", err)
 		return err
 	}
 
@@ -604,19 +605,19 @@ func (c *Control) newProvider() error {
 		),
 	)
 	if err != nil {
-		c.logger.Errorf("[control] merge resource failed: %v", err)
+		c.logger.Errorf("[tracer/control] merge resource failed: %v", err)
 		return err
 	}
 	if err = c.newTracerProvider(resourceEnd); err != nil {
-		c.logger.Errorf("[control] new tracer provider failed: %v", err)
+		c.logger.Errorf("[tracer/control] new tracer provider failed: %v", err)
 		return err
 	}
 	if err = c.newLoggerProvider(resourceEnd); err != nil {
-		c.logger.Errorf("[control] new logger provider failed: %v", err)
+		c.logger.Errorf("[tracer/control] new logger provider failed: %v", err)
 		return err
 	}
 	if err = c.newMeterProvider(resourceEnd); err != nil {
-		c.logger.Errorf("[control] new meter provider failed: %v", err)
+		c.logger.Errorf("[tracer/control] new meter provider failed: %v", err)
 		return err
 	}
 	return nil
@@ -625,11 +626,11 @@ func (c *Control) newProvider() error {
 func (c *Control) newTracerProvider(resource *resource.Resource) error {
 	exporters, err := c.initTracerExporters()
 	if err != nil {
-		c.logger.Errorf("[control] init tracer exporters failed: %v", err)
+		c.logger.Errorf("[tracer/control] init tracer exporters failed: %v", err)
 		return err
 	}
 	if len(exporters) == 0 {
-		c.logger.Warnf("[control] no exporter found, using noop tracerProvider...")
+		c.logger.Warnf("[tracer/control] no exporter found, using noop tracerProvider...")
 		c.tracerProvider = &noopShutdownTracerProvider{TracerProvider: noop.NewTracerProvider()}
 		return nil
 	}
@@ -648,11 +649,11 @@ func (c *Control) newTracerProvider(resource *resource.Resource) error {
 func (c *Control) newLoggerProvider(resource *resource.Resource) error {
 	exporters, err := c.initLoggerExporters()
 	if err != nil {
-		c.logger.Errorf("[control] init logger exporters failed: %v", err)
+		c.logger.Errorf("[tracer/control] init logger exporters failed: %v", err)
 		return err
 	}
 	if len(exporters) == 0 {
-		c.logger.Warnf("[control] no exporter found, using noop loggerProvider...")
+		c.logger.Warnf("[tracer/control] no exporter found, using noop loggerProvider...")
 		c.loggerProvider = &noopShutdownLoggerProvider{LoggerProvider: lognoop.NewLoggerProvider()}
 		return nil
 	}
@@ -671,11 +672,11 @@ func (c *Control) newLoggerProvider(resource *resource.Resource) error {
 func (c *Control) newMeterProvider(resource *resource.Resource) error {
 	exporters, err := c.initMeterExporters()
 	if err != nil {
-		c.logger.Errorf("[control] init meter exporters failed: %v", err)
+		c.logger.Errorf("[tracer/control] init meter exporters failed: %v", err)
 		return err
 	}
 	if len(exporters) == 0 {
-		c.logger.Warnf("[control] no exporter found, using noop meterProvider...")
+		c.logger.Warnf("[tracer/control] no exporter found, using noop meterProvider...")
 		c.meterProvider = &noopShutdownMeterProvider{MeterProvider: meternoop.NewMeterProvider()}
 		return nil
 	}
@@ -692,9 +693,9 @@ func (c *Control) newMeterProvider(resource *resource.Resource) error {
 }
 
 func (c *Control) setProvider() error {
-	c.logger.Debugf("[control] setting provider...")
+	c.logger.Debugf("[tracer/control] setting provider...")
 	if err := c.newProvider(); err != nil {
-		c.logger.Errorf("[control] new provider failed: %v", err)
+		c.logger.Errorf("[tracer/control] new provider failed: %v", err)
 		return err
 	}
 	otel.SetLogger(c.traceLogger)
@@ -716,7 +717,7 @@ func (c *Control) setProvider() error {
 }
 
 func (c *Control) init() {
-	c.logger.Debugf("[control] init...")
+	c.logger.Debugf("[tracer/control] init...")
 	ctx, span := c.traceApi.Start(c.ctx, "initialize")
 	defer span.End()
 	c.ctx = ctx

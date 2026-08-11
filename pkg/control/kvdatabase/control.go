@@ -45,8 +45,9 @@ func NewKvDatabaseControl(kvDatabaseConfig *config.KvDatabaseConfig, loggerContr
 		}),
 		loggerControl,
 	)
-	kvDatabaseLogger := loggerControl.GenLogger("kvdatabase")
-	kvDatabaseLogger.Infof("[control] starting new kvdatabase control...")
+	// kvDatabaseLogger := loggerControl.GenLogger("kvdatabase")
+	kvDatabaseLogger := loggerControl.GenLogger("")
+	kvDatabaseLogger.Infof("[kvcache/control] starting new kvdatabase control...")
 
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -64,7 +65,7 @@ func NewKvDatabaseControl(kvDatabaseConfig *config.KvDatabaseConfig, loggerContr
 		opt(kc)
 	}
 
-	kvDatabaseLogger.Infof("[control] kvdatabase control started successfully")
+	kvDatabaseLogger.Infof("[kvcache/control] kvdatabase control started successfully")
 	return kc
 }
 
@@ -74,11 +75,11 @@ func NewKvDatabaseControl(kvDatabaseConfig *config.KvDatabaseConfig, loggerContr
 func (kc *Control) StartUp(failedFunc func(err error)) {
 	kc.once.Do(func() {
 		if kc.config.Enabled {
-			kc.logger.Debugf("[control] kvdatabase service is starting...")
+			kc.logger.Debugf("[kvcache/control] kvdatabase service is starting...")
 
 			// 确保数据库目录存在
 			if err := kc.ensureDbPath(); err != nil {
-				kc.logger.Errorf("[control] failed to ensure db path: %v", err)
+				kc.logger.Errorf("[kvcache/control] failed to ensure db path: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
@@ -87,7 +88,7 @@ func (kc *Control) StartUp(failedFunc func(err error)) {
 
 			// 初始化数据库
 			if err := kc.initDatabase(); err != nil {
-				kc.logger.Errorf("[control] kvdatabase initialization database failed: %v", err)
+				kc.logger.Errorf("[kvcache/control] kvdatabase initialization database failed: %v", err)
 				kc.cancel()
 				if failedFunc != nil {
 					failedFunc(err)
@@ -95,7 +96,7 @@ func (kc *Control) StartUp(failedFunc func(err error)) {
 				return
 			}
 
-			kc.logger.Infof("[control] kvdatabase service started successfully")
+			kc.logger.Infof("[kvcache/control] kvdatabase service started successfully")
 		}
 	})
 }
@@ -104,17 +105,17 @@ func (kc *Control) StartUp(failedFunc func(err error)) {
 // @description 关闭KvDatabase数据库连接并释放资源
 // @return error 关闭过程中的错误
 func (kc *Control) Shutdown() error {
-	kc.logger.Infof("[control] shutting down kvdatabase control...")
+	kc.logger.Infof("[kvcache/control] shutting down kvdatabase control...")
 	kc.cancel()
 
 	if kc.db != nil {
 		if err := kc.db.Close(); err != nil {
-			kc.logger.Errorf("[control] failed to close kvdatabase database: %v", err)
+			kc.logger.Errorf("[kvcache/control] failed to close kvdatabase database: %v", err)
 			return err
 		}
 	}
 
-	kc.logger.Infof("[control] kvdatabase control shutdown successfully")
+	kc.logger.Infof("[kvcache/control] kvdatabase control shutdown successfully")
 	return nil
 }
 
@@ -130,11 +131,11 @@ func (kc *Control) Get(key string) ([]byte, error) {
 
 	value, err := kc.db.Get(key)
 	if err != nil {
-		kc.logger.Errorf("[control] failed to get key %s: %v", key, err)
+		kc.logger.Errorf("[kvcache/control] failed to get key %s: %v", key, err)
 		return nil, err
 	}
 
-	kc.logger.Debugf("[control] get key %s successfully", key)
+	kc.logger.Debugf("[kvcache/control] get key %s successfully", key)
 	return value, nil
 }
 
@@ -150,11 +151,11 @@ func (kc *Control) Set(key string, value []byte) error {
 
 	err := kc.db.Set(key, value)
 	if err != nil {
-		kc.logger.Errorf("[control] failed to set key %s: %v", key, err)
+		kc.logger.Errorf("[kvcache/control] failed to set key %s: %v", key, err)
 		return err
 	}
 
-	kc.logger.Debugf("[control] set key %s successfully", key)
+	kc.logger.Debugf("[kvcache/control] set key %s successfully", key)
 	return nil
 }
 
@@ -169,11 +170,11 @@ func (kc *Control) Delete(key string) error {
 
 	err := kc.db.Delete(key)
 	if err != nil {
-		kc.logger.Errorf("[control] failed to delete key %s: %v", key, err)
+		kc.logger.Errorf("[kvcache/control] failed to delete key %s: %v", key, err)
 		return err
 	}
 
-	kc.logger.Debugf("[control] deleted key %s successfully", key)
+	kc.logger.Debugf("[kvcache/control] deleted key %s successfully", key)
 	return nil
 }
 
@@ -194,31 +195,31 @@ func (kc *Control) ensureDbPath() error {
 // @description 根据配置初始化对应的数据库
 // @return error 初始化过程中的错误
 func (kc *Control) initDatabase() error {
-	kc.logger.Debugf("[control] initializing %s database...", kc.config.DbType)
+	kc.logger.Debugf("[kvcache/control] initializing %s database...", kc.config.DbType)
 
 	// 根据数据库类型初始化对应的数据库实现
 	switch kc.config.DbType {
 	case levelDBDatabase:
-		db, err := NewLevelDB(kc.config.DbPath)
+		db, err := NewLevelDB(kc.config.DbPath, kc.logger)
 		if err != nil {
 			return fmt.Errorf("failed to initialize leveldb: %v", err)
 		}
 		kc.db = db
-		kc.logger.Infof("[control] leveldb initialized successfully at %s", kc.config.DbPath)
+		kc.logger.Infof("[kvcache/control] leveldb initialized successfully at %s", kc.config.DbPath)
 	case pebbleDatabase:
-		db, err := NewPebble(kc.config.DbPath)
+		db, err := NewPebble(kc.config.DbPath, kc.logger)
 		if err != nil {
 			return fmt.Errorf("failed to initialize pebble: %v", err)
 		}
 		kc.db = db
-		kc.logger.Infof("[control] pebble initialized successfully at %s", kc.config.DbPath)
+		kc.logger.Infof("[kvcache/control] pebble initialized successfully at %s", kc.config.DbPath)
 	case badger4Database:
-		db, err := NewBadger4(kc.config.DbPath)
+		db, err := NewBadger4(kc.config.DbPath, kc.logger)
 		if err != nil {
 			return fmt.Errorf("failed to initialize badger: %v", err)
 		}
 		kc.db = db
-		kc.logger.Infof("[control] badger initialized successfully at %s", kc.config.DbPath)
+		kc.logger.Infof("[kvcache/control] badger initialized successfully at %s", kc.config.DbPath)
 	default:
 		return fmt.Errorf("unsupported database type: %s", kc.config.DbType)
 	}

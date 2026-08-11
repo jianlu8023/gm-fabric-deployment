@@ -2,6 +2,7 @@ package kvdatabase
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 
 	"github.com/cockroachdb/pebble"
 )
@@ -12,21 +13,23 @@ const (
 
 // Pebble Pebble数据库实现
 type Pebble struct {
-	db *pebble.DB
+	db     *pebble.DB
+	logger *zap.SugaredLogger
 }
 
 // NewPebble 创建Pebble实例
 // @param path string 数据库路径
 // @return *Pebble Pebble实例
 // @return error 创建过程中的错误
-func NewPebble(path string) (*Pebble, error) {
+func NewPebble(path string, logger *zap.SugaredLogger) (*Pebble, error) {
 	db, err := pebble.Open(path, &pebble.Options{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open pebble at %s: %v", path, err)
 	}
 
 	return &Pebble{
-		db: db,
+		db:     db,
+		logger: logger,
 	}, nil
 }
 

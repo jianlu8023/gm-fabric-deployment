@@ -50,7 +50,7 @@ func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool, sslRedir
 		// 对于非GET请求，记录TLS连接信息
 		if ctx.Request.Method != http.MethodGet {
 			if ctx.Request.TLS != nil {
-				logger.Debugf("[TLS] Connection from %s using TLS version %s, cipher suite: %04x",
+				logger.Debugf("[http/TLS] Connection from %s using TLS version %s, cipher suite: %04x",
 					ctx.ClientIP(),
 					ctx.Request.TLS.Version,
 					ctx.Request.TLS.CipherSuite,
@@ -133,7 +133,7 @@ func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost st
 
 		// 记录TLS连接信息
 		if ctx.Request.TLS != nil && logger != nil {
-			logger.Debugf("[TLS] Connection to %s from %s using TLS version %s",
+			logger.Debugf("[http/TLS] Connection to %s from %s using TLS version %s",
 				sslHost,
 				ctx.ClientIP(),
 				ctx.Request.TLS.Version,

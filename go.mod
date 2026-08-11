@@ -7,6 +7,8 @@ toolchain go1.22.10
 replace (
 	github.com/Jeffail/gabs/v2 => github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/alpkeskin/gotoon => ./third_partys/gotoon
+	//github.com/bytedance/sonic => github.com/bytedance/sonic v1.12.6
+	github.com/bytedance/sonic/loader => github.com/bytedance/sonic/loader v0.3.0
 	github.com/cockroachdb/pebble => github.com/cockroachdb/pebble v1.1.0
 	github.com/dgraph-io/badger/v4 => github.com/dgraph-io/badger/v4 v4.5.0
 	github.com/docker/docker => github.com/docker/docker v28.0.1+incompatible
@@ -24,8 +26,10 @@ replace (
 	github.com/golang-jwt/jwt/v5 => github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/websocket => github.com/gorilla/websocket v1.5.3
 	github.com/ipfs-cluster/ipfs-cluster => github.com/ipfs-cluster/ipfs-cluster v1.0.8
+	github.com/jianlu8023/go-logger/db-logger/v2 => github.com/jianlu8023/go-logger/db-logger/v2 v2.0.0-20260810153057-95e3d11a30d4
 	// github.com/ipfs/kubo => github.com/ipfs/kubo v0.28.0
-	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.2
+	github.com/jianlu8023/go-logger/v2 => github.com/jianlu8023/go-logger/v2 v2.0.3-0.20260811035401-7d3d9ec8ed1c
+	//github.com/jianlu8023/go-logger/v2 => ../go-logger
 	github.com/jianlu8023/go-tools/v2 => github.com/jianlu8023/go-tools/v2 v2.0.0-20260807044417-4603f9e780e0
 	github.com/jinzhu/copier => github.com/jinzhu/copier v0.4.0
 	github.com/juju/ratelimit => github.com/juju/ratelimit v1.0.2
@@ -65,6 +69,7 @@ replace (
 	go.opentelemetry.io/otel/sdk/log => go.opentelemetry.io/otel/sdk/log v0.11.0
 	go.opentelemetry.io/otel/sdk/metric => go.opentelemetry.io/otel/sdk/metric v1.35.0
 	go.opentelemetry.io/otel/trace => go.opentelemetry.io/otel/trace v1.35.0
+	go.uber.org/zap => go.uber.org/zap v1.28.0
 	golang.org/x/crypto => golang.org/x/crypto v0.33.0
 	golang.org/x/net => golang.org/x/net v0.35.0
 	golang.org/x/time => golang.org/x/time v0.10.0
@@ -103,7 +108,6 @@ require (
 	github.com/docker/docker v27.3.0+incompatible // 连接docker
 	github.com/docker/go-connections v0.5.0 // create docker container 需要这个库
 	github.com/gin-contrib/cors v1.7.3 // gin cors中间件
-
 	github.com/gin-contrib/requestid v1.0.4 // gin requestid中间件
 	github.com/gin-contrib/sse v1.0.0 // sse
 	github.com/gin-gonic/gin v1.10.1 // gin web框架
@@ -111,7 +115,7 @@ require (
 	github.com/go-logr/logr v1.4.3 // logr 一些开源项目中使用的log抽象层
 	github.com/go-logr/zapr v1.3.0 // logr 使用zapr logr的zap实现
 	github.com/go-playground/validator/v10 v10.25.0 // 验证参数
-	github.com/go-sql-driver/mysql v1.7.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v5 v5.3.0 // jwt
 	github.com/gorilla/websocket v1.5.3 // websocket
 	github.com/ipfs-cluster/ipfs-cluster v1.0.8 // ipfs-cluster的sdk
@@ -125,7 +129,8 @@ require (
 	github.com/ipfs/go-ipfs-api v0.7.0 // ipfs的旧api 感觉比kubo的rpc/client好用
 	// github.com/ipfs/kubo v0.28.0
 	github.com/jessevdk/go-flags v1.6.1 // flags增强 `short:"-v" long:"--version"  required:"true" default:"default"`
-	github.com/jianlu8023/go-logger/v2 v2.0.0 // 日志
+	github.com/jianlu8023/go-logger/db-logger/v2 v2.0.0
+	github.com/jianlu8023/go-logger/v2 v2.0.2 // 日志
 	github.com/jianlu8023/go-tools/v2 v2.0.0-20250921142734-6afed502d952 // 工具类
 	github.com/jinzhu/copier v0.4.0 // copy的功能 结构体 等值拷贝
 	github.com/juju/ratelimit v1.0.2 // juju 限流
@@ -178,7 +183,7 @@ require (
 	go.opentelemetry.io/otel/sdk/log v0.11.0 // log sdk
 	go.opentelemetry.io/otel/sdk/metric v1.35.0 // metric sdk
 	go.opentelemetry.io/otel/trace v1.35.0 // otel链路追踪
-	go.uber.org/zap v1.27.0 // zap 日志框架
+	go.uber.org/zap v1.28.0 // zap 日志框架
 	golang.org/x/net v0.35.0 // net增强 为了http2的启用 go1.22 最高到这
 	golang.org/x/time v0.5.0 // time的限流
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
@@ -244,8 +249,6 @@ require (
 	gorm.io/plugin/opentelemetry v0.1.16 // gorm的opentelemetry插件
 )
 
-require github.com/go-resty/resty/v2 v2.13.1
-
 require (
 	github.com/ALTree/bigfloat v0.0.0-20220102081255-38c8b72a9924 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
@@ -299,6 +302,7 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
+	github.com/go-resty/resty/v2 v2.13.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
@@ -324,9 +328,9 @@ require (
 	github.com/ipfs/go-log/v2 v2.5.1 // indirect
 	github.com/ipld/go-ipld-prime v0.21.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgx/v5 v5.5.5 // indirect
-	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.6.0 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect

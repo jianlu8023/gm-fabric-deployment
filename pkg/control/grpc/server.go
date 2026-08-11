@@ -54,7 +54,7 @@ type messageHandlerImpl struct {
 func (h *messageHandlerImpl) PrintHandler() {
 	keys := h.handlerMap.Keys()
 	for _, handlerName := range keys {
-		h.logger.Debugf("[handler] register handler %s", handlerName)
+		h.logger.Debugf("[grpc/handler] register handler %s", handlerName)
 	}
 }
 
@@ -64,7 +64,7 @@ func (h *messageHandlerImpl) RegisterHandler(path string, handle func(ctx contex
 }
 
 func (h *messageHandlerImpl) GetHandler(path string) (func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error), error) {
-	h.logger.Debugf("[handler] 正在获取 %v 的handle...", path)
+	h.logger.Debugf("[grpc/handler] 正在获取 %v 的handle...", path)
 	// if handle, exists := h.handlerMap[path]; exists {
 	if handle, exists := h.handlerMap.Get(path); exists {
 		return handle, nil
@@ -80,7 +80,7 @@ type server struct {
 }
 
 func (s *server) SendMessageBidi(stream pb.MessageService_SendMessageBidiServer) error {
-	s.logger.Debugf("[server] starting send message bidi stream...")
+	s.logger.Debugf("[grpc/server] starting send message bidi stream...")
 	// 收集上行数据到 buffer（注意：若 payload 极大，这里会占用内存）
 	var buf bytes.Buffer
 	var msgType, clientID string
@@ -224,7 +224,7 @@ func (s *server) SendMessageBidi(stream pb.MessageService_SendMessageBidiServer)
 	if chunkSize <= 0 {
 		chunkSize = 4096 // 默认分块大小 4KB
 	}
-	s.logger.Debugf("[server] using chunk size: %d", chunkSize)
+	s.logger.Debugf("[grpc/server] using chunk size: %d", chunkSize)
 
 	var outSeq int32 = 0
 	total := len(resp.Message)
@@ -265,7 +265,7 @@ type ServerControl struct {
 }
 
 func NewServerControl(control *Control) error {
-	control.logger.Infof("[server] start new server control...")
+	control.logger.Infof("[grpc/server] start new server control...")
 	var gServer *grpc.Server
 	serverConfig := control.config.Server
 	opts := []grpc.ServerOption{
@@ -273,7 +273,7 @@ func NewServerControl(control *Control) error {
 		grpc.MaxSendMsgSize(serverConfig.MaxSendMsgSize),
 	}
 	if control.tracerControl != nil {
-		control.logger.Debugf("[server] starting server with tracer...")
+		control.logger.Debugf("[grpc/server] starting server with tracer...")
 		opts = append(opts, grpc.StatsHandler(
 			otelgrpc.NewServerHandler(
 				otelgrpc.WithTracerProvider(control.tracerControl.TracerProvider()),
@@ -283,7 +283,7 @@ func NewServerControl(control *Control) error {
 	}
 	if serverConfig.TlsEnabled {
 		if serverConfig.TlsGM {
-			control.logger.Debugf("[server] generate gm tls grpc server...")
+			control.logger.Debugf("[grpc/server] generate gm tls grpc server...")
 
 			gmTlsConfig := &gmtls.Config{
 				GMSupport: &gmtls.GMSupport{
@@ -299,11 +299,11 @@ func NewServerControl(control *Control) error {
 
 			// 检查证书和密钥文件数量是否匹配且至少有两对
 			if len(certFiles) != len(keyFiles) {
-				control.logger.Errorf("[server] GM模式证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(certFiles), len(keyFiles))
+				control.logger.Errorf("[grpc/server] GM模式证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(certFiles), len(keyFiles))
 				return ErrNoCACert
 			}
 			if len(certFiles) < 2 {
-				control.logger.Errorf("[server] GM模式至少需要两套keypair（签名和加密），当前只有 %d 套", len(certFiles))
+				control.logger.Errorf("[grpc/server] GM模式至少需要两套keypair（签名和加密），当前只有 %d 套", len(certFiles))
 				return ErrNoCACert
 			}
 
@@ -318,13 +318,13 @@ func NewServerControl(control *Control) error {
 			// 验证文件路径不为空
 			for i, file := range certFiles {
 				if stringer.IsBlank(file) {
-					control.logger.Errorf("[server] 第%d个证书文件路径为空", i+1)
+					control.logger.Errorf("[grpc/server] 第%d个证书文件路径为空", i+1)
 					return ErrEmptyCertPath
 				}
 			}
 			for i, file := range keyFiles {
 				if stringer.IsBlank(file) {
-					control.logger.Errorf("[server] 第%d个密钥文件路径为空", i+1)
+					control.logger.Errorf("[grpc/server] 第%d个密钥文件路径为空", i+1)
 					return ErrEmptyKeyPath
 				}
 			}
@@ -334,16 +334,16 @@ func NewServerControl(control *Control) error {
 			for i := 0; i < len(certFiles); i++ {
 				cert, err := gmtls.LoadX509KeyPair(certFiles[i], keyFiles[i])
 				if err != nil {
-					control.logger.Errorf("[server] 加载第%d套GM TLS证书失败: %v", i+1, err)
+					control.logger.Errorf("[grpc/server] 加载第%d套GM TLS证书失败: %v", i+1, err)
 					return err
 				}
 				certificates = append(certificates, cert)
-				control.logger.Debugf("[server] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
+				control.logger.Debugf("[grpc/server] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
 			}
 
 			// 设置证书到GM TLS配置
 			gmTlsConfig.Certificates = certificates
-			control.logger.Infof("[server] 成功加载GM模式 %d 套keypair", len(certificates))
+			control.logger.Infof("[grpc/server] 成功加载GM模式 %d 套keypair", len(certificates))
 
 			// 加载并配置CA证书用于验证客户端证书
 			rootCaCertFile := serverConfig.TlsRCACertFile
@@ -351,20 +351,20 @@ func NewServerControl(control *Control) error {
 				caCertPool := gmx509.NewCertPool()
 				caCert, err := os.ReadFile(rootCaCertFile)
 				if err != nil {
-					control.logger.Errorf("[server] failed to read CA cert file: %v", err)
+					control.logger.Errorf("[grpc/server] failed to read CA cert file: %v", err)
 					return err
 				}
 				if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-					control.logger.Errorf("[server] failed to append CA cert to pool")
+					control.logger.Errorf("[grpc/server] failed to append CA cert to pool")
 					return ErrFailAppendCert
 				}
 				// 要求并验证客户端证书 - 双向TLS的关键设置
 				gmTlsConfig.ClientCAs = caCertPool
 				gmTlsConfig.ClientAuth = gmtls.RequireAndVerifyClientCert
 				// gmTlsConfig.ClientAuth = gmtls.VerifyClientCertIfGiven
-				control.logger.Debugf("[server] mutual TLS enabled with client certificate verification")
+				control.logger.Debugf("[grpc/server] mutual TLS enabled with client certificate verification")
 			} else {
-				control.logger.Warnf("[server] CA cert file is not configured for mutual TLS")
+				control.logger.Warnf("[grpc/server] CA cert file is not configured for mutual TLS")
 				return ErrNoCACert
 			}
 
@@ -380,7 +380,7 @@ func NewServerControl(control *Control) error {
 
 			gServer = grpc.NewServer(opts...)
 		} else {
-			control.logger.Debugf("[server] generate tls grpc server...")
+			control.logger.Debugf("[grpc/server] generate tls grpc server...")
 
 			// 为双向TLS验证创建正确的配置
 			tlsConfig := &tls.Config{
@@ -404,11 +404,11 @@ func NewServerControl(control *Control) error {
 
 			// 验证证书和密钥文件数量匹配
 			if len(serverConfig.TlsCertFile) != len(serverConfig.TlsKeyFile) {
-				control.logger.Errorf("[server] TLS证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(control.config.Server.TlsCertFile), len(control.config.Server.TlsKeyFile))
+				control.logger.Errorf("[grpc/server] TLS证书和密钥文件数量必须匹配，当前证书数量: %d, 密钥数量: %d", len(control.config.Server.TlsCertFile), len(control.config.Server.TlsKeyFile))
 				return fmt.Errorf("TLS证书和密钥文件数量必须匹配")
 			}
 			if len(serverConfig.TlsCertFile) == 0 {
-				control.logger.Error("[server] TLS至少需要一对证书和密钥文件")
+				control.logger.Error("[grpc/server] TLS至少需要一对证书和密钥文件")
 				return errors.New("TLS至少需要一对证书和密钥文件")
 			}
 
@@ -419,23 +419,23 @@ func NewServerControl(control *Control) error {
 				keyFile := strings.TrimSpace(serverConfig.TlsKeyFile[i])
 
 				if stringer.IsBlank(certFile) {
-					control.logger.Errorf("[server] 第%d个TLS证书文件路径为空", i+1)
+					control.logger.Errorf("[grpc/server] 第%d个TLS证书文件路径为空", i+1)
 					return fmt.Errorf("第%d个TLS证书文件路径为空", i+1)
 				}
 				if stringer.IsBlank(keyFile) {
-					control.logger.Errorf("[server] 第%d个TLS密钥文件路径为空", i+1)
+					control.logger.Errorf("[grpc/server] 第%d个TLS密钥文件路径为空", i+1)
 					return fmt.Errorf("第%d个TLS密钥文件路径为空", i+1)
 				}
 
 				cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 				if err != nil {
-					control.logger.Errorf("[server] 加载第%d套TLS证书失败: %v", i+1, err)
+					control.logger.Errorf("[grpc/server] 加载第%d套TLS证书失败: %v", i+1, err)
 					return fmt.Errorf("加载第%d套TLS证书失败: %v", i+1, err)
 				}
 				certificates = append(certificates, cert)
 			}
 			tlsConfig.Certificates = certificates
-			control.logger.Infof("[server] 成功加载 %d 套TLS证书", len(certificates))
+			control.logger.Infof("[grpc/server] 成功加载 %d 套TLS证书", len(certificates))
 
 			// 加载并配置CA证书用于验证客户端证书
 			rootCaCertFile := serverConfig.TlsRCACertFile
@@ -443,20 +443,20 @@ func NewServerControl(control *Control) error {
 				caCertPool := x509.NewCertPool()
 				caCert, err := os.ReadFile(rootCaCertFile)
 				if err != nil {
-					control.logger.Errorf("[server] failed to read CA cert file: %v", err)
+					control.logger.Errorf("[grpc/server] failed to read CA cert file: %v", err)
 					return err
 				}
 				if ok := caCertPool.AppendCertsFromPEM(caCert); !ok {
-					control.logger.Errorf("[server] failed to append CA cert to pool")
+					control.logger.Errorf("[grpc/server] failed to append CA cert to pool")
 					return ErrFailAppendCert
 				}
 				// 要求并验证客户端证书 - 双向TLS的关键设置
 				tlsConfig.ClientCAs = caCertPool
 				tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 				// tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven
-				control.logger.Debugf("[server] mutual TLS enabled with client certificate verification")
+				control.logger.Debugf("[grpc/server] mutual TLS enabled with client certificate verification")
 			} else {
-				control.logger.Warnf("[server] CA cert file is not configured for mutual TLS")
+				control.logger.Warnf("[grpc/server] CA cert file is not configured for mutual TLS")
 				return ErrNoCACert
 			}
 
@@ -473,7 +473,7 @@ func NewServerControl(control *Control) error {
 			gServer = grpc.NewServer(opts...)
 		}
 	} else {
-		control.logger.Debugf("[server] generate no tls grpc server...")
+		control.logger.Debugf("[grpc/server] generate no tls grpc server...")
 		gServer = grpc.NewServer(opts...)
 	}
 
@@ -494,10 +494,10 @@ func NewServerControl(control *Control) error {
 }
 
 func (s *ServerControl) StartUp(failedFunc func(err error)) {
-	s.logger.Infof("[server] start grpc server on %v", s.Config.Host)
+	s.logger.Infof("[grpc/server] start grpc server on %v", s.Config.Host)
 	listen, err := net.Listen("tcp", s.Config.Host)
 	if err != nil {
-		s.logger.Errorf("[server] grpc generate listener failed: %v", err)
+		s.logger.Errorf("[grpc/server] grpc generate listener failed: %v", err)
 		if failedFunc != nil {
 			failedFunc(err)
 		}
@@ -505,7 +505,7 @@ func (s *ServerControl) StartUp(failedFunc func(err error)) {
 	}
 	go func() {
 		if err := s.gServer.Serve(listen); err != nil {
-			s.logger.Errorf("[server] grpc server start failed: %v", err)
+			s.logger.Errorf("[grpc/server] grpc server start failed: %v", err)
 			if failedFunc != nil {
 				failedFunc(err)
 			}
@@ -515,11 +515,11 @@ func (s *ServerControl) StartUp(failedFunc func(err error)) {
 }
 
 func (s *ServerControl) Stop() {
-	s.logger.Infof("[server] grpc server stop...")
+	s.logger.Infof("[grpc/server] grpc server stop...")
 	s.gServer.Stop()
 }
 
 func (s *ServerControl) GracefulStop() {
-	s.logger.Infof("[server] grpc server graceful stop...")
+	s.logger.Infof("[grpc/server] grpc server graceful stop...")
 	s.gServer.GracefulStop()
 }

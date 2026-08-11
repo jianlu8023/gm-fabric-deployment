@@ -29,14 +29,14 @@ func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int, trust
 	rateStr := fmt.Sprintf("%d-S", rps)
 	rate, err := limiter.NewRateFromFormatted(rateStr)
 	if err != nil {
-		logger.Errorf("[RateLimit] Failed to create rate: %v", err)
+		logger.Errorf("[http/Ulule] Failed to create rate: %v", err)
 		// 回退到基本配置
 		rate = limiter.Rate{Period: time.Second, Limit: rps}
 	}
 
 	// 只使用内存存储
 	store := memory.NewStore()
-	logger.Info("[RateLimit] Using memory store for rate limiting")
+	logger.Info("[http/Ulule] Using memory store for rate limiting")
 
 	// 创建限流器实例
 	limiterInstance := limiter.New(store, rate)
@@ -68,7 +68,7 @@ func EnableRateLimitUlule(logger *zap.SugaredLogger, rps int64, burst int, trust
 		// 如果请求被限流，记录日志
 		if ctx.IsAborted() && ctx.Writer.Status() == http.StatusTooManyRequests {
 			clientIP := iphelper.GetClientIP(ctx, trustedProxies)
-			logger.Warnf("[RateLimit] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			logger.Warnf("[http/Ulule] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			span.SetStatus(codes.Error, "Too many requests")
 			return
 		}

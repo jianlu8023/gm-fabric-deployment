@@ -38,7 +38,7 @@ import (
 // - 如果配置了ContextPath，则会作为前缀添加
 // - 自动处理路径分隔符，避免重复的'/'
 func (c *Control) initRouters() {
-	c.logger.Info("[control] start init routers...")
+	c.logger.Info("[http/control] start init routers...")
 
 	c.registerDefaultRouter()
 
@@ -66,7 +66,7 @@ func (c *Control) initRouters() {
 		// 获取该组的中间件
 		middlewares := groupRouter.GetMiddlewares()
 
-		c.logger.Debugf("[control] processing router group: %s with %d routers and %d middlewares", groupName, len(routers), len(middlewares))
+		c.logger.Debugf("[http/control] processing router group: %s with %d routers and %d middlewares", groupName, len(routers), len(middlewares))
 
 		// 获取或创建该组的主路由组
 		var mainGroup *gin.RouterGroup
@@ -118,7 +118,7 @@ func (c *Control) initRouters() {
 				mainGroup.Use(middleware)
 			}
 			ginRouterGroups[groupName] = mainGroup
-			c.logger.Debugf("[control] created new gin router group: %s with full path: %s", groupName, fullPath)
+			c.logger.Debugf("[http/control] created new gin router group: %s with full path: %s", groupName, fullPath)
 		}
 
 		// 为当前组创建认证、可选认证和非认证子组
@@ -138,13 +138,13 @@ func (c *Control) initRouters() {
 		for _, router := range routers {
 			switch {
 			case router.GetEnableAuth():
-				c.logger.Debugf("[control] register router uri %s method %s in %s auth group", router.GetUri(), router.GetMethod(), groupName)
+				c.logger.Debugf("[http/control] register router uri %s method %s in %s auth group", router.GetUri(), router.GetMethod(), groupName)
 				c.registerRouter(authGroup, router)
 			case router.GetEnableAuthOptional():
-				c.logger.Debugf("[control] register router uri %s method %s in %s auth-optional group", router.GetUri(), router.GetMethod(), groupName)
+				c.logger.Debugf("[http/control] register router uri %s method %s in %s auth-optional group", router.GetUri(), router.GetMethod(), groupName)
 				c.registerRouter(authOptionalGroup, router)
 			default:
-				c.logger.Debugf("[control] register router uri %s method %s in %s no-auth group", router.GetUri(), router.GetMethod(), groupName)
+				c.logger.Debugf("[http/control] register router uri %s method %s in %s no-auth group", router.GetUri(), router.GetMethod(), groupName)
 				c.registerRouter(noAuthGroup, router)
 			}
 		}
@@ -226,14 +226,14 @@ func (c *Control) initRouters() {
 // registerDefaultRouter 注册默认路由处理器
 // @description 注册404(路径不存在)和405(方法不允许)的默认处理函数
 func (c *Control) registerDefaultRouter() {
-	c.logger.Debug("[control] register default router (NoRoute and NoMethod)...")
+	c.logger.Debug("[http/control] register default router (NoRoute and NoMethod)...")
 	{
 		// 首先注册NoMethod处理器（方法不允许）
 		// NoMethod应该在NoRoute之前注册，以确保当路径存在但方法不支持时能正确返回405
 		c.ginRouter.NoMethod(func(ctx *gin.Context) {
 			_, span := tracer.StartSpan(ctx.Request.Context(), "ginRouter", "noMethod")
 			defer span.End()
-			c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
+			c.logger.Warnf("[http/control] 405 Method Not Allowed: %s %s", ctx.Request.Method, ctx.Request.URL.Path)
 			ctx.JSON(http.StatusMethodNotAllowed, commonhttp.BaseResponse{
 				Code:    http.StatusMethodNotAllowed,
 				Message: "业务处理失败",
@@ -257,7 +257,7 @@ func (c *Control) registerDefaultRouter() {
 				// 路由存在，检查请求方法是否允许
 				if !methods[requestMethod] {
 					// 路由存在，但请求方法不匹配 -> 405
-					c.logger.Warnf("[control] 405 Method Not Allowed: %s %s", requestMethod, requestPath)
+					c.logger.Warnf("[http/control] 405 Method Not Allowed: %s %s", requestMethod, requestPath)
 					msg := fmt.Sprintf("Router %s Not Allow %s Method", requestPath, requestMethod)
 					ctx.JSON(http.StatusMethodNotAllowed, commonhttp.BaseResponse{
 						Code:    http.StatusMethodNotAllowed,
@@ -270,7 +270,7 @@ func (c *Control) registerDefaultRouter() {
 			}
 
 			// 路由不存在
-			c.logger.Warnf("[control] 404 Not Found: %s %s", requestMethod, requestPath)
+			c.logger.Warnf("[http/control] 404 Not Found: %s %s", requestMethod, requestPath)
 			msg := fmt.Sprintf("Router %s Not Found", requestPath)
 			ctx.JSON(http.StatusNotFound, commonhttp.BaseResponse{
 				Code:    http.StatusNotFound,
@@ -305,7 +305,7 @@ func (c *Control) registerDefaultRouter() {
 
 	// 如果启用了pprof，则注册pprof路由
 	if c.config.Pprof {
-		c.logger.Info("[control] pprof enabled, registering pprof routes")
+		c.logger.Info("[http/control] pprof enabled, registering pprof routes")
 		pprofUri := fmt.Sprintf("%s", "debug/pprof")
 		c.RegisterGroupedRouter(&commonhttp.MyGroupRouter{
 			Group: pprofUri,
@@ -423,7 +423,7 @@ func (c *Control) registerDefaultRouter() {
 		})
 	}
 
-	c.logger.Debug("[control] default router registered successfully")
+	c.logger.Debug("[http/control] default router registered successfully")
 }
 
 // deduplicateRouters 去重路由组中的重复路由
@@ -435,7 +435,7 @@ func (c *Control) registerDefaultRouter() {
 // 3. 如果存在重复，则创建一个只包含唯一路由的新列表
 // 4. 使用新的唯一路由列表替换原有的路由组
 func (c *Control) deduplicateRouters() {
-	c.logger.Debug("[control] starting deduplicate routers...")
+	c.logger.Debug("[http/control] starting deduplicate routers...")
 
 	// routerGroups 每个组都进行去重
 
@@ -447,7 +447,7 @@ func (c *Control) deduplicateRouters() {
 		value := iter.Value()
 		groupName := value.Key
 		groupRouter := value.Value
-		c.logger.Debugf("[control] deduplicating routers in group: %s", groupName)
+		c.logger.Debugf("[http/control] deduplicating routers in group: %s", groupName)
 
 		// 获取该组的所有路由
 		routers := groupRouter.GetRouterHandler()
@@ -474,7 +474,7 @@ func (c *Control) deduplicateRouters() {
 
 		// 如果没有重复路由，直接跳过后续处理
 		if !hasDuplicates {
-			c.logger.Debugf("[control] no duplicate routers found in group: %s", groupName)
+			c.logger.Debugf("[http/control] no duplicate routers found in group: %s", groupName)
 			continue
 		}
 
@@ -487,15 +487,15 @@ func (c *Control) deduplicateRouters() {
 			if !seenRouters[key] {
 				seenRouters[key] = true
 				uniqueRouters = append(uniqueRouters, router)
-				c.logger.Debugf("[control] added unique router: %s %s", router.GetMethod(), router.GetUri())
+				c.logger.Debugf("[http/control] added unique router: %s %s", router.GetMethod(), router.GetUri())
 			} else {
-				c.logger.Debugf("[control] skipped duplicate router: %s %s", router.GetMethod(), router.GetUri())
+				c.logger.Debugf("[http/control] skipped duplicate router: %s %s", router.GetMethod(), router.GetUri())
 			}
 		}
 
 		// 创建新的组路由器替换原有的
 		dupCount := routerCount - len(uniqueRouters)
-		c.logger.Debugf("[control] removed %d duplicate routers from group: %s", dupCount, groupName)
+		c.logger.Debugf("[http/control] removed %d duplicate routers from group: %s", dupCount, groupName)
 
 		newGroupRouter := &commonhttp.MyGroupRouter{
 			Group:           groupRouter.GetGroup(),
@@ -567,7 +567,7 @@ func (c *Control) deduplicateRouters() {
 	// 	c.routerGroups[groupName] = newGroupRouter
 	// }
 
-	c.logger.Debug("[control] finished deduplicate routers...")
+	c.logger.Debug("[http/control] finished deduplicate routers...")
 }
 
 // buildRouteIndex 构建路由索引
@@ -575,7 +575,7 @@ func (c *Control) deduplicateRouters() {
 // 索引结构为: path -> method -> bool (表示该路径是否支持该HTTP方法)
 // 用于优化 NoRoute 处理器的性能，避免每次404请求都遍历所有路由
 func (c *Control) buildRouteIndex() {
-	c.logger.Debug("[control] building route index...")
+	c.logger.Debug("[http/control] building route index...")
 
 	routeIndex := make(map[string]map[string]bool)
 
@@ -609,7 +609,7 @@ func (c *Control) buildRouteIndex() {
 	}
 
 	c.routeIndex = routeIndex
-	c.logger.Debugf("[control] route index built: %d unique paths", len(routeIndex))
+	c.logger.Debugf("[http/control] route index built: %d unique paths", len(routeIndex))
 
 }
 
@@ -698,7 +698,7 @@ func (c *Control) validateRouters(routers []commonhttp.RouterHandler) error {
 // @description 注册所有HTTP服务器的中间件，包括日志、恢复、IP过滤、安全、限流等
 // @param engine *gin.Engine Gin引擎实例
 func (c *Control) registerMiddlewares(engine *gin.Engine) {
-	c.logger.Info("[control] register gin middleware...")
+	c.logger.Info("[http/control] register gin middleware...")
 
 	// 解析可信代理配置，仅当 RemoteAddr 命中可信代理网段时才信任 X-Forwarded-For / X-Real-IP 头
 	// 未配置时 trustedProxiesCIDRList 为 nil，GetClientIP 将仅使用 RemoteAddr，防止 XFF 头被伪造
@@ -708,10 +708,10 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 		len(c.config.TrustedProxies.IPs) > 0 {
 		cidrList, err := iphelper.NewCIDRList(c.config.TrustedProxies.IPs)
 		if err != nil {
-			c.logger.Errorf("[control] failed to parse trusted proxies config: %v, X-Forwarded-For will be ignored", err)
+			c.logger.Errorf("[http/control] failed to parse trusted proxies config: %v, X-Forwarded-For will be ignored", err)
 		} else {
 			trustedProxiesCIDRList = cidrList
-			c.logger.Infof("[control] trusted proxies enabled with %d entries", len(c.config.TrustedProxies.IPs))
+			c.logger.Infof("[http/control] trusted proxies enabled with %d entries", len(c.config.TrustedProxies.IPs))
 		}
 	}
 
@@ -738,7 +738,7 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 	if c.config.IPWhiteList != nil &&
 		c.config.IPWhiteList.Enabled &&
 		len(c.config.IPWhiteList.IPs) > 0 {
-		c.logger.Debugf("[control] register IP white list middleware with %d IPs", len(c.config.IPWhiteList.IPs))
+		c.logger.Debugf("[http/control] register IP white list middleware with %d IPs", len(c.config.IPWhiteList.IPs))
 		engine.Use(ipwhitelist.EnableIPWhiteList(c.logger, c.config.IPWhiteList.IPs, trustedProxiesCIDRList))
 	}
 
@@ -746,7 +746,7 @@ func (c *Control) registerMiddlewares(engine *gin.Engine) {
 	if c.config.IPBlackList != nil &&
 		c.config.IPBlackList.Enabled &&
 		len(c.config.IPBlackList.IPs) > 0 {
-		c.logger.Debugf("[control] register IP black list middleware with %d IPs", len(c.config.IPBlackList.IPs))
+		c.logger.Debugf("[http/control] register IP black list middleware with %d IPs", len(c.config.IPBlackList.IPs))
 		engine.Use(ipblacklist.EnableIPBlackList(c.logger, c.config.IPBlackList.IPs, trustedProxiesCIDRList))
 	}
 

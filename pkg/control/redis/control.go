@@ -48,8 +48,9 @@ func NewRedisControl(redisConfig *config.RedisConfig, loggerControl *logger.Cont
 		}),
 		loggerControl,
 	)
-	redisLogger := loggerControl.GenLogger(logger.ModuleRedis)
-	redisLogger.Infof("[control] starting new redis control...")
+	// redisLogger := loggerControl.GenLogger(logger.ModuleRedis)
+	redisLogger := loggerControl.GenLogger("")
+	redisLogger.Infof("[redis/control] starting new redis control...")
 
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -67,7 +68,7 @@ func NewRedisControl(redisConfig *config.RedisConfig, loggerControl *logger.Cont
 		opt(rc)
 	}
 
-	redisLogger.Infof("[control] redis control started successfully")
+	redisLogger.Infof("[redis/control] redis control started successfully")
 	return rc
 }
 
@@ -75,7 +76,7 @@ func NewRedisControl(redisConfig *config.RedisConfig, loggerControl *logger.Cont
 // @description 初始化Redis客户端连接
 // @return error 初始化过程中的错误
 func (rc *Control) initClient() error {
-	rc.logger.Debugf("[control] initializing redis client...")
+	rc.logger.Debugf("[redis/control] initializing redis client...")
 
 	// 创建Redis客户端
 	rc.client = redis.NewClient(&redis.Options{
@@ -92,13 +93,13 @@ func (rc *Control) initClient() error {
 			redisotel.WithCallerEnabled(true),
 			redisotel.WithDBStatement(true),
 		); err != nil {
-			rc.logger.Errorf("[control] failed to instrument tracing for redis client: %v", err)
+			rc.logger.Errorf("[redis/control] failed to instrument tracing for redis client: %v", err)
 			return err
 		}
 		if err := redisotel.InstrumentMetrics(rc.client,
 			redisotel.WithMeterProvider(rc.tracerControl.MeterProvider()),
 		); err != nil {
-			rc.logger.Errorf("[control] failed to instrument metrics for redis client: %v", err)
+			rc.logger.Errorf("[redis/control] failed to instrument metrics for redis client: %v", err)
 			return err
 		}
 	}
@@ -114,7 +115,7 @@ func (rc *Control) StartUp(failedFunc func(err error)) {
 		if rc.config.Enabled {
 			// 初始化Redis客户端
 			if err := rc.initClient(); err != nil {
-				rc.logger.Errorf("[control] redis initialization client failed: %v", err)
+				rc.logger.Errorf("[redis/control] redis initialization client failed: %v", err)
 				rc.cancel()
 				if failedFunc != nil {
 					failedFunc(err)
@@ -122,18 +123,18 @@ func (rc *Control) StartUp(failedFunc func(err error)) {
 				return
 			}
 
-			rc.logger.Debugf("[control] redis service is already running...")
+			rc.logger.Debugf("[redis/control] redis service is already running...")
 			// 测试连接
 			_, err := rc.client.Ping(rc.ctx).Result()
 			if err != nil {
-				rc.logger.Errorf("[control] failed to connect to redis: %v", err)
+				rc.logger.Errorf("[redis/control] failed to connect to redis: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
 				return
 			}
 
-			rc.logger.Infof("[control] connected to redis successfully")
+			rc.logger.Infof("[redis/control] connected to redis successfully")
 		}
 	})
 }
@@ -142,15 +143,15 @@ func (rc *Control) StartUp(failedFunc func(err error)) {
 // @description 关闭Redis客户端连接并释放资源
 // @return error 关闭过程中的错误
 func (rc *Control) Shutdown() error {
-	rc.logger.Infof("[control] shutting down redis control...")
+	rc.logger.Infof("[redis/control] shutting down redis control...")
 	rc.cancel()
 	if rc.client != nil {
 		if err := rc.client.Close(); err != nil {
-			rc.logger.Errorf("[control] failed to close redis client: %v", err)
+			rc.logger.Errorf("[redis/control] failed to close redis client: %v", err)
 			return err
 		}
 	}
-	rc.logger.Infof("[control] redis control shutdown successfully")
+	rc.logger.Infof("[redis/control] redis control shutdown successfully")
 	return nil
 }
 
@@ -174,11 +175,11 @@ func (rc *Control) Set(key string, value interface{}, expiration time.Duration) 
 
 	err := rc.client.Set(rc.ctx, key, value, expiration).Err()
 	if err != nil {
-		rc.logger.Errorf("[control] failed to set key %s: %v", key, err)
+		rc.logger.Errorf("[redis/control] failed to set key %s: %v", key, err)
 		return err
 	}
 
-	rc.logger.Debugf("[control] set key %s successfully", key)
+	rc.logger.Debugf("[redis/control] set key %s successfully", key)
 	return nil
 }
 
@@ -195,14 +196,14 @@ func (rc *Control) Get(key string) (string, error) {
 	value, err := rc.client.Get(rc.ctx, key).Result()
 	if err != nil {
 		if errors.Is(err, redis.Nil) {
-			rc.logger.Debugf("[control] key %s does not exist", key)
+			rc.logger.Debugf("[redis/control] key %s does not exist", key)
 		} else {
-			rc.logger.Errorf("[control] failed to get key %s: %v", key, err)
+			rc.logger.Errorf("[redis/control] failed to get key %s: %v", key, err)
 		}
 		return "", err
 	}
 
-	rc.logger.Debugf("[control] get key %s successfully", key)
+	rc.logger.Debugf("[redis/control] get key %s successfully", key)
 	return value, nil
 }
 
@@ -218,11 +219,11 @@ func (rc *Control) Delete(keys ...string) (int64, error) {
 
 	count, err := rc.client.Del(rc.ctx, keys...).Result()
 	if err != nil {
-		rc.logger.Errorf("[control] failed to delete keys %v: %v", keys, err)
+		rc.logger.Errorf("[redis/control] failed to delete keys %v: %v", keys, err)
 		return 0, err
 	}
 
-	rc.logger.Debugf("[control] deleted %d keys successfully", count)
+	rc.logger.Debugf("[redis/control] deleted %d keys successfully", count)
 	return count, nil
 }
 
@@ -238,11 +239,11 @@ func (rc *Control) Exists(keys ...string) (int64, error) {
 
 	count, err := rc.client.Exists(rc.ctx, keys...).Result()
 	if err != nil {
-		rc.logger.Errorf("[control] failed to check existence of keys %v: %v", keys, err)
+		rc.logger.Errorf("[redis/control] failed to check existence of keys %v: %v", keys, err)
 		return 0, err
 	}
 
-	rc.logger.Debugf("[control] checked existence of keys, %d keys exist", count)
+	rc.logger.Debugf("[redis/control] checked existence of keys, %d keys exist", count)
 	return count, nil
 }
 
@@ -259,11 +260,11 @@ func (rc *Control) Expire(key string, expiration time.Duration) (bool, error) {
 
 	result, err := rc.client.Expire(rc.ctx, key, expiration).Result()
 	if err != nil {
-		rc.logger.Errorf("[control] failed to set expiration for key %s: %v", key, err)
+		rc.logger.Errorf("[redis/control] failed to set expiration for key %s: %v", key, err)
 		return false, err
 	}
 
-	rc.logger.Debugf("[control] set expiration for key %s successfully", key)
+	rc.logger.Debugf("[redis/control] set expiration for key %s successfully", key)
 	return result, nil
 }
 
@@ -279,10 +280,10 @@ func (rc *Control) TTL(key string) (time.Duration, error) {
 
 	duration, err := rc.client.TTL(rc.ctx, key).Result()
 	if err != nil {
-		rc.logger.Errorf("[control] failed to get TTL for key %s: %v", key, err)
+		rc.logger.Errorf("[redis/control] failed to get TTL for key %s: %v", key, err)
 		return 0, err
 	}
 
-	rc.logger.Debugf("[control] got TTL for key %s: %v", key, duration)
+	rc.logger.Debugf("[redis/control] got TTL for key %s: %v", key, duration)
 	return duration, nil
 }

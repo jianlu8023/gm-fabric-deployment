@@ -43,8 +43,9 @@ func NewAIControl(aiConfig *config.AIConfig, loggerControl *logger.Control) (*Co
 		loggerControl,
 	)
 
-	aiLogger := loggerControl.GenLogger(logger.ModuleAI)
-	aiLogger.Infof("[control] starting new ai control...")
+	// aiLogger := loggerControl.GenLogger(logger.ModuleAI)
+	aiLogger := loggerControl.GenLogger("")
+	aiLogger.Infof("[ai/control] starting new ai control...")
 
 	// 创建HTTP客户端
 	client := http.NewClient().
@@ -53,7 +54,7 @@ func NewAIControl(aiConfig *config.AIConfig, loggerControl *logger.Control) (*Co
 		SetRetry(3, 500, 2000)
 
 	// 创建TOON编码器
-	toonEncoder := NewToonEncoder(loggerControl.GenLogger("Toon"))
+	toonEncoder := NewToonEncoder(loggerControl.GenLogger(""))
 
 	ctl := &Control{
 		aiConfig:   aiConfig,
@@ -75,7 +76,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 		return nil, ErrAIServiceDisabled
 	}
 
-	c.logger.Debugf("[control] preparing to send ai request...")
+	c.logger.Debugf("[ai/control] preparing to send ai request...")
 
 	// 验证必填字段
 	if stringer.IsBlank(request.Model) {
@@ -134,7 +135,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 					// Content是JSON格式，可以转换为TOON
 					toonStr, err := c.toonEncode.EncodeToToon(contentData)
 					if err != nil {
-						c.logger.Warnf("[control] failed to encode message content to TOON format, using original: %v", err)
+						c.logger.Warnf("[ai/control] failed to encode message content to TOON format, using original: %v", err)
 						convertedMessages[i].Content = msg.Content
 					} else {
 						// 记录大小差异
@@ -143,7 +144,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 						toonSize := len(toonStr)
 						reduction := float64(jsonSize-toonSize) / float64(jsonSize) * 100
 
-						c.logger.Infof("[control] message content token usage reduction - JSON: %d bytes, TOON: %d bytes, reduction: %.2f%%",
+						c.logger.Infof("[ai/control] message content token usage reduction - JSON: %d bytes, TOON: %d bytes, reduction: %.2f%%",
 							jsonSize, toonSize, reduction)
 
 						convertedMessages[i].Content = toonStr
@@ -151,7 +152,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 				} else {
 					// Content是普通文本，不需要转换
 					convertedMessages[i].Content = msg.Content
-					c.logger.Debugf("[control] message content is plain text, no TOON conversion needed")
+					c.logger.Debugf("[ai/control] message content is plain text, no TOON conversion needed")
 				}
 			}
 			toonRequest.Messages = convertedMessages
@@ -164,7 +165,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 				// Prompt是JSON格式，可以转换为TOON
 				toonStr, err := c.toonEncode.EncodeToToon(promptData)
 				if err != nil {
-					c.logger.Warnf("[control] failed to encode prompt to TOON format, using JSON: %v", err)
+					c.logger.Warnf("[ai/control] failed to encode prompt to TOON format, using JSON: %v", err)
 				} else {
 					// 记录大小差异
 					promptJSON, _ := json.Marshal(promptData)
@@ -172,7 +173,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 					toonSize := len(toonStr)
 					reduction := float64(jsonSize-toonSize) / float64(jsonSize) * 100
 
-					c.logger.Infof("[control] prompt token usage reduction - JSON: %d bytes, TOON: %d bytes, reduction: %.2f%%",
+					c.logger.Infof("[ai/control] prompt token usage reduction - JSON: %d bytes, TOON: %d bytes, reduction: %.2f%%",
 						jsonSize, toonSize, reduction)
 
 					// 将TOON格式的内容设置到Prompt字段
@@ -180,7 +181,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 				}
 			} else {
 				// Prompt是普通字符串，不需要转换
-				c.logger.Debugf("[control] prompt is plain text, no TOON conversion needed")
+				c.logger.Debugf("[ai/control] prompt is plain text, no TOON conversion needed")
 			}
 		}
 
@@ -194,11 +195,11 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 	var err error
 	requestBody, err = json.Marshal(sendRequest)
 	if err != nil {
-		c.logger.Errorf("[control] failed to marshal request: %v", err)
+		c.logger.Errorf("[ai/control] failed to marshal request: %v", err)
 		return nil, err
 	}
 
-	c.logger.Debugf("[control] sending ai request to: %s, model: %s", url, request.Model)
+	c.logger.Debugf("[ai/control] sending ai request to: %s, model: %s", url, request.Model)
 
 	// 根据request.Stream和callback参数决定处理方式
 	if request.Stream {
@@ -218,7 +219,7 @@ func (c *Control) SendRequest(request *Request, callback StreamCallback) (*Respo
 		// 普通请求
 		if callback != nil {
 			// 普通请求但提供了callback
-			c.logger.Warnf("[control] callback provided for non-stream request, ignoring callback")
+			c.logger.Warnf("[ai/control] callback provided for non-stream request, ignoring callback")
 		}
 
 		return c.sendNormalRequest(url, headers, requestBody)
@@ -284,7 +285,7 @@ func (c *Control) sendStreamRequest(url string, headers map[string]string, reque
 // StartUp 启动AI服务
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
-		c.logger.Debugf("[control] starting up ai service...")
+		c.logger.Debugf("[ai/control] starting up ai service...")
 
 		// 验证配置
 		if c.aiConfig.Enabled {
@@ -297,23 +298,23 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			// }
 
 			if stringer.IsBlank(c.aiConfig.APIEndpoint) {
-				c.logger.Errorf("[control] ai service enabled but api endpoint is empty")
+				c.logger.Errorf("[ai/control] ai service enabled but api endpoint is empty")
 				if failedFunc != nil {
 					failedFunc(ErrMissingAPIEndpoint)
 				}
 				return
 			}
 
-			c.logger.Infof("[control] ai service started successfully")
+			c.logger.Infof("[ai/control] ai service started successfully")
 		} else {
-			c.logger.Warnf("[control] ai service is disabled")
+			c.logger.Warnf("[ai/control] ai service is disabled")
 		}
 	})
 }
 
 // Shutdown 关闭AI服务
 func (c *Control) Shutdown() error {
-	c.logger.Debugf("[control] shutting down ai service...")
+	c.logger.Debugf("[ai/control] shutting down ai service...")
 	// no-op
 	return nil
 }

@@ -2,6 +2,7 @@ package kvdatabase
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 
 	"github.com/dgraph-io/badger/v4"
 )
@@ -12,21 +13,23 @@ const (
 
 // Badger Badger数据库实现
 type Badger struct {
-	db *badger.DB
+	db     *badger.DB
+	logger *zap.SugaredLogger
 }
 
 // NewBadger4 创建Badger实例
 // @param path string 数据库路径
 // @return *Badger Badger实例
 // @return error 创建过程中的错误
-func NewBadger4(path string) (*Badger, error) {
+func NewBadger4(path string, logger *zap.SugaredLogger) (*Badger, error) {
 	db, err := badger.Open(badger.DefaultOptions(path))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open badger at %s: %v", path, err)
 	}
 
 	return &Badger{
-		db: db,
+		db:     db,
+		logger: logger,
 	}, nil
 }
 

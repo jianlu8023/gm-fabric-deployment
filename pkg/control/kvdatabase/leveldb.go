@@ -2,6 +2,7 @@ package kvdatabase
 
 import (
 	"fmt"
+	"go.uber.org/zap"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
@@ -13,21 +14,23 @@ const (
 
 // LevelDB LevelDB数据库实现
 type LevelDB struct {
-	db *leveldb.DB
+	db     *leveldb.DB
+	logger *zap.SugaredLogger
 }
 
 // NewLevelDB 创建LevelDB实例
 // @param path string 数据库路径
 // @return *LevelDB LevelDB实例
 // @return error 创建过程中的错误
-func NewLevelDB(path string) (*LevelDB, error) {
+func NewLevelDB(path string, logger *zap.SugaredLogger) (*LevelDB, error) {
 	db, err := leveldb.OpenFile(path, &opt.Options{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open leveldb at %s: %v", path, err)
 	}
 
 	return &LevelDB{
-		db: db,
+		db:     db,
+		logger: logger,
 	}, nil
 }
 

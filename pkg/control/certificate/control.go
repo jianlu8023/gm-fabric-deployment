@@ -53,7 +53,8 @@ func NewCertificateControl(certificateConfig *config.CertificateConfig, loggerCo
 		}),
 		loggerControl,
 	)
-	certificateLogger := loggerControl.GenLogger("[Cert]")
+	// certificateLogger := loggerControl.GenLogger("[Cert]")
+	certificateLogger := loggerControl.GenLogger("")
 
 	control := &Control{
 		config: certificateConfig,
@@ -70,7 +71,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 		if c.config.Enabled {
 			// 如果启用了证书功能，则自动生成根证书
 			if err := c.ensureRootCertificate(); err != nil {
-				c.logger.Errorf("[control] failed to ensure root certificate: %v", err)
+				c.logger.Errorf("[certificate/control] failed to ensure root certificate: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
@@ -83,7 +84,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // Shutdown 关闭证书控制器
 // @return error 关闭过程中的错误
 func (c *Control) Shutdown() error {
-	c.logger.Debugf("[control] shutdown certificate control...")
+	c.logger.Debugf("[certificate/control] shutdown certificate control...")
 	return nil
 }
 
@@ -100,7 +101,7 @@ func (c *Control) ensureRootCertificate() error {
 	// 如果根证书和私钥都存在，则不需要重新生成
 	if exists, err := path.FileExists(rootCertPath); err == nil && exists {
 		if exists, err := path.FileExists(rootKeyPath); err == nil && exists {
-			c.logger.Debugf("[control] root certificate already exists...")
+			c.logger.Debugf("[certificate/control] root certificate already exists...")
 			return nil
 		}
 	}
@@ -111,7 +112,7 @@ func (c *Control) ensureRootCertificate() error {
 	}
 
 	// 生成根证书
-	c.logger.Debugf("[control] starting generate root certificate...")
+	c.logger.Debugf("[certificate/control] starting generate root certificate...")
 	return c.GenerateRootCertificate("root", c.config.RootSubject, c.config.DefaultAlgo, "")
 }
 
@@ -185,7 +186,6 @@ func (c *Control) generateRSARootCertificate(name, subject string, certPath stri
 	}
 
 	if stringer.IsBlank(certPath) {
-
 		certPath = c.config.CertPath
 	}
 
@@ -197,7 +197,7 @@ func (c *Control) generateRSARootCertificate(name, subject string, certPath stri
 	}
 	defer func() {
 		if err := certOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} certOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} certOut file failed: %v", name, err)
 		}
 	}()
 
@@ -213,7 +213,7 @@ func (c *Control) generateRSARootCertificate(name, subject string, certPath stri
 	}
 	defer func() {
 		if err := keyOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
 
@@ -226,7 +226,7 @@ func (c *Control) generateRSARootCertificate(name, subject string, certPath stri
 		return fmt.Errorf("failed to write private key: %w", err)
 	}
 
-	c.logger.Debugf("[control] RSA root certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
+	c.logger.Debugf("[certificate/control] RSA root certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
 	return nil
 }
 
@@ -281,7 +281,7 @@ func (c *Control) generateECCRootCertificate(name, subject string, certPath stri
 	}
 	defer func() {
 		if err := certOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} certOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} certOut file failed: %v", name, err)
 		}
 	}()
 
@@ -298,7 +298,7 @@ func (c *Control) generateECCRootCertificate(name, subject string, certPath stri
 	}
 	defer func() {
 		if err := keyOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
 
@@ -311,7 +311,7 @@ func (c *Control) generateECCRootCertificate(name, subject string, certPath stri
 		return fmt.Errorf("failed to write private key: %w", err)
 	}
 
-	c.logger.Debugf("[control] ECC root certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
+	c.logger.Debugf("[certificate/control] ECC root certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
 	return nil
 }
 
@@ -369,7 +369,7 @@ func (c *Control) generateSM2RootCertificate(name, subject string, certPath stri
 	}
 	defer func() {
 		if err := certOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} certOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} certOut file failed: %v", name, err)
 		}
 	}()
 
@@ -392,7 +392,7 @@ func (c *Control) generateSM2RootCertificate(name, subject string, certPath stri
 	}
 	defer func() {
 		if err := keyOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
 
@@ -401,7 +401,7 @@ func (c *Control) generateSM2RootCertificate(name, subject string, certPath stri
 		return fmt.Errorf("failed to write private key: %w", err)
 	}
 
-	c.logger.Debugf("[control] SM2 root certificate generated cert: %s, key: %s", certFilePath, keyPath)
+	c.logger.Debugf("[certificate/control] SM2 root certificate generated cert: %s, key: %s", certFilePath, keyPath)
 	return nil
 }
 
@@ -554,7 +554,7 @@ func (c *Control) generateRSAIntermediateCertificate(name, subject, rootCertPath
 	}
 	defer func() {
 		if err := certOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} certOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} certOut file failed: %v", name, err)
 		}
 	}()
 
@@ -571,7 +571,7 @@ func (c *Control) generateRSAIntermediateCertificate(name, subject, rootCertPath
 	}
 	defer func() {
 		if err := keyOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
 
@@ -584,7 +584,7 @@ func (c *Control) generateRSAIntermediateCertificate(name, subject, rootCertPath
 		return fmt.Errorf("failed to write private key: %w", err)
 	}
 
-	c.logger.Debugf("[control] RSA intermediate certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
+	c.logger.Debugf("[certificate/control] RSA intermediate certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
 	return nil
 }
 
@@ -692,7 +692,7 @@ func (c *Control) generateECCIntermediateCertificate(name, subject, rootCertPath
 	}
 	defer func() {
 		if err := certOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} certOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} certOut file failed: %v", name, err)
 		}
 	}()
 
@@ -709,7 +709,7 @@ func (c *Control) generateECCIntermediateCertificate(name, subject, rootCertPath
 	}
 	defer func(keyOut *os.File) {
 		if err := keyOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}(keyOut)
 
@@ -722,7 +722,7 @@ func (c *Control) generateECCIntermediateCertificate(name, subject, rootCertPath
 		return fmt.Errorf("failed to write private key: %w", err)
 	}
 
-	c.logger.Debugf("[control] ECC intermediate certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
+	c.logger.Debugf("[certificate/control] ECC intermediate certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
 	return nil
 }
 
@@ -820,7 +820,7 @@ func (c *Control) generateSM2IntermediateCertificate(name, subject, rootCertPath
 	}
 	defer func(certOut *os.File) {
 		if err := certOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} certOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} certOut file failed: %v", name, err)
 		}
 	}(certOut)
 
@@ -837,7 +837,7 @@ func (c *Control) generateSM2IntermediateCertificate(name, subject, rootCertPath
 	}
 	defer func(keyOut *os.File) {
 		if err := keyOut.Close(); err != nil {
-			c.logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			c.logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}(keyOut)
 
@@ -852,7 +852,7 @@ func (c *Control) generateSM2IntermediateCertificate(name, subject, rootCertPath
 		return fmt.Errorf("failed to write private key: %w", err)
 	}
 
-	c.logger.Debugf("[control] SM2 intermediate certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
+	c.logger.Debugf("[certificate/control] SM2 intermediate certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
 	return nil
 }
 
@@ -1032,7 +1032,7 @@ func (c *Control) generateRSALeafCertificate(name, subject, rootCertPath, rootKe
 		return err
 	}
 
-	c.logger.Debugf("[control] RSA leaf certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
+	c.logger.Debugf("[certificate/control] RSA leaf certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
 	return nil
 }
 
@@ -1158,7 +1158,7 @@ func (c *Control) generateECCLeafCertificate(name, subject, rootCertPath, rootKe
 		return err
 	}
 
-	c.logger.Debugf("[control] ECC leaf certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
+	c.logger.Debugf("[certificate/control] ECC leaf certificate generated cert: %s, key: %s", certFilePath, keyFilePath)
 	return nil
 }
 
@@ -1277,7 +1277,7 @@ func (c *Control) generateSM2LeafCertificate(name, subject, rootCertPath, rootKe
 		return err
 	}
 
-	c.logger.Infof("[control] SM2 leaf certificate generated: %s, key: %s", certFilePath, keyFilePath)
+	c.logger.Infof("[certificate/control] SM2 leaf certificate generated: %s, key: %s", certFilePath, keyFilePath)
 	return nil
 }
 

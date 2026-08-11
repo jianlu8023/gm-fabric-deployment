@@ -99,7 +99,7 @@ func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int, trus
 		rl, ok := limiter.(*CustomRateLimiter)
 		if !ok {
 			// 理论上不会发生，防御性检查
-			logger.Errorf("[RateLimit] Invalid limiter type for IP: %s", clientIP)
+			logger.Errorf("[http/Custom] Invalid limiter type for IP: %s", clientIP)
 			ctx.Next()
 			span.SetStatus(codes.Ok, "success")
 			return
@@ -107,11 +107,11 @@ func EnableCustomRateLimit(logger *zap.SugaredLogger, rps int64, burst int, trus
 
 		// 检查是否允许请求
 		if rl.Allow() {
-			logger.Debugf("[CustomRateLimit] Allowed request from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			logger.Debugf("[http/Custom] Allowed request from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.Next()
 			span.SetStatus(codes.Ok, "success")
 		} else {
-			logger.Warnf("[CustomRateLimit] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			logger.Warnf("[http/Custom] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.Header("X-RateLimit-Type", "custom")
 			ctx.JSON(http.StatusTooManyRequests, commonhttp.BaseResponse{
 				Code:    http.StatusTooManyRequests,

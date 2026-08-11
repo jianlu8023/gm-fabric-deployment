@@ -22,7 +22,7 @@ func AuthzMiddleware(control *Control) gin.HandlerFunc {
 		user := getUserFromContext(c)
 		if user == "" {
 			// 如果没有用户信息，拒绝访问
-			control.logger.Warnf("[authz] no user information found in request")
+			control.logger.Warnf("[http/authz] no user information found in request")
 			handleUnauthorized(c)
 			return
 		}
@@ -34,13 +34,13 @@ func AuthzMiddleware(control *Control) gin.HandlerFunc {
 		// 检查权限
 		ok, err := control.CheckPermission(user, obj, act)
 		if err != nil {
-			control.logger.Errorf("[authz] permission check error: %v", err)
+			control.logger.Errorf("[http/authz] permission check error: %v", err)
 			handleUnauthorized(c)
 			return
 		}
 
 		if !ok {
-			control.logger.Warnf("[authz] permission denied: user=%s, resource=%s, action=%s", user, obj, act)
+			control.logger.Warnf("[http/authz] permission denied: user=%s, resource=%s, action=%s", user, obj, act)
 			handleUnauthorized(c)
 			return
 		}
@@ -115,7 +115,7 @@ func AuthzRoleMiddleware(control *Control, requiredRoles ...string) gin.HandlerF
 		// 获取用户信息
 		user := getUserFromContext(c)
 		if user == "" {
-			control.logger.Warnf("[authz] no user information found in request")
+			control.logger.Warnf("[http/authz] no user information found in request")
 			handleUnauthorized(c)
 			return
 		}
@@ -123,7 +123,7 @@ func AuthzRoleMiddleware(control *Control, requiredRoles ...string) gin.HandlerF
 		// 获取用户的所有角色
 		roles, err := control.GetRolesForUser(user)
 		if err != nil {
-			control.logger.Errorf("[authz] get roles error: %v", err)
+			control.logger.Errorf("[http/authz] get roles error: %v", err)
 			handleUnauthorized(c)
 			return
 		}
@@ -143,7 +143,7 @@ func AuthzRoleMiddleware(control *Control, requiredRoles ...string) gin.HandlerF
 		}
 
 		if !hasRequiredRole {
-			control.logger.Warnf("[authz] role denied: user=%s, required_roles=%s", user, strings.Join(requiredRoles, ","))
+			control.logger.Warnf("[http/authz] role denied: user=%s, required_roles=%s", user, strings.Join(requiredRoles, ","))
 			handleUnauthorized(c)
 			return
 		}

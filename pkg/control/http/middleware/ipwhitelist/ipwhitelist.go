@@ -29,7 +29,7 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string, trustedPro
 	// 创建CIDR列表（一次性解析，提高性能）
 	cidrList, err := iphelper.NewCIDRList(whiteList)
 	if err != nil {
-		logger.Errorf("[IP WhiteList] Failed to create CIDR list: %v", err)
+		logger.Errorf("[http/IpWhiteList] Failed to create CIDR list: %v", err)
 		// 如果解析失败，默认拒绝所有请求
 		return func(ctx *gin.Context) {
 			savedCtx := ctx.Request.Context()
@@ -39,7 +39,7 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string, trustedPro
 			tCtx, span := tracer.StartSpan(ctx.Request.Context(), "ginMiddleware", "ipWhite")
 			defer span.End()
 			ctx.Request = ctx.Request.WithContext(tCtx)
-			logger.Warnf("[IP WhiteList] Blocked due to invalid CIDR configuration, Path: %s", ctx.Request.URL.Path)
+			logger.Warnf("[http/IpWhiteList] Blocked due to invalid CIDR configuration, Path: %s", ctx.Request.URL.Path)
 			ctx.JSON(http.StatusForbidden, commonhttp.BaseResponse{
 				Code:    http.StatusForbidden,
 				Message: "业务处理失败",
@@ -63,7 +63,7 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string, trustedPro
 		clientIP := iphelper.GetClientIP(ctx, trustedProxies)
 		parsedIP := net.ParseIP(clientIP)
 		if parsedIP == nil {
-			logger.Warnf("[IP WhiteList] Invalid IP address: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			logger.Warnf("[http/IpWhiteList] Invalid IP address: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.JSON(http.StatusForbidden, commonhttp.BaseResponse{
 				Code:    http.StatusForbidden,
 				Message: "业务处理失败",
@@ -77,11 +77,11 @@ func EnableIPWhiteList(logger *zap.SugaredLogger, whiteList []string, trustedPro
 
 		// 使用CIDRList检查IP是否在白名单中
 		if cidrList.Contains(parsedIP) {
-			logger.Debugf("[IP WhiteList] Allowed IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			logger.Debugf("[http/IpWhiteList] Allowed IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.Next()
 			span.SetStatus(codes.Ok, "success")
 		} else {
-			logger.Warnf("[IP WhiteList] Forbidden IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			logger.Warnf("[http/IpWhiteList] Forbidden IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.JSON(http.StatusForbidden, commonhttp.BaseResponse{
 				Code:    http.StatusForbidden,
 				Message: "业务处理失败",

@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"time"
 
+	dblogger "github.com/jianlu8023/go-logger/db-logger/v2"
 	glog "github.com/jianlu8023/go-logger/v2"
-	"github.com/jianlu8023/go-logger/v2/dblogger"
 	"github.com/jianlu8023/golang-example/pkg/control/config"
 	"go.uber.org/zap/zapcore"
 )

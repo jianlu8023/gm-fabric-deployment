@@ -65,15 +65,16 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		}),
 		loggerControl,
 	)
-	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
-	webLogger.Info("[control] start new http server control...")
+	// webLogger := loggerControl.GenLogger(logger.ModuleWeb)
+	webLogger := loggerControl.GenLogger("")
+	webLogger.Info("[http/control] start new http server control...")
 	gin.SetMode(serverConfig.RunMode)
 	// 强制彩色输出
 	gin.ForceConsoleColor()
 
 	ctx := context.Background()
 
-	webLogger.Debug("[control] generate gin engine...")
+	webLogger.Debug("[http/control] generate gin engine...")
 	engine := gin.New()
 
 	// 设置可信代理，影响所有 c.ClientIP() 调用（requestid/secure/logger 中间件及 ulule 限流内部均使用）
@@ -86,11 +87,11 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		trustedProxies = []string{}
 	}
 	if err := engine.SetTrustedProxies(trustedProxies); err != nil {
-		webLogger.Errorf("[control] failed to set trusted proxies: %v", err)
+		webLogger.Errorf("[http/control] failed to set trusted proxies: %v", err)
 	} else if serverConfig.TrustedProxies != nil && serverConfig.TrustedProxies.Enabled {
-		webLogger.Infof("[control] gin trusted proxies enabled with %d entries", len(trustedProxies))
+		webLogger.Infof("[http/control] gin trusted proxies enabled with %d entries", len(trustedProxies))
 	} else {
-		webLogger.Info("[control] gin trusted proxies disabled, c.ClientIP() will use RemoteAddr only")
+		webLogger.Info("[http/control] gin trusted proxies disabled, c.ClientIP() will use RemoteAddr only")
 	}
 
 	srv := &http.Server{
@@ -103,12 +104,12 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 
 	// 如果启用HTTP/2且非TLS模式，使用h2c支持HTTP/2 over cleartext
 	if serverConfig.Http2Enabled && !serverConfig.TlsEnabled {
-		webLogger.Info("[control] HTTP/2 enabled for cleartext connections (h2c)")
+		webLogger.Info("[http/control] HTTP/2 enabled for cleartext connections (h2c)")
 		h2s := &http2.Server{}
 		srv.Handler = h2c.NewHandler(engine, h2s)
 	}
 
-	webLogger.Debug("[control] generate http control...")
+	webLogger.Debug("[http/control] generate http control...")
 	control := &Control{
 		config:       serverConfig,
 		server:       srv,
@@ -129,7 +130,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 		authCfg := serverConfig.Auth
 
 		if authCfg != nil && authCfg.Enabled {
-			webLogger.Debugf("[control] create authenticator...")
+			webLogger.Debugf("[http/control] create authenticator...")
 			var jwtMgr jwt.JwtManager
 			var sessStore session.SessionStore
 
@@ -137,7 +138,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 			if authCfg.JWT != nil && authCfg.JWT.Enabled {
 				jwtSecret := authCfg.JWT.Secret
 				if jwtSecret == "" {
-					webLogger.Warn("[control] jwt secret is empty, fallback to default secret (development only)")
+					webLogger.Warn("[http/control] jwt secret is empty, fallback to default secret (development only)")
 				}
 				jwtMgr = jwt.NewManager(jwtSecret, authCfg.JWT.SessionTTL)
 			}
@@ -153,23 +154,23 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 					sessStore = session.NewMemoryStore(webLogger, ctx, authCfg.Session.TTL, authCfg.Session.CleanupInterval)
 				case "redis":
 					// TODO: 阶段三实现 RedisStore，当前回退到 memory
-					webLogger.Warn("[control] redis session store not implemented yet, fallback to memory")
+					webLogger.Warn("[http/control] redis session store not implemented yet, fallback to memory")
 					sessStore = session.NewMemoryStore(webLogger, ctx, authCfg.Session.TTL, authCfg.Session.CleanupInterval)
 				default:
-					webLogger.Warnf("[control] unknown session store type: %s, fallback to memory", storeType)
+					webLogger.Warnf("[http/control] unknown session store type: %s, fallback to memory", storeType)
 					sessStore = session.NewMemoryStore(webLogger, ctx, authCfg.Session.TTL, authCfg.Session.CleanupInterval)
 				}
 			}
 
 			// 合法性校验：auth.enabled=true 但 jwt/session 都未启用
 			if jwtMgr == nil && sessStore == nil {
-				webLogger.Errorf("[control] auth enabled but both jwt and session disabled")
+				webLogger.Errorf("[http/control] auth enabled but both jwt and session disabled")
 				return nil, errors.New("auth enabled but both jwt and session disabled")
 			}
 
 			control.authenticator = auth.NewAuthManager(jwtMgr, sessStore, webLogger, authCfg)
 		} else {
-			webLogger.Infof("[control] auth disabled, all routes will be public")
+			webLogger.Infof("[http/control] auth disabled, all routes will be public")
 		}
 	}
 
@@ -184,7 +185,7 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	// control.logger.Debugf("[control] register 404 405 handler...")
 	// control.registerDefaultRouter()
 
-	control.logger.Warnf("[control] current not setting router please call control.RegisterRouter to register router...")
+	control.logger.Warnf("[http/control] current not setting router please call control.RegisterRouter to register router...")
 	// 在这里不调用
 	// control.initRouters()
 	return control, nil
@@ -195,23 +196,23 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Info("[control] starting up http server...")
+			c.logger.Info("[http/control] starting up http server...")
 
-			c.logger.Debug("[control] starting define router...")
+			c.logger.Debug("[http/control] starting define router...")
 
 			c.initRouters()
 
 			if c.config.TlsEnabled {
 				if c.config.TlsGM {
-					c.logger.Infof("[control] start gm https server on %v", c.config.Address)
+					c.logger.Infof("[http/control] start gm https server on %v", c.config.Address)
 					go c.serverGMTls(failedFunc)
 				} else {
-					c.logger.Infof("[control] start https server on %v", c.config.Address)
+					c.logger.Infof("[http/control] start https server on %v", c.config.Address)
 					go c.serverTls(failedFunc)
 				}
 
 			} else {
-				c.logger.Infof("[control] start http server on %v", c.config.Address)
+				c.logger.Infof("[http/control] start http server on %v", c.config.Address)
 				go c.serverNoTls(failedFunc)
 			}
 		}
@@ -221,13 +222,13 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // Shutdown 关闭HTTP服务器
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
-	c.logger.Infof("[control] shutdown http server...")
+	c.logger.Infof("[http/control] shutdown http server...")
 	if err := c.server.Shutdown(c.ctx); err != nil {
-		c.logger.Errorf("[control] shutdown http server failed: %v", err)
+		c.logger.Errorf("[http/control] shutdown http server failed: %v", err)
 		return err
 	}
 	if err := c.ClearUploadCache(); err != nil {
-		c.logger.Errorf("[control] failed to clear upload cache: %v", err)
+		c.logger.Errorf("[http/control] failed to clear upload cache: %v", err)
 		return err
 	}
 	return nil
@@ -246,24 +247,24 @@ func (c *Control) GetAuthenticator() auth.Authenticator {
 func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {
 	// 验证路由有效性
 	if err := c.validateRouters(routers); err != nil {
-		c.logger.Errorf("[control] invalid routers: %v", err)
+		c.logger.Errorf("[http/control] invalid routers: %v", err)
 		return
 	}
 
-	c.logger.Infof("[control] registering %d router(s)...", len(routers))
+	c.logger.Infof("[http/control] registering %d router(s)...", len(routers))
 	c.RegisterGroupedRouter(&commonhttp.MyGroupRouter{
 		Group:           "default",
 		Routers:         routers,
 		MiddlewaresFunc: make([]gin.HandlerFunc, 0),
 	})
-	c.logger.Info("[control] routers registered successfully")
+	c.logger.Info("[http/control] routers registered successfully")
 }
 
 // RegisterGroupedRouter 注册支持路由组的HTTP路由
 // @param groupRouter commonhttp.GroupRouterHandler 路由组处理器
 func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandler) {
 	if groupRouter == nil {
-		c.logger.Error("[control] groupRouter is nil")
+		c.logger.Error("[http/control] groupRouter is nil")
 		return
 	}
 
@@ -280,17 +281,17 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 
 	// 验证路由有效性
 	if err := c.validateRouters(routers); err != nil {
-		c.logger.Errorf("[control] invalid routers in group %s: %v", groupName, err)
+		c.logger.Errorf("[http/control] invalid routers in group %s: %v", groupName, err)
 		return
 	}
 
-	c.logger.Infof("[control] registering %d router(s) and %d middleware(s) for group '%s'...", len(routers), len(middlewares), groupName)
+	c.logger.Infof("[http/control] registering %d router(s) and %d middleware(s) for group '%s'...", len(routers), len(middlewares), groupName)
 
 	// 首先判断 routerGroups 是否有 groupName
 	// if existingGroup, exists := c.routerGroups[groupName]; exists {
 	if existingGroup, exists := c.routerGroups.Get(groupName); exists {
 		// 存在则合并 Routers 和 MiddlewaresFunc
-		c.logger.Debugf("[control] merging with existing router group: %s", groupName)
+		c.logger.Debugf("[http/control] merging with existing router group: %s", groupName)
 
 		// 预分配足够容量的切片，减少内存分配
 		existingRouters := existingGroup.GetRouterHandler()
@@ -316,15 +317,15 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 		// 更新路由组
 		// c.routerGroups[groupName] = mergedGroupRouter
 		c.routerGroups.Put(groupName, mergedGroupRouter)
-		c.logger.Debugf("[control] merged router group '%s': total %d routers, %d middlewares", groupName, len(mergedRouters), len(mergedMiddlewares))
+		c.logger.Debugf("[http/control] merged router group '%s': total %d routers, %d middlewares", groupName, len(mergedRouters), len(mergedMiddlewares))
 	} else {
 		// 不存在则直接添加
-		c.logger.Debugf("[control] adding new router group: %s", groupName)
+		c.logger.Debugf("[http/control] adding new router group: %s", groupName)
 		// c.routerGroups[groupName] = groupRouter
 		c.routerGroups.Put(groupName, groupRouter)
 	}
 
-	c.logger.Infof("[control] router group '%s' registered successfully", groupName)
+	c.logger.Infof("[http/control] router group '%s' registered successfully", groupName)
 }
 
 // GetUploadDir 获取上传目录路径
@@ -338,7 +339,7 @@ func (c *Control) RegisterGroupedRouter(groupRouter commonhttp.GroupRouterHandle
 // 2. 如果为空，返回空字符串
 // 3. 否则，使用filepath.Clean规范化路径格式
 func (c *Control) GetUploadDir() string {
-	c.logger.Debugf("[control] get upload dir...")
+	c.logger.Debugf("[http/control] get upload dir...")
 	if stringer.IsBlank(c.config.UploadDir) {
 		return ""
 	}
@@ -356,7 +357,7 @@ func (c *Control) GetUploadDir() string {
 // 2. 在基础上传目录下创建名为"temp"的子目录作为缓存目录
 // 3. 使用filepath.Clean规范化最终路径格式
 func (c *Control) GetUploadCacheDir() string {
-	c.logger.Debugf("[control] get upload cache dir...")
+	c.logger.Debugf("[http/control] get upload cache dir...")
 	return filepath.Clean(filepath.Join(c.GetUploadDir(), "temp"))
 }
 
@@ -374,9 +375,9 @@ func (c *Control) GetUploadCacheDir() string {
 //
 //	该操作会永久性删除缓存目录中的所有内容，请谨慎使用
 func (c *Control) ClearUploadCache() error {
-	c.logger.Debugf("[control] clear upload cache...")
+	c.logger.Debugf("[http/control] clear upload cache...")
 	if err := path.ClearDir(c.GetUploadCacheDir()); err != nil {
-		c.logger.Errorf("[control] clear upload cache failed: %v", err)
+		c.logger.Errorf("[http/control] clear upload cache failed: %v", err)
 		return err
 	}
 	return nil

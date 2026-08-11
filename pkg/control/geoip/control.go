@@ -48,8 +48,9 @@ func NewGeoIPControl(geoIPConfig *config.GeoIPConfig, loggerControl *logger.Cont
 		loggerControl,
 	)
 
-	geoIPLogger := loggerControl.GenLogger(logger.ModuleGeoIP)
-	geoIPLogger.Infof("[control] starting new geoip control...")
+	// geoIPLogger := loggerControl.GenLogger(logger.ModuleGeoIP)
+	geoIPLogger := loggerControl.GenLogger("")
+	geoIPLogger.Infof("[geoip/control] starting new geoip control...")
 
 	control := &Control{
 		config: geoIPConfig,
@@ -63,12 +64,12 @@ func NewGeoIPControl(geoIPConfig *config.GeoIPConfig, loggerControl *logger.Cont
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Debugf("[control] starting geoip server...")
+			c.logger.Debugf("[geoip/control] starting geoip server...")
 
 			// 如果启用了自动下载并且配置了下载URL，则尝试下载数据库
 			if c.config.AutoDownload && !stringer.IsBlank(c.config.DownloadURL) {
 				if err := c.downloadDatabase(); err != nil {
-					c.logger.Errorf("[control] failed to download geoip database: %v", err)
+					c.logger.Errorf("[geoip/control] failed to download geoip database: %v", err)
 					if failedFunc != nil {
 						failedFunc(err)
 					}
@@ -80,7 +81,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			if !stringer.IsBlank(c.config.DatabasePath) {
 				db, err := geoip2.Open(c.config.DatabasePath)
 				if err != nil {
-					c.logger.Errorf("[control] failed to open geoip database: %v", err)
+					c.logger.Errorf("[geoip/control] failed to open geoip database: %v", err)
 					if failedFunc != nil {
 						failedFunc(err)
 					}
@@ -88,10 +89,10 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 				}
 				c.db = db
 				c.started.Store(true)
-				c.logger.Debugf("[control] geoip database loaded successfully")
+				c.logger.Debugf("[geoip/control] geoip database loaded successfully")
 			} else {
 				err := fmt.Errorf("database path is empty")
-				c.logger.Errorf("[control] %v", err)
+				c.logger.Errorf("[geoip/control] %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
@@ -103,10 +104,10 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 
 // Shutdown 关闭GeoIP服务
 func (c *Control) Shutdown() error {
-	c.logger.Debugf("[control] shutting down geoip server...")
+	c.logger.Debugf("[geoip/control] shutting down geoip server...")
 	if c.db != nil {
 		if err := c.db.Close(); err != nil {
-			c.logger.Errorf("[control] failed to close geoip database: %v", err)
+			c.logger.Errorf("[geoip/control] failed to close geoip database: %v", err)
 			return err
 		}
 	}
@@ -116,7 +117,7 @@ func (c *Control) Shutdown() error {
 
 // downloadDatabase 从URL下载GeoIP数据库文件
 func (c *Control) downloadDatabase() error {
-	c.logger.Debugf("[control] downloading geoip database from %s", c.config.DownloadURL)
+	c.logger.Debugf("[geoip/control] downloading geoip database from %s", c.config.DownloadURL)
 
 	// 使用封装的HTTP客户端下载文件
 	client := http.NewClient()
@@ -125,7 +126,7 @@ func (c *Control) downloadDatabase() error {
 		return fmt.Errorf("failed to download geoip database: %w", err)
 	}
 
-	c.logger.Debugf("[control] geoip database downloaded successfully to %s", c.config.DatabasePath)
+	c.logger.Debugf("[geoip/control] geoip database downloaded successfully to %s", c.config.DatabasePath)
 	return nil
 }
 

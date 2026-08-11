@@ -58,7 +58,7 @@ func EnableResponseLog(webLogger *zap.SugaredLogger, cfg *config.ResponseLogConf
 		duration := time.Since(startTime)
 
 		// 日志字段：耗时 + 状态码 + 实际写入字节数 + 截断后的响应体预览
-		webLogger.Debugf("Response DurationTime: %v Status: %d BodyBytes: %d Body: %s",
+		webLogger.Debugf("[http/ResponseLog] Response DurationTime: %v Status: %d BodyBytes: %d Body: %s",
 			duration.String(),
 			blw.Status(),
 			blw.totalBytes,

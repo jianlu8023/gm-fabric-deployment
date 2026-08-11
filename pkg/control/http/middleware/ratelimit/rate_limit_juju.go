@@ -46,7 +46,7 @@ func EnableRateLimitJuju(logger *zap.SugaredLogger, rps int64, burst int, truste
 		bucket, ok := limiter.(*ratelimit.Bucket)
 		if !ok {
 			// 理论上不会发生，防御性检查
-			logger.Errorf("[RateLimitJuju] Invalid limiter type for IP: %s", clientIP)
+			logger.Errorf("[http/Juju] Invalid limiter type for IP: %s", clientIP)
 			ctx.Next()
 			span.SetStatus(codes.Ok, "success")
 			return
@@ -54,11 +54,11 @@ func EnableRateLimitJuju(logger *zap.SugaredLogger, rps int64, burst int, truste
 
 		// 检查是否允许请求通过
 		if bucket.TakeAvailable(1) == 1 {
-			logger.Debugf("[RateLimitJuju] Allowed request from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			logger.Debugf("[http/Juju] Allowed request from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.Next()
 			span.SetStatus(codes.Ok, "success")
 		} else {
-			logger.Warnf("[RateLimitJuju] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
+			logger.Warnf("[http/Juju] Too many requests from IP: %s, Path: %s", clientIP, ctx.Request.URL.Path)
 			ctx.Header("X-RateLimit-Type", "juju")
 			ctx.JSON(http.StatusTooManyRequests, commonhttp.BaseResponse{
 				Code:    http.StatusTooManyRequests,

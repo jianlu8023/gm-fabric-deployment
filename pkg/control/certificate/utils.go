@@ -93,7 +93,7 @@ func saveCertificate(certPath, name string, derBytes []byte, logger *zap.Sugared
 
 	defer func() {
 		if err := certOut.Close(); err != nil {
-			logger.Errorf("[control] close certificate {%v} certOut file failed: %v", name, err)
+			logger.Errorf("[certificate/control] close certificate {%v} certOut file failed: %v", name, err)
 		}
 	}()
 
@@ -121,7 +121,7 @@ func saveRSAPrivateKey(certPath, name string, privateKey *rsa.PrivateKey, logger
 
 	defer func() {
 		if err := keyOut.Close(); err != nil {
-			logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
 
@@ -154,7 +154,7 @@ func saveECCPrivateKey(certPath, name string, privateKey *ecdsa.PrivateKey, logg
 
 	defer func() {
 		if err := keyOut.Close(); err != nil {
-			logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
 
@@ -193,7 +193,7 @@ func saveSM2PrivateKey(certPath, name string, privateKey *gmsm2.PrivateKey, logg
 
 	defer func() {
 		if err := keyOut.Close(); err != nil {
-			logger.Errorf("[control] close certificate {%v} keyOut file failed: %v", name, err)
+			logger.Errorf("[certificate/control] close certificate {%v} keyOut file failed: %v", name, err)
 		}
 	}()
 

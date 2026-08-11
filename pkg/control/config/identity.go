@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/jianlu8023/go-tools/v2/pkg/colour"
+	"time"
 
 	"github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -28,38 +30,38 @@ func CreateIdentity(algorithm string, rsaKeyLen int) (Identity, error) {
 
 	switch algorithm {
 	case Rsa:
-		fmt.Printf("generate rsa key pair with key length: %d\n", rsaKeyLen)
+		fmt.Printf("%v  [%v]  config/identity.go:33  [config/identity]  generate rsa key pair with key length: %d\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Blue("INFO "), rsaKeyLen)
 		privK, pubK, err := crypto.GenerateKeyPair(crypto.RSA, rsaKeyLen)
 		if err != nil {
-			fmt.Printf("generate rsa key pair failed: %v\n", err)
+			fmt.Printf("%v  [%v]  config/identity.go:36  [config/identity]  generate rsa key pair failed: %v\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Red("ERROR"), err)
 			return ident, err
 		}
 		sk = privK
 		pk = pubK
 	case Ed25519:
-		fmt.Println("generate ed25519 key pair")
+		fmt.Printf("%v  [%v]  config/identity.go:42  [config/identity]  generate ed25519 key pair\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Blue("INFO "))
 		privK, pubK, err := crypto.GenerateEd25519Key(rand.Reader)
 		if err != nil {
-			fmt.Printf("generate ed25519 key pair failed: %v\n", err)
+			fmt.Printf("%v  [%v]  config/identity.go:45  [config/identity]  generate ed25519 key pair failed: %v\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Red("ERROR"), err)
 			return ident, err
 		}
 		sk = privK
 		pk = pubK
 	default:
-		fmt.Println("algorithm no support...")
+		fmt.Printf("%v  [%v]  config/identity.go:51  [config/identity]  algorithm no support...\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Red("ERROR"))
 		return ident, errors.New("algorithm no support")
 	}
 
 	skBytes, err := crypto.MarshalPrivateKey(sk)
 	if err != nil {
-		fmt.Printf("marshal private key failed: %v\n", err)
+		fmt.Printf("%v  [%v]  config/identity.go:57  [config/identity]  marshal private key failed: %v\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Red("ERROR"), err)
 		return ident, err
 	}
 
 	ident.PrivKey = base64.StdEncoding.EncodeToString(skBytes)
 	peerId, err := peer.IDFromPublicKey(pk)
 	if err != nil {
-		fmt.Printf("generate peer id failed: %v\n", err)
+		fmt.Printf("%v  [%v]  config/identity.go:64  [config/identity]  generate peer id failed: %v\n", time.Now().Format("2006-01-02 15:04:05.000"), colour.Red("ERROR"), err)
 		return ident, err
 	}
 	ident.PeerID = peerId.String()

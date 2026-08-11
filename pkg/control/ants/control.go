@@ -111,8 +111,9 @@ func NewAntsPoolControl(antsConfig *config.AntsPoolConfig, loggerControl *logger
 		}),
 		loggerControl,
 	)
-	antsLogger := loggerControl.GenLogger(logger.ModuleAnts)
-	antsLogger.Infof("[control] start new ants pool control...")
+	// antsLogger := loggerControl.GenLogger(logger.ModuleAnts)
+	antsLogger := loggerControl.GenLogger("")
+	antsLogger.Infof("[ants/control] start new ants pool control...")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -123,7 +124,7 @@ func NewAntsPoolControl(antsConfig *config.AntsPoolConfig, loggerControl *logger
 		ctxCancel: cancel,
 	}
 
-	antsLogger.Warnf("[control] ants pool not initialized, please call control.StartUp()")
+	antsLogger.Warnf("[ants/control] ants pool not initialized, please call control.StartUp()")
 
 	return control
 }
@@ -134,7 +135,7 @@ func NewAntsPoolControl(antsConfig *config.AntsPoolConfig, loggerControl *logger
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Debugf("[control] starting up ants pool...")
+			c.logger.Debugf("[ants/control] starting up ants pool...")
 			// 配置线程池选项
 			options := []ants.Option{
 				ants.WithPreAlloc(c.config.IsPreAlloc()),
@@ -146,7 +147,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			// 创建线程池
 			pool, err := ants.NewPool(c.config.GetPoolSize(), options...)
 			if err != nil {
-				c.logger.Errorf("[control] failed to create ants pool: %v", err)
+				c.logger.Errorf("[ants/control] failed to create ants pool: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
@@ -156,13 +157,13 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.pool = pool
 			c.isRunning = true
 
-			c.logger.Infof("[control] ants pool started successfully, pool size: %d, max pool size: %d",
+			c.logger.Infof("[ants/control] ants pool started successfully, pool size: %d, max pool size: %d",
 				c.config.GetPoolSize(), c.config.GetMaxPoolSize())
 
 			// 启动监控协程
 			// go c.monitor()
 			if err = c.Submit(c.monitor); err != nil {
-				c.logger.Errorf("[control] submit ants pool monitor task failed: %v", err)
+				c.logger.Errorf("[ants/control] submit ants pool monitor task failed: %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
@@ -183,7 +184,7 @@ func (c *Control) Shutdown() error {
 		return nil
 	}
 
-	c.logger.Infof("[control] shutdown ants pool...")
+	c.logger.Infof("[ants/control] shutdown ants pool...")
 
 	// 取消上下文
 	c.ctxCancel()
@@ -196,7 +197,7 @@ func (c *Control) Shutdown() error {
 
 	c.isRunning = false
 
-	c.logger.Infof("[control] ants pool shutdown completely. Total tasks: %d, Completed: %d, Failed: %d",
+	c.logger.Infof("[ants/control] ants pool shutdown completely. Total tasks: %d, Completed: %d, Failed: %d",
 		c.taskCount, c.completedCount, c.failedCount)
 
 	return nil
@@ -224,7 +225,7 @@ func (c *Control) Submit(task func()) error {
 		defer func() {
 			if r := recover(); r != nil {
 				c.failedCount++
-				c.logger.Errorf("[control] task panic: %v", r)
+				c.logger.Errorf("[ants/control] task panic: %v", r)
 			} else {
 				c.completedCount++
 			}
@@ -305,14 +306,14 @@ func (c *Control) monitor() {
 		case <-ticker.C:
 			c.mutex.RLock()
 			if c.isRunning && c.pool != nil {
-				c.logger.Debugf("[control] ants pool stats - Running: %d, Waiting: %d, Cap: %d, Free: %d, Tasks: %d, Completed: %d, Failed: %d",
+				c.logger.Debugf("[ants/control] ants pool stats - Running: %d, Waiting: %d, Cap: %d, Free: %d, Tasks: %d, Completed: %d, Failed: %d",
 					c.pool.Running(), c.pool.Waiting(), c.pool.Cap(), c.pool.Free(),
 					c.taskCount, c.completedCount, c.failedCount)
 			}
 			c.mutex.RUnlock()
 
 		case <-c.ctx.Done():
-			c.logger.Debugf("[control] ants pool monitor stopped")
+			c.logger.Debugf("[ants/control] ants pool monitor stopped")
 			return
 		}
 	}
@@ -334,7 +335,7 @@ func (c *Control) Resize(size int) error {
 		return ants.ErrInvalidPoolIndex
 	}
 
-	c.logger.Infof("[control] resizing ants pool from %d to %d", c.config.GetPoolSize(), size)
+	c.logger.Infof("[ants/control] resizing ants pool from %d to %d", c.config.GetPoolSize(), size)
 
 	// 调整线程池大小
 	c.pool.Tune(size)
@@ -342,7 +343,7 @@ func (c *Control) Resize(size int) error {
 	// 如果配置支持，更新配置中的池大小
 	c.config.PoolSize = size
 
-	c.logger.Infof("[control] ants pool resized successfully to %d", size)
+	c.logger.Infof("[ants/control] ants pool resized successfully to %d", size)
 
 	return nil
 }

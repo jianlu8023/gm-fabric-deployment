@@ -2,6 +2,8 @@ package captcha
 
 import (
 	"errors"
+	"github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent"
+	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"sync"
 
 	"github.com/jianlu8023/go-tools/v2/pkg/check"
@@ -17,7 +19,8 @@ type Control struct {
 	logger  *zap.SugaredLogger
 	store   base64Captcha.Store
 	captcha *base64Captcha.Captcha
-	drivers map[string]base64Captcha.Driver
+	// drivers map[string]base64Captcha.Driver
+	drivers concurrent.Map[string, base64Captcha.Driver]
 	once    sync.Once
 }
 
@@ -42,8 +45,9 @@ func NewCaptchaControl(captchaConfig *config.CaptchaConfig, loggerControl *logge
 		}),
 		loggerControl,
 	)
-	captchaLogger := loggerControl.GenLogger(logger.ModuleCaptcha)
-	captchaLogger.Infof("[control] starting new captcha control...")
+	// captchaLogger := loggerControl.GenLogger(logger.ModuleCaptcha)
+	captchaLogger := loggerControl.GenLogger("")
+	captchaLogger.Infof("[captcha/control] starting new captcha control...")
 
 	// 初始化内存存储
 	store := base64Captcha.DefaultMemStore
@@ -52,7 +56,7 @@ func NewCaptchaControl(captchaConfig *config.CaptchaConfig, loggerControl *logge
 	}
 
 	// 初始化驱动映射
-	drivers := make(map[string]base64Captcha.Driver)
+	drivers := concurrentmap.NewRWMap[string, base64Captcha.Driver]()
 
 	captcha := &Control{
 		config:  captchaConfig,
@@ -67,11 +71,11 @@ func NewCaptchaControl(captchaConfig *config.CaptchaConfig, loggerControl *logge
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Debugf("[control] starting captcha server...")
+			c.logger.Debugf("[captcha/control] starting captcha server...")
 			// 初始化驱动
 			c.initDrivers()
 
-			c.logger.Debugf("[control] generate captcha...")
+			c.logger.Debugf("[captcha/control] generate captcha...")
 			c.captcha = base64Captcha.NewCaptcha(c.getDriver(c.config.DefaultType),
 				c.store)
 		}
@@ -79,19 +83,20 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 }
 
 func (c *Control) Shutdown() error {
-	c.logger.Debugf("[control] shutting down captcha server...")
+	c.logger.Debugf("[captcha/control] shutting down captcha server...")
 	return nil
 }
 
 // initDrivers 初始化验证码驱动
 func (c *Control) initDrivers() {
-	c.logger.Debugf("[control] starting init drivers...")
+	c.logger.Debugf("[captcha/control] starting init drivers...")
 	// 字符串验证码驱动
 	// c.logger.Debugf("[control] starting string drivers...")
 	// c.drivers["string"] = c.createStringDriver()
 	// 数字验证码驱动
-	c.logger.Debugf("[control] starting number drivers...")
-	c.drivers["number"] = c.createDigitDriver()
+	c.logger.Debugf("[captcha/control] starting number drivers...")
+	// c.drivers["number"] = c.createDigitDriver()
+	c.drivers.Put("number", c.createDigitDriver())
 	// 数学计算验证码驱动
 	// c.logger.Debugf("[control] starting math drivers...")
 	// c.drivers["math"] = c.createMathDriver()
@@ -111,10 +116,12 @@ func (c *Control) getDriver(captchaType string) base64Captcha.Driver {
 		}
 	}
 
-	driver, exists := c.drivers[captchaType]
+	// driver, exists := c.drivers[captchaType]
+	driver, exists := c.drivers.Get(captchaType)
 	if !exists {
 		// 如果请求的类型不存在，使用字符串类型作为默认
-		driver = c.drivers["string"]
+		// driver = c.drivers["string"]
+		driver, _ = c.drivers.Get("string")
 	}
 
 	return driver
@@ -182,25 +189,25 @@ func (c *Control) createDigitDriver() base64Captcha.Driver {
 
 // GenerateCaptcha 生成验证码
 func (c *Control) GenerateCaptcha() (string, string, string, error) {
-	c.logger.Debugf("[control] starting generate a new captcha...")
+	c.logger.Debugf("[captcha/control] starting generate a new captcha...")
 
 	// 生成验证码
 	id, b64s, answer, err := c.captcha.Generate()
 	if err != nil {
-		c.logger.Errorf("[control] generate captcha failed: %v", err)
+		c.logger.Errorf("[captcha/control] generate captcha failed: %v", err)
 		return "", "", "", err
 	}
 
-	c.logger.Debugf("[control] captcha generated successfully, id: %s", id)
+	c.logger.Debugf("[captcha/control] captcha generated successfully, id: %s", id)
 	return id, b64s, answer, nil
 }
 
 // ValidateCaptcha 验证验证码
 func (c *Control) ValidateCaptcha(captchaID string, userInput string) (bool, error) {
-	c.logger.Infof("Validating captcha, id: %s, user input: %s", captchaID, userInput)
+	c.logger.Infof("[captcha/control] Validating captcha, id: %s, user input: %s", captchaID, userInput)
 
 	if captchaID == "" || userInput == "" {
-		c.logger.Error("Captcha ID or user input is empty")
+		c.logger.Errorf("[captcha/control] Captcha ID or user input is empty")
 		return false, errors.New("captcha id or user input cannot be empty")
 	}
 
@@ -208,9 +215,9 @@ func (c *Control) ValidateCaptcha(captchaID string, userInput string) (bool, err
 	isValid := c.store.Verify(captchaID, userInput, true)
 
 	if isValid {
-		c.logger.Debugf("Captcha validated successfully, id: %s", captchaID)
+		c.logger.Debugf("[captcha/control] Captcha validated successfully, id: %s", captchaID)
 	} else {
-		c.logger.Warnf("Captcha validation failed, id: %s", captchaID)
+		c.logger.Warnf("[captcha/control] Captcha validation failed, id: %s", captchaID)
 	}
 
 	return isValid, nil

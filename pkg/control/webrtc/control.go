@@ -53,12 +53,13 @@ func NewWebRTCControl(webrtcConfig *config.WebRTCConfig, loggerControl *logger.C
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// 获取日志记录器
-	log := loggerControl.GenLogger(logger.ModuleWebRTC)
+	// webrtcLogger := loggerControl.GenLogger(logger.ModuleWebRTC)
+	webrtcLogger := loggerControl.GenLogger("")
 
 	// 创建对等连接服务
 	peerService, err := newPeerService(ctx, webrtcConfig, loggerControl)
 	if err != nil {
-		log.Errorf("[control] create peer service failed: %v", err)
+		webrtcLogger.Errorf("[webtc/control] create peer service failed: %v", err)
 		cancel()
 		return nil, err
 	}
@@ -68,11 +69,11 @@ func NewWebRTCControl(webrtcConfig *config.WebRTCConfig, loggerControl *logger.C
 		ctx:          ctx,
 		cancel:       cancel,
 		webRTCConfig: webrtcConfig,
-		logger:       log,
+		logger:       webrtcLogger,
 		peerService:  peerService,
 	}
 
-	log.Infof("[control] created WebRTC control")
+	webrtcLogger.Infof("[webtc/control] created WebRTC control")
 	return control, nil
 }
 
@@ -82,10 +83,10 @@ func NewWebRTCControl(webrtcConfig *config.WebRTCConfig, loggerControl *logger.C
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.webRTCConfig.Enabled {
-			c.logger.Infof("[control] starting WebRTC control...")
+			c.logger.Infof("[webtc/control] starting WebRTC control...")
 			// WebRTC控制器主要在初始化时就完成了准备工作
 			// 这里主要是记录启动日志并验证服务状态
-			c.logger.Infof("[control] WebRTC control started successfully")
+			c.logger.Infof("[webtc/control] WebRTC control started successfully")
 		}
 	})
 }
@@ -106,7 +107,7 @@ func (c *Control) Shutdown() error {
 // - *PeerConnection: 创建的对等连接实例
 // - error: 如果创建过程中发生错误，则返回错误信息
 func (c *Control) CreatePeerConnection(connConfig *webrtc.Configuration) (string, *PeerConnection, error) {
-	c.logger.Debugf("[control] creating peer connection")
+	c.logger.Debugf("[webtc/control] creating peer connection")
 
 	// 自动生成一个连接ID
 	id := uuid.GetUUID()
@@ -114,11 +115,11 @@ func (c *Control) CreatePeerConnection(connConfig *webrtc.Configuration) (string
 	// 使用对等服务创建连接
 	conn, err := c.peerService.CreatePeerConnection(connConfig, id)
 	if err != nil {
-		c.logger.Errorf("[control] create peer connection failed: %v", err)
+		c.logger.Errorf("[webtc/control] create peer connection failed: %v", err)
 		return "", nil, err
 	}
 
-	c.logger.Debugf("[control] peer connection created, id: %s", id)
+	c.logger.Debugf("[webtc/control] peer connection created, id: %s", id)
 	return id, conn, nil
 }
 
@@ -144,29 +145,29 @@ func (c *Control) GetAllPeerConnections() []*PeerConnection {
 // 返回值：
 // - error: 如果关闭过程中发生错误，则返回错误信息
 func (c *Control) ClosePeerConnection(id string) error {
-	c.logger.Debugf("[control] closing peer connection, id: %s", id)
+	c.logger.Debugf("[webtc/control] closing peer connection, id: %s", id)
 	err := c.peerService.ClosePeerConnection(id)
 	if err != nil {
-		c.logger.Errorf("[control] close peer connection failed: %v", err)
+		c.logger.Errorf("[webtc/control] close peer connection failed: %v", err)
 		return err
 	}
-	c.logger.Debugf("[control] peer connection closed, id: %s", id)
+	c.logger.Debugf("[webtc/control] peer connection closed, id: %s", id)
 	return nil
 }
 
 // CloseAllPeerConnections 关闭所有的WebRTC对等连接
 func (c *Control) CloseAllPeerConnections() {
-	c.logger.Info("[control] closing all peer connections")
+	c.logger.Info("[webtc/control] closing all peer connections")
 	// 获取所有连接ID
 	connections := c.peerService.GetAllPeerConnections()
-	c.logger.Debugf("[control] found %d connections to close", len(connections))
+	c.logger.Debugf("[webtc/control] found %d connections to close", len(connections))
 
 	// 关闭每个连接
 	for _, conn := range connections {
 		if err := c.peerService.ClosePeerConnection(conn.ID); err != nil {
-			c.logger.Errorf("[control] failed to close peer connection %s: %v", conn.ID, err)
+			c.logger.Errorf("[webtc/control] failed to close peer connection %s: %v", conn.ID, err)
 		} else {
-			c.logger.Debugf("[control] peer connection closed successfully: %s", conn.ID)
+			c.logger.Debugf("[webtc/control] peer connection closed successfully: %s", conn.ID)
 		}
 	}
 }
@@ -174,7 +175,7 @@ func (c *Control) CloseAllPeerConnections() {
 // Close 关闭WebRTC控制器
 // 释放所有资源并停止所有活动
 func (c *Control) Close() {
-	c.logger.Info("[control] closing WebRTC control")
+	c.logger.Info("[webtc/control] closing WebRTC control")
 
 	// 关闭所有对等连接
 	c.CloseAllPeerConnections()
@@ -182,7 +183,7 @@ func (c *Control) Close() {
 	// 取消上下文，停止所有goroutine
 	c.cancel()
 
-	c.logger.Info("[control] WebRTC control closed")
+	c.logger.Info("[webtc/control] WebRTC control closed")
 }
 
 // SendTo 向指定ID的连接发送消息

@@ -29,7 +29,7 @@ func (l *authzLogger) LogModel(model [][]string) {
 	for _, v := range model {
 		str.WriteString(fmt.Sprintf("%v\n", v))
 	}
-	l.zapLogger.Infof(str.String())
+	l.zapLogger.Infof("[auth/log] %v", str.String())
 }
 
 func (l *authzLogger) LogEnforce(matcher string, request []interface{}, result bool, explains [][]string) {
@@ -56,7 +56,7 @@ func (l *authzLogger) LogEnforce(matcher string, request []interface{}, result b
 			reqStr.WriteString(fmt.Sprintf("%v \n", pval))
 		}
 	}
-	l.zapLogger.Infof(reqStr.String())
+	l.zapLogger.Infof("[auth/log] %v", reqStr.String())
 }
 
 func (l *authzLogger) LogRole(roles []string) {
@@ -64,7 +64,7 @@ func (l *authzLogger) LogRole(roles []string) {
 		return
 	}
 
-	l.zapLogger.Infof("Roles: %v", strings.Join(roles, "\n"))
+	l.zapLogger.Infof("[auth/log] Roles: %v", strings.Join(roles, "\n"))
 }
 
 func (l *authzLogger) LogPolicy(policy map[string][][]string) {
@@ -77,7 +77,7 @@ func (l *authzLogger) LogPolicy(policy map[string][][]string) {
 	for k, v := range policy {
 		str.WriteString(fmt.Sprintf("%s : %v\n", k, v))
 	}
-	l.zapLogger.Infof(str.String())
+	l.zapLogger.Infof("[auth/log] %v", str.String())
 }
 
 func (l *authzLogger) LogError(err error, msg ...string) {

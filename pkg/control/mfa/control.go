@@ -48,8 +48,9 @@ func NewMFAControl(mfaConfig *config.MFAConfig, loggerControl *logger.Control) (
 		}),
 		loggerControl,
 	)
-	mfaLogger := loggerControl.GenLogger(logger.ModuleMFA)
-	mfaLogger.Infof("[control] starting new MFA control...")
+	// mfaLogger := loggerControl.GenLogger(logger.ModuleMFA)
+	mfaLogger := loggerControl.GenLogger("")
+	mfaLogger.Infof("[mfa/control] starting new MFA control...")
 
 	// 创建上下文
 	ctx, cancel := context.WithCancel(context.Background())
@@ -69,12 +70,12 @@ func NewMFAControl(mfaConfig *config.MFAConfig, loggerControl *logger.Control) (
 
 	// 设置默认认证提供商
 	if err := control.setProvider(mfaConfig.DefaultProvider); err != nil {
-		mfaLogger.Errorf("[control] failed to set default provider: %v", err)
+		mfaLogger.Errorf("[mfa/control] failed to set default provider: %v", err)
 		cancel()
 		return nil, err
 	}
 
-	mfaLogger.Infof("[control] MFA control started successfully")
+	mfaLogger.Infof("[mfa/control] MFA control started successfully")
 	return control, nil
 }
 
@@ -84,11 +85,11 @@ func (c *Control) initProviders() {
 	// 初始化Google认证提供商
 	c.providers.Put(ProviderGoogle, &GoogleProvider{
 		issuer: c.config.Google.Issuer,
-		logger: c.logger.Named("google"),
+		logger: c.logger,
 	})
 	// 初始化Microsoft认证提供商
 	c.providers.Put(ProviderMicrosoft, &MicrosoftProvider{
-		logger:   c.logger.Named("microsoft"),
+		logger:   c.logger,
 		tenantID: c.config.Microsoft.TenantID,
 		clientID: c.config.Microsoft.ClientID,
 	})
@@ -100,7 +101,7 @@ func (c *Control) initProviders() {
 // @return string 二维码URL
 // @return error 生成过程中的错误
 func (c *Control) GenerateSecret(userID string) (string, string, error) {
-	c.logger.Debugf("[control] generating MFA secret for user: %s", userID)
+	c.logger.Debugf("[mfa/control] generating MFA secret for user: %s", userID)
 	return c.currentProvider.GenerateSecret(userID)
 }
 
@@ -109,7 +110,7 @@ func (c *Control) GenerateSecret(userID string) (string, string, error) {
 // @param code string MFA代码
 // @return bool 验证结果
 func (c *Control) VerifyCode(secret string, code string) bool {
-	c.logger.Debugf("[control] verifying MFA code for code: %s", code)
+	c.logger.Debugf("[mfa/control] verifying MFA code for code: %s", code)
 	return c.currentProvider.VerifyCode(secret, code)
 }
 
@@ -117,12 +118,12 @@ func (c *Control) VerifyCode(secret string, code string) bool {
 // @param otpauthURL string OTP认证URL
 // @return string 二维码图片的Base64编码
 func (c *Control) GenerateQrCodeImage(otpauthURL string) string {
-	c.logger.Debugf("[control] generating MFA QR code image")
+	c.logger.Debugf("[mfa/control] generating MFA QR code image")
 	return c.currentProvider.GenerateQrCode(otpauthURL)
 }
 
 func (c *Control) GenerateRecoverySecret(userId string, recoveryNum int) ([]string, error) {
-	c.logger.Debugf("[control] generate MFA recovery secret for user: %s", userId)
+	c.logger.Debugf("[mfa/control] generate MFA recovery secret for user: %s", userId)
 	return c.currentProvider.GenRecoverySecret(userId, recoveryNum)
 }
 
@@ -130,18 +131,18 @@ func (c *Control) GenerateRecoverySecret(userId string, recoveryNum int) ([]stri
 // @param provider string 认证提供商 (google/microsoft)
 // @return error 设置过程中的错误
 func (c *Control) setProvider(provider string) error {
-	c.logger.Debugf("[control] setting MFA provider to: %s", provider)
+	c.logger.Debugf("[mfa/control] setting MFA provider to: %s", provider)
 
 	// 检查提供商是否存在
 	p, exists := c.providers.Get(provider)
 	if !exists {
 		err := fmt.Errorf("unsupported provider: %s", provider)
-		c.logger.Errorf("[control] %v", err)
+		c.logger.Errorf("[mfa/control] %v", err)
 		return err
 	}
 
 	c.currentProvider = p
-	c.logger.Infof("[control] MFA provider set to: %s", provider)
+	c.logger.Infof("[mfa/control] MFA provider set to: %s", provider)
 	return nil
 }
 
@@ -174,11 +175,11 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		// 验证配置
 		if c.config.Enabled {
-			c.logger.Debugf("[control] starting up MFA service...")
+			c.logger.Debugf("[mfa/control] starting up MFA service...")
 			// 验证默认提供商是否配置正确
 			if _, exists := c.providers.Get(c.config.DefaultProvider); !exists {
 				err := fmt.Errorf("invalid default provider: %s", c.config.DefaultProvider)
-				c.logger.Errorf("[control] %v", err)
+				c.logger.Errorf("[mfa/control] %v", err)
 				if failedFunc != nil {
 					failedFunc(err)
 				}
@@ -189,7 +190,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			if c.config.DefaultProvider == ProviderGoogle {
 				if c.config.Google.Issuer == "" {
 					err := ErrMissingGoogleIssuer
-					c.logger.Errorf("[control] %v", err)
+					c.logger.Errorf("[mfa/control] %v", err)
 					if failedFunc != nil {
 						failedFunc(err)
 					}
@@ -198,7 +199,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			} else if c.config.DefaultProvider == ProviderMicrosoft {
 				if c.config.Microsoft.TenantID == "" {
 					err := ErrMissingMicrosoftTenantID
-					c.logger.Errorf("[control] %v", err)
+					c.logger.Errorf("[mfa/control] %v", err)
 					if failedFunc != nil {
 						failedFunc(err)
 					}
@@ -206,7 +207,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 				}
 				if c.config.Microsoft.ClientID == "" {
 					err := ErrMissingMicrosoftClientID
-					c.logger.Errorf("[control] %v", err)
+					c.logger.Errorf("[mfa/control] %v", err)
 					if failedFunc != nil {
 						failedFunc(err)
 					}
@@ -214,7 +215,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 				}
 			}
 
-			c.logger.Infof("[control] MFA service started successfully")
+			c.logger.Infof("[mfa/control] MFA service started successfully")
 		}
 	})
 }
@@ -222,8 +223,8 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 // Shutdown 关闭MFA服务
 // @return error 关闭过程中的错误
 func (c *Control) Shutdown() error {
-	c.logger.Infof("[control] shutting down MFA control...")
+	c.logger.Infof("[mfa/control] shutting down MFA control...")
 	c.cancel()
-	c.logger.Infof("[control] MFA control shutdown successfully")
+	c.logger.Infof("[mfa/control] MFA control shutdown successfully")
 	return nil
 }

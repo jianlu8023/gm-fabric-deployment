@@ -26,10 +26,10 @@ type Control struct {
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		if c.config.Enabled {
-			c.logger.Debugf("[control] starting grpc server...")
+			c.logger.Debugf("[grpc/control] starting grpc server...")
 			c.server.StartUp(failedFunc)
 			// 客户端无需显式启动，已在 NewClientControl 中完成初始化（建立连接）
-			c.logger.Debugf("[control] grpc client already initialized")
+			c.logger.Debugf("[grpc/control] grpc client already initialized")
 		}
 	})
 }
@@ -40,7 +40,7 @@ func (c *Control) Shutdown() error {
 	// c.client 可能为 nil（如初始化失败），需做 nil 检查避免 panic
 	if c.client != nil {
 		if err := c.client.Stop(); err != nil {
-			c.logger.Errorf("[control] grpc client stop err: %v", err)
+			c.logger.Errorf("[grpc/control] grpc client stop err: %v", err)
 			errs = append(errs, err)
 		}
 	}
@@ -78,9 +78,10 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control
 		}),
 		loggerControl,
 	)
-	grpcLogger := loggerControl.GenLogger(logger.ModuleGrpc)
+	// grpcLogger := loggerControl.GenLogger(logger.ModuleGrpc)
+	grpcLogger := loggerControl.GenLogger("")
 
-	grpcLogger.Infof("[control] starting new grpc control...")
+	grpcLogger.Infof("[grpc/control] starting new grpc control...")
 	control := &Control{
 		config: grpcConfig,
 		// server: serverControl,
@@ -93,12 +94,12 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control
 	}
 
 	if err := NewServerControl(control); err != nil {
-		grpcLogger.Errorf("[control] new grpc server control err: %v", err)
+		grpcLogger.Errorf("[grpc/control] new grpc server control err: %v", err)
 		return nil, err
 	}
 
 	if err := NewClientControl(control); err != nil {
-		grpcLogger.Errorf("[control] new grpc client control err: %v", err)
+		grpcLogger.Errorf("[grpc/control] new grpc client control err: %v", err)
 		return nil, err
 	}
 
@@ -107,16 +108,16 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control
 	// 	return nil, err
 	// }
 
-	grpcLogger.Infof("[control] grpc control started...")
+	grpcLogger.Infof("[grpc/control] grpc control started...")
 	control.RegisterHandler(BaseShutdown, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error) {
-		control.logger.Debugf("[control] %v finish...", BaseShutdown)
+		control.logger.Debugf("[grpc/control] %v finish...", BaseShutdown)
 		return &pb.BaseResponse{
 			Message:      []byte("success"),
 			ResponseCode: 200,
 		}, nil
 	})
 	control.RegisterHandler(BasePing, func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error) {
-		control.logger.Debugf("[control] %v finish...", BasePing)
+		control.logger.Debugf("[grpc/control] %v finish...", BasePing)
 		return &pb.BaseResponse{
 			Message:      []byte("pong"),
 			ResponseCode: 200,
@@ -129,12 +130,12 @@ func NewGrpcControl(grpcConfig *config.GrpcConfig, loggerControl *logger.Control
 }
 
 func (c *Control) printHandlers() {
-	c.logger.Debugf("[control] print handler...")
+	c.logger.Debugf("[grpc/control] print handler...")
 	c.server.mServer.handler.PrintHandler()
 }
 
 func (c *Control) ClientState() (bool, string) {
-	c.logger.Debugf("[control] check client state...")
+	c.logger.Debugf("[grpc/control] check client state...")
 	// c.client 可能为 nil（如初始化失败），需做 nil 检查避免 panic
 	if c.client == nil {
 		return false, "grpc client is not initialized"
@@ -152,7 +153,7 @@ func (c *Control) ClientState() (bool, string) {
 }
 
 func (c *Control) Call(req *pb.BaseRequest) (*pb.BaseResponse, error) {
-	c.logger.Debugf("[control] call messageType %v", req.MessageType)
+	c.logger.Debugf("[grpc/control] call messageType %v", req.MessageType)
 	// c.client 可能为 nil（如初始化失败），需做 nil 检查避免 panic
 	if c.client == nil {
 		return nil, errors.New("grpc client is not initialized")
@@ -161,6 +162,6 @@ func (c *Control) Call(req *pb.BaseRequest) (*pb.BaseResponse, error) {
 }
 
 func (c *Control) RegisterHandler(handlerName string, handle func(ctx context.Context, in *pb.BaseRequest) (*pb.BaseResponse, error)) {
-	c.logger.Debugf("[control] register handler %v", handlerName)
+	c.logger.Debugf("[grpc/control] register handler %v", handlerName)
 	c.server.mServer.handler.RegisterHandler(handlerName, handle)
 }

@@ -38,8 +38,9 @@ func NewEmailControl(emailConfig *config.EmailConfig, loggerControl *logger.Cont
 		loggerControl,
 	)
 
-	emailLogger := loggerControl.GenLogger("email")
-	emailLogger.Infof("[control] starting new email control...")
+	// emailLogger := loggerControl.GenLogger("email")
+	emailLogger := loggerControl.GenLogger("")
+	emailLogger.Infof("[email/control] starting new email control...")
 
 	ctl := &Control{
 		emailConfig: emailConfig,
@@ -55,7 +56,7 @@ func (c *Control) SendEmail(message *EmailMessage) error {
 		return ErrEmailServiceDisabled
 	}
 
-	c.logger.Debugf("[control] preparing to send email...")
+	c.logger.Debugf("[email/control] preparing to send email...")
 
 	// 验证必填字段
 	if len(message.To) == 0 {
@@ -108,7 +109,7 @@ func (c *Control) SendEmail(message *EmailMessage) error {
 	emailBody := buildEmailBody(headers, message.Body)
 
 	// 发送邮件
-	c.logger.Debugf("[control] sending email to: %v, subject: %s", message.To, message.Subject)
+	c.logger.Debugf("[email/control] sending email to: %v, subject: %s", message.To, message.Subject)
 
 	var err error
 	if c.emailConfig.TlsEnabled {
@@ -121,11 +122,11 @@ func (c *Control) SendEmail(message *EmailMessage) error {
 	}
 
 	if err != nil {
-		c.logger.Errorf("[control] failed to send email: %v", err)
+		c.logger.Errorf("[email/control] failed to send email: %v", err)
 		return err
 	}
 
-	c.logger.Infof("[control] email sent successfully to: %v", message.To)
+	c.logger.Infof("[email/control] email sent successfully to: %v", message.To)
 	return nil
 }
 
@@ -134,9 +135,9 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
 		// 验证配置
 		if c.emailConfig.Enabled {
-			c.logger.Debugf("[control] starting up email service...")
+			c.logger.Debugf("[email/control] starting up email service...")
 			if c.emailConfig.SmtpHost == "" {
-				c.logger.Errorf("[control] email service enabled but smtp host is empty")
+				c.logger.Errorf("[email/control] email service enabled but smtp host is empty")
 				if failedFunc != nil {
 					failedFunc(ErrMissingSmtpHost)
 				}
@@ -144,7 +145,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 
 			if c.emailConfig.SmtpPort <= 0 {
-				c.logger.Errorf("[control] email service enabled but smtp port is invalid")
+				c.logger.Errorf("[email/control] email service enabled but smtp port is invalid")
 				if failedFunc != nil {
 					failedFunc(ErrInvalidSmtpPort)
 				}
@@ -152,7 +153,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 
 			if c.emailConfig.Username == "" || c.emailConfig.Password == "" {
-				c.logger.Errorf("[control] email service enabled but username or password is empty")
+				c.logger.Errorf("[email/control] email service enabled but username or password is empty")
 				if failedFunc != nil {
 					failedFunc(ErrMissingCredentials)
 				}
@@ -160,23 +161,23 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			}
 
 			if c.emailConfig.SenderAddress == "" {
-				c.logger.Errorf("[control] email service enabled but sender address is empty")
+				c.logger.Errorf("[email/control] email service enabled but sender address is empty")
 				if failedFunc != nil {
 					failedFunc(ErrMissingSenderAddress)
 				}
 				return
 			}
 
-			c.logger.Infof("[control] email service started successfully")
+			c.logger.Infof("[email/control] email service started successfully")
 		} else {
-			c.logger.Info("[control] email service is disabled")
+			c.logger.Info("[email/control] email service is disabled")
 		}
 	})
 }
 
 // Shutdown 关闭邮件服务
 func (c *Control) Shutdown() error {
-	c.logger.Debugf("[control] shutting down email service...")
+	c.logger.Debugf("[email/control] shutting down email service...")
 	// no-op
 	return nil
 }

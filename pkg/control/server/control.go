@@ -96,13 +96,14 @@ func NewServerControlFromFile() (*Control, error) {
 	// 创建Logger控制器
 	loggerControl := logger.NewLoggerControl(configControl.GetLoggerConfig())
 	control.loggerControl = loggerControl
-	control.logger = loggerControl.GenLogger(logger.ModuleServer)
+	// control.logger = loggerControl.GenLogger(logger.ModuleServer)
+	control.logger = loggerControl.GenLogger("")
 
 	tracerConfig := configControl.GetTracerConfig()
 	if tracerConfig != nil && tracerConfig.Enabled {
 		tracerControl, err := tracer.NewTracerControl(tracerConfig, control.GetLoggerControl(), control.ctx)
 		if err != nil {
-			control.logger.Errorf("[control] create tracer control failed: %v", err)
+			control.logger.Errorf("[server/control] create tracer control failed: %v", err)
 			return nil, err
 		}
 		control.tracerControl = tracerControl
@@ -119,7 +120,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if grpcConfig != nil && grpcConfig.Enabled {
 		grpcControl, err := grpc.NewGrpcControl(grpcConfig, control.GetLoggerControl(), grpc.WithTracer(control.GetTracerControl()))
 		if err != nil {
-			control.logger.Errorf("[control] create grpc control failed: %v", err)
+			control.logger.Errorf("[server/control] create grpc control failed: %v", err)
 			return nil, err
 		}
 		control.grpcControl = grpcControl
@@ -130,7 +131,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if libp2pConfig != nil && libp2pConfig.Enabled {
 		libp2pControl, err := libp2p.NewLibp2pControl(libp2pConfig, control.GetLoggerControl())
 		if err != nil {
-			control.logger.Errorf("[control] create libp2p control failed: %v", err)
+			control.logger.Errorf("[server/control] create libp2p control failed: %v", err)
 			return nil, err
 		}
 		control.libp2pControl = libp2pControl
@@ -141,7 +142,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if dataSourceConfig != nil && dataSourceConfig.Enabled {
 		dataSourceControl, err := datasource.NewDataSourceControl(dataSourceConfig, control.GetLoggerControl(), datasource.WithTracer(control.GetTracerControl()))
 		if err != nil {
-			control.logger.Errorf("[control] create data source control failed: %v", err)
+			control.logger.Errorf("[server/control] create data source control failed: %v", err)
 			return nil, err
 		}
 		control.datasourceControl = dataSourceControl
@@ -163,7 +164,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if ipfsClusterConfig != nil && ipfsClusterConfig.Enabled {
 		ipfsClusterControl, err := ipfscluster.NewIpfsClusterControl(ipfsClusterConfig, control.GetLoggerControl())
 		if err != nil {
-			control.logger.Errorf("[control] create ipfs cluster control failed: %v", err)
+			control.logger.Errorf("[server/control] create ipfs cluster control failed: %v", err)
 			return nil, err
 		}
 		control.ipfsClusterControl = ipfsClusterControl
@@ -197,7 +198,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if mfaConfig != nil && mfaConfig.Enabled {
 		mfaControl, err := mfa.NewMFAControl(mfaConfig, control.GetLoggerControl())
 		if err != nil {
-			control.logger.Errorf("[control] create mfa control failed: %v", err)
+			control.logger.Errorf("[server/control] create mfa control failed: %v", err)
 			return nil, err
 		}
 		control.mfaControl = mfaControl
@@ -208,7 +209,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if aiConfig != nil && aiConfig.Enabled {
 		aiControl, err := ai.NewAIControl(aiConfig, control.GetLoggerControl())
 		if err != nil {
-			control.logger.Errorf("[control] create ai control failed: %v", err)
+			control.logger.Errorf("[server/control] create ai control failed: %v", err)
 			return nil, err
 		} else {
 			control.aiControl = aiControl
@@ -234,7 +235,7 @@ func NewServerControlFromFile() (*Control, error) {
 	if webRTCConfig != nil && webRTCConfig.Enabled {
 		webRTCControl, err := webrtc.NewWebRTCControl(webRTCConfig, control.GetLoggerControl())
 		if err != nil {
-			control.logger.Errorf("[control] create webrtc control failed: %v", err)
+			control.logger.Errorf("[server/control] create webrtc control failed: %v", err)
 			return nil, err
 		}
 		control.webRTCControl = webRTCControl
@@ -249,12 +250,14 @@ func NewServerControlFromFile() (*Control, error) {
 			http.WithDefaultStaticFiles(),
 		)
 		if err != nil {
-			control.logger.Errorf("[control] create http control failed: %v", err)
+			control.logger.Errorf("[server/control] create http control failed: %v", err)
 			return nil, err
 		}
 		control.httpControl = webServerControl
 
-		websocketControl := websocket.NewWebsocketControl(webConfig, control.GetLoggerControl())
+		// WebSocket控制器使用独立的WebSocketConfig
+		wsConfig := configControl.GetWebSocketConfig()
+		websocketControl := websocket.NewWebsocketControl(wsConfig, control.GetLoggerControl())
 		control.websocketControl = websocketControl
 	}
 
@@ -499,8 +502,9 @@ func NewServerControl(dockerControl *docker.Control,
 	aiControl *ai.Control,
 	certificateControl *certificate.Control,
 ) *Control {
-	serverLogger := loggerControl.GenLogger(logger.ModuleServer)
-	serverLogger.Infof("[control] starting new server control...")
+	// serverLogger := loggerControl.GenLogger(logger.ModuleServer)
+	serverLogger := loggerControl.GenLogger("")
+	serverLogger.Infof("[server/control] starting new server control...")
 	return &Control{
 		logger:             serverLogger,
 		ctx:                context.Background(),
@@ -534,112 +538,113 @@ func NewServerControl(dockerControl *docker.Control,
 // @param failedFunc func(err error) 启动失败时的回调函数
 func (c *Control) StartUp(failedFunc func(err error)) {
 	c.once.Do(func() {
+		// 这两个 control 在new的时候已经 startup
 
-		if c.flagsControl != nil {
-			c.logger.Debugf("[control] starting up flags server...")
-			c.flagsControl.StartUp(failedFunc)
-		}
-
-		if c.configControl != nil {
-			c.logger.Debugf("[control] starting up config server...")
-			c.configControl.StartUp(failedFunc)
-		}
+		// if c.flagsControl != nil {
+		// 	c.logger.Debugf("[server/control] starting up flags server...")
+		// 	c.flagsControl.StartUp(failedFunc)
+		// }
+		//
+		// if c.configControl != nil {
+		// 	c.logger.Debugf("[server/control] starting up config server...")
+		// 	c.configControl.StartUp(failedFunc)
+		// }
 
 		if c.loggerControl != nil {
-			c.logger.Debugf("[control] starting up logger server...")
+			c.logger.Debugf("[server/control] starting up logger server...")
 			c.loggerControl.StartUp(failedFunc)
 		}
 
 		if c.certificateControl != nil {
-			c.logger.Debugf("[control] starting up certificate server...")
+			c.logger.Debugf("[server/control] starting up certificate server...")
 			c.certificateControl.StartUp(failedFunc)
 		}
 
 		if c.tracerControl != nil {
-			c.logger.Debugf("[control] starting up tracer server...")
+			c.logger.Debugf("[server/control] starting up tracer server...")
 			c.tracerControl.StartUp(failedFunc)
 		}
 
 		if c.datasourceControl != nil {
-			c.logger.Debugf("[control] starting up datasource server...")
+			c.logger.Debugf("[server/control] starting up datasource server...")
 			c.datasourceControl.StartUp(failedFunc)
 		}
 
 		if c.redisControl != nil {
-			c.logger.Debugf("[control] starting up redis server...")
+			c.logger.Debugf("[server/control] starting up redis server...")
 			c.redisControl.StartUp(failedFunc)
 		}
 
 		if c.kvDatabaseControl != nil {
-			c.logger.Debugf("[control] starting up kvdatabase server...")
+			c.logger.Debugf("[server/control] starting up kvdatabase server...")
 			c.kvDatabaseControl.StartUp(failedFunc)
 		}
 
 		if c.grpcControl != nil {
-			c.logger.Debugf("[control] starting up grpc server...")
+			c.logger.Debugf("[server/control] starting up grpc server...")
 			c.grpcControl.StartUp(failedFunc)
 		}
 
 		if c.libp2pControl != nil {
-			c.logger.Debugf("[control] starting up libp2p server...")
+			c.logger.Debugf("[server/control] starting up libp2p server...")
 			c.libp2pControl.StartUp(failedFunc)
 		}
 		if c.ipfsControl != nil {
-			c.logger.Debugf("[control] starting up ipfs server...")
+			c.logger.Debugf("[server/control] starting up ipfs server...")
 			c.ipfsControl.StartUp(failedFunc)
 		}
 
 		if c.ipfsClusterControl != nil {
-			c.logger.Debugf("[control] starting up ipfs cluster server...")
+			c.logger.Debugf("[server/control] starting up ipfs cluster server...")
 			c.ipfsClusterControl.StartUp(failedFunc)
 		}
 
 		if c.dockerControl != nil {
-			c.logger.Debugf("[control] starting up docker server...")
+			c.logger.Debugf("[server/control] starting up docker server...")
 			c.dockerControl.StartUp(failedFunc)
 		}
 
 		if c.antsControl != nil {
-			c.logger.Debugf("[control] starting up ants pool server...")
+			c.logger.Debugf("[server/control] starting up ants pool server...")
 			c.antsControl.StartUp(failedFunc)
 		}
 
 		if c.jobControl != nil {
-			c.logger.Debugf("[control] starting up job server...")
+			c.logger.Debugf("[server/control] starting up job server...")
 			c.jobControl.StartUp(failedFunc)
 		}
 
 		if c.captchaControl != nil {
-			c.logger.Debugf("[control] starting up captcha server...")
+			c.logger.Debugf("[server/control] starting up captcha server...")
 			c.captchaControl.StartUp(failedFunc)
 		}
 
 		if c.authzControl != nil {
-			c.logger.Debugf("[control] starting up authz server...")
+			c.logger.Debugf("[server/control] starting up authz server...")
 			c.authzControl.StartUp(failedFunc)
 		}
 		if c.mfaControl != nil {
-			c.logger.Debugf("[control] starting up mfa server...")
+			c.logger.Debugf("[server/control] starting up mfa server...")
 			c.mfaControl.StartUp(failedFunc)
 		}
 
 		if c.websocketControl != nil {
-			c.logger.Debugf("[control] starting up websocket server...")
+			c.logger.Debugf("[server/control] starting up websocket server...")
 			c.websocketControl.StartUp(failedFunc)
 		}
 
 		if c.webRTCControl != nil {
-			c.logger.Debugf("[control] starting up webrtc server...")
+			c.logger.Debugf("[server/control] starting up webrtc server...")
 			c.webRTCControl.StartUp(failedFunc)
 		}
 
 		if c.aiControl != nil {
-			c.logger.Debugf("[control] starting up ai server...")
+			c.logger.Debugf("[server/control] starting up ai server...")
 			c.aiControl.StartUp(failedFunc)
 		}
 
 		if c.httpControl != nil {
-			c.logger.Debugf("[control] starting up http server...")
+			c.logger.Debugf("[server/control] starting up http server...")
 			// if runtime.GOOS == runtime.GOOS &&
 			// 	runtime.GOARCH == runtime.GOARCH {
 			// 	stack := make([]uintptr, 10)
@@ -655,7 +660,7 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 			c.httpControl.StartUp(failedFunc)
 		}
 
-		c.logger.Infof("[control] all server started up successfully...")
+		c.logger.Infof("[server/control] all server started up successfully...")
 	})
 }
 
@@ -666,178 +671,178 @@ func (c *Control) Shutdown() error {
 	var errs []error
 
 	if c.jobControl != nil {
-		c.logger.Debugf("[control] shutting down job server...")
+		c.logger.Debugf("[server/control] shutting down job server...")
 		if err := c.jobControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown job server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown job server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.antsControl != nil {
-		c.logger.Debugf("[control] shutting down ants pool server...")
+		c.logger.Debugf("[server/control] shutting down ants pool server...")
 		if err := c.antsControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown ants pool server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown ants pool server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.websocketControl != nil {
-		c.logger.Debugf("[control] shutting down websocket server...")
+		c.logger.Debugf("[server/control] shutting down websocket server...")
 		if err := c.websocketControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown websocket server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown websocket server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.captchaControl != nil {
-		c.logger.Debugf("[control] shutting down captcha server...")
+		c.logger.Debugf("[server/control] shutting down captcha server...")
 		if err := c.captchaControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown captcha server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown captcha server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.authzControl != nil {
-		c.logger.Debugf("[control] shutting down authz server...")
+		c.logger.Debugf("[server/control] shutting down authz server...")
 		if err := c.authzControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown authz server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown authz server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.mfaControl != nil {
-		c.logger.Debugf("[control] shutting down mfa server...")
+		c.logger.Debugf("[server/control] shutting down mfa server...")
 		if err := c.mfaControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown mfa server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown mfa server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.httpControl != nil {
-		c.logger.Debugf("[control] shutting down http server...")
+		c.logger.Debugf("[server/control] shutting down http server...")
 		if err := c.httpControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown http server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown http server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.libp2pControl != nil {
-		c.logger.Debugf("[control] shutting down libp2p server...")
+		c.logger.Debugf("[server/control] shutting down libp2p server...")
 		if err := c.libp2pControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown libp2p server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown libp2p server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.grpcControl != nil {
-		c.logger.Debugf("[control] shutting down grpc server...")
+		c.logger.Debugf("[server/control] shutting down grpc server...")
 		if err := c.grpcControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown grpc server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown grpc server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.ipfsControl != nil {
-		c.logger.Debugf("[control] shutting down ipfs server...")
+		c.logger.Debugf("[server/control] shutting down ipfs server...")
 		if err := c.ipfsControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown ipfs server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown ipfs server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.ipfsClusterControl != nil {
-		c.logger.Debugf("[control] shutting down ipfs cluster server...")
+		c.logger.Debugf("[server/control] shutting down ipfs cluster server...")
 		if err := c.ipfsClusterControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown ipfs cluster server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown ipfs cluster server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.dockerControl != nil {
-		c.logger.Debugf("[control] shutting down docker server...")
+		c.logger.Debugf("[server/control] shutting down docker server...")
 		if err := c.dockerControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown docker server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown docker server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.datasourceControl != nil {
-		c.logger.Debugf("[control] shutting down datasource server...")
+		c.logger.Debugf("[server/control] shutting down datasource server...")
 		if err := c.datasourceControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown datasource server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown datasource server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.redisControl != nil {
-		c.logger.Debugf("[control] shutting down redis server...")
+		c.logger.Debugf("[server/control] shutting down redis server...")
 		if err := c.redisControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown redis server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown redis server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.kvDatabaseControl != nil {
-		c.logger.Debugf("[control] shutting down kvdatabase server...")
+		c.logger.Debugf("[server/control] shutting down kvdatabase server...")
 		if err := c.kvDatabaseControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown kvdatabase server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown kvdatabase server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.webRTCControl != nil {
-		c.logger.Debugf("[control] shutting down webrtc server...")
+		c.logger.Debugf("[server/control] shutting down webrtc server...")
 		if err := c.webRTCControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown webrtc server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown webrtc server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.aiControl != nil {
-		c.logger.Debugf("[control] shutting down ai server...")
+		c.logger.Debugf("[server/control] shutting down ai server...")
 		if err := c.aiControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown ai server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown ai server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.tracerControl != nil {
-		c.logger.Debugf("[control] shutting down tracer server...")
+		c.logger.Debugf("[server/control] shutting down tracer server...")
 		if err := c.tracerControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown tracer server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown tracer server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.certificateControl != nil {
-		c.logger.Debugf("[control] shutting down certificate server...")
+		c.logger.Debugf("[server/control] shutting down certificate server...")
 		if err := c.certificateControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown certificate server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown certificate server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	// 不会有问题的关闭
 	if c.loggerControl != nil {
-		c.logger.Debugf("[control] shutting down logger server...")
+		c.logger.Debugf("[server/control] shutting down logger server...")
 		if err := c.loggerControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown logger server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown logger server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.configControl != nil {
-		c.logger.Debugf("[control] shutting down config server...")
+		c.logger.Debugf("[server/control] shutting down config server...")
 		if err := c.configControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown config server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown config server err: %v", err)
 			errs = append(errs, err)
 		}
 	}
 
 	if c.flagsControl != nil {
-		c.logger.Debugf("[control] shutting down flags server...")
+		c.logger.Debugf("[server/control] shutting down flags server...")
 		if err := c.flagsControl.Shutdown(); err != nil {
-			c.logger.Errorf("[control] shutdown flags server err: %v", err)
+			c.logger.Errorf("[server/control] shutdown flags server err: %v", err)
 			errs = append(errs, err)
 		}
 	}

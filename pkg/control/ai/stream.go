@@ -86,7 +86,7 @@ func (c *Control) processStreamData(data []byte, callback StreamCallback) {
 			// 检查是否有usage信息
 			if response.Usage != nil {
 				// 添加token使用量的日志输出
-				c.logger.Debugf("[control] token usage - prompt: %d, completion: %d, total: %d",
+				c.logger.Debugf("[ai/control] token usage - prompt: %d, completion: %d, total: %d",
 					response.Usage.PromptTokens, response.Usage.CompletionTokens, response.Usage.TotalTokens)
 
 				if !callback("", "", response.Usage, nil) {
@@ -97,7 +97,7 @@ func (c *Control) processStreamData(data []byte, callback StreamCallback) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		c.logger.Debugf("[control] scanner error: %v", err)
+		c.logger.Debugf("[ai/control] scanner error: %v", err)
 		callback("", "", nil, err)
 	}
 }

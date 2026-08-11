@@ -21,7 +21,7 @@ func NewToonEncoder(toonLogger *zap.SugaredLogger) *ToonEncoder {
 func (encoder *ToonEncoder) EncodeToToon(data interface{}) (string, error) {
 	encoded, err := gotoon.Encode(data)
 	if err != nil {
-		encoder.logger.Errorf("[toon] failed to encode data to TOON format: %v", err)
+		encoder.logger.Errorf("[ai/toon] failed to encode data to TOON format: %v", err)
 		return "", err
 	}
 
@@ -32,7 +32,7 @@ func (encoder *ToonEncoder) EncodeToToon(data interface{}) (string, error) {
 func (encoder *ToonEncoder) EncodeToToonWithTabDelimiter(data interface{}) (string, error) {
 	encoded, err := gotoon.Encode(data, gotoon.WithDelimiter("\t"))
 	if err != nil {
-		encoder.logger.Errorf("[toon] failed to encode data to TOON format with tab delimiter: %v", err)
+		encoder.logger.Errorf("[ai/toon] failed to encode data to TOON format with tab delimiter: %v", err)
 		return "", err
 	}
 
@@ -43,7 +43,7 @@ func (encoder *ToonEncoder) EncodeToToonWithTabDelimiter(data interface{}) (stri
 func (encoder *ToonEncoder) EncodeToToonWithLengthMarker(data interface{}) (string, error) {
 	encoded, err := gotoon.Encode(data, gotoon.WithLengthMarker())
 	if err != nil {
-		encoder.logger.Errorf("[toon] failed to encode data to TOON format with length marker: %v", err)
+		encoder.logger.Errorf("[ai/toon] failed to encode data to TOON format with length marker: %v", err)
 		return "", err
 	}
 
