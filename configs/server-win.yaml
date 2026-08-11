@@ -132,6 +132,18 @@ http:
     enabled: true
     max_body_bytes: 1024
     log_level: "debug"
+# WebSocket配置
+websocket:
+  enabled: true                       # 是否启用WebSocket控制器
+  ping_interval: 54s                  # 心跳ping发送间隔
+  pong_wait: 60s                      # 等待pong超时时间，超时则断开连接
+  write_wait: 10s                     # 单次写操作超时
+  max_message_size: 4096              # 单帧最大消息字节数
+  send_buffer_size: 256               # 每连接发送通道缓冲大小
+  read_buffer_size: 1024              # 升级时读缓冲字节数
+  write_buffer_size: 1024             # 升级时写缓冲字节数
+  handshake_timeout: 10s              # 握手超时
+  check_origins: [ ]                   # 允许的Origin列表，为空表示允许全部（仅开发环境建议为空，生产环境必须配置白名单）
 libp2p:
   enabled: true
   listen_addr:

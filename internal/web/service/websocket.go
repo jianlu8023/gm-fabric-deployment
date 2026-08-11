@@ -298,9 +298,17 @@ func (s *webSocketServiceImpl) ConnectService(ctx *gin.Context, req *request.WSC
 
 	userIDStr := userId.(string)
 
+	// 从上下文获取sessionID
+	sessionIDStr := ""
+	if sessionID, exists := ctx.Get("session_id"); exists {
+		if sid, ok := sessionID.(string); ok {
+			sessionIDStr = sid
+		}
+	}
+
 	// 调用WebSocket控制器升级连接
 	s.logger.Infof("websocket connection request from user: %s, node: %s", userIDStr, req.NodeID)
-	_, _, err := s.wsControl.UpgradeConnection(ctx.Writer, ctx.Request, req.NodeID)
+	_, _, err := s.wsControl.UpgradeConnection(ctx.Writer, ctx.Request, req.NodeID, userIDStr, sessionIDStr)
 	if err != nil {
 		s.logger.Errorf("websocket connection upgrade failed: %v", err)
 		commonhttp.FailedResponseWithMessage(ctx, commonhttp.InternalServerError, "WebSocket连接升级失败")

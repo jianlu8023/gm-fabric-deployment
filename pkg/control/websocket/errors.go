@@ -3,6 +3,8 @@ package websocket
 import "errors"
 
 // 定义WebSocket相关错误
+//
+// @description 集中定义WebSocket控制器对外暴露的错误，供调用方做错误判定与分类处理
 var (
 	// ErrConnectionNotFound 表示找不到指定的连接
 	ErrConnectionNotFound = errors.New("websocket: connection not found")
