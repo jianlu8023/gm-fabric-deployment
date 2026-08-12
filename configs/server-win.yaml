@@ -275,6 +275,7 @@ webrtc:
   min_port: 50000
   max_port: 65500
   log_in_console: true
+  disable_multicast_dns: true  # 禁用mDNS，避免Windows下pion/mdns库的已知警告（服务端不需要mDNS隐私保护）
 ai:
   enabled: true
   api_key: "your-api-key-here"

@@ -303,7 +303,7 @@
 
             <div class="form-group">
                 <label for="serverUrl">服务器地址:</label>
-                <input type="text" id="serverUrl" value="https://localhost:8080/example" placeholder="请输入服务器地址">
+                <input type="text" id="serverUrl" value="" placeholder="请输入服务器地址">
             </div>
 
             <!-- <div class="button-group"> -->
@@ -351,6 +351,15 @@
 
     const logs = document.getElementById('logs'); // 日志输出区域
 
+    // 初始化服务器地址：动态使用当前页面的origin，避免127.0.0.1与localhost的CSP跨域问题
+    (function initServerUrl() {
+        const serverUrlInput = document.getElementById('serverUrl');
+        if (serverUrlInput && !serverUrlInput.value) {
+            // 动态构建服务器地址：协议 + 当前主机(包括端口) + /example
+            serverUrlInput.value = window.location.origin + '/example';
+        }
+    })();
+
 
     // 获取页面元素
     const startButton = document.getElementById('startButton');
@@ -390,6 +399,57 @@
     let addedServerIceCandidates = new Set(); // 已添加的服务器ICE候选
     let addedLocalIceCandidates = new Set();  // 已添加的本地ICE候选
     let sentLocalIceCandidates = new Set();   // 已发送的本地ICE候选
+
+    // 数据通道状态轮询相关变量
+    let dataChannelPollingTimer = null;       // 数据通道readyState轮询定时器
+
+    // 尝试启用发送消息按钮：主动检查DataChannel的readyState状态
+    function tryEnableSendButton() {
+        if (!localDataChannel) {
+            return false;
+        }
+        const rs = localDataChannel.readyState;
+        addLog(`[DataChannel状态检查] readyState=${rs}, id=${localDataChannel.id}`, 'info');
+        if (rs === 'open') {
+            sendButton.disabled = false;
+            updateStatus('数据通道已打开，可以发送消息', 'success');
+            addLog(`数据通道已打开 (ID: ${localDataChannel.id})，发送按钮已启用`, 'success');
+            // 一旦打开就停止轮询
+            if (dataChannelPollingTimer) {
+                clearInterval(dataChannelPollingTimer);
+                dataChannelPollingTimer = null;
+            }
+            return true;
+        }
+        if (rs === 'closed' || rs === 'closing') {
+            sendButton.disabled = true;
+        }
+        return false;
+    }
+
+    // 启动数据通道状态轮询：在ICE连接后如果onopen事件丢失，主动周期性检查
+    function startDataChannelStatePolling(timeoutSeconds = 30) {
+        // 先立即检查一次
+        if (tryEnableSendButton()) {
+            return;
+        }
+        // 如果已有轮询先清除
+        if (dataChannelPollingTimer) {
+            clearInterval(dataChannelPollingTimer);
+        }
+        let pollCount = 0;
+        const maxPolls = Math.ceil(timeoutSeconds * 10); // 每100ms一次，默认30s
+        dataChannelPollingTimer = setInterval(() => {
+            pollCount++;
+            if (pollCount >= maxPolls) {
+                clearInterval(dataChannelPollingTimer);
+                dataChannelPollingTimer = null;
+                addLog(`数据通道轮询超时 (${timeoutSeconds}s)，仍未打开，请检查ICE连接状态`, 'warning');
+                return;
+            }
+            tryEnableSendButton();
+        }, 100);
+    }
 
     // 添加日志函数
     function addLog(message, type = 'info') {
@@ -440,26 +500,26 @@
 
             // 创建数据通道
             localDataChannel = localConnection.createDataChannel('chat');
-            localDataChannel.onopen = () => {
-                updateStatus('数据通道已打开', 'success');
-                sendButton.disabled = false;
-                addLog('数据通道已打开', 'success');
-            };
-            localDataChannel.onclose = () => {
-                updateStatus('数据通道已关闭', 'info');
+            // 注意：这里只通过统一函数做状态变更处理，不再在多处直接赋值onopen以避免覆盖
+            localDataChannel.addEventListener('open', () => {
+                addLog(`[DataChannel事件] onopen 触发，ID=${localDataChannel.id}`, 'info');
+                tryEnableSendButton();
+            });
+            localDataChannel.addEventListener('close', () => {
                 sendButton.disabled = true;
+                updateStatus('数据通道已关闭', 'info');
                 addLog('数据通道已关闭', 'info');
-            };
-            localDataChannel.onerror = (error) => {
+            });
+            localDataChannel.addEventListener('error', (error) => {
                 updateStatus('数据通道错误: ' + error.message, 'error');
                 addLog('数据通道错误: ' + error.message, 'error');
                 console.error('数据通道错误:', error);
-            };
-            localDataChannel.onmessage = (event) => {
+            });
+            localDataChannel.addEventListener('message', (event) => {
                 messageOutput.value += '远程: ' + event.data + '\n';
                 messageOutput.scrollTop = messageOutput.scrollHeight;
                 addLog('收到远程消息: ' + event.data, 'info');
-            };
+            });
 
             // 记录数据通道创建
             addLog('数据通道已创建，标签: ' + localDataChannel.label + ', ID: ' + localDataChannel.id, 'info');
@@ -501,10 +561,19 @@
                 updateStatus(`本地连接状态: ${state}`, 'info');
                 addLog(`本地连接状态变化: ${state}`, 'info');
 
-                // 如果连接已建立，检查数据通道状态
+                // 如果连接已建立，检查数据通道状态并启动轮询
                 if (state === 'connected') {
                     if (localDataChannel) {
-                        addLog(`数据通道状态: ${localDataChannel.readyState}`, 'info');
+                        addLog(`连接完成，检查数据通道: readyState=${localDataChannel.readyState}, id=${localDataChannel.id}`, 'info');
+                        tryEnableSendButton();
+                        startDataChannelStatePolling(30);
+                    }
+                }
+                if (state === 'failed' || state === 'disconnected' || state === 'closed') {
+                    sendButton.disabled = true;
+                    if (dataChannelPollingTimer) {
+                        clearInterval(dataChannelPollingTimer);
+                        dataChannelPollingTimer = null;
                     }
                 }
             };
@@ -519,9 +588,14 @@
             localConnection.oniceconnectionstatechange = () => {
                 const state = localConnection.iceConnectionState;
                 addLog('本地 ICE 连接状态: ' + state, 'info');
-                // 如果ICE连接成功，可以尝试获取服务器端的ICE候选
+                // 如果ICE连接成功，立即检查并启动数据通道状态轮询
                 if (state === 'connected' || state === 'completed') {
                     updateStatus('ICE连接已建立', 'success');
+                    if (localDataChannel) {
+                        addLog(`ICE连接完成(${state})，检查数据通道: readyState=${localDataChannel.readyState}, id=${localDataChannel.id}`, 'info');
+                        tryEnableSendButton();
+                        startDataChannelStatePolling(30);
+                    }
                 }
             };
 
@@ -658,22 +732,12 @@
 
             // 检查数据通道状态
             if (localDataChannel) {
-                if (localDataChannel.readyState === 'open') {
-                    sendButton.disabled = false;
-                    updateStatus('数据通道已打开，可以发送消息', 'success');
-                } else {
-                    // 监听数据通道状态变化
-                    localDataChannel.onopen = () => {
-                        sendButton.disabled = false;
-                        updateStatus('数据通道已打开，可以发送消息', 'success');
-                        addLog('数据通道已打开', 'success');
-                    };
-                    localDataChannel.onclose = () => {
-                        sendButton.disabled = true;
-                        updateStatus('数据通道已关闭', 'info');
-                        addLog('数据通道已关闭', 'info');
-                    };
-                }
+                addLog(`设置远程描述后检查数据通道: readyState=${localDataChannel.readyState}, id=${localDataChannel.id}`, 'info');
+                // 注意：这里绝对不要重新赋值 localDataChannel.onopen / localDataChannel.onclose
+                // 否则会覆盖 startButton 中已注册的 addEventListener 回调，导致事件丢失！
+                // 改为：立即主动检查，并启动状态轮询双重保障
+                tryEnableSendButton();
+                startDataChannelStatePolling(30);
             }
 
             // 清空现有的远程ICE候选显示
@@ -943,17 +1007,10 @@
             updateStatus('数据通道未打开，无法发送消息 (状态: ' + state + ')', 'error');
             addLog('数据通道未打开，无法发送消息 (状态: ' + state + ')', 'error');
 
-            // 尝试重新监听数据通道事件
-            localDataChannel.onopen = () => {
-                sendButton.disabled = false;
-                updateStatus('数据通道已打开，可以发送消息', 'success');
-                addLog('数据通道已打开', 'success');
-            };
-            localDataChannel.onclose = () => {
-                sendButton.disabled = true;
-                updateStatus('数据通道已关闭', 'info');
-                addLog('数据通道已关闭', 'info');
-            };
+            // 不再覆盖赋值 onopen/onclose（会覆盖之前注册的 addEventListener）
+            // 改为主动启动状态轮询等待数据通道打开
+            addLog('重新启动数据通道状态轮询等待打开...', 'info');
+            startDataChannelStatePolling(30);
         }
     };
 
@@ -1048,6 +1105,12 @@
 
             // 停止ICE候选轮询
             stopIceCandidatePolling();
+
+            // 停止数据通道状态轮询
+            if (dataChannelPollingTimer) {
+                clearInterval(dataChannelPollingTimer);
+                dataChannelPollingTimer = null;
+            }
 
             updateStatus('连接已关闭', 'info');
             sendButton.disabled = true;

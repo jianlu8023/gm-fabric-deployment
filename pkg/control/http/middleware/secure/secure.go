@@ -13,6 +13,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	ContentSecurityPolicy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://127.0.0.1:* https://localhost:* http://127.0.0.1:* http://localhost:* wss://127.0.0.1:* wss://localhost:* ws://127.0.0.1:* ws://localhost:* stun: turn:; media-src 'self' blob:"
+)
+
 // EnableTLSProtection 创建并返回TLS保护中间件
 // @description 提供TLS安全相关的HTTP头设置，增强Web应用安全性
 // @param logger 日志记录器
@@ -45,7 +49,8 @@ func EnableTLSProtection(logger *zap.SugaredLogger, isDevelopment bool, sslRedir
 
 		// 设置内容安全策略(CSP)
 		// 这里使用相对宽松的策略，实际应用中应根据需求进行调整
-		ctx.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+		// connect-src显式允许fetch/XMLHttpRequest/WebSocket，并兼容localhost/127.0.0.1等开发环境地址
+		ctx.Header("Content-Security-Policy", ContentSecurityPolicy)
 
 		// 对于非GET请求，记录TLS连接信息
 		if ctx.Request.Method != http.MethodGet {
@@ -129,7 +134,8 @@ func EnableUnrolledTLS(logger *zap.SugaredLogger, isDevelopment bool, sslHost st
 		ctx.Header("X-XSS-Protection", "1; mode=block")
 
 		// 设置内容安全策略(CSP)
-		ctx.Header("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:")
+		// connect-src显式允许fetch/XMLHttpRequest/WebSocket，并兼容localhost/127.0.0.1等开发环境地址
+		ctx.Header("Content-Security-Policy", ContentSecurityPolicy)
 
 		// 记录TLS连接信息
 		if ctx.Request.TLS != nil && logger != nil {
@@ -195,11 +201,12 @@ func EnableSecurePackageTLS(sslHost string, isDevelopment bool, sslRedirect bool
 		}
 
 		secureMiddleware := secure.New(secure.Options{
-			SSLRedirect:           sslRedirect,
-			SSLHost:               effectiveSSLHost,
-			STSSeconds:            315360000,
-			FrameDeny:             true,
-			ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:",
+			SSLRedirect: sslRedirect,
+			SSLHost:     effectiveSSLHost,
+			STSSeconds:  315360000,
+			FrameDeny:   true,
+			// connect-src显式允许fetch/XMLHttpRequest/WebSocket，并兼容localhost/127.0.0.1等开发环境地址
+			ContentSecurityPolicy: ContentSecurityPolicy,
 			IsDevelopment:         isDevelopment,
 		})
 		// 如果SSL重定向已经发送，不再继续处理请求

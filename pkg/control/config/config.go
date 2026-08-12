@@ -754,11 +754,12 @@ func (c *ICEServerConfig) GoString() string {
 // WebRTCConfig WebRTC配置
 // @return string WebRTCConfig的字符串表示
 type WebRTCConfig struct {
-	Enabled      bool               `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                      // 是否启用
-	ICEServers   []*ICEServerConfig `json:"ice_servers,omitempty" yaml:"ice_servers,omitempty" mapstructure:"ice_servers"`          // ICE服务器列表（可同时包含STUN和TURN服务器）
-	MinPort      int                `json:"min_port,omitempty" yaml:"min_port,omitempty" mapstructure:"min_port"`                   // 最小端口范围
-	MaxPort      int                `json:"max_port,omitempty" yaml:"max_port,omitempty" mapstructure:"max_port"`                   // 最大端口范围
-	LogInConsole bool               `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"` // 是否在控制台打印日志
+	Enabled             bool               `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                           // 是否启用
+	ICEServers          []*ICEServerConfig `json:"ice_servers,omitempty" yaml:"ice_servers,omitempty" mapstructure:"ice_servers"`                               // ICE服务器列表（可同时包含STUN和TURN服务器）
+	MinPort             int                `json:"min_port,omitempty" yaml:"min_port,omitempty" mapstructure:"min_port"`                                        // 最小端口范围
+	MaxPort             int                `json:"max_port,omitempty" yaml:"max_port,omitempty" mapstructure:"max_port"`                                        // 最大端口范围
+	LogInConsole        bool               `json:"log_in_console,omitempty" yaml:"log_in_console,omitempty" mapstructure:"log_in_console"`                      // 是否在控制台打印日志
+	DisableMulticastDNS bool               `json:"disable_multicast_dns,omitempty" yaml:"disable_multicast_dns,omitempty" mapstructure:"disable_multicast_dns"` // 是否禁用mDNS（Windows下pion/mdns库有已知警告，服务端建议禁用）
 	// MaxMessageSize int      `json:"max_message_size,omitempty" yaml:"max_message_size,omitempty" mapstructure:"max_message_size"` // 最大消息大小
 	// ListenAddr     string   `json:"listen_addr,omitempty" yaml:"listen_addr,omitempty" mapstructure:"listen_addr"`                // 监听地址
 }

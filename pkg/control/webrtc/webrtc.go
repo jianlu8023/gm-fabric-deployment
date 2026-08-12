@@ -22,7 +22,7 @@ func ParseICECandidate(candidate string) (webrtc.ICECandidateInit, error) {
 		var iceCandidate webrtc.ICECandidateInit
 		err = json.Unmarshal([]byte(candidate), &iceCandidate)
 		if err != nil {
-			return webrtc.ICECandidateInit{}, fmt.Errorf("无法解析ICE候选: %v", err)
+			return webrtc.ICECandidateInit{}, fmt.Errorf("failed to parse ICE candidate: %w", err)
 		}
 		return iceCandidate, nil
 	}
@@ -30,15 +30,16 @@ func ParseICECandidate(candidate string) (webrtc.ICECandidateInit, error) {
 	var iceCandidate webrtc.ICECandidateInit
 	err = json.Unmarshal(bytes, &iceCandidate)
 	if err != nil {
-		return webrtc.ICECandidateInit{}, fmt.Errorf("JSON解析失败: %v", err)
+		return webrtc.ICECandidateInit{}, fmt.Errorf("failed to unmarshal ICE candidate JSON: %w", err)
 	}
 	return iceCandidate, nil
 }
 
 // ParseSessionDescription 解析SDP描述
 //
-// @description 解析SDP描述，该函数首先尝试Base64解码，如果失败则直接解析JSON，如果还失败则假设是纯SDP字符串
-// @param sdp string SDP描述字符串，可能是Base64编码、JSON格式或纯SDP字符串
+// @description 解析SDP描述，该函数首先尝试Base64解码，如果失败则直接解析JSON。
+// 当输入既不是Base64也不是合法JSON时返回错误，调用方需显式指定SDP类型（如纯SDP字符串场景应直接构造webrtc.SessionDescription）
+// @param sdp string SDP描述字符串，可能是Base64编码或JSON格式
 // @return webrtc.SessionDescription 解析后的SDP描述对象
 // @return error 如果解析失败，则返回错误信息
 func ParseSessionDescription(sdp string) (webrtc.SessionDescription, error) {
@@ -47,22 +48,21 @@ func ParseSessionDescription(sdp string) (webrtc.SessionDescription, error) {
 	if err != nil {
 		// 如果Base64解码失败，尝试直接解析JSON
 		var desc webrtc.SessionDescription
-		err = json.Unmarshal([]byte(sdp), &desc)
-		if err != nil {
-			// 如果JSON解析也失败，假设是纯SDP字符串
-			desc = webrtc.SessionDescription{
-				Type: webrtc.SDPTypeOffer,
-				SDP:  sdp,
+		if jsonErr := json.Unmarshal([]byte(sdp), &desc); jsonErr == nil {
+			// JSON解析成功，校验Type和SDP字段是否有效
+			if desc.SDP == "" {
+				return webrtc.SessionDescription{}, fmt.Errorf("invalid session description: empty SDP")
 			}
 			return desc, nil
 		}
-		return desc, nil
+		// Base64与JSON均失败，返回错误，由调用方决定如何处理纯SDP字符串
+		return webrtc.SessionDescription{}, fmt.Errorf("failed to parse session description: not base64 or json")
 	}
+
 	// Base64解码成功，尝试解析JSON
 	var desc webrtc.SessionDescription
-	err = json.Unmarshal(bytes, &desc)
-	if err != nil {
-		return webrtc.SessionDescription{}, fmt.Errorf("JSON解析失败: %v", err)
+	if err = json.Unmarshal(bytes, &desc); err != nil {
+		return webrtc.SessionDescription{}, fmt.Errorf("failed to unmarshal session description JSON: %w", err)
 	}
 	return desc, nil
 }

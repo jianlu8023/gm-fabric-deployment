@@ -265,9 +265,9 @@ func (s *webRTCServiceImpl) GetICECandidates(ctx *gin.Context, req *request.GetI
 		return
 	}
 
-	// 获取存储的ICE候选
-	candidates := peerConnection.GetICECandidates()
-	s.logger.Debugf("found %d ice candidates for connection: %s", len(candidates), req.ConnectionID)
+	// 获取服务器本地生成的ICE候选（而非客户端发过来的远程候选）
+	candidates := peerConnection.GetLocalICECandidates()
+	s.logger.Debugf("found %d local ice candidates for connection: %s", len(candidates), req.ConnectionID)
 
 	// 如果没有候选，返回空响应
 	if len(candidates) == 0 {
