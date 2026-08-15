@@ -16,6 +16,8 @@ docker:
   default_timeout: 5
 grpc:
   enabled: true
+  node_id: "server-docker"
+  health_check_interval: 60
   server:
     host: 0.0.0.0:65534
     max_recv_msg_size: 5242880
@@ -25,17 +27,18 @@ grpc:
     tls_cert_file: [ certs/openssl/gserver.crt ]
     tls_key_file: [ certs/openssl/gserver.key ]
     tls_rca_cert_file: certs/openssl/grpc-authority.crt
-  client:
-    host: app-client:65533
-    max_call_recv_msg_size: 5242880
-    max_call_send_msg_size: 5242880
-    chunk_size: 4194304
-    call_timeout: 99999
-    tls_enabled: true
-    tls_cert_file: [ certs/openssl/gclient.crt ]
-    tls_key_file: [ certs/openssl/gclient.key ]
-    tls_rca_cert_file: certs/openssl/grpc-authority.crt
-    tls_server_name: "gserver.jianlu.site"
+  clients:
+    client-docker:
+      host: app-client:65533
+      max_call_recv_msg_size: 5242880
+      max_call_send_msg_size: 5242880
+      chunk_size: 4194304
+      call_timeout: 99999
+      tls_enabled: true
+      tls_cert_file: [ certs/openssl/gclient.crt ]
+      tls_key_file: [ certs/openssl/gclient.key ]
+      tls_rca_cert_file: certs/openssl/grpc-authority.crt
+      tls_server_name: "gserver.jianlu.site"
 http:
   enabled: true
   address: :8080

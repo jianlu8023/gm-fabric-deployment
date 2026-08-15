@@ -15,6 +15,8 @@ docker:
   default_timeout: 5
 grpc:
   enabled: true
+  node_id: "client-win"
+  health_check_interval: 60
   server:
     host: 0.0.0.0:65533
     max_recv_msg_size: 5242880
@@ -29,23 +31,24 @@ grpc:
     tls_cert_file: [ certs/openssl/gserver-chain.crt ]
     tls_key_file: [ certs/openssl/gserver.key ]
     tls_rca_cert_file: certs/openssl/root.crt
-  client:
-    host: 127.0.0.1:65534
-    max_call_recv_msg_size: 5242880
-    max_call_send_msg_size: 5242880
-    chunk_size: 4194304
-    call_timeout: 99999
-    tls_enabled: true
-#    tls_gm: true
-#    tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
-#    tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
-#    tls_rca_cert_file: "certs/tongsuo/subca.crt"
-#    tls_server_name: "grpc"
-    tls_gm: false
-    tls_cert_file: [ certs/openssl/gclient-chain.crt ]
-    tls_key_file: [ certs/openssl/gclient.key ]
-    tls_rca_cert_file: certs/openssl/root.crt
-    tls_server_name: "gserver.jianlu.site"
+  clients:
+    server-win:
+      host: 127.0.0.1:65534
+      max_call_recv_msg_size: 5242880
+      max_call_send_msg_size: 5242880
+      chunk_size: 4194304
+      call_timeout: 99999
+      tls_enabled: true
+      #      tls_gm: true
+      #      tls_cert_file: "certs/tongsuo/client_sign.crt,certs/tongsuo/client_enc.crt"
+      #      tls_key_file: "certs/tongsuo/client_sign.key,certs/tongsuo/client_enc.key"
+      #      tls_rca_cert_file: "certs/tongsuo/subca.crt"
+      #      tls_server_name: "grpc"
+      tls_gm: false
+      tls_cert_file: [ certs/openssl/gclient-chain.crt ]
+      tls_key_file: [ certs/openssl/gclient.key ]
+      tls_rca_cert_file: certs/openssl/root.crt
+      tls_server_name: "gserver.jianlu.site"
 http:
   enabled: false
   address: :8080

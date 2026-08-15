@@ -6,6 +6,8 @@ import (
 
 func getDefaultConfig() *config.GrpcConfig {
 	return &config.GrpcConfig{
-		Enabled: false,
+		Enabled:             false,
+		NodeID:              "default-node",
+		HealthCheckInterval: 60,
 	}
 }

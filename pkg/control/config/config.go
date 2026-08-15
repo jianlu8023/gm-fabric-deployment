@@ -530,10 +530,15 @@ func (c *GrpcClientConfig) GoString() string {
 }
 
 // GrpcConfig 配置Grpc
+//
+// @description gRPC总配置，支持多客户端连接池，NodeID用于消息来源追踪
+// @struct
 type GrpcConfig struct {
-	Enabled bool              `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"` // 是否启用
-	Server  *GrpcServerConfig `json:"server,omitempty" yaml:"server,omitempty" mapstructure:"server"`    // 服务端配置
-	Client  *GrpcClientConfig `json:"client,omitempty" yaml:"client,omitempty" mapstructure:"client"`    // 客户端配置
+	Enabled             bool                         `json:"enabled,omitempty" yaml:"enabled,omitempty" mapstructure:"enabled"`                                           // 是否启用
+	NodeID              string                       `json:"node_id,omitempty" yaml:"node_id,omitempty" mapstructure:"node_id"`                                           // 本地节点标识，用于ClientID追踪
+	Server              *GrpcServerConfig            `json:"server,omitempty" yaml:"server,omitempty" mapstructure:"server"`                                              // 服务端配置
+	Clients             map[string]*GrpcClientConfig `json:"clients,omitempty" yaml:"clients,omitempty" mapstructure:"clients"`                                           // 多客户端连接池，key=远端节点标识
+	HealthCheckInterval int                          `json:"health_check_interval,omitempty" yaml:"health_check_interval,omitempty" mapstructure:"health_check_interval"` // 健康检查间隔（秒），默认60
 }
 
 // String GrpcConfig的字符串表示
