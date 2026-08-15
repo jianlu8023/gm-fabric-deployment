@@ -17,10 +17,13 @@ before:
     - go mod tidy
 
 builds:
-  - id: server
+  # ============================================
+  # Server - Unix (Linux/macOS, binary: server.bin)
+  # ============================================
+  - id: server-unix
     main: ./cmd/server/server.go
-    binary: server
-    env: 
+    binary: server.bin
+    env:
       - CGO_ENABLED=0
     flags:
       - -tags=jsoniter
@@ -30,20 +33,164 @@ builds:
       - -X github.com/jianlu8023/golang-example/version.Version={{.Version}}
     goos:
       - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+  # ============================================
+  # Server - Windows (binary: server.exe)
+  # ============================================
+  - id: server-windows
+    main: ./cmd/server/server.go
+    binary: server
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=jsoniter
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/jianlu8023/golang-example/version.Version={{.Version}}
+    goos:
       - windows
-      #- darwin
+    goarch:
+      - amd64
+      - arm64
+
+  # ============================================
+  # Client - Unix (Linux/macOS, binary: client.bin)
+  # ============================================
+  - id: client-unix
+    main: ./cmd/client/client.go
+    binary: client.bin
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=jsoniter
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/jianlu8023/golang-example/version.Version={{.Version}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+  # ============================================
+  # Client - Windows (binary: client.exe)
+  # ============================================
+  - id: client-windows
+    main: ./cmd/client/client.go
+    binary: client
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=jsoniter
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/jianlu8023/golang-example/version.Version={{.Version}}
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+  # ============================================
+  # PeerID - Unix (Linux/macOS, binary: peerid.bin)
+  # ============================================
+  - id: peerid-unix
+    main: ./cmd/peerid/peerid.go
+    binary: peerid.bin
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=jsoniter
+      - -trimpath
+    ldflags:
+      - -s -w
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+  # ============================================
+  # PeerID - Windows (binary: peerid.exe)
+  # ============================================
+  - id: peerid-windows
+    main: ./cmd/peerid/peerid.go
+    binary: peerid
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=jsoniter
+      - -trimpath
+    ldflags:
+      - -s -w
+    goos:
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+  # ============================================
+  # Tiny - Unix (Linux/macOS, binary: tiny.bin)
+  # ============================================
+  - id: tiny-unix
+    main: ./cmd/tiny/main.go
+    binary: tiny.bin
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=jsoniter
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/jianlu8023/golang-example/version.Version={{.Version}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+  # ============================================
+  # Tiny - Windows (binary: tiny.exe)
+  # ============================================
+  - id: tiny-windows
+    main: ./cmd/tiny/main.go
+    binary: tiny
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -tags=jsoniter
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/jianlu8023/golang-example/version.Version={{.Version}}
+    goos:
+      - windows
     goarch:
       - amd64
       - arm64
 
 archives:
-  - id: default
+  # ============================================
+  # Server archives (includes configs/certs/static)
+  # ============================================
+  - id: server
     ids:
-      - server
+      - server-unix
+      - server-windows
     formats: [tar.gz]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
-      {{ .ProjectName }}_
+      {{ .ProjectName }}_server_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
@@ -58,6 +205,69 @@ archives:
       - certs/**
       - static/**
 
+  # ============================================
+  # Client archives (includes configs/certs)
+  # ============================================
+  - id: client
+    ids:
+      - client-unix
+      - client-windows
+    formats: [ tar.gz ]
+    name_template: >-
+      {{ .ProjectName }}_client_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [ zip ]
+    files:
+      - configs/**
+      - certs/**
+
+  # ============================================
+  # PeerID archives (binary only)
+  # ============================================
+  - id: peerid
+    ids:
+      - peerid-unix
+      - peerid-windows
+    formats: [ tar.gz ]
+    name_template: >-
+      {{ .ProjectName }}_peerid_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [ zip ]
+
+  # ============================================
+  # Tiny archives (includes configs/certs)
+  # ============================================
+  - id: tiny
+    ids:
+      - tiny-unix
+      - tiny-windows
+    formats: [ tar.gz ]
+    name_template: >-
+      {{ .ProjectName }}_tiny_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: [ zip ]
+    files:
+      - configs/**
+      - certs/**
+
 checksum:
   name_template: checksums.txt
 
@@ -71,4 +281,3 @@ changelog:
 release:
   disable: true
 dist: dist
-
