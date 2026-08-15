@@ -1951,8 +1951,8 @@ github.com/jianlu8023/go-logger/db-logger/v2 v2.0.0-20260810153057-95e3d11a30d4 
 github.com/jianlu8023/go-logger/db-logger/v2 v2.0.0-20260810153057-95e3d11a30d4/go.mod h1:jr+W0NuqKV+/uaM+FLtBJt0noCEoLWjjdS2BGBpaVdo=
 github.com/jianlu8023/go-logger/v2 v2.0.3-0.20260811035401-7d3d9ec8ed1c h1:I+ZSJDWOuh+Ae7xXbfjPRb2xqTEeFnQgCrJbbqk8yiY=
 github.com/jianlu8023/go-logger/v2 v2.0.3-0.20260811035401-7d3d9ec8ed1c/go.mod h1:/abd9xR5q5QSQl2UZF4BxqLYqnDd8uqwvD6otoFGVKI=
-github.com/jianlu8023/go-tools/v2 v2.0.0-20260807044417-4603f9e780e0 h1:ecI5kBQxMp/avWYSW4nYXDxmuWn4I5W2LJ6oHfXMLys=
-github.com/jianlu8023/go-tools/v2 v2.0.0-20260807044417-4603f9e780e0/go.mod h1:8T9wsq25xtKrBHtnt7Om14sYgpMCwk6XFUz8NIAKKWk=
+github.com/jianlu8023/go-tools/v2 v2.0.0-20260815032648-650387bfb4b2 h1:SidQoeFg8kLX55y+AJRmWDCzc+DFc9yN2nTqZPw8tjQ=
+github.com/jianlu8023/go-tools/v2 v2.0.0-20260815032648-650387bfb4b2/go.mod h1:8T9wsq25xtKrBHtnt7Om14sYgpMCwk6XFUz8NIAKKWk=
 github.com/jinzhu/copier v0.4.0 h1:w3ciUoD19shMCRargcpm0cm91ytaBhDvuRpz1ODO/U8=
 github.com/jinzhu/copier v0.4.0/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
 github.com/jinzhu/gorm v1.9.16 h1:+IyIjPEABKRpsu/F8OvDPy9fyQlgsg2luMV2ZIH5i5o=
