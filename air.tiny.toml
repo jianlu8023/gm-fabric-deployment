@@ -1,0 +1,67 @@
+# github https://github.com/air-verse/air
+# Tiny 模式配置（轻量级文件共享服务）
+# 启动方式：air -c air.tiny.toml
+#
+# tiny 支持的命令行参数（可按需调整到 full_bin）：
+#   -r, --road   共享目录路径，默认当前工作目录
+#   -p, --port   服务端口，默认 8192
+#   -a, --allow  允许访问者上传文件
+#   -x, --max    允许访问的目录深度（默认0=仅限共享目录本身）
+#   -s, --secure 开启登录验证
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+pre_cmd = []
+# 构建 tiny 可执行文件
+cmd = "go build -tags=jsoniter -o ./tmp/tiny.exe ./cmd/tiny"
+post_cmd = []
+bin = "tmp/tiny.exe"
+# 默认：共享当前工作目录、端口8192、开启上传、关闭登录验证
+# 如需 TLS 请保持 tiny 默认配置（首次运行会自动在 ~/.config/tiny 下生成证书）
+full_bin = "./tmp/tiny.exe -r . -p 8192 -a -x 0"
+args_bin = []
+# tiny 使用了 tpl 模板文件，必须监听
+include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml"]
+exclude_dir = ["assets", "tmp", "vendor", "frontend/node_modules", "logs", "data", "db", "certs/generated"]
+include_dir = []
+include_file = []
+exclude_file = []
+exclude_regex = ["_test\\.go"]
+exclude_unchanged = true
+follow_symlink = true
+log = "air-tiny.log"
+poll = false
+poll_interval = 500
+delay = 200
+stop_on_error = true
+send_interrupt = false
+kill_delay = 500
+rerun = false
+rerun_delay = 500
+
+[log]
+time = true
+main_only = false
+silent = false
+
+[color]
+main    = "magenta"
+watcher = "cyan"
+build   = "yellow"
+runner  = "green"
+
+[misc]
+clean_on_exit = true
+
+[screen]
+clear_on_rebuild = true
+keep_scroll = true
+
+[proxy]
+# tiny 默认端口 8192（TLS），如需浏览器代理请把 app_port 改成 tiny 的端口
+enabled = false
+proxy_port = 8193
+app_port   = 8192
+

@@ -6,82 +6,92 @@
 
 # Working directory
 # . or absolute path, please note that the directories following must be under root.
+
+# 说明：
+#   air              = 启动 server 模式（默认）
+#   air -c air.client.toml = 启动 client 模式
+#   air -c air.tiny.toml   = 启动 tiny 模式
+
 root = "."
 tmp_dir = "tmp"
 
 [build]
-# Array of commands to run before each build
+# 编译前命令（可选，留空即可）
 pre_cmd = ["echo 'hello air' > pre_cmd.txt"]
-# Just plain old shell command. You could use `make` as well.
-cmd = "go build -o ./tmp/main ."
-# Array of commands to run after ^C
+# Windows 下构建 server 可执行文件
+# 参考 Makefile: go build -tags=jsoniter -trimpath -ldflags="-s -w -X '...Version=...'" -o server.bin cmd/server/server.go
+cmd = "go build -tags=jsoniter -o ./tmp/server.exe ./cmd/server"
+# Ctrl+C 后执行的命令
 post_cmd = ["echo 'hello air' > post_cmd.txt"]
-# Binary file yields from `cmd`.
-bin = "tmp/main"
-# Customize binary, can setup environment variables when run your app.
-full_bin = "APP_ENV=dev APP_USER=air ./tmp/main"
-# Add additional arguments when running binary (bin/full_bin). Will run './tmp/main hello world'.
-args_bin = ["hello", "world"]
-# Watch these filename extensions.
-include_ext = ["go", "tpl", "tmpl", "html"]
-# Ignore these filename extensions or directories.
-exclude_dir = ["assets", "tmp", "vendor", "frontend/node_modules"]
-# Watch these directories if you specified.
+# 编译产出的二进制文件路径
+bin = "tmp/server.exe"
+# 启动 server 时附带的参数
+# 参考 AGENTS.md: server.exe -c configs/server.yaml -t win -d -v
+# 这里使用 server-win.yaml 作为配置文件
+full_bin = "./tmp/server.exe -c configs/server-win.yaml -t win -d -v"
+# 额外运行时参数（已在 full_bin 中配置，留空）
+args_bin = []
+# 监听的文件扩展名
+include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml"]
+# 忽略的目录
+exclude_dir = ["assets", "tmp", "vendor", "frontend/node_modules", "logs", "data", "db", "certs/generated"]
+# 额外监听的目录（空=监听root下所有include_dir）
 include_dir = []
-# Watch these files.
+# 额外监听的具体文件
 include_file = []
-# Exclude files.
+# 忽略的具体文件
 exclude_file = []
-# Exclude specific regular expressions.
+# 忽略 _test.go 测试文件变更
 exclude_regex = ["_test\\.go"]
-# Exclude unchanged files.
+# 文件内容未变化则不触发重编
 exclude_unchanged = true
-# Follow symlink for directories
+# 跟随目录软链接
 follow_symlink = true
-# This log file is placed in your tmp_dir.
+# air 自己的日志文件，放在 tmp_dir 下
 log = "air.log"
-# Poll files for changes instead of using fsnotify.
+# false = 使用 fsnotify（推荐，高性能）；true = 轮询模式（兼容特殊文件系统）
 poll = false
-# Poll interval (defaults to the minimum interval of 500ms).
-poll_interval = 500 # ms
-# It's not necessary to trigger build each time file changes if it's too frequent.
-delay = 0 # ms
-# Stop running old binary when build errors occur.
+# 轮询间隔（仅 poll=true 时生效）
+poll_interval = 500
+# 防抖：文件变更后等待 delay 毫秒再编译，避免保存瞬间多次触发
+delay = 200
+# 编译出错时停止运行旧进程
 stop_on_error = true
-# Send Interrupt signal before killing process (windows does not support this feature)
+# Windows 不支持发送 SIGINT，保持 false
 send_interrupt = false
-# Delay after sending Interrupt signal
-kill_delay = 500 # nanosecond
-# Rerun binary or not
+# 杀进程前等待时间（毫秒）
+kill_delay = 500
+# false = 持续运行；true = 每次启动后退出并等待下一次变更（类似 go run 单次执行）
 rerun = false
-# Delay after each execution
 rerun_delay = 500
 
 [log]
-# Show log time
-time = false
-# Only show main log (silences watcher, build, runner)
+# 显示日志时间
+time = true
+# 只显示主日志（静默watcher/build/runner）
 main_only = false
-# silence all logs produced by air
+# 完全静默（不建议，排查问题不便）
 silent = false
 
 [color]
-# Customize each part's color. If no color found, use the raw app log.
-main = "magenta"
+main    = "magenta"
 watcher = "cyan"
-build = "yellow"
-runner = "green"
+build   = "yellow"
+runner  = "green"
 
 [misc]
-# Delete tmp directory on exit
+# 退出时清理 tmp 目录
 clean_on_exit = true
 
 [screen]
+# 每次重新构建时清屏
 clear_on_rebuild = true
+# 保留滚动历史
 keep_scroll = true
 
 [proxy]
-# Enable live-reloading on the browser.
+# 浏览器端热更新代理：air 在 proxy_port 上转发到 app_port
+# server-win.yaml 的 http.address 是 :8080
 enabled = true
 proxy_port = 8090
-app_port = 8080
+app_port   = 8080
