@@ -1,5 +1,17 @@
 package http
 
+// 编码器				平台支持					主要优势
+// encoding/json（默认）	所有					最大兼容性，无额外依赖
+// go-json				所有					良好的加速效果，纯 Go，广泛兼容
+// jsoniter				所有					良好的加速效果，灵活的配置
+// sonic				仅支持 AVX 的 x86_64		通过 JIT 和 SIMD 实现最高吞吐量
+
+// 标签			效果
+// go_json		将 encoding/json 替换为 go-json
+// jsoniter		将 encoding/json 替换为 jsoniter
+// sonic avx	将 encoding/json 替换为 sonic（需要 AVX CPU 指令集）
+// nomsgpack	禁用 MsgPack 渲染支持
+
 import (
 	"html/template"
 	"net/http"
