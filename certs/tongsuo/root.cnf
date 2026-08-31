@@ -1,0 +1,22 @@
+# tongsuo-root.cnf
+[ req ]
+default_bits        = 2048
+default_md          = sha256
+distinguished_name  = req_distinguished_name
+string_mask         = utf8only
+x509_extensions     = v3_ca
+
+[ req_distinguished_name ]
+countryName                     = optional
+stateOrProvinceName             = optional
+localityName                    = optional
+0.organizationName              = optional
+organizationalUnitName          = optional
+commonName                      = optional
+emailAddress                    = optional
+
+[ v3_ca ]
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+basicConstraints = critical, CA:true, pathlen:2
+keyUsage = critical, digitalSignature, cRLSign, keyCertSign

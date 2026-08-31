@@ -1,0 +1,37 @@
+# tongsuo-dclient_sign.cnf
+[ req ]
+default_bits        = 2048
+distinguished_name  = req_distinguished_name
+string_mask         = utf8only
+default_md          = sha256
+req_extensions      = v3_req
+
+[ req_distinguished_name ]
+countryName                     = optional
+stateOrProvinceName             = optional
+localityName                    = optional
+0.organizationName              = optional
+organizationalUnitName          = optional
+commonName                      = optional
+emailAddress                    = optional
+
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = dclient.jianlu.site
+DNS.2 = *.jianlu.site
+DNS.3 = jianlu.site
+DNS.4 = localhost
+IP.1 = 127.0.0.1
+IP.2 = 192.168.58.110
+
+[ client_sign_req ]
+basicConstraints = critical, CA:FALSE
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+keyUsage = nonRepudiation, digitalSignature
+subjectAltName = @alt_names
+extendedKeyUsage = clientAuth
