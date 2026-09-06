@@ -24,9 +24,15 @@ grpc:
     chunk_size: 4194304
     tls_enabled: true
     tls_gm: true
-    tls_cert_file: [ "certs/tongsuo/server_sign.crt", "certs/tongsuo/server_enc.crt" ]
-    tls_key_file: [ "certs/tongsuo/server_sign.key", "certs/tongsuo/server_enc.key" ]
-    tls_rca_cert_file: "certs/tongsuo/subca.crt"
+    #tls_cert_file: [ "certs/tongsuo/server_sign.crt", "certs/tongsuo/server_enc.crt" ]
+    #tls_key_file: [ "certs/tongsuo/server_sign.key", "certs/tongsuo/server_enc.key" ]
+    #tls_rca_cert_file: "certs/tongsuo/subca.crt"
+    # GM双证书模式: tls_cert_file 必须 且 只能传叶子证书(签名+加密), gmsm会将cert[1]作为加密证书校验KeyUsage
+    # 服务端角色禁止使用 *-chain.crt (包含CA证书会导致握手时cert[1]的KeyUsage校验失败)
+    tls_cert_file: [ "certs/tongsuo/gserver_sign.crt", "certs/tongsuo/gserver_enc.crt" ]
+    tls_key_file: [ "certs/tongsuo/gserver_sign.key", "certs/tongsuo/gserver_enc.key" ]
+    # gmsm校验要求信任锚直接覆盖叶子签发链, RCA需用full-chain(含root+intermediate+authority), 单根root.crt不够
+    tls_rca_cert_file: "certs/tongsuo/grpc-full-chain.crt"
   clients:
     client-gm:
       host: 127.0.0.1:65533
@@ -36,10 +42,15 @@ grpc:
       call_timeout: 99999
       tls_enabled: true
       tls_gm: true
-      tls_cert_file: [ "certs/tongsuo/client_sign.crt", "certs/tongsuo/client_enc.crt" ]
-      tls_key_file: [ "certs/tongsuo/client_sign.key", "certs/tongsuo/client_enc.key" ]
-      tls_rca_cert_file: "certs/tongsuo/subca.crt"
-      tls_server_name: "grpc"
+      #tls_cert_file: [ "certs/tongsuo/client_sign.crt", "certs/tongsuo/client_enc.crt" ]
+      #tls_key_file: [ "certs/tongsuo/client_sign.key", "certs/tongsuo/client_enc.key" ]
+      #tls_rca_cert_file: "certs/tongsuo/subca.crt"
+      #tls_server_name: "grpc"
+      tls_cert_file: [ "certs/tongsuo/gclient_sign-chain.crt", "certs/tongsuo/gclient_enc-chain.crt" ]
+      tls_key_file: [ "certs/tongsuo/gclient_sign.key", "certs/tongsuo/gclient_enc.key" ]
+      # gmsm校验要求信任锚直接覆盖叶子签发链, RCA需用full-chain(含root+intermediate+authority)
+      tls_rca_cert_file: "certs/tongsuo/grpc-full-chain.crt"
+      tls_server_name: "gserver.jianlu.site"
 http:
   enabled: true
   address: :8080
@@ -53,9 +64,15 @@ http:
   # gm模式需要两套 签名证书,加密证书
   #tls_cert_file: "certs/tjfoc/sm2_sign_cert.cer,certs/tjfoc/sm2_enc_cert.cer"
   #tls_rca_cert_file: certs/tjfoc/SM2_CA.cer
-  tls_cert_file: [ "certs/tongsuo/server_sign.crt", "certs/tongsuo/server_enc.crt" ]
-  tls_key_file: [ "certs/tongsuo/server_sign.key", "certs/tongsuo/server_enc.key" ]
-  tls_rca_cert_file: "certs/tongsuo/subca.crt"
+  #tls_cert_file: [ "certs/tongsuo/server_sign.crt", "certs/tongsuo/server_enc.crt" ]
+  #tls_key_file: [ "certs/tongsuo/server_sign.key", "certs/tongsuo/server_enc.key" ]
+  #tls_rca_cert_file: "certs/tongsuo/subca.crt"
+  # GM双证书模式: 服务端角色只能传叶子证书, 禁止使用 *-chain.crt (cert[1]的KeyUsage校验会失败)
+  # *-chain.crt 保留给 angie 等标准TLS服务端部署使用(需向客户端下发中间链)
+  tls_cert_file: [ "certs/tongsuo/hserver_sign.crt", "certs/tongsuo/hserver_enc.crt" ]
+  tls_key_file: [ "certs/tongsuo/hserver_sign.key", "certs/tongsuo/hserver_enc.key" ]
+  # gmsm校验要求信任锚直接覆盖叶子签发链, RCA需用full-chain(含root+intermediate+authority)
+  tls_rca_cert_file: "certs/tongsuo/http-full-chain.crt"
   http2_enabled: true  # 国密TLS模式不支持HTTP/2
   pprof: true
   language: "zh"  # 默认语言设置，支持zh,en

@@ -122,23 +122,24 @@ func main() {
 					var client *http.Client
 					if serverControl.GetConfigControl().GetWebConfig().TlsGM {
 						certPool := gmx509.NewCertPool()
-						rootPem, err := os.ReadFile("certs/tongsuo/subca.crt")
+						// gmsm校验要求信任锚直接覆盖叶子签发链(先验证后加入中间证书), RCA需用full-chain(含root+intermediate+authority), 单根root.crt无法验证hserver叶子证书
+						rootPem, err := os.ReadFile("certs/tongsuo/http-full-chain.crt")
 						if err != nil {
-							mainLogger.Errorf("read root.crt err: %v", err)
+							mainLogger.Errorf("read http-full-chain.crt err: %v", err)
 							return
 						}
 						if ok := certPool.AppendCertsFromPEM(rootPem); !ok {
-							mainLogger.Errorf("append root.crt err")
+							mainLogger.Errorf("append http-full-chain.crt err")
 							return
 						}
 
-						keyPair1, err := gmtls.LoadX509KeyPair("certs/tongsuo/client_sign.crt", "certs/tongsuo/client_sign.key")
+						keyPair1, err := gmtls.LoadX509KeyPair("certs/tongsuo/hclient_sign-chain.crt", "certs/tongsuo/hclient_sign.key")
 						if err != nil {
 							mainLogger.Errorf("load key pair err: %v", err)
 							return
 						}
 
-						keyPair2, err := gmtls.LoadX509KeyPair("certs/tongsuo/client_enc.crt", "certs/tongsuo/client_enc.key")
+						keyPair2, err := gmtls.LoadX509KeyPair("certs/tongsuo/hclient_enc-chain.crt", "certs/tongsuo/hclient_enc.key")
 						if err != nil {
 							mainLogger.Errorf("load key pair err: %v", err)
 							return
@@ -150,7 +151,7 @@ func main() {
 							Certificates:       []gmtls.Certificate{keyPair1, keyPair2},
 							RootCAs:            certPool,
 							InsecureSkipVerify: false,
-							ServerName:         "grpc",
+							ServerName:         "www.jianlu.site",
 						}
 						client = http.NewClientWithGMTls(tlsConfig)
 					} else {
