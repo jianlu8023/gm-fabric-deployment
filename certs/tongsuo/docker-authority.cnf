@@ -1,4 +1,4 @@
-# tongsuo-docker-authority.cnf
+# tongsuo-docker-authority.cnf (由 mkcert.sh 内嵌模板生成)
 [ req ]
 default_bits        = 2048
 default_md          = sha256

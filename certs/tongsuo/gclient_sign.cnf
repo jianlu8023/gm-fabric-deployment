@@ -1,4 +1,4 @@
-# tongsuo-gclient_sign.cnf
+# gclient_sign.cnf  (由 mkcert.sh 内嵌模板生成, 可手改后重签)
 [ req ]
 default_bits        = 2048
 distinguished_name  = req_distinguished_name
