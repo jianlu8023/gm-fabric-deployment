@@ -299,7 +299,7 @@ func (c *Control) setupStandardTLSConfig() error {
 		},
 		// InsecureSkipVerify: false,
 		CurvePreferences: []tls.CurveID{
-			tls.X25519MLKEM768,
+			//tls.X25519MLKEM768, 后量子 go1.22 不支持
 			tls.X25519, // 优先使用X25519椭圆曲线
 			tls.CurveP256,
 			tls.CurveP384,
