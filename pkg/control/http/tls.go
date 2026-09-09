@@ -55,17 +55,9 @@ func (c *Control) setupGMTLSConfig() error {
 			gmtls.X25519, gmtls.CurveP521, gmtls.CurveP384, gmtls.CurveP256,
 		},
 		SessionTicketsDisabled: false, // 启用会话票据
+		// 对端（客户端）证书链校验通过后的审计回调：记录 GM mTLS 对端证书信息与临期告警
+		VerifyPeerCertificate: c.gmPeerCertLogger(),
 	}
-
-	// TODO 目前 gmhserver.key 是加密的key 在使用 emmansun/gmsm 解密后 出现 secure: sm2 private key does not match public key
-	//
-	// certificates, err := gmtls.LoadX509KeyPair(serverConfig.TlsCertFile, serverConfig.TlsKeyFile)
-	// if err != nil {
-	// 	webLogger.Errorf("[control] failed to load GM TLS certificate: %v", err)
-	// 	return nil, err
-	// } else {
-	// 	gmTLSConfig.Certificates = []gmtls.Certificate{certificates}
-	// }
 
 	// TODO 目前 没找到支持http2的方法 暂时注释掉
 	// 根据HTTP/2配置决定是否启用HTTP/2协议协商
@@ -237,18 +229,23 @@ func (c *Control) setupStandardTLSConfig() error {
 		MaxVersion: tls.VersionTLS13, // 设置最高TLS版本
 		CipherSuites: []uint16{
 			// TLS 1.2 - RSA 证书
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+
 			// TLS 1.2 - ECDSA 证书
 			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+
 			// TLS 1.3 套件（Go 运行时自动选择，此处仅作参考）
-			tls.TLS_CHACHA20_POLY1305_SHA256,
 			tls.TLS_AES_128_GCM_SHA256,
 			tls.TLS_AES_256_GCM_SHA384,
+			tls.TLS_CHACHA20_POLY1305_SHA256,
 		},
 		// InsecureSkipVerify: false,
 		CurvePreferences: []tls.CurveID{
+			tls.X25519MLKEM768,
 			tls.X25519, // 优先使用X25519椭圆曲线
 			tls.CurveP256,
 			tls.CurveP384,
@@ -256,6 +253,9 @@ func (c *Control) setupStandardTLSConfig() error {
 		},
 		// PreferServerCipherSuites: true,  // 优先使用服务端加密套件 Deprecated
 		SessionTicketsDisabled: false, // 启用会话票据
+		// 对端（客户端）证书链校验通过后的审计回调：记录 mTLS 对端证书信息与临期告警
+		VerifyPeerCertificate: c.stdlibPeerCertLogger(),
+		ClientSessionCache:    tls.NewLRUClientSessionCache(256),
 	}
 
 	// 根据HTTP/2配置决定是否启用HTTP/2协议协商

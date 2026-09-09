@@ -220,6 +220,16 @@ func (c *Control) loadConfig() (Config, error) {
 	v.SetConfigType(strings.TrimPrefix(fileExt, ".")) // 设置配置文件类型 (yaml, json, toml 等)
 	v.AddConfigPath(filePath)                         // 设置配置文件路径
 
+	// 允许通过环境变量覆盖配置（容器部署友好）：
+	// 前缀 EXAMPLE_，配置键中的 "." 映射为 "_"，例如：
+	//   EXAMPLE_HTTP_ADDRESS  -> http.address
+	//   EXAMPLE_HTTP_TLS_ENABLED -> http.tls_enabled
+	//   EXAMPLE_DATASOURCE_DB_HOST -> datasource.db_host
+	// 注意：仅对配置文件中已存在（已知）的标量键生效；切片类型（如 tls_cert_file）不建议用环境变量覆盖。
+	v.SetEnvPrefix("EXAMPLE")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.AutomaticEnv()
+
 	// 如果指定了 configType, 尝试读取特定环境的配置文件
 	if !stringer.IsBlank(c.flagsControl.GetConfigType()) {
 		envSpecificFileName := fmt.Sprintf("%s-%s", fileNameWithoutExt, c.flagsControl.GetConfigType())

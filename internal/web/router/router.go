@@ -10,6 +10,7 @@ import (
 	commonhttp "github.com/jianlu8023/golang-example/pkg/common/http"
 	"github.com/jianlu8023/golang-example/pkg/control/ants"
 	"github.com/jianlu8023/golang-example/pkg/control/captcha"
+	"github.com/jianlu8023/golang-example/pkg/control/certificate"
 	"github.com/jianlu8023/golang-example/pkg/control/datasource"
 	"github.com/jianlu8023/golang-example/pkg/control/docker"
 	"github.com/jianlu8023/golang-example/pkg/control/grpc"
@@ -35,6 +36,7 @@ import (
 // @param antsPoolControl *ants.Control 线程池控制器
 // @param mfaControl *mfa.Control MFA控制器
 // @param webrtcControl *webrtc.Control WebRTC控制器
+// @param certificateControl *certificate.Control 证书控制器（可为 nil）
 // @return []commonhttp.RouterHandler 路由处理器列表
 func NewRouter(loggerControl *logger.Control,
 	libp2pControl *libp2p.Control,
@@ -47,6 +49,7 @@ func NewRouter(loggerControl *logger.Control,
 	antsPoolControl *ants.Control,
 	mfaControl *mfa.Control,
 	webrtcControl *webrtc.Control,
+	certificateControl *certificate.Control,
 ) []commonhttp.RouterHandler {
 	webLogger := loggerControl.GenLogger(logger.ModuleWeb)
 
@@ -168,6 +171,15 @@ func NewRouter(loggerControl *logger.Control,
 		),
 	)
 	result = append(result, webRTCHandler.Routers()...)
+
+	// 证书只读查询处理器（证书详情 / 证书目录列表 / 当前TLS连接信息）
+	certsHandler := handler.NewCertsHandler(baseHandler,
+		service.NewCertsService(baseService,
+			certificateControl,
+			httpControl,
+		),
+	)
+	result = append(result, certsHandler.Routers()...)
 
 	// 创建国际化示例处理器
 	exampleI18nHandler := handler.NewExampleI18nHandler(baseHandler,

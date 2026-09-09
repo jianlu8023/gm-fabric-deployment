@@ -97,6 +97,7 @@ func main() {
 			serverControl.GetAntsPoolControl(),
 			serverControl.GetMFAControl(),
 			serverControl.GetWebRTCControl(),
+			serverControl.GetCertificateControl(),
 		))
 	}
 

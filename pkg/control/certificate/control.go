@@ -1282,88 +1282,36 @@ func (c *Control) generateSM2LeafCertificate(name, subject, rootCertPath, rootKe
 }
 
 // GetCertificateInfo 获取证书信息
+//
+// @description 解析指定路径的证书文件（支持标准 x509 与国密 SM2 证书），返回证书详情；
+// 具体解析逻辑见包级函数 ParseCertificateFile
 // @param certPath string 证书路径
 // @return *Certificate 证书信息
 // @return error 错误信息
 func (c *Control) GetCertificateInfo(certPath string) (*Certificate, error) {
-	certBytes, err := os.ReadFile(certPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read certificate: %w", err)
+	return ParseCertificateFile(certPath)
+}
+
+// GetCertPath 获取证书存储路径
+//
+// @description 返回证书控制器配置的证书存储路径；控制器为 nil 或未配置时返回空字符串
+// @return string 证书存储路径
+func (c *Control) GetCertPath() string {
+	if c == nil || c.config == nil {
+		return ""
 	}
+	return c.config.CertPath
+}
 
-	certBlock, _ := pem.Decode(certBytes)
-	if certBlock == nil {
-		return nil, fmt.Errorf("failed to decode certificate")
+// ListCertificateFiles 列举证书目录下的证书与私钥文件
+//
+// @description 列举证书控制器配置目录下的证书/私钥文件元数据；具体逻辑见包级函数 ListCertificateFiles
+// @param dir string 证书目录，为空时使用控制器配置的 CertPath
+// @return []CertFileInfo 文件摘要列表
+// @return error 错误信息
+func (c *Control) ListCertificateFiles(dir string) ([]CertFileInfo, error) {
+	if strings.TrimSpace(dir) == "" {
+		dir = c.GetCertPath()
 	}
-
-	var certInfo *Certificate
-
-	// 尝试解析为标准x509证书
-	if cert, err := x509.ParseCertificate(certBlock.Bytes); err == nil {
-		certInfo = &Certificate{
-			Subject:     cert.Subject.String(),
-			Issuer:      cert.Issuer.String(),
-			NotBefore:   cert.NotBefore,
-			NotAfter:    cert.NotAfter,
-			Serial:      cert.SerialNumber,
-			Version:     cert.Version,
-			IsCA:        cert.IsCA,
-			DNSNames:    cert.DNSNames,
-			KeyUsage:    formatKeyUsage(cert.KeyUsage),
-			ExtKeyUsage: formatExtKeyUsage(cert.ExtKeyUsage),
-		}
-
-		// 设置公钥算法和长度
-		certInfo.PublicKeyAlgorithm = cert.PublicKeyAlgorithm.String()
-		switch pubKey := cert.PublicKey.(type) {
-		case *rsa.PublicKey:
-			certInfo.Algorithm = "RSA"
-			certInfo.PublicKeyLength = pubKey.N.BitLen()
-		case *ecdsa.PublicKey:
-			certInfo.Algorithm = "ECC"
-			certInfo.PublicKeyLength = pubKey.Curve.Params().BitSize
-		}
-
-		// 设置签名算法
-		certInfo.SignatureAlgorithm = cert.SignatureAlgorithm.String()
-
-		// 计算指纹
-		certInfo.FingerprintSHA1 = calculateFingerprintSHA1(cert.Raw)
-		certInfo.FingerprintSHA256 = calculateFingerprintSHA256(cert.Raw)
-	} else {
-		// 尝试解析为国密证书
-		if cert, err := gmx509.ParseCertificate(certBlock.Bytes); err == nil {
-			certInfo = &Certificate{
-				Algorithm:   "SM2",
-				Subject:     cert.Subject.String(),
-				Issuer:      cert.Issuer.String(),
-				NotBefore:   cert.NotBefore,
-				NotAfter:    cert.NotAfter,
-				Serial:      cert.SerialNumber,
-				Version:     cert.Version,
-				IsCA:        cert.IsCA,
-				DNSNames:    cert.DNSNames,
-				KeyUsage:    formatGMKeyUsage(cert.KeyUsage),
-				ExtKeyUsage: formatGMExtKeyUsage(cert.ExtKeyUsage),
-			}
-
-			// 设置公钥算法和长度
-			certInfo.PublicKeyAlgorithm = formatGMPublicKeyAlgorithm(cert.PublicKeyAlgorithm)
-			if _, ok := cert.PublicKey.(*gmsm2.PublicKey); ok {
-				// SM2公钥长度通常是256位
-				certInfo.PublicKeyLength = 256
-			}
-
-			// 设置签名算法
-			certInfo.SignatureAlgorithm = cert.SignatureAlgorithm.String()
-
-			// 计算指纹
-			certInfo.FingerprintSHA1 = calculateFingerprintSHA1(cert.Raw)
-			certInfo.FingerprintSHA256 = calculateFingerprintSHA256(cert.Raw)
-		} else {
-			return nil, fmt.Errorf("failed to parse certificate")
-		}
-	}
-
-	return certInfo, nil
+	return ListCertificateFiles(dir)
 }

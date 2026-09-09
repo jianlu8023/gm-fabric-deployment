@@ -242,6 +242,30 @@ func (c *Control) GetAuthenticator() auth.Authenticator {
 	return c.authenticator
 }
 
+// GetServerConfig 获取HTTP服务器配置
+//
+// @description 返回当前 HTTP 控制器持有的服务器配置（只读，调用方请勿修改）
+// @return *config.HttpServerConfig 服务器配置实例
+func (c *Control) GetServerConfig() *config.HttpServerConfig {
+	return c.config
+}
+
+// GetTLSConfig 获取标准TLS配置
+//
+// @description 返回标准 crypto/tls 的配置；未启用标准TLS时返回 nil，调用方需做空判断
+// @return *tls.Config 标准TLS配置
+func (c *Control) GetTLSConfig() *tls.Config {
+	return c.tlsConfig
+}
+
+// GetGMTLSConfig 获取国密TLS配置
+//
+// @description 返回国密 gmtls 的配置；未启用国密TLS时返回 nil，调用方需做空判断
+// @return *gmtls.Config 国密TLS配置
+func (c *Control) GetGMTLSConfig() *gmtls.Config {
+	return c.gmTlsConfig
+}
+
 // RegisterRouter 注册HTTP路由
 // @param routers []commonhttp.RouterHandler 路由处理器列表
 func (c *Control) RegisterRouter(routers []commonhttp.RouterHandler) {

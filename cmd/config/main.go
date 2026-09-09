@@ -41,16 +41,18 @@ func genDefaultConfig() error {
 				TlsKeyFile:     []string{"./certs/gserver.key"},
 				TlsRCACertFile: "./certs/root-ca.crt",
 			},
-			Client: &config.GrpcClientConfig{
-				Host:               "127.0.0.1:65533",
-				MaxCallRecvMsgSize: 5242880,
-				MaxCallSendMsgSize: 5242880,
-				ChunkSize:          4194304,
-				CallTimeout:        99999,
-				TlsEnabled:         true,
-				TlsCertFile:        []string{"./certs/gclient.crt"},
-				TlsKeyFile:         []string{"./certs/gclient.key"},
-				TlsRCACertFile:     "./certs/root-ca.crt",
+			Clients: map[string]*config.GrpcClientConfig{
+				"client": {
+					Host:               "127.0.0.1:65533",
+					MaxCallRecvMsgSize: 5242880,
+					MaxCallSendMsgSize: 5242880,
+					ChunkSize:          4194304,
+					CallTimeout:        99999,
+					TlsEnabled:         true,
+					TlsCertFile:        []string{"./certs/gclient.crt"},
+					TlsKeyFile:         []string{"./certs/gclient.key"},
+					TlsRCACertFile:     "./certs/root-ca.crt",
+				},
 			},
 		},
 		LoggerConfig: &config.LoggerConfig{
