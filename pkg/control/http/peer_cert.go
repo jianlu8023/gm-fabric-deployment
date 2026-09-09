@@ -2,13 +2,12 @@ package http
 
 import (
 	"crypto/x509"
+	"fmt"
+	"strings"
 	"time"
 
 	gmx509 "github.com/tjfoc/gmsm/x509"
 )
-
-// peerCertExpiringSoonWarn 对端证书剩余有效期小于该阈值时输出告警，便于运维提前续期。
-const peerCertExpiringSoonWarn = 30 * 24 * time.Hour
 
 // stdlibPeerCertLogger 生成标准 crypto/tls 的 VerifyPeerCertificate 回调。
 //
@@ -62,4 +61,59 @@ func (c *Control) gmPeerCertLogger() func(rawCerts [][]byte, verifiedChains [][]
 		}
 		return nil
 	}
+}
+
+// logStdlibServerCert 打印标准TLS服务端自身证书信息并做临期告警
+//
+// @description 服务端证书在启动阶段一次性加载并预解析 Leaf，本方法打印证书主体、SAN 与到期时间；
+// 剩余有效期低于 peerCertExpiringSoonWarn（含已过期）时输出 WARN，
+// 避免证书过期导致客户端握手失败却无从排查
+// @param leaf *x509.Certificate 服务端 leaf 证书
+// @param certFile string 证书文件路径，用于日志定位
+func (c *Control) logStdlibServerCert(leaf *x509.Certificate, certFile string) {
+	remaining := time.Until(leaf.NotAfter)
+	days := int(remaining / (24 * time.Hour))
+	subject := leaf.Subject.CommonName
+	if subject == "" {
+		subject = leaf.Subject.String()
+	}
+	names := make([]string, 0, len(leaf.DNSNames)+len(leaf.IPAddresses))
+	names = append(names, leaf.DNSNames...)
+	for _, ip := range leaf.IPAddresses {
+		names = append(names, ip.String())
+	}
+	msg := fmt.Sprintf("TLS服务端证书 file=%s subject=%s SAN=[%s] 有效期至 %s(剩余%d天)",
+		certFile, subject, strings.Join(names, ","), leaf.NotAfter.Format("2006-01-02 15:04:05"), days)
+	if remaining < peerCertExpiringSoonWarn {
+		c.logger.Warnf("[http/control] %s，请及时续期", msg)
+		return
+	}
+	c.logger.Infof("[http/control] %s", msg)
+}
+
+// logGMServerCert 打印国密TLS服务端自身证书信息并做临期告警
+//
+// @description 国密服务端证书在启动阶段一次性加载并预解析 Leaf，本方法打印证书主体、SAN 与到期时间；
+// 剩余有效期低于 peerCertExpiringSoonWarn（含已过期）时输出 WARN
+// @param leaf *gmx509.Certificate 国密服务端 leaf 证书
+// @param certFile string 证书文件路径，用于日志定位
+func (c *Control) logGMServerCert(leaf *gmx509.Certificate, certFile string) {
+	remaining := time.Until(leaf.NotAfter)
+	days := int(remaining / (24 * time.Hour))
+	subject := leaf.Subject.CommonName
+	if subject == "" {
+		subject = leaf.Subject.String()
+	}
+	names := make([]string, 0, len(leaf.DNSNames)+len(leaf.IPAddresses))
+	names = append(names, leaf.DNSNames...)
+	for _, ip := range leaf.IPAddresses {
+		names = append(names, ip.String())
+	}
+	msg := fmt.Sprintf("GM TLS服务端证书 file=%s subject=%s SAN=[%s] 有效期至 %s(剩余%d天)",
+		certFile, subject, strings.Join(names, ","), leaf.NotAfter.Format("2006-01-02 15:04:05"), days)
+	if remaining < peerCertExpiringSoonWarn {
+		c.logger.Warnf("[http/control] %s，请及时续期", msg)
+		return
+	}
+	c.logger.Infof("[http/control] %s", msg)
 }

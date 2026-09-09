@@ -16,6 +16,44 @@ import (
 	gmx509 "github.com/tjfoc/gmsm/x509"
 )
 
+// http2Settings 构建HTTP/2服务端显式调优参数
+//
+// @description 基于 golang.org/x/net/http2 显式配置单连接并发流上限、流控窗口、帧大小与空闲回收，
+// 替代 http2.Server 零值默认；TLS 场景经 http2.ConfigureServer 注册后获得 h2 GOAWAY 优雅关闭能力，
+// h2c 明文场景由 h2c.NewHandler 直接使用
+// @return *http2.Server HTTP/2服务端配置
+func http2Settings() *http2.Server {
+	return &http2.Server{
+		// MaxConcurrentStreams 单连接最大并发流数，HTTP/2 规范建议值
+		MaxConcurrentStreams: h2MaxConcurrentStreams,
+		// MaxReadFrameSize 可接受的单帧最大字节数（合法范围 16KB~16MB）
+		MaxReadFrameSize: h2MaxBufferSize,
+		// MaxUploadBufferPerConnection 连接级流控窗口
+		MaxUploadBufferPerConnection: h2MaxBufferSize,
+		// MaxUploadBufferPerStream 单流流控窗口
+		MaxUploadBufferPerStream: h2MaxBufferSize,
+		// IdleTimeout 空闲连接回收，避免长连接长期占用句柄，与 http.Server.IdleTimeout 保持一致
+		IdleTimeout: http2IdleTimeout,
+		// NewWriteScheduler 优先级调度器，与 Go 运行时内置实现保持一致
+		NewWriteScheduler: func() http2.WriteScheduler {
+			return http2.NewPriorityWriteScheduler(nil)
+		},
+	}
+}
+
+// newTCPListener 创建带KeepAlive探测的TCP监听器
+//
+// @description 使用 net.ListenConfig 显式指定 KeepAlive 间隔，accept 出连接时会据此开启
+// SO_KEEPALIVE 并设置 TCP_KEEPIDLE/TCP_KEEPINTVL（同时默认开启 TCP_NODELAY），
+// 以便及时回收异常断电/断网留下的半开连接，避免句柄与 goroutine 堆积；
+// TLS/GM TLS 场景在该裸监听器上再包装 tls.NewListener/gmtls.NewListener
+// @return net.Listener TCP监听器
+// @return error 监听失败原因
+func (c *Control) newTCPListener() (net.Listener, error) {
+	lc := net.ListenConfig{KeepAlive: tcpKeepAlive}
+	return lc.Listen(c.ctx, "tcp", c.config.Address)
+}
+
 // setupTLSConfig 配置TLS（GM TLS或标准TLS）
 // @description 根据配置启用不同的TLS模式（GM TLS或标准TLS），并加载相应的证书和配置
 // @return error 配置过程中可能产生的错误
@@ -113,6 +151,14 @@ func (c *Control) loadGMSingleCert(gmTLSConfig *gmtls.Config) error {
 		c.logger.Errorf("[http/control] failed to load GM TLS certificate: %v", err)
 		return fmt.Errorf("加载GM TLS证书失败: %v", err)
 	}
+	// 预解析 leaf 证书并回写 Leaf 字段：跳过握手时每连接一次的重复 ASN.1 解析，
+	// 同时在启动阶段打印证书主体/SAN/到期时间，临期告警便于运维巡检
+	if leaf, parseErr := gmx509.ParseCertificate(cert.Certificate[0]); parseErr != nil {
+		c.logger.Warnf("[http/control] 解析GM TLS leaf证书失败: %v", parseErr)
+	} else {
+		cert.Leaf = leaf
+		c.logGMServerCert(leaf, certFile)
+	}
 
 	gmTLSConfig.Certificates = []gmtls.Certificate{cert}
 	c.logger.Infof("[http/control] 成功加载GM模式单证书: %s -> %s", certFile, keyFile)
@@ -174,6 +220,14 @@ func (c *Control) loadGMDualCert(gmTLSConfig *gmtls.Config) error {
 		if err != nil {
 			c.logger.Errorf("[http/control] 加载第%d套GM TLS证书失败: %v", i+1, err)
 			return fmt.Errorf("加载第%d套GM TLS证书失败: %v", i+1, err)
+		}
+		// 预解析 leaf 证书并回写 Leaf 字段：跳过握手时每连接一次的重复 ASN.1 解析，
+		// 同时在启动阶段打印证书主体/SAN/到期时间，临期告警便于运维巡检
+		if leaf, parseErr := gmx509.ParseCertificate(cert.Certificate[0]); parseErr != nil {
+			c.logger.Warnf("[http/control] 解析第%d套GM TLS leaf证书失败: %v", i+1, parseErr)
+		} else {
+			cert.Leaf = leaf
+			c.logGMServerCert(leaf, certFiles[i])
 		}
 		certificates = append(certificates, cert)
 		c.logger.Debugf("[http/control] 成功加载第%d套GM TLS证书: %s -> %s", i+1, certFiles[i], keyFiles[i])
@@ -297,6 +351,14 @@ func (c *Control) setupStandardTLSConfig() error {
 			c.logger.Errorf("[http/control] 加载第%d套TLS证书失败: %v", i+1, err)
 			return fmt.Errorf("加载第%d套TLS证书失败: %v", i+1, err)
 		}
+		// 预解析 leaf 证书并回写 Leaf 字段：跳过握手时每连接一次的重复 ASN.1 解析（性能优化），
+		// 同时在启动阶段打印证书主体/SAN/到期时间，临期告警便于运维巡检
+		if leaf, parseErr := x509.ParseCertificate(cert.Certificate[0]); parseErr != nil {
+			c.logger.Warnf("[http/control] 解析第%d套TLS leaf证书失败: %v", i+1, parseErr)
+		} else {
+			cert.Leaf = leaf
+			c.logStdlibServerCert(leaf, certFile)
+		}
 		certificates = append(certificates, cert)
 	}
 	tlsConfig.Certificates = certificates
@@ -340,19 +402,22 @@ func (c *Control) setupStandardRootCA(tlsConfig *tls.Config) error {
 }
 
 func (c *Control) serverGMTls(failedFunc func(err error)) {
-	listener, err := gmtls.Listen("tcp", c.config.Address, c.gmTlsConfig)
+	// 先建立带 KeepAlive 探测的裸 TCP 监听器，再包装为 GM TLS 监听器，
+	// 不用 gmtls.Listen 是为了显式控制 TCP KeepAlive，及时回收半开连接
+	tcpListener, err := c.newTCPListener()
 	if err != nil {
-		c.logger.Errorf("[http/control] failed to create gm TLS listener: %v", err)
+		c.logger.Errorf("[http/control] failed to create TCP listener: %v", err)
 		if failedFunc != nil {
 			failedFunc(err)
 		}
 		return
 	}
+	listener := gmtls.NewListener(tcpListener, c.gmTlsConfig)
 
 	// 注意：GM TLS不支持HTTP/2，因为HTTP/2需要的ALPN协议协商和GM TLS不兼容
 	if c.config.Http2Enabled {
 		c.logger.Warnf("[http/control] HTTP/2 is not supported with GM TLS, falling back to HTTP/1.1")
-		if err := http2.ConfigureServer(c.server, &http2.Server{}); err != nil {
+		if err := http2.ConfigureServer(c.server, http2Settings()); err != nil {
 			c.logger.Errorf("[http/control] failed to configure HTTP/2 server: %v", err)
 			if failedFunc != nil {
 				failedFunc(err)
@@ -378,19 +443,22 @@ func (c *Control) serverGMTls(failedFunc func(err error)) {
 }
 
 func (c *Control) serverTls(failedFunc func(err error)) {
-	// 使用tls.Listen创建监听器
-	listener, err := tls.Listen("tcp", c.config.Address, c.tlsConfig)
+	// 先建立带 KeepAlive 探测的裸 TCP 监听器，再包装为 TLS 监听器，
+	// 不用 tls.Listen 是为了显式控制 TCP KeepAlive，及时回收半开连接
+	tcpListener, err := c.newTCPListener()
 	if err != nil {
-		c.logger.Errorf("[http/control] failed to create TLS listener: %v", err)
+		c.logger.Errorf("[http/control] failed to create TCP listener: %v", err)
 		if failedFunc != nil {
 			failedFunc(err)
 		}
 		return
 	}
+	listener := tls.NewListener(tcpListener, c.tlsConfig)
 
-	// 为HTTPS服务器启用HTTP/2支持
+	// 为HTTPS服务器启用HTTP/2支持：ConfigureServer 注册 TLSNextProto["h2"] 处理函数，
+	// ALPN 协商由 tlsConfig.NextProtos(h2,http/1.1) 完成
 	if c.config.Http2Enabled {
-		if err := http2.ConfigureServer(c.server, &http2.Server{}); err != nil {
+		if err := http2.ConfigureServer(c.server, http2Settings()); err != nil {
 			c.logger.Errorf("[http/control] failed to configure HTTP/2 server: %v", err)
 			if failedFunc != nil {
 				failedFunc(err)
@@ -417,8 +485,8 @@ func (c *Control) serverTls(failedFunc func(err error)) {
 }
 
 func (c *Control) serverNoTls(failedFunc func(err error)) {
-	// 使用普通TCP监听器
-	listener, err := net.Listen("tcp", c.config.Address)
+	// 使用带 KeepAlive 探测的 TCP 监听器，及时回收半开连接
+	listener, err := c.newTCPListener()
 	if err != nil {
 		c.logger.Errorf("[http/control] failed to create TCP listener: %v", err)
 		if failedFunc != nil {

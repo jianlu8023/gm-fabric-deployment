@@ -14,7 +14,6 @@ import (
 	concurrentmap "github.com/jianlu8023/go-tools/v2/pkg/collections/concurrent/map"
 	"github.com/jianlu8023/go-tools/v2/pkg/path"
 	"github.com/jianlu8023/go-tools/v2/pkg/stringer"
-	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
 	"github.com/jianlu8023/golang-example/pkg/control/config"
@@ -95,18 +94,19 @@ func NewWebServerControl(serverConfig *config.HttpServerConfig, loggerControl *l
 	}
 
 	srv := &http.Server{
-		Addr:         serverConfig.Address,
-		Handler:      engine.Handler(),
-		ReadTimeout:  30 * time.Second,  // 设置读取超时
-		WriteTimeout: 60 * time.Second,  // 设置写入超时
-		IdleTimeout:  120 * time.Second, // 设置空闲超时
+		Addr:              serverConfig.Address,
+		Handler:           engine.Handler(),
+		ReadTimeout:       30 * time.Second,  // 设置读取超时
+		ReadHeaderTimeout: readHeaderTimeout, // 读取请求头超时，只约束头部阶段，防御 Slowloris 慢连接攻击
+		WriteTimeout:      60 * time.Second,  // 设置写入超时
+		IdleTimeout:       120 * time.Second, // 设置空闲超时
+		MaxHeaderBytes:    maxHeaderBytes,    // 请求头集合最大字节数，防止头部放大攻击
 	}
 
 	// 如果启用HTTP/2且非TLS模式，使用h2c支持HTTP/2 over cleartext
 	if serverConfig.Http2Enabled && !serverConfig.TlsEnabled {
 		webLogger.Info("[http/control] HTTP/2 enabled for cleartext connections (h2c)")
-		h2s := &http2.Server{}
-		srv.Handler = h2c.NewHandler(engine, h2s)
+		srv.Handler = h2c.NewHandler(engine, http2Settings())
 	}
 
 	webLogger.Debug("[http/control] generate http control...")
@@ -220,10 +220,15 @@ func (c *Control) StartUp(failedFunc func(err error)) {
 }
 
 // Shutdown 关闭HTTP服务器
+//
+// @description 执行HTTP服务器的优雅关闭：等待进行中请求完成，HTTP/2 连接会先收到 GOAWAY；
+// 通过 shutdownTimeout 限制最长等待时间，避免被卡死的长连接无限阻塞关闭流程
 // @return error 关闭过程中可能产生的错误
 func (c *Control) Shutdown() error {
 	c.logger.Infof("[http/control] shutdown http server...")
-	if err := c.server.Shutdown(c.ctx); err != nil {
+	shutdownCtx, cancel := context.WithTimeout(c.ctx, shutdownTimeout)
+	defer cancel()
+	if err := c.server.Shutdown(shutdownCtx); err != nil {
 		c.logger.Errorf("[http/control] shutdown http server failed: %v", err)
 		return err
 	}
